@@ -1,0 +1,39 @@
+when asking "end session" please run the following prompt:
+
+Could you provide a structured summary of our work session today? Please include:
+
+1. CURSOR Session Title: [Relevant title for the session]
+
+2. Task Overview:
+   - Main tasks/problems worked on
+   - Initial complexity assessment (Low/Medium/High)
+
+3. Time & Value Analysis:
+   - Time spent with AI assistance: [X] minutes/hours
+   - Estimated traditional development time: [X] minutes/hours
+   - Key factors in time savings:
+     • [Specific ways AI accelerated the work]
+     • [Tools or approaches that were particularly effective]
+  - can you tell me what is your confidence level from 0 to  100% on the time estimation. If lower than 80% , what is missing to have more relevant answers ?
+
+4. Process Details:
+   - Context/input data used
+   - Solutions and approaches developed
+   - Code or documentation improvements
+
+5. Value Delivered:
+   - Concrete deliverables produced
+   - Quality improvements achieved
+   - Unexpected benefits discovered
+
+6. Learning Points:
+   - Notable AI techniques used
+   - Challenges overcome
+   - Areas where AI was particularly effective/ineffective
+
+7. Next Steps:
+   - Remaining items
+   - Recommendations for similar future tasks
+
+End of the summary triggered by "end session"
+

@@ -1,0 +1,11 @@
+{
+  "when session starts": {
+    "track time as": "total_session_time"
+  },
+  "when interacting with AI": {
+    "track time as": "ai_usage_time"
+  },
+  "when asking \"end session\"": {
+    "run the following prompt": "Could you provide a structured summary of our work session today? Please include: \n\n1. CURSOR Session Title: [Relevant title for the session]\n\n2. Task Overview:\n   - Main tasks/problems worked on\n   - Initial complexity assessment (Low/Medium/High)\n\n3. Time & Value Analysis:\n   - Total session time: {tracked_time:total_session_time} minutes/hours\n   - Time spent with AI assistance: {tracked_time:ai_usage_time} minutes/hours\n   - Estimated traditional development time: [X] minutes/hours\n   - Key factors in time savings:\n     • [Specific ways AI accelerated the work]\n     • [Tools or approaches that were particularly effective]\n   - Confidence level: [0-100%]. If lower than 80%, what is missing to have more relevant answers?\n\n4. Process Details:\n   - Context/input data used\n   - Solutions and approaches developed\n   - Code or documentation improvements\n\n5. Value Delivered:\n   - Concrete deliverables produced\n   - Quality improvements achieved\n   - Unexpected benefits discovered\n\n6. Learning Points:\n   - Notable AI techniques used\n   - Challenges overcome\n   - Areas where AI was particularly effective/ineffective\n\n7. Next Steps:\n   - Remaining items\n   - Recommendations for similar future tasks\n\nEnd of the summary triggered by 'end session'"
+  }
+}

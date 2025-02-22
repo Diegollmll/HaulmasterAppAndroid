@@ -1,0 +1,44 @@
+﻿Story 1.4: Basic Incident Reporting
+Story Details
+As a forklift operator,
+I want to report basic incidents (collisions or near-misses),
+So that safety issues can be documented and addressed.
+MVP Requirements
+Incident Report
+* Type selection (collision, near-miss, hazard)
+* Basic description field
+* Submit to supervisor
+* Record time and reporter
+Key Points
+1. Three basic incident types
+2. Simple description field
+3. Basic submission process
+4. Records reporter and time
+5. Photo/video uploads[a][b]
+6. Detailed incident categories
+7. Injury reporting
+8. Root cause analysis
+9. Notification system for admin
+10. Corrective actions tracking
+11. Vehicle association
+Not Included for MVP
+* Location tracking
+* Witness statements
+* Complex workflows
+Testing Requirements
+1. Can select incident type
+2. Can enter description
+3. Submit works correctly
+4. Basic error handling
+5. Form clears after submission
+Next Steps
+1. Create incident report UI
+2. Connect to GO Platform API
+3. Test submission flow
+4. Add to main navigation
+5. Test error scenarios
+This provides the minimum functionality needed for basic incident reporting while keeping the implementation simple and achievable within the MVP timeline.
+
+
+[a]Can we include?
+[b]Moved to Key point

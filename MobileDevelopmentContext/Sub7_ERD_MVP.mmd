@@ -1,0 +1,777 @@
+---
+config:
+  theme: neo
+---
+erDiagram
+    Country { 
+        uuid Id PK
+        relation Business
+        relation States
+
+        string Name
+        string Code
+        string PhoneCode
+        boolean IsActive
+    }
+    State {
+        uuid Id PK
+        uuid CountryId FK
+        array Sites "Relation"
+        array Businesses "Relation"
+        
+        string Name
+        string Code
+        boolean IsActive
+    }
+    Business {
+        uuid Id PK
+        uuid CountryId FK
+        uuid StateId FK
+
+        string Name
+        string Description
+        string ContactPerson
+        string Email
+        string Phone
+        string Address
+        string PostalCode
+        string TaxId        
+        boolean IsActive        
+    }
+    Site {
+        uuid Id PK
+        uuid BusinessId FK
+        uuid StateId FK
+        array Departments "Relation"
+        uuid GeofenceId FK
+        uuid SiteConditionId FK
+        uuid TimezoneId
+
+        string SiteName
+        string Address
+        string latitude
+        string longitude
+        
+        time StartOperatingHours
+        time EndOperatingHours
+        boolean Has24HoursOperation
+        string EmergencyContact
+        string EmergencyPhone
+        boolean IsActive
+    }
+    Department {
+        uuid Id PK
+        uuid SiteId FK
+
+        string Name
+        string Description        
+        boolean IsActive
+    }
+    Geofence {
+        uuid Id PK
+        uuid SiteId FK
+
+        text ZoneName
+        json Geometry "GeoJSON polygon"
+        boolean IsActive
+    }
+    SiteCondition {
+        uuid Id PK
+        uuid SiteId FK
+        array SiteConditionSnapshots "Relation"
+
+        uuid AssessedBy FK "Reference to GOUser" 
+
+        %% Current conditions
+        enum RoadCondition "Good|Fair|Poor|Hazardous"
+        json HazardZones "Hazard entity"
+        boolean RequiresSpecialEquipment        
+        datetime LastAssessment
+        text AssessmentNotes
+        text SpecialInstructions        
+        enum SiteConditionStatus
+        boolean IsActive
+    }
+    SiteConditionSnapshot {
+        uuid Id PK
+        uuid SiteCondition "Relation"
+        uuid VehicleSessionId FK
+        uuid IncidentId FK
+
+        json SiteConditionInfo
+        datetime CapturedAt
+        boolean IsActive
+    }     
+    Timezone {
+        uuid Id PK
+        string TimeZoneIdentifier
+        string UTCOffset
+        boolean IsActive
+    }
+
+    GOUser {
+        guid Id PK
+        boolean UserValidated	
+        boolean Blocked
+        text Email
+        boolean EmailChangeValidationInProgress
+        boolean EmailValidated
+        text FirstName	
+        text FullName	
+        text NewEmailAddress
+        boolean NewEmailValidated
+        text Password	
+        dateTime PasswordExpiry	
+        text LastName	
+        boolean Unregistered
+        text UserName
+
+        array UserGroupItems FK	"Relation"
+        array UserRoleItems	FK "Relation"
+    }
+
+    User {
+        uuid Id PK
+        guid GOUserId FK
+        uuid BusinessId FK "Optional"
+        uuid DepartmentId FK "Optional"
+        uuid ExperienceLevelId FK "Optional"
+
+        boolean IsTrainer
+        boolean IsCertified
+        boolean IsAdmin
+        int ExperienceYears
+        int Points
+        string EmergencyContact
+        string EmergencyPhone
+        string MedicalConditions
+        date LastMedicalCheck
+        string Phone
+        datetime Birthday
+        boolean IsActive        
+    }
+    VehicleClass {
+        uuid Id PK
+
+        string Name
+        string Description        
+        boolean IsActive
+    }
+    VehicleType {
+        uuid Id PK
+        uuid VehicleClassId FK
+
+        string Name
+        string Description
+        string BestSuitedFor
+        boolean RequiresCertification
+        int MinimumExperienceYears
+        float MaxLoadCapacity        
+        boolean IsActive  
+    }
+    VehicleModel {
+        uuid Id PK
+        uuid VehicleTypeId FK
+        uuid EnergySourceId FK
+        
+        file ModelPicture
+        json MultimediaAssets
+        string Name
+        string Manufacturer
+        string ModelNumber
+        int Year
+        float LoadCapacity
+        enum MaintenanceIntervalType
+        int MaintenanceIntervalValue
+        boolean RequiresSpecialLicense
+        boolean IsActive        
+    }
+    EnergySource {
+        uuid Id PK
+
+        string Name
+        string Description        
+        boolean IsActive   
+    }
+    Vehicle {
+        %% Core Identity (Essential)
+        uuid Id PK
+        uuid ModelId FK "Links to VehicleModel"
+        uuid VehicleClassId FK "Links to VehicleClass"
+        uuid LastMaintenanceScheduleId FK "Last maintenance"
+        uuid NextMaintenanceScheduleId FK "Next scheduled maintenance"
+
+        string NickName
+        string SerialNumber "Manufacturer's serial number"
+        string QrCode "For mobile app scanning"
+
+        %% Basic Status (Essential)
+        enum VehicleStatus
+        boolean IsOperational "Quick check if vehicle can be used"
+
+        %% Simple Location (Essential)
+        string CurrentLocationDescription "Basic location description, e.g., 'Warehouse A'"
+
+        int HoursUsed "Basic usage counter"
+        %% Basic Energy Tracking (Essential)
+        float EnergyLevel "Battery % or fuel level"        
+        boolean IsActive        
+    }
+    MaintenanceSchedule {
+        uuid Id PK
+        uuid VehicleId FK
+        
+        text Title
+        datetime ScheduledDate
+        enum Type
+        string Description
+        enum MaintenanceStatus
+        text Notes
+        boolean RequiresShutdown        
+        datetime CompletedAt
+        string CompletedBy
+        boolean IsActive
+    }
+    VehicleSession {
+        uuid Id PK
+        uuid VehicleId FK
+
+        uuid UserId FK 
+        string Title
+        datetime StartTime
+        datetime EndTime
+        enum VehicleSessionStatus
+        json LocationHistory "[{lat, lon, timestamp}]"
+        string StartLocation
+        string EndLocation        
+        int DurationMinutes
+        boolean CompletedSafely
+        boolean IsActive
+    }
+    VehicleStatusHistory {
+        uuid Id PK
+        uuid VehicleId FK
+        uuid UserId FK
+
+        datetime When
+        text Reason "Why the change occurred"
+        string CurrentStatus
+        string NewStatus
+        boolean IsActive
+    }
+    VehicleSessionStatusHistory {
+        uuid Id PK
+        uuid VehicleSessionId FK        
+        uuid UserId FK "Optional for system changes"
+        
+        string StatusFrom "Previous state"
+        string StatusTo "New state"
+
+        text Reason "Why the change occurred"
+        enum ChangeActor "SYSTEM|USER|ADMIN"    
+        datetime ChangedAt        
+        boolean IsActive
+    }
+    VehicleIncident {
+        uuid Id PK
+        uuid VehicleId FK
+        uuid IncidentId FK
+        datetime CapturedAt
+        boolean IsActive
+    }   
+    VehicleFail {
+        uuid Id PK
+        uuid UserId FK 
+        uuid VehicleId FK 
+
+        datetime ReportedAt
+        json Location
+        enum FailureType
+        boolean WasLoadBeingCarried
+        enum LoadWeight
+        text Description
+
+        enum ImmediateCause
+        enum ContributingFactors
+        enum DamageOccurrence
+        enum EnvironmentalImpact
+        enum ImmediateActionsTaken
+        enum ProposedLongTermSolutions
+
+        datetime ResolvedAt
+        enum Status
+        boolean IsActive
+    }   
+    PreShiftCheck {
+        uuid Id PK
+        uuid UserId FK
+        uuid VehicleId FK
+    
+        string Title
+        datetime Start
+        datetime End             
+        json Checklist
+        boolean ChecklistCompleted
+        float TakenTime
+        boolean IsActive         
+    }
+    PreShiftCheckCategory {
+        uuid Id PK
+        
+        string CategoryName
+        boolean IsActive 
+    }
+    PreShiftCheckQuestion {
+        uuid Id PK
+        uuid PreShiftCheckCategoryId FK
+        uuid VehicleClassId FK        
+        uuid VehicleTypeId FK
+        uuid EnergySourceId FK
+
+        string Title
+        string Question
+        boolean IsCriticalQuestion
+        boolean IsActive 
+    }
+    Incident {
+        %% Incident Details
+        uuid Id PK
+        uuid UserId FK "Autofill"
+        uuid SiteId FK "Autofill"
+        uuid VehicleSessionId FK "Autofill"
+
+        enum Type
+        datetime IncidentTime
+        json CurrentLocation "GPS"
+
+        %% UserTrainings or User TrainingAssesment
+        boolean doingTraining
+        boolean doingTask
+        
+        enum Accidents
+        enum CommonCauses 
+        json Weather "API"
+        
+        %% People Involved 
+        json OthersInvolved "Name..."
+        enum InjuriesReported
+        enum InjuryLocations 
+
+        %% Vehicle Info
+        string LoadBeingCarried "Text box"
+        enum LoadWeight
+
+        %% Incident Description
+        text Description "Text box - Description of what happened. Provide details of the sequence of events."
+        %% Photos or Video - Incident Media Upload
+
+        %% Root Cause Analysis
+        enum ImmediateCause 
+        enum ContributingFactors 
+
+        %% Damage and Impact
+        enum DamageOccurance 
+        enum EnvironmentalImpact 
+
+        %% Potential Solutions
+        enum ImmediateActions 
+        enum ProposedLongTermSolutions
+
+        %% Documentation and Evidence
+        json WitnessStatements "(e.g., recorded audio or written)."
+        
+        %% Reporting 
+        enum IncidentStatus 
+        enum Severity
+        boolean IsActive
+    }
+    Training {
+        uuid Id PK
+        
+
+        string Title "Internal name for the item"
+        string Description
+        int ValidYears
+        boolean IsMandatory
+        boolean IsActive      
+    }
+    TrainingTask {
+        uuid Id PK
+        uuid TrainingId FK  
+
+        string TaskName
+        string Description
+        int SequenceNumber
+        boolean IsRequired        
+        boolean IsActive         
+    }
+    TrainingAssignment {
+        uuid Id PK
+        uuid UserId FK
+        uuid TrainingId FK
+        
+        text Title
+        datetime EnrolledAt
+        datetime StartedAt
+        datetime CompletedAt
+        float ProgressPercentage
+        float Score
+        boolean Passed
+        int AttemptNumber
+        string SupervisorNotes
+        boolean IsActive         
+    }
+    TrainingAssignmentTaskAssessment {
+        uuid Id PK
+        uuid TrainingTaskAssessmentId FK
+        uuid TrainingAssignmentId FK
+
+        boolean IsActive
+    }
+    TrainingTaskAssessment {
+        uuid Id PK
+        uuid UserId FK
+        uuid TrainingTaskId FK
+        uuid TrainingAssignmentId FK
+        uuid VehicleTypeId FK
+        uuid EvaluatorId FK
+        
+        text Title
+        enum TaskAssessmentStatus
+        boolean Passed
+        datetime TrainingDate
+        datetime TrainingExpirationDate
+        datetime CertifiedDate
+        string OperatorNotes
+        string EvaluatorNotes
+        datetime CompletedAt
+        string EvaluatorStatement
+        string EvaluatorSignoff
+        boolean IsActive
+    }
+    Certificate {
+        uuid Id PK
+        uuid UserId FK "// Operador que recibió o subió el certificado"
+        uuid TrainingAssignmentId FK "NULLABLE // Entrenamiento asociado al certificado (si aplica)"
+        uuid QuizAssignmentId FK
+        uuid VehicleTypeId FK
+        uuid UploadedBy FK "NULLABLE // Usuario que subió el certificado (si aplica)"
+
+        string CertificateNumber "// Número único del certificado"
+        string CertificateName "// Nombre del certificado"
+        string IssuingOrganization "// Institución emisora"
+        datetime IssuedAt "// Fecha de emisión"
+        datetime ExpiresAt "NULLABLE // Fecha de expiración (si aplica)"
+        json Metadata "// Información adicional (ej. URL del certificado, detalles)"        
+        boolean IsValid "// Indica si el certificado está vigente"
+        enum CertificateSource
+
+        boolean RequiresRenewal
+        datetime RenewalDue
+        
+        datetime CreatedAt
+        datetime UpdatedAt
+        boolean IsActive
+    }
+    Quiz {
+        uuid Id PK
+
+        string Name
+        string Description
+        boolean IsActive
+    }
+    QuizQuestion{
+        uuid Id PK
+        uuid QuizId FK
+
+        string Title
+        string Question
+        string Description
+        boolean IsActive
+    }
+    QuizAnswer{
+        uuid Id PK
+        uuid QuizQuestionId FK
+        
+        string Title
+        string Answer
+        int Points
+        string Description
+        boolean IsActive
+    }
+    QuizAssignment {
+        uuid Id PK
+        uuid UserId FK
+        uuid QuizId FK
+        int AttemptNumber
+
+        json QuizResponse
+        boolean IsActive
+    }
+    Reward {
+        uuid Id PK
+        uuid RewardCategoryId
+
+        string Name
+        string AchievementCriteria
+        string IconUrl
+        string IconDescription
+        string RewardDetails
+        text AdditionalDetail
+        boolean HardwareRequired
+        boolean IsActive
+    }
+    RewardCategory {
+        uuid Id PK
+
+        string Name
+        boolean IsActive
+    }
+    ExperienceLevel {
+        uuid Id PK
+
+        string LevelName
+        int StartPoints
+        int EndPoints
+        text Description 
+        boolean IsActive
+    }
+    UserExperienceLevel {
+        uuid Id PK
+        uuid UserId FK
+        uuid ExperienceLevelId FK
+        boolean IsActive
+    }
+    Notification {
+        uuid Id PK
+        uuid UserId FK "Target user"
+        uuid EntityReferenceId FK "Optional - ID of related entity (incident, training, etc.)"
+        string EntityReferenceType "Optional - Type of related entity"
+        
+        %% Core notification fields
+        enum Type 
+        string Title "Notification heading"
+        text Content "Main notification message"
+        enum Priority 
+        
+        %% Reminder specific fields
+        boolean RequiresAcknowledgment
+        boolean IsRecurring "For repeating reminders"
+        enum RecurrencePattern
+        json RecurrenceConfig "Custom recurrence settings"
+        %% Status tracking
+        boolean RequiresAction
+        datetime DueDate
+        boolean IsActive
+    }
+    Message {
+        uuid Id PK
+        uuid SenderId FK
+        uuid RecipientId FK
+
+        enum MessageType
+        text Content
+        boolean ReadStatus
+        boolean IsActive
+    }
+    UserBusiness {
+        uuid Id PK
+        uuid UserId FK
+        uuid BusinessId FK
+
+        boolean IsActive         
+    }
+    ForumTopic {
+        uuid Id PK
+
+        string Title "VARCHAR(200)"
+        text Description
+        boolean IsActive
+    }
+    ForumPost {
+        uuid Id PK
+        uuid TopicId FK
+        uuid UserId FK
+
+        string Title
+        text Content
+        boolean IsActive
+    }
+    ForumComment {
+        uuid Id PK
+        uuid UserId FK
+        uuid ForumPostId FK
+
+        uuid ParentCommentId
+        text Comment
+        boolean IsActive
+    }
+    UserReward {
+        uuid Id PK
+        uuid UserId FK
+        uuid RewardId FK
+
+        uuid VerifiedBy FK 
+        datetime EarnedAt
+        int PointsAwarded
+        text AwardNotes
+        boolean IsVerified
+        datetime VerifiedAt
+        boolean IsActive        
+    }
+    Hazard {
+        uuid Id PK
+        uuid UserId FK
+        uuid SiteId FK
+
+        string Title
+        datetime CreatedAt
+        json Location "GPS"
+        text LocationDetails        
+        enum Type 
+        json WeatherConditions
+        enum RiskLevel 
+        enum PotentialConsequences 
+        enum CorrectiveActions 
+        string NarrativeDescription "Text box Describe the hazard and any actions taken."
+        boolean IsActive
+    }
+    Multimedia {
+        uuid Id PK
+        text EntityName
+        uuid UserId
+
+        %% IncidentMedia
+        uuid IncidentId FK
+        %% TrainingTaskAssessmentMedia 
+        uuid TrainingAssignmentTaskAssessmentId FK
+        %% VehicleFailMedia
+        uuid VehicleFailId FK
+        %% CertificateMedia
+        uuid CertificateId FK "// Links to a Certificate"
+        %% HazardMedia
+        uuid HazardId FK
+
+        file File 
+        string FileUrl "Path to stored file"
+        string ThumbnailUrl "Optional preview image"
+        enum MediaType
+        string MimeType "File type (e.g., image/png)"
+        string OriginalFilename "Original name"
+        float FileSize "In bytes"
+        text Description "Optional details"
+        datetime CreatedAt "Upload timestamp"        
+        json Location "Optional geo data"
+        boolean IsVerified "Verification status"
+        uuid VerifiedBy FK "Who verified"
+        datetime VerifiedAt "When verified"
+        boolean IsActive "Soft delete flag"
+    }
+    
+    Country ||--o{ State : "contains"
+    Country ||--o{ Business : "located_in"
+    State ||--o{ Site : "operates_in"
+    Business }|--|| State : "resides_in"
+    Business ||--o{ Site : "owns"
+    Site ||--o{ Department : "has"
+    Site }|..|{ SiteCondition : "has"
+    Site ||..|| Geofence : "involves"
+    Site ||--o{ Incident : "location_of"
+    Site }o--|| Timezone : "resides_in"
+    SiteCondition ||--o{ SiteConditionSnapshot : "captured_in"
+    SiteConditionSnapshot ||--|| VehicleSession : "captures_a"
+    
+
+    User ||--|| GOUser : "is_a"
+    User ||--o{ Country : "manage"
+    User ||--o{ Business : "manage"
+    User ||--o{ UserBusiness : "belongs_to"
+    User ||--o{ PreShiftCheck : "performs_review"
+    User ||--o{ VehicleClass : "handles"
+
+    User ||--o{ Training : "creates"
+    User ||--o{ TrainingTask : "creates"
+    User ||--o{ TrainingAssignment : "receives"
+    User ||--o{ TrainingAssignmentTaskAssessment : "assessed_by"
+    User ||--o{ TrainingTaskAssessment : "evaluates"
+    
+    User ||--o{ Quiz : "can_register"
+    User ||--o{ QuizAssignment : "receives"
+    User ||--o{ ExperienceLevel : "can_register"
+    User ||--|| UserExperienceLevel : "has"
+    ExperienceLevel ||--o{ UserExperienceLevel : "is_reached"
+
+    User ||--o{ Incident : "reports_access_to"
+    
+    User ||--o{ RewardCategory : "can_register"
+    
+    User ||--o{ Certificate : "uploads_review"
+    User ||--o{ Multimedia : "uploads"
+    User ||--o{ ForumTopic : "can_register"
+    User ||--o{ Message : "sends_receives"
+    
+    User ||--o{ Hazard : "report"
+    User ||--o{ PreShiftCheckCategory : "can_register"
+    
+    User ||--o{ VehicleSession : "performs"
+    
+    
+    User ||--o{ UserReward : "awarded_to"
+    User ||--o{ Notification : "send_receives"
+    User ||--o{ VehicleSessionStatusHistory : "may_change"
+    User ||--o{ VehicleFail : "may_report"
+    
+    Business ||--o{ UserBusiness : "has"
+
+    
+    Reward ||--o{ UserReward : "has_earned"
+
+    VehicleClass ||--o{ VehicleType : "contains"
+    VehicleType ||--o{ VehicleModel : "defines"
+    EnergySource ||--o{ VehicleModel : "powers"
+    VehicleModel ||--|| Vehicle : "instantiates"
+    VehicleModel ||--o{ Multimedia : "can_has"
+    Vehicle ||--o{ MaintenanceSchedule : "requires"
+    Vehicle ||--o{ VehicleSession : "used_in"
+    Vehicle ||--o{ PreShiftCheck : "checked_in"
+    Vehicle ||--o{ VehicleIncident : "involved_in"
+    Incident ||--o{ VehicleIncident : "involved_in"
+    VehicleSession ||--o{ VehicleSessionStatusHistory : "log_states"
+    VehicleSession ||--|| Incident : "may_have"
+    
+    VehicleType ||--o{ PreShiftCheckQuestion : "are_associated"
+    
+    Vehicle ||--o{ VehicleFail : "can_has"
+    Vehicle ||--o{ VehicleStatusHistory : "tracks_status_changes"
+    VehicleFail ||--o{ Multimedia : "has_evidences" 
+    
+    
+
+    Incident ||--|| SiteConditionSnapshot : "captures_a"
+
+    Training ||--o{ TrainingTask : "belongs_to"
+    Training }|--|| VehicleType : "is_for"
+    TrainingAssignment ||--o{ TrainingAssignmentTaskAssessment : "tracks_progress"
+    TrainingTaskAssessment ||--o{ TrainingAssignmentTaskAssessment  : "tracks_progress"
+    TrainingAssignmentTaskAssessment ||--|| Multimedia : "includes"
+    Training ||--o{ TrainingAssignment : "assigned_to"
+    TrainingTask ||--o{ TrainingTaskAssessment : "evaluated_through"
+    TrainingAssignment ||--|| Certificate : "grants"
+    PreShiftCheckCategory ||--o{ PreShiftCheckQuestion : "has"
+
+    Incident ||--o{ Multimedia : "can_has"
+    Certificate ||--|| Multimedia : "has"
+    
+    ForumTopic ||--o{ ForumPost : "contains"
+    ForumPost ||--o{ ForumComment : "has"
+    RewardCategory ||--o{ Reward : "contains"
+    
+    Message ||--o{ Notification : "may_trigger"
+    VehicleType ||--o{ Certificate : "grants_access_to"
+
+    Quiz ||--o{ QuizQuestion : "owns_to"
+    QuizQuestion ||--o{ QuizAnswer : "contains"
+    Quiz ||--|{ QuizAssignment : "is_taken_by"
+    QuizAssignment ||--o{ Certificate : "may_result_in"
+    
+    Hazard ||--o{ Multimedia : "has_evidences"
