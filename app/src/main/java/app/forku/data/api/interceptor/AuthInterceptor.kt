@@ -2,12 +2,10 @@ package app.forku.data.api.interceptor
 
 import app.forku.data.api.Sub7Api
 import app.forku.data.local.TokenManager
-import com.google.gson.Gson
 import okhttp3.Interceptor
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import kotlinx.coroutines.runBlocking
+import app.forku.data.api.dto.user.RefreshTokenRequestDto
 
 class AuthInterceptor(
     private val tokenManager: TokenManager,
@@ -33,7 +31,8 @@ class AuthInterceptor(
             if (refreshToken != null) {
                 try {
                     runBlocking {
-                        val newTokens = api.refreshToken(refreshToken).body()
+                        val newTokenResponse = api.refreshToken(RefreshTokenRequestDto(refreshToken))
+                        val newTokens = newTokenResponse.body()
                         if (newTokens != null) {
                             tokenManager.saveToken(
                                 token = newTokens.token,

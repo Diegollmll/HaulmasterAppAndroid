@@ -8,8 +8,8 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import app.forku.data.local.TokenManager
-import app.forku.presentation.auth.login.LoginState
-import app.forku.presentation.auth.login.LoginViewModel
+import app.forku.presentation.user.login.LoginState
+import app.forku.presentation.user.login.LoginViewModel
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.components.LoadingScreen
 import app.forku.presentation.common.theme.ForkUTheme

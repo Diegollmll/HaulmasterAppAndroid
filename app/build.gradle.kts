@@ -129,6 +129,9 @@ dependencies {
     implementation(libs.zxing.core)
     implementation(libs.zxing.embedded)
 
+    // Images
+    implementation(libs.coil.compose)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -139,4 +142,7 @@ dependencies {
     // Debug
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
 }

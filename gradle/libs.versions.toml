@@ -43,6 +43,13 @@ accompanist = "0.32.0"
 zxing = "3.5.2"
 zxing-embedded = "4.3.0"
 
+# Images
+coil = "2.5.0"
+
+# Datastore
+datastore = "1.0.0"
+
+
 # Testing
 junit = "4.13.2"
 androidx-junit = "1.1.5"
@@ -54,6 +61,7 @@ espresso-core = "3.5.1"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 # Compose dependencies
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
@@ -99,7 +107,8 @@ accompanist-permissions = { module = "com.google.accompanist:accompanist-permiss
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 zxing-embedded = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxing-embedded" }
 
-
+# Datastore
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

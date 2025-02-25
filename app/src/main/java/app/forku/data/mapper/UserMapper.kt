@@ -1,36 +1,53 @@
 package app.forku.data.mapper
 
-import app.forku.data.api.dto.LoginResponseDto
-import app.forku.data.api.dto.OperatorCertificationDto
-import app.forku.data.api.dto.UserDto
-import app.forku.domain.model.OperatorCertification
-import app.forku.domain.model.User
-import app.forku.domain.model.UserRole
+import app.forku.data.api.dto.user.UserDto
+import app.forku.data.api.dto.user.CertificationDto
+
+import app.forku.domain.model.user.User
+import app.forku.domain.model.user.UserRole
+import app.forku.domain.model.user.Certification
 
 fun UserDto.toDomain(): User {
     return User(
         id = id,
+        token = token,
+        refreshToken = refreshToken,
+        email = email,
         username = username,
-        role = UserRole.valueOf(role.uppercase()),
+        name = name,
+        photoUrl = photoUrl,
+        role = UserRole.fromString(role),
         permissions = permissions,
         certifications = certifications.map { it.toDomain() }
     )
 }
 
-fun OperatorCertificationDto.toDomain(): OperatorCertification {
-    return OperatorCertification(
+fun CertificationDto.toDomain(): Certification {
+    return Certification(
         vehicleTypeId = vehicleTypeId,
         isValid = isValid,
         expiresAt = expiresAt
     )
 }
 
-fun LoginResponseDto.toUser(): User {
-    return User(
-        id = user.id,
-        username = user.username,
-        role = UserRole.valueOf(user.role.uppercase()),
-        permissions = user.permissions,
-        certifications = user.certifications.map { it.toDomain() }
+fun User.toDto(): UserDto {
+    return UserDto(
+        id = id,
+        token = token,
+        refreshToken = refreshToken,
+        email = email,
+        password = "", // No incluimos el password en la conversión a DTO
+        username = username,
+        name = name,
+        photoUrl = photoUrl,
+        role = role.name,
+        permissions = permissions,
+        certifications = certifications.map { 
+            CertificationDto(
+                vehicleTypeId = it.vehicleTypeId,
+                isValid = it.isValid,
+                expiresAt = it.expiresAt
+            )
+        }
     )
 } 

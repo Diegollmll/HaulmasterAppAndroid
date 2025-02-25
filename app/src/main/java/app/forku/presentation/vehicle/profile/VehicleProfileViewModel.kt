@@ -3,7 +3,7 @@ package app.forku.presentation.vehicle.profile
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.data.repository.VehicleRepositoryImpl
+import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
-    private val repository: VehicleRepositoryImpl,
+    private val getVehicleUseCase: GetVehicleUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleProfileState())
@@ -29,7 +29,7 @@ class VehicleProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                val vehicle = repository.getVehicleById(vehicleId)
+                val vehicle = getVehicleUseCase(vehicleId)
                 _state.update {
                     it.copy(
                         vehicle = vehicle,
@@ -44,6 +44,14 @@ class VehicleProfileViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun toggleQrCode(show: Boolean) {
+        if (!show) {
+            _state.update { it.copy(showQrCode = false) }
+        } else if (!state.value.showQrCode) {
+            _state.update { it.copy(showQrCode = true) }
         }
     }
 }

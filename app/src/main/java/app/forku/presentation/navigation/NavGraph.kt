@@ -8,12 +8,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import app.forku.presentation.auth.login.LoginScreen
+import app.forku.presentation.user.login.LoginScreen
 import app.forku.presentation.dashboard.DashboardScreen
-import app.forku.presentation.vehicle.checklist.ChecklistScreen
+import app.forku.presentation.checklist.ChecklistScreen
 import app.forku.presentation.vehicle.list.VehicleListScreen
 import app.forku.presentation.vehicle.profile.VehicleProfileScreen
 import app.forku.presentation.vehicle.scanner.QRScannerScreen
+import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
+import app.forku.presentation.checklist.ChecklistViewModel
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -62,7 +64,10 @@ fun ForkUNavGraph(
         composable(Screen.QRScanner.route) {
             QRScannerScreen(
                 onQrCodeScanned = { qrCode ->
-                    navController.navigate("vehicle_profile/$qrCode")
+                    navController.navigate("vehicle_profile/$qrCode") {
+                        launchSingleTop = true
+                        popUpTo(Screen.Dashboard.route)
+                    }
                 },
                 onNavigateBack = {
                     navController.navigateUp()
@@ -75,7 +80,10 @@ fun ForkUNavGraph(
             arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
         ) { backStackEntry ->
             val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+            val viewModel: ChecklistViewModel = hiltViewModel()
+            
             ChecklistScreen(
+                viewModel = viewModel,
                 onComplete = {
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Dashboard.route) { inclusive = true }
@@ -100,19 +108,22 @@ fun ForkUNavGraph(
 
         composable(
             route = Screen.VehicleProfile.route,
-            arguments = listOf(
-                navArgument("vehicleId") { type = NavType.StringType }
-            )
+            arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val vehicleId = backStackEntry.arguments?.getString("vehicleId")
-                ?: return@composable
+            val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+            val viewModel: VehicleProfileViewModel = hiltViewModel()
             VehicleProfileScreen(
-                viewModel = hiltViewModel(),
-                onStartCheck = {
-                    navController.navigate("checklist/$vehicleId")
+                viewModel = viewModel,
+                onComplete = {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
                 },
                 onNavigateBack = {
                     navController.navigateUp()
+                },
+                onPreShiftCheck = { vehicleId ->
+                    navController.navigate("checklist/$vehicleId")
                 }
             )
         }

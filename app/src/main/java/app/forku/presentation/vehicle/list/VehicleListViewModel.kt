@@ -2,7 +2,7 @@ package app.forku.presentation.vehicle.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.data.repository.VehicleRepositoryImpl
+import app.forku.domain.usecase.vehicle.GetVehiclesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class VehicleListViewModel @Inject constructor(
-    private val repository: VehicleRepositoryImpl
+    private val getVehiclesUseCase: GetVehiclesUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleListState())
     val state = _state.asStateFlow()
@@ -25,7 +25,7 @@ class VehicleListViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                val vehicles = repository.getVehicles()
+                val vehicles = getVehiclesUseCase()
                 _state.update { 
                     it.copy(
                         vehicles = vehicles,

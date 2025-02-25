@@ -18,8 +18,11 @@ object AppModule {
         @ApplicationContext context: Context
     ): TokenManager = TokenManager(context)
 
+    @Provides
+    @Singleton
+    fun provideContext(@ApplicationContext context: Context): Context {
+        return context
+    }
 
-    
-    // ... other providers
     
 } 

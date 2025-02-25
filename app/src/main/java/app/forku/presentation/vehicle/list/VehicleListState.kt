@@ -1,6 +1,6 @@
 package app.forku.presentation.vehicle.list
 
-import app.forku.domain.model.Vehicle
+import app.forku.domain.model.vehicle.Vehicle
 
 data class VehicleListState(
     val vehicles: List<Vehicle> = emptyList(),

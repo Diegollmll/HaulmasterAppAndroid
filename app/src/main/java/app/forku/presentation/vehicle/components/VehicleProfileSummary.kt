@@ -13,19 +13,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import app.forku.domain.model.vehicle.Vehicle
+import app.forku.domain.model.user.User
 
 @Composable
-fun VehicleProfileSummary() {
+fun VehicleProfileSummary(
+    vehicle: Vehicle,
+    operator: User? = null
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Black
+            containerColor = Color.Transparent
         ),
-        border = BorderStroke(1.dp, Color(0xFFFFA726))
+        border = null
     ) {
-        // Vehicle Operator Info Section
+        // Upper section (no border)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -33,119 +40,176 @@ fun VehicleProfileSummary() {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Vehicle image on the left
-            Box(
+            AsyncImage(
+                model = vehicle.photoModel,
+                contentDescription = "Vehicle image",
                 modifier = Modifier
                     .size(90.dp)
                     .clip(CircleShape)
-                    .background(Color.DarkGray)
+                    .background(Color.LightGray),
+                contentScale = ContentScale.Crop
             )
 
-            // Operator details aligned to the right
+            Divider(
+                modifier = Modifier
+                    .height(90.dp)
+                    .width(1.dp),
+                color = Color.LightGray
+            )
+
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = "Jason Brigg",
-                    color = Color.White,
+                    text = "Operator",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = operator?.name ?: "No operator assigned",
+                    color = Color.Black,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
-                Row(){
-                    Text(
-                        text = "Pre-Shift Check ",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Expired",
-                        color = Color.Red,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Last Checked: 10:30am",
+                    text = "Pre-Shift Check",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+                val lastCheck = vehicle.checks?.lastOrNull()
+                Text(
+                    text = getPreShiftStatusText(lastCheck?.status ?: ""),
+                    color = getPreShiftStatusColor(lastCheck?.status ?: ""),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Last Checked: ${lastCheck?.datetime}",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
             }
         }
 
-        // VehicleDetails Section
-        Column(
+        // Lower section with border
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            border = BorderStroke(1.dp, Color(0xFFFFA726))
         ) {
-            // ID and Next Service Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
-                Text(
-                    text = "ID: 12",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Next Service: 800hrs",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Model, Type, and Class Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
+                // ID and Next Service Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Model",
-                        color = Color.Gray,
-                        fontSize = 12.sp
+                        text = "ID: ${vehicle.codename}",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "Series 386 E12-E20",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            text = "Next Service",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "${vehicle.nextService} hrs",
+                            color = Color.Black,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
 
-                Column {
-                    Text(
-                        text = "Type",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Diesel",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
-                }
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Column {
-                    Text(
-                        text = "Class",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "ITA IV",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
+                // Model, Type, and Class Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "Model",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = vehicle.model,
+                            color = Color.Black,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Type",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = vehicle.energyType,
+                            color = Color.Black,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Class",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = vehicle.vehicleClass,
+                            color = Color.Black,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }
+    }
+}
 
+@Composable
+fun getPreShiftStatusColor(status: String): Color {
+    return when (status.uppercase()) {
+        "PENDING" -> Color.Gray
+        "IN_PROGRESS" -> Color(0xFFFFA726) // Orange
+        "COMPLETED_PASS" -> Color(0xFF4CAF50) // Green
+        "COMPLETED_FAIL" -> Color.Red
+        "EXPIRED" -> Color.Red
+        "OVERDUE" -> Color.Red
+        else -> Color.Gray
+    }
+}
+
+@Composable
+fun getPreShiftStatusText(status: String): String {
+    return when (status.uppercase()) {
+        "PENDING" -> "Pending"
+        "IN_PROGRESS" -> "In Progress"
+        "COMPLETED_PASS" -> "PASS"
+        "COMPLETED_FAIL" -> "FAIL"
+        "EXPIRED" -> "Expired"
+        "OVERDUE" -> "Overdue"
+        else -> status
     }
 }

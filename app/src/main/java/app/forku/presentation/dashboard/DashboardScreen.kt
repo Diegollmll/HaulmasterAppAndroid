@@ -41,10 +41,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import app.forku.presentation.auth.login.LoginState
-import app.forku.presentation.auth.login.LoginViewModel
+import app.forku.domain.model.vehicle.VehicleStatus
+import app.forku.presentation.user.login.LoginState
+import app.forku.presentation.user.login.LoginViewModel
 import app.forku.presentation.common.components.ForkUBottomBar
 import app.forku.presentation.common.components.LoadingOverlay
+import app.forku.presentation.common.components.LoadingScreen
+import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,17 +55,29 @@ import app.forku.presentation.navigation.Screen
 fun DashboardScreen(
     navController: NavController = rememberNavController(),
     onNavigate: (String) -> Unit,
-    viewModel: LoginViewModel = hiltViewModel()
+    loginViewModel: LoginViewModel = hiltViewModel(),
+    dashboardViewModel: DashboardViewModel = hiltViewModel()
 ) {
-
-    val state by viewModel.state.collectAsState()
+    val dashboardState by dashboardViewModel.state.collectAsState()
+    val loginState by loginViewModel.state.collectAsState()
 
     Scaffold(
         modifier = Modifier.background(Color.Black),
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("You are checked-out", color = Color.White) },
+                title = {
+                    Text(
+                        text = when (dashboardState.vehicleStatus) {
+                            VehicleStatus.CHECKED_OUT -> "You are checked-out"
+                            VehicleStatus.CHECKED_IN -> "You are checked-in"
+                            VehicleStatus.IN_USE -> "You are using this vehicle"
+                            VehicleStatus.BLOCKED -> "Vehicle in use by another driver"
+                            VehicleStatus.UNKNOWN -> "Checking vehicle status..."
+                        },
+                        color = Color.White
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Black,
                     titleContentColor = Color.White,
@@ -71,7 +86,7 @@ fun DashboardScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            viewModel.logout()
+                            loginViewModel.logout()
                             navController.navigate(Screen.Login.route) {
                                 popUpTo(0) { inclusive = true }
                             }
@@ -88,22 +103,33 @@ fun DashboardScreen(
         },
         bottomBar = { ForkUBottomBar(navController = navController) }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(paddingValues)
         ) {
+            when {
+                dashboardState.isLoading -> LoadingOverlay()
+                dashboardState.error != null -> ErrorScreen(
+                    message = dashboardState.error!!,
+                    onRetry = { dashboardViewModel.loadDashboardStatus() }
+                )
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
 
-            // Circular Menu
-            CircularMenu(
-                onNavigate = onNavigate,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (state is LoginState.Loading) {
-            LoadingOverlay()
+                        // Circular Menu
+                        CircularMenu(
+                            onNavigate = onNavigate,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
         }
     }
 }
