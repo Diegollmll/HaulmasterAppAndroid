@@ -6,5 +6,7 @@ data class VehicleProfileState(
     val vehicle: Vehicle? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val showQrCode: Boolean = false
+    val showQrCode: Boolean = false,
+    val hasActiveSession: Boolean = false,
+    val hasActivePreShiftCheck: Boolean = false
 ) 

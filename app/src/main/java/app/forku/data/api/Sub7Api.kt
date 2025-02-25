@@ -82,4 +82,11 @@ interface Sub7Api {
         @Path("vehicleId") vehicleId: String,
         @Path("checkId") checkId: String
     ): Response<PerformChecklistResponseDto>
+
+    @PUT("vehicles/{vehicleId}/checks/{checkId}")
+    suspend fun updateCheck(
+        @Path("vehicleId") vehicleId: String,
+        @Path("checkId") checkId: String,
+        @Body check: PerformChecklistRequestDto
+    ): Response<PerformChecklistResponseDto>
 }

@@ -43,6 +43,16 @@ class ChecklistViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
+                // Create initial check and capture its ID
+                val initialCheck = submitChecklistUseCase(
+                    vehicleId = vehicleId,
+                    items = emptyList()
+                )
+
+                // Store the checkId for later use
+                _state.update { it.copy(checkId = initialCheck.id) }
+
+                // Load rest of data...
                 val vehicle = getVehicleUseCase(vehicleId)
                 val checklists = getChecklistUseCase(vehicleId)
                 
@@ -64,7 +74,7 @@ class ChecklistViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
-                        error = "Failed to load checklist",
+                        error = "Failed to load checklist: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -165,6 +175,17 @@ class ChecklistViewModel @Inject constructor(
                 return@launch
             }
 
+            val currentCheckId = state.value.checkId
+            if (currentCheckId == null) {
+                _state.update {
+                    it.copy(
+                        error = "No active check found",
+                        isSubmitting = false
+                    )
+                }
+                return@launch
+            }
+
             _state.update { it.copy(isSubmitting = true, error = null) }
             try {
                 val validation = validateChecklistUseCase(state.value.checkItems)
@@ -173,25 +194,23 @@ class ChecklistViewModel @Inject constructor(
                     throw Exception("Please complete all items before submitting")
                 }
                 
-                val success = submitChecklistUseCase(
+                val completedCheck = submitChecklistUseCase(
                     vehicleId = vehicleId,
-                    items = state.value.checkItems
+                    items = state.value.checkItems,
+                    checkId = currentCheckId
                 )
                 
-                if (success) {
-                    _state.update {
-                        it.copy(
-                            isSubmitting = false,
-                            isSubmitted = true,
-                            isCompleted = true
-                        )
-                    }
-                    
-                    if (validation.isPassed) {
-                        _navigateToDashboard.value = true
-                    }
-                } else {
-                    throw Exception("Failed to submit checklist")
+                _state.update {
+                    it.copy(
+                        isSubmitting = false,
+                        isSubmitted = true,
+                        isCompleted = true,
+                        vehicleBlocked = validation.isBlocked
+                    )
+                }
+                
+                if (validation.isPassed && !validation.isBlocked) {
+                    _navigateToDashboard.value = true
                 }
             } catch (e: Exception) {
                 _state.update {

@@ -1,7 +1,9 @@
 package app.forku.data.mapper
 
-import VehicleSession
+
 import app.forku.data.api.dto.session.SessionDto
+import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.session.VehicleSession
 
 
 fun SessionDto.toDomain(): VehicleSession {
@@ -11,12 +13,10 @@ fun SessionDto.toDomain(): VehicleSession {
         java.time.Duration.between(start, end).toMinutes().toInt()
     } else null
 
-    // Mapear el status a un valor válido del enum
+    // Strict status mapping
     val sessionStatus = when (status.uppercase()) {
-        "STATUS 1" -> SessionStatus.ACTIVE
-        "COMPLETED" -> SessionStatus.COMPLETED
-        "TERMINATED" -> SessionStatus.TERMINATED
-        else -> SessionStatus.ACTIVE // default a ACTIVE si no coincide
+        "ACTIVE" -> SessionStatus.ACTIVE
+        else -> SessionStatus.INACTIVE
     }
 
     return VehicleSession(

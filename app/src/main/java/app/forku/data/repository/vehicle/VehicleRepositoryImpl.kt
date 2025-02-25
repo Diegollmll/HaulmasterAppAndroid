@@ -1,6 +1,6 @@
 package app.forku.data.repository.vehicle
 
-import VehicleSession
+import app.forku.domain.model.session.VehicleSession
 import app.forku.data.api.Sub7Api
 import app.forku.data.api.dto.checklist.PerformChecklistRequestDto
 import app.forku.data.datastore.AuthDataStore
@@ -16,11 +16,13 @@ import app.forku.domain.repository.vehicle.VehicleRepository
 import javax.inject.Inject
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.api.dto.session.EndSessionRequestDto
+import app.forku.domain.repository.session.SessionRepository
 
 
 class VehicleRepositoryImpl @Inject constructor(
     private val api: Sub7Api,
-    private val authDataStore: AuthDataStore
+    private val authDataStore: AuthDataStore,
+    private val sessionRepository: SessionRepository
 ) : VehicleRepository {
 
     override suspend fun getVehicleById(id: String): Vehicle {
@@ -56,56 +58,65 @@ class VehicleRepositoryImpl @Inject constructor(
 
     override suspend fun submitPreShiftCheck(
         vehicleId: String,
-        checkItems: List<ChecklistItem>
-    ): Boolean {
+        checkItems: List<ChecklistItem>,
+        checkId: String?
+    ): PreShiftCheck {
         try {
-            android.util.Log.d("ChecklistSubmit", "Starting submission for vehicle $vehicleId with ${checkItems.size} items")
+            val currentUser = authDataStore.getCurrentUser() ?: throw Exception("No user logged in")
             
-            val currentUser = authDataStore.getCurrentUser()
-            if (currentUser == null) {
-                android.util.Log.e("ChecklistSubmit", "No authenticated user found")
-                throw Exception("Please login to submit checklist")
+            // If checkItems are empty and no checkId, we're creating a new check
+            if (checkItems.isEmpty() && checkId == null) {
+                val initialCheckRequest = PerformChecklistRequestDto(
+                    items = emptyList(),
+                    datetime = java.time.Instant.now().toString(),
+                    status = "IN_PROGRESS",
+                    userId = currentUser.id
+                )
+                val response = api.submitCheck(vehicleId, check = initialCheckRequest)
+                if (!response.isSuccessful) {
+                    throw Exception("Failed to start check: ${response.code()}")
+                }
+                return response.body()?.toDomain() ?: throw Exception("Empty response body")
             }
 
-            // Log each item's state
-            checkItems.forEach { item ->
-                android.util.Log.d("ChecklistSubmit", "Item ${item.id}: " +
-                    "category=${item.category}, " +
-                    "expected=${item.expectedAnswer}, " +
-                    "actual=${item.userAnswer}")
+            // If we have items and checkId, we're updating the check
+            val allItemsPassed = checkItems.all { item -> item.userAnswer == Answer.PASS }
+            val finalStatus = when {
+                allItemsPassed -> "COMPLETED_PASS"
+                else -> "COMPLETED_FAIL"
             }
-
-            val allPassed = checkItems.all { it.userAnswer == Answer.PASS }
-            val status = if (allPassed) {
-                PreShiftStatus.COMPLETED_PASS.toString()
-            } else {
-                PreShiftStatus.COMPLETED_FAIL.toString()
-            }
-
+            
             val checkRequest = PerformChecklistRequestDto(
                 items = checkItems.map { it.toDto() },
                 datetime = java.time.Instant.now().toString(),
-                status = status,
+                status = finalStatus,
                 userId = currentUser.id
             )
-
-            android.util.Log.d("ChecklistSubmit", "Submitting request: $checkRequest")
             
-            val response = api.submitCheck(vehicleId = vehicleId, check = checkRequest)
+            val response = if (checkId != null) {
+                api.updateCheck(vehicleId, checkId, checkRequest)
+            } else {
+                throw Exception("CheckId is required for updating check")
+            }
             
             if (!response.isSuccessful) {
-                android.util.Log.e("ChecklistSubmit", "Failed with code: ${response.code()}")
-                android.util.Log.e("ChecklistSubmit", "Error body: ${response.errorBody()?.string()}")
                 throw Exception("Server error: ${response.code()}")
             }
 
-            // Si el check es aprobado y la respuesta contiene un ID, iniciamos la sesión
-            if (allPassed && response.body()?.id != null) {
-                startSession(vehicleId, response.body()!!.id)
+            val completedCheck = response.body()?.toDomain() 
+                ?: throw Exception("Empty response body")
+
+            // Start session if check passed
+            if (finalStatus == "COMPLETED_PASS") {
+                try {
+                    sessionRepository.startSession(vehicleId, completedCheck.id)
+                } catch (e: Exception) {
+                    android.util.Log.e("ChecklistSubmit", "Failed to start session", e)
+                    throw Exception("Check completed but failed to start session: ${e.message}")
+                }
             }
 
-            android.util.Log.d("ChecklistSubmit", "Submission successful")
-            return true
+            return completedCheck
         } catch (e: Exception) {
             android.util.Log.e("ChecklistSubmit", "Error in submitPreShiftCheck", e)
             throw e
@@ -144,88 +155,5 @@ class VehicleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun startSession(vehicleId: String, checkId: String): VehicleSession {
-        try {
-            // 1. Validar el check primero
-            val checkResponse = api.getCheck(vehicleId, checkId)
-            if (!checkResponse.isSuccessful || checkResponse.body()?.status != "COMPLETED_PASS") {
-                throw Exception("No valid check found or check not approved")
-            }
-
-            // 2. Crear la sesión
-            val request = StartSessionRequestDto(
-                vehicleId = vehicleId,
-                checkId = checkId,
-                timestamp = java.time.Instant.now().toString()
-            )
-
-            val response = api.createSession(vehicleId, request)
-            if (!response.isSuccessful) {
-                throw Exception("Failed to start session: ${response.code()}")
-            }
-
-            return response.body()?.toDomain()
-                ?: throw Exception("Empty response when starting session")
-        } catch (e: Exception) {
-            throw Exception("Failed to start session: ${e.message}")
-        }
-    }
-
-    override suspend fun endSession(sessionId: String): VehicleSession {
-        try {
-            val request = EndSessionRequestDto(
-                timestamp = java.time.Instant.now().toString(),
-                notes = null
-            )
-            
-            // Necesitamos el vehicleId para la llamada a updateSession
-            val currentSession = getCurrentSession()
-                ?: throw Exception("No active session found")
-            
-            val response = api.updateSession(
-                vehicleId = currentSession.vehicleId,
-                sessionId = sessionId,
-                request = request
-            )
-            
-            if (!response.isSuccessful) {
-                throw Exception("Failed to end session: ${response.code()}")
-            }
-            
-            return response.body()?.toDomain() 
-                ?: throw Exception("Empty response when ending session")
-        } catch (e: Exception) {
-            throw Exception("Failed to end session: ${e.message}")
-        }
-    }
-
-    override suspend fun getCurrentSession(): VehicleSession? {
-        return try {
-            // Obtenemos todos los vehículos
-            val vehiclesResponse = api.getVehicles()
-            if (!vehiclesResponse.isSuccessful) {
-                return null
-            }
-
-            // Para cada vehículo, buscamos sus sesiones
-            vehiclesResponse.body()?.forEach { vehicle ->
-                val sessionsResponse = api.getVehicleSessions(vehicle.id)
-                if (sessionsResponse.isSuccessful) {
-                    // Buscamos una sesión activa
-                    val activeSession = sessionsResponse.body()
-                        ?.find { it.status == "ACTIVE" }
-                        ?.toDomain()
-                    if (activeSession != null) {
-                        return activeSession
-                    }
-                }
-            }
-            
-            return null
-        } catch (e: Exception) {
-            android.util.Log.e("VehicleRepo", "Error getting current session", e)
-            null
-        }
-    }
 
 }

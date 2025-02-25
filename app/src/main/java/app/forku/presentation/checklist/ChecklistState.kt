@@ -13,5 +13,6 @@ data class ChecklistState(
     val isCompleted: Boolean = false,
     val isSubmitted: Boolean = false,
     val vehicleBlocked: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val checkId: String? = null
 )

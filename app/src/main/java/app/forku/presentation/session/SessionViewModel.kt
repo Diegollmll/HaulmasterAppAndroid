@@ -1,10 +1,9 @@
 package app.forku.presentation.session
 
-import SessionState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.user.AuthRepository
+import app.forku.domain.repository.session.SessionRepository
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SessionViewModel @Inject constructor(
-    private val vehicleRepository: VehicleRepository,
+    private val sessionRepository: SessionRepository,
     private val authRepository: AuthRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(SessionState())
@@ -29,7 +28,7 @@ class SessionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                val session = vehicleRepository.startSession(vehicleId, checkId)
+                val session = sessionRepository.startSession(vehicleId, checkId)
                 _state.update { 
                     it.copy(
                         session = session,
@@ -63,10 +62,10 @@ class SessionViewModel @Inject constructor(
                 }
                 
                 _state.update { it.copy(isLoading = true) }
-                val endedSession = vehicleRepository.endSession(currentSession.id)
+                val endedSession = sessionRepository.endSession(currentSession.id)
                 _state.update { 
                     it.copy(
-                        session = endedSession,
+                        session = null,
                         isLoading = false,
                         error = null
                     )
@@ -86,7 +85,7 @@ class SessionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                val session = vehicleRepository.getCurrentSession()
+                val session = sessionRepository.getCurrentSession()
                 _state.update { 
                     it.copy(
                         session = session,
@@ -97,7 +96,7 @@ class SessionViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
-                        error = "Failed to load session: ${e.message}",
+                        error = "Failed to load current session: ${e.message}",
                         isLoading = false
                     )
                 }

@@ -14,7 +14,8 @@ data class SessionDto(
 data class StartSessionRequestDto(
     val vehicleId: String,
     val checkId: String,
-    val timestamp: String
+    val timestamp: String,
+    val status: String
 )
 
 data class EndSessionRequestDto(

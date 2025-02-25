@@ -17,6 +17,67 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.user.User
+import app.forku.domain.model.vehicle.VehicleStatus
+
+@Composable
+fun VehicleProfileSummary(
+    vehicle: Vehicle,
+    status: VehicleStatus,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = vehicle.codename,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "Status: ${status.toDisplayString()}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = status.toColor()
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "ID: ${vehicle.id}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+private fun VehicleStatus.toDisplayString(): String = when (this) {
+    VehicleStatus.IN_USE -> "In Use"
+    VehicleStatus.CHECKED_OUT -> "Checked Out"
+    VehicleStatus.BLOCKED -> "Blocked"
+    VehicleStatus.CHECKED_IN -> "Ready"
+    VehicleStatus.UNKNOWN -> "Unknown"
+}
+
+private fun VehicleStatus.toColor(): Color = when (this) {
+    VehicleStatus.IN_USE -> Color(0xFF4CAF50)
+    VehicleStatus.BLOCKED -> Color(0xFFF44336)
+    VehicleStatus.CHECKED_IN -> Color(0xFF2196F3)
+    VehicleStatus.CHECKED_OUT -> Color(0xFFFF9800)
+    VehicleStatus.UNKNOWN -> Color.Gray
+}
 
 @Composable
 fun VehicleProfileSummary(

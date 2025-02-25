@@ -20,12 +20,9 @@ import app.forku.presentation.checklist.ChecklistViewModel
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
     data object Dashboard : Screen("dashboard")
-
-
     data object QRScanner : Screen("qr_scanner")
     data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
     data object Checklist : Screen("checklist/{vehicleId}")
-
     data object Profile : Screen("profile")
     data object IncidentsHistory : Screen("incidents_history")
     data object OperatorsCICOHistory : Screen("operators_cico_history")
@@ -109,21 +106,18 @@ fun ForkUNavGraph(
         composable(
             route = Screen.VehicleProfile.route,
             arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+        ) { entry ->
+            val vehicleId = entry.arguments?.getString("vehicleId") ?: return@composable
             val viewModel: VehicleProfileViewModel = hiltViewModel()
             VehicleProfileScreen(
                 viewModel = viewModel,
-                onComplete = {
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Dashboard.route) { inclusive = true }
-                    }
-                },
-                onNavigateBack = {
-                    navController.navigateUp()
-                },
+                onComplete = { navController.popBackStack() },
+                onNavigateBack = { navController.popBackStack() },
                 onPreShiftCheck = { vehicleId ->
-                    navController.navigate("checklist/$vehicleId")
+                    navController.navigate(Screen.Checklist.route.replace("{vehicleId}", vehicleId))
+                },
+                onScanQrCode = {
+                    navController.navigate(Screen.QRScanner.route)
                 }
             )
         }

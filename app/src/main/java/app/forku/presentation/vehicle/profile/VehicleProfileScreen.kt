@@ -27,6 +27,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.PlayArrow
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,9 +39,11 @@ fun VehicleProfileScreen(
     viewModel: VehicleProfileViewModel,
     onComplete: () -> Unit,
     onNavigateBack: () -> Unit,
-    onPreShiftCheck: (String) -> Unit
+    onPreShiftCheck: (String) -> Unit,
+    onScanQrCode: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -49,15 +55,51 @@ fun VehicleProfileScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = { onPreShiftCheck(state.vehicle?.id ?: "") },
-                        enabled = state.vehicle != null
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Pre-Shift Check",
-                            tint = Color(0xFFFFA726)
-                        )
+                    if (state.vehicle != null && !state.hasActiveSession && !state.hasActivePreShiftCheck) {
+                        Box {
+                            IconButton(
+                                onClick = { showMenu = true }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "More Options",
+                                    tint = Color(0xFFFFA726)
+                                )
+                            }
+                            
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Scan QR Code") },
+                                    onClick = {
+                                        showMenu = false
+                                        onScanQrCode()
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "Scan QR"
+                                        )
+                                    }
+                                )
+                                
+                                DropdownMenuItem(
+                                    text = { Text("Pre-Shift Check") },
+                                    onClick = {
+                                        showMenu = false
+                                        onPreShiftCheck(state.vehicle?.id ?: "")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Pre-Shift Check"
+                                        )
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )

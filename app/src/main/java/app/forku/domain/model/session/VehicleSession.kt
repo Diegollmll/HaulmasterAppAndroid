@@ -1,3 +1,5 @@
+package app.forku.domain.model.session
+
 data class VehicleSession(
     val id: String,
     val vehicleId: String,
@@ -12,6 +14,5 @@ data class VehicleSession(
 
 enum class SessionStatus {
     ACTIVE,
-    COMPLETED,
-    TERMINATED
+    INACTIVE
 } 

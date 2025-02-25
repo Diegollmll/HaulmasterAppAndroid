@@ -1,10 +1,13 @@
 package app.forku.domain.repository.vehicle
 
-import VehicleSession
+
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.checklist.Checklist
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.PreShiftCheck
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.delay
 
 
 interface VehicleRepository {
@@ -12,9 +15,10 @@ interface VehicleRepository {
     suspend fun getVehicleById(id: String): Vehicle
     suspend fun getVehicleByQr(code: String): Vehicle
     suspend fun getChecklistItems(vehicleId: String): List<Checklist>
-    suspend fun submitPreShiftCheck(vehicleId: String, checkItems: List<ChecklistItem>): Boolean
+    suspend fun submitPreShiftCheck(
+        vehicleId: String,
+        checkItems: List<ChecklistItem>,
+        checkId: String?
+    ): PreShiftCheck
     suspend fun getLastPreShiftCheck(): PreShiftCheck?
-    suspend fun startSession(vehicleId: String, checkId: String): VehicleSession
-    suspend fun endSession(sessionId: String): VehicleSession
-    suspend fun getCurrentSession(): VehicleSession?
 }

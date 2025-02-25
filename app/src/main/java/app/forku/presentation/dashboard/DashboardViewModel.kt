@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.checklist.PreShiftCheck
+import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.repository.user.AuthRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
+import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,8 +20,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val sessionRepository: SessionRepository,
+    private val authRepository: AuthRepository,
+    private val getVehicleStatusUseCase: GetVehicleStatusUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DashboardState())
@@ -34,23 +38,61 @@ class DashboardViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
-                // Obtener el último check y el estado actual
-                val lastCheck = vehicleRepository.getLastPreShiftCheck()
-                val status = getVehicleStatusUseCase()
+                val currentUser = try {
+                    authRepository.getCurrentUser()
+                } catch (e: Exception) {
+                    null
+                }
                 
-                _state.update { 
+                val currentSession = try {
+                    sessionRepository.getCurrentSession()
+                } catch (e: Exception) {
+                    null
+                }
+                
+                val lastPreShiftCheck = try {
+                    vehicleRepository.getLastPreShiftCheck()
+                } catch (e: Exception) {
+                    null
+                }
+                
+                val vehicleStatus = try {
+                    getVehicleStatusUseCase()
+                } catch (e: Exception) {
+                    VehicleStatus.CHECKED_OUT
+                }
+                
+                val activeVehicle = try {
+                    when (vehicleStatus) {
+                        VehicleStatus.IN_USE -> currentSession?.vehicleId?.let { vehicleId -> 
+                            vehicleRepository.getVehicleByQr(vehicleId)
+                        }
+                        VehicleStatus.CHECKED_IN -> lastPreShiftCheck?.vehicleId?.let { vehicleId -> 
+                            vehicleRepository.getVehicleByQr(vehicleId)
+                        }
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    null
+                }
+
+                _state.update {
                     it.copy(
-                        lastPreShiftCheck = lastCheck,
-                        vehicleStatus = status,
                         isLoading = false,
-                        error = null
+                        error = null,
+                        vehicle = activeVehicle,
+                        user = currentUser,
+                        lastPreShiftCheck = lastPreShiftCheck,
+                        isAuthenticated = currentUser != null,
+                        showQrScanner = false,
+                        vehicleStatus = vehicleStatus
                     )
                 }
             } catch (e: Exception) {
-                _state.update { 
+                _state.update {
                     it.copy(
-                        error = e.message ?: "Failed to load status",
-                        isLoading = false
+                        isLoading = false,
+                        error = "Error loading dashboard: ${e.message}"
                     )
                 }
             }

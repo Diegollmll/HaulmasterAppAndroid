@@ -1,5 +1,6 @@
 package app.forku.presentation.dashboard
 
+import app.forku.presentation.session.SessionState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
@@ -30,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -41,14 +44,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.presentation.user.login.LoginState
+import app.forku.domain.model.vehicle.Vehicle
 import app.forku.presentation.user.login.LoginViewModel
 import app.forku.presentation.common.components.ForkUBottomBar
 import app.forku.presentation.common.components.LoadingOverlay
-import app.forku.presentation.common.components.LoadingScreen
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.navigation.Screen
+import app.forku.presentation.vehicle.components.VehicleProfileSummary
+import app.forku.presentation.session.SessionViewModel
+import app.forku.domain.model.session.SessionStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,10 +60,17 @@ fun DashboardScreen(
     navController: NavController = rememberNavController(),
     onNavigate: (String) -> Unit,
     loginViewModel: LoginViewModel = hiltViewModel(),
-    dashboardViewModel: DashboardViewModel = hiltViewModel()
+    dashboardViewModel: DashboardViewModel = hiltViewModel(),
+    sessionViewModel: SessionViewModel = hiltViewModel()
 ) {
     val dashboardState by dashboardViewModel.state.collectAsState()
     val loginState by loginViewModel.state.collectAsState()
+    val sessionState by sessionViewModel.state.collectAsState()
+
+    // Add debug log
+    LaunchedEffect(dashboardState) {
+        android.util.Log.d("Dashboard", "State updated: vehicle=${dashboardState.vehicle}, user=${dashboardState.user}")
+    }
 
     Scaffold(
         modifier = Modifier.background(Color.Black),
@@ -67,15 +78,9 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = when (dashboardState.vehicleStatus) {
-                            VehicleStatus.CHECKED_OUT -> "You are checked-out"
-                            VehicleStatus.CHECKED_IN -> "You are checked-in"
-                            VehicleStatus.IN_USE -> "You are using this vehicle"
-                            VehicleStatus.BLOCKED -> "Vehicle in use by another driver"
-                            VehicleStatus.UNKNOWN -> "Checking vehicle status..."
-                        },
-                        color = Color.White
+                    VehicleStatusMessage(
+                        sessionState = sessionState,
+                        vehicle = dashboardState.vehicle
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -102,33 +107,47 @@ fun DashboardScreen(
             )
         },
         bottomBar = { ForkUBottomBar(navController = navController) }
-    ) { paddingValues ->
+    ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
+                .background(Color.Black)
         ) {
-            when {
-                dashboardState.isLoading -> LoadingOverlay()
-                dashboardState.error != null -> ErrorScreen(
-                    message = dashboardState.error!!,
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Show vehicle summary if there's an active vehicle
+                dashboardState.vehicle?.let { vehicle ->
+                    VehicleProfileSummary(
+                        vehicle = vehicle,
+                        status = dashboardState.vehicleStatus,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+                }
+                
+                // Circular menu
+                CircularMenu(
+                    onNavigate = onNavigate,
+                    sessionViewModel = sessionViewModel,
+                    dashboardState = dashboardState
+                )
+            }
+
+            // Show loading overlay
+            if (dashboardState.isLoading) {
+                LoadingOverlay()
+            }
+
+            // Show error if any
+            dashboardState.error?.let { error ->
+                ErrorScreen(
+                    message = error,
                     onRetry = { dashboardViewModel.loadDashboardStatus() }
                 )
-                else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-
-                        // Circular Menu
-                        CircularMenu(
-                            onNavigate = onNavigate,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
             }
         }
     }
@@ -137,17 +156,20 @@ fun DashboardScreen(
 @Composable
 private fun CircularMenu(
     onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier
+    sessionViewModel: SessionViewModel,
+    dashboardState: DashboardState
 ) {
+    val sessionState by sessionViewModel.state.collectAsState()
+
     Box(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
-            // Top button (Profile)
+            // Profile button
             CircularMenuItem(
                 icon = Icons.Default.Person,
                 label = "Profile",
@@ -158,21 +180,31 @@ private fun CircularMenu(
                 horizontalArrangement = Arrangement.spacedBy(32.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left button (Incidents)
+                // Incidents button
                 CircularMenuItem(
                     icon = Icons.Default.Search,
                     label = "Incidents",
                     onClick = { onNavigate(Screen.IncidentsHistory.route) }
                 )
 
-                // Center button (Check In - Check out)
+                // Center button - Check In/Out based on session state
                 CircularMenuItem(
-                    icon = Icons.Default.PlayArrow,
-                    label = "Check In",
-                    onClick = { onNavigate(Screen.QRScanner.route) }
+                    icon = if (sessionState.session != null) 
+                           Icons.Default.Close 
+                           else Icons.Default.PlayArrow,
+                    label = if (sessionState.session != null) 
+                           "Check Out" 
+                           else "Check In",
+                    onClick = {
+                        if (sessionState.session != null) {
+                            sessionViewModel.endSession()
+                        } else {
+                            onNavigate(Screen.QRScanner.route)
+                        }
+                    }
                 )
 
-                // Right button (Vehicles)
+                // Vehicles button
                 CircularMenuItem(
                     icon = Icons.Default.Star,
                     label = "Vehicles",
@@ -180,7 +212,7 @@ private fun CircularMenu(
                 )
             }
 
-            // Bottom button (Operators)
+            // Activity button
             CircularMenuItem(
                 icon = Icons.AutoMirrored.Filled.List,
                 label = "Activity",
@@ -228,4 +260,25 @@ private fun CircularMenuItem(
             )
         }
     }
+}
+
+@Composable
+fun VehicleStatusMessage(
+    sessionState: SessionState,
+    vehicle: Vehicle?
+) {
+    android.util.Log.d("appflow", "sessionState.session?.status =${sessionState.session?.status}")
+    val message = when {
+
+
+        sessionState.session?.status == SessionStatus.ACTIVE ->
+            vehicle?.let { "${it.codename}" } ?: "Active session"
+        else -> "No active session"
+    }
+    
+    Text(
+        text = message,
+        style = MaterialTheme.typography.titleMedium,
+        color = Color.White
+    )
 }
