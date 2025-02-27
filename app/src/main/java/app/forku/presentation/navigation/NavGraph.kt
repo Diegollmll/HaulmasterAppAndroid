@@ -85,13 +85,12 @@ fun ForkUNavGraph(
             
             ChecklistScreen(
                 viewModel = viewModel,
-                onComplete = {
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToDashboard = { 
                     navController.navigate(Screen.Dashboard.route) {
+                        // Clear the back stack up to Dashboard
                         popUpTo(Screen.Dashboard.route) { inclusive = true }
                     }
-                },
-                onNavigateBack = {
-                    navController.navigateUp()
                 }
             )
         }

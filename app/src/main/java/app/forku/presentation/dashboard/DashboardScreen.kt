@@ -50,7 +50,7 @@ import app.forku.presentation.common.components.ForkUBottomBar
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.navigation.Screen
-import app.forku.presentation.vehicle.components.VehicleProfileSummary
+import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.SessionStatus
 

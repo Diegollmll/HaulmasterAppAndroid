@@ -48,7 +48,9 @@ class VehicleProfileViewModel @Inject constructor(
                     it.copy(
                         vehicle = vehicle,
                         activeSession = activeSession,
+                        activeOperator = activeSession?.operator,
                         hasActivePreShiftCheck = lastPreShiftCheck?.status == PreShiftStatus.IN_PROGRESS.toString(),
+                        hasActiveSession = activeSession?.session?.status == SessionStatus.ACTIVE,
                         isLoading = false
                     )
                 }

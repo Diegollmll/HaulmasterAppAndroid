@@ -1,9 +1,11 @@
-package app.forku.presentation.vehicle.components
+package app.forku.presentation.vehicle.profile.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,72 +17,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import app.forku.R
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.VehicleStatus
+import coil.request.ImageRequest
 
 
 @Composable
 fun VehicleProfileSummary(
     vehicle: Vehicle,
     status: VehicleStatus,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = vehicle.codename,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Status: ${status.toDisplayString()}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = status.toColor()
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "ID: ${vehicle.id}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-private fun VehicleStatus.toDisplayString(): String = when (this) {
-    VehicleStatus.IN_USE -> "In Use"
-    VehicleStatus.BLOCKED -> "Blocked"
-    VehicleStatus.AVAILABLE -> "Available"
-    VehicleStatus.UNKNOWN -> "Unknown"
-}
-
-private fun VehicleStatus.toColor(): Color = when (this) {
-    VehicleStatus.IN_USE -> Color(0xFF6CAFD0)
-    VehicleStatus.BLOCKED -> Color(0xFFF64A3A)
-    VehicleStatus.AVAILABLE -> Color(0xFF21F6F5)
-    VehicleStatus.UNKNOWN -> Color(0xFFFFFF9800)
-}
-
-@Composable
-fun VehicleProfileSummary(
-    vehicle: Vehicle,
     activeOperator: User? = null,
     showOperatorDetails: Boolean = true,
     showFullDetails: Boolean = true,
@@ -95,42 +43,92 @@ fun VehicleProfileSummary(
         ),
         border = null
     ) {
-        Text(
-            text = vehicle.codename,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = vehicle.codename,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-        if (showOperatorDetails) {
-            Column(
-                modifier = Modifier.padding(vertical = 8.dp)
-            ) {
-                Text(
-                    text = "Operator",
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
-                Text(
-                    text = activeOperator?.name ?: "No operator assigned",
-                    color = Color.Black,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            VehicleStatusIndicator(status = status)
+
+            // Vehicle image and details
+            VehicleDetailsSection(
+                vehicle = vehicle,
+                showFullDetails = showFullDetails,
+                activeOperator = activeOperator,
+                showOperatorDetails = showOperatorDetails,
+                status = status
+            )
         }
+    }
+}
 
-        // Vehicle image and details
-        VehicleDetailsSection(
-            vehicle = vehicle,
-            showFullDetails = showFullDetails
+@Composable
+fun OperatorProfile(
+    name: String,
+    imageUrl: String?,
+    modifier: Modifier = Modifier,
+    role: String = "Operator"
+) {
+    Row(
+        modifier = modifier
+            .padding(8.dp)
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Profile Image
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = "Profile picture of $name",
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+            contentScale = ContentScale.Crop
         )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // User info
+        Column {
+            Text(
+                text = role,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
+
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 
 @Composable
 fun VehicleDetailsSection(
     vehicle: Vehicle,
-    showFullDetails: Boolean = true
+    showFullDetails: Boolean = true,
+    activeOperator: User? = null,
+    showOperatorDetails: Boolean = true,
+    status: VehicleStatus
 ) {
     Row(
         modifier = Modifier
@@ -155,6 +153,21 @@ fun VehicleDetailsSection(
                 .width(1.dp),
             color = Color.LightGray
         )
+
+//        if (showOperatorDetails && status == VehicleStatus.IN_USE) {
+//            Column(
+//                modifier = Modifier.padding(vertical = 8.dp)
+//            ) {
+//                activeOperator?.role?.let {
+//                    OperatorProfile(
+//                        name = activeOperator?.name ?: "No operator assigned",
+//                        imageUrl = activeOperator.photoUrl,
+//                        modifier = Modifier.padding(16.dp),
+//                        role = it.name
+//                    )
+//                }
+//            }
+//        }
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -325,4 +338,18 @@ fun VehicleStatusIndicator(status: VehicleStatus) {
             style = MaterialTheme.typography.bodyMedium
         )
     }
+}
+
+private fun VehicleStatus.toDisplayString(): String = when (this) {
+    VehicleStatus.IN_USE -> "In Use"
+    VehicleStatus.BLOCKED -> "Blocked"
+    VehicleStatus.AVAILABLE -> "Available"
+    VehicleStatus.UNKNOWN -> "Unknown"
+}
+
+private fun VehicleStatus.toColor(): Color = when (this) {
+    VehicleStatus.IN_USE -> Color(0xFF6CAFD0)
+    VehicleStatus.BLOCKED -> Color(0xFFF64A3A)
+    VehicleStatus.AVAILABLE -> Color(0xFF21F6F5)
+    VehicleStatus.UNKNOWN -> Color(0xFFFFFF9800)
 }

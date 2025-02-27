@@ -17,8 +17,10 @@ class GetVehicleStatusUseCase @Inject constructor(
             val activeSession = getVehicleActiveSessionUseCase(vehicleId)
             if (activeSession?.session?.status == SessionStatus.ACTIVE) {
                 return VehicleStatus.IN_USE
+            } else {
+                return VehicleStatus.AVAILABLE
             }
-
+            /* Featured to be used in future
             // If no active session, check the last pre-shift check
             val lastCheck = vehicleRepository.getLastPreShiftCheck(vehicleId)
             return when (lastCheck?.status) {
@@ -28,7 +30,7 @@ class GetVehicleStatusUseCase @Inject constructor(
                 PreShiftStatus.EXPIRED.toString() -> VehicleStatus.AVAILABLE
                 null -> VehicleStatus.UNKNOWN
                 else -> VehicleStatus.UNKNOWN
-            }
+            }*/
         } catch (e: Exception) {
             android.util.Log.e("VehicleStatus", "Error getting vehicle status", e)
             VehicleStatus.UNKNOWN

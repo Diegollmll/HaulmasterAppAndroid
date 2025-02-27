@@ -3,6 +3,7 @@ package app.forku.presentation.checklist
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.RotationRules
+import app.forku.domain.model.vehicle.VehicleStatus
 
 data class ChecklistState(
     val vehicle: Vehicle? = null,
@@ -17,6 +18,7 @@ data class ChecklistState(
     val checkId: String? = null,
     val vehicleId: String,
     val showErrorModal: Boolean = false,
-    val errorModalMessage: String? = null
+    val errorModalMessage: String? = null,
+    val vehicleStatus: VehicleStatus = VehicleStatus.UNKNOWN
 )
 

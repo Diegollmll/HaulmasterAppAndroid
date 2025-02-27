@@ -14,6 +14,7 @@ import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
     private val getVehicleUseCase: GetVehicleUseCase,
+    private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val getChecklistUseCase: GetChecklistUseCase,
     private val submitChecklistUseCase: SubmitChecklistUseCase,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
@@ -60,6 +62,7 @@ class ChecklistViewModel @Inject constructor(
 
                 // Load rest of data...
                 val vehicle = getVehicleUseCase(vehicleId)
+                val status = getVehicleStatusUseCase(vehicleId)
                 val checklists = getChecklistUseCase(vehicleId)
                 
                 val firstChecklist = checklists.first()
@@ -72,6 +75,7 @@ class ChecklistViewModel @Inject constructor(
                 _state.update {
                     it.copy(
                         vehicle = vehicle,
+                        vehicleStatus = status,
                         checkItems = selectedItems,
                         rotationRules = firstChecklist.rotationRules,
                         isLoading = false
