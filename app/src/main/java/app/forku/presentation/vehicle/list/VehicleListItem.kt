@@ -50,7 +50,7 @@ fun VehicleListItem(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "ID: ${vehicle.codename}",
+                        text = "${vehicle.type.name}",
                         color = Color.Gray,
                         fontSize = 12.sp
                     )
@@ -62,16 +62,17 @@ fun VehicleListItem(
                     Text(
                         text = vehicle.status,
                         color = when(vehicle.status) {
-                            VehicleStatus.CHECKED_IN.toString() -> Color(0xFF4CAF50)
+                            VehicleStatus.AVAILABLE.toString() -> Color.Green
                             VehicleStatus.IN_USE.toString() -> Color(0xFFFFA726)
-                            else -> Color.Red
+                            VehicleStatus.BLOCKED.toString() -> Color.Red
+                            else -> Color.Gray
                         },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
                 Text(
-                    text = vehicle.type.name,
+                    text = vehicle.codename,
                     color = Color.Black,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold

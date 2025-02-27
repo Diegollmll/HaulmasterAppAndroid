@@ -10,15 +10,3 @@ data class SessionDto(
     val startLocation: String?,
     val endLocation: String?
 )
-
-data class StartSessionRequestDto(
-    val vehicleId: String,
-    val checkId: String,
-    val timestamp: String,
-    val status: String
-)
-
-data class EndSessionRequestDto(
-    val timestamp: String,
-    val notes: String?
-) 

@@ -8,6 +8,6 @@ class GetVehicleUseCase @Inject constructor(
     private val repository: VehicleRepository
 ) {
     suspend operator fun invoke(id: String): Vehicle {
-        return repository.getVehicleById(id)
+        return repository.getVehicle(id)
     }
 }

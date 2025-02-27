@@ -15,6 +15,5 @@ data class Vehicle(
     val vehicleClass: String,
     val energyType: String,
     val nextService: String,
-    val qrCode: String,
     val checks: List<PreShiftCheck>? = null
 )

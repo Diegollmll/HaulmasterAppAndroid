@@ -17,15 +17,18 @@ import javax.inject.Inject
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.api.dto.session.EndSessionRequestDto
 import app.forku.domain.repository.session.SessionRepository
+import app.forku.data.api.dto.checklist.UpdateChecklistRequestDto
+import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 
 
 class VehicleRepositoryImpl @Inject constructor(
     private val api: Sub7Api,
     private val authDataStore: AuthDataStore,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val validateChecklistUseCase: ValidateChecklistUseCase
 ) : VehicleRepository {
 
-    override suspend fun getVehicleById(id: String): Vehicle {
+    override suspend fun getVehicle(id: String): Vehicle {
         val response = api.getVehicle(id)
         return response.body()?.toDomain()
             ?: throw Exception("Vehicle not found")
@@ -62,63 +65,50 @@ class VehicleRepositoryImpl @Inject constructor(
         checkId: String?
     ): PreShiftCheck {
         try {
-            val currentUser = authDataStore.getCurrentUser() ?: throw Exception("No user logged in")
-            
-            // If checkItems are empty and no checkId, we're creating a new check
-            if (checkItems.isEmpty() && checkId == null) {
-                val initialCheckRequest = PerformChecklistRequestDto(
-                    items = emptyList(),
-                    datetime = java.time.Instant.now().toString(),
-                    status = "IN_PROGRESS",
+            val currentUser = authDataStore.getCurrentUser() 
+                ?: throw Exception("User not authenticated")
+            val currentDateTime = java.time.Instant.now().toString()
+
+            val validation = validateChecklistUseCase(checkItems)
+
+            return if (checkId == null) {
+                // Create new check
+                val createRequest = PerformChecklistRequestDto(
+                    items = checkItems.map { it.toDto() },
+                    startDateTime = currentDateTime,
+                    lastcheck_datetime = currentDateTime,
+                    status = PreShiftStatus.IN_PROGRESS.toString(),
                     userId = currentUser.id
                 )
-                val response = api.submitCheck(vehicleId, check = initialCheckRequest)
+                
+                val response = api.createCheck(vehicleId, createRequest)
                 if (!response.isSuccessful) {
-                    throw Exception("Failed to start check: ${response.code()}")
+                    throw Exception("Failed to create check: ${response.code()}")
                 }
-                return response.body()?.toDomain() ?: throw Exception("Empty response body")
-            }
-
-            // If we have items and checkId, we're updating the check
-            val allItemsPassed = checkItems.all { item -> item.userAnswer == Answer.PASS }
-            val finalStatus = when {
-                allItemsPassed -> "COMPLETED_PASS"
-                else -> "COMPLETED_FAIL"
-            }
-            
-            val checkRequest = PerformChecklistRequestDto(
-                items = checkItems.map { it.toDto() },
-                datetime = java.time.Instant.now().toString(),
-                status = finalStatus,
-                userId = currentUser.id
-            )
-            
-            val response = if (checkId != null) {
-                api.updateCheck(vehicleId, checkId, checkRequest)
+                
+                response.body()?.toDomain() 
+                    ?: throw Exception("Empty response when creating check")
+                    
             } else {
-                throw Exception("CheckId is required for updating check")
-            }
-            
-            if (!response.isSuccessful) {
-                throw Exception("Server error: ${response.code()}")
-            }
-
-            val completedCheck = response.body()?.toDomain() 
-                ?: throw Exception("Empty response body")
-
-            // Start session if check passed
-            if (finalStatus == "COMPLETED_PASS") {
-                try {
-                    sessionRepository.startSession(vehicleId, completedCheck.id)
-                } catch (e: Exception) {
-                    android.util.Log.e("ChecklistSubmit", "Failed to start session", e)
-                    throw Exception("Check completed but failed to start session: ${e.message}")
+                // Update existing check
+                val updateRequest = UpdateChecklistRequestDto(
+                    items = checkItems.map { it.toDto() },
+                    endDateTime = currentDateTime,
+                    lastcheck_datetime = currentDateTime,
+                    status = validation.status.toString(),
+                    userId = currentUser.id
+                )
+                
+                val response = api.updateCheck(vehicleId, checkId, updateRequest)
+                if (!response.isSuccessful) {
+                    throw Exception("Failed to update check: ${response.code()}")
                 }
+                
+                response.body()?.toDomain() 
+                    ?: throw Exception("Empty response when updating check")
             }
-
-            return completedCheck
         } catch (e: Exception) {
-            android.util.Log.e("ChecklistSubmit", "Error in submitPreShiftCheck", e)
+            android.util.Log.e("Checklist", "Error submitting check", e)
             throw e
         }
     }
@@ -135,24 +125,22 @@ class VehicleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getLastPreShiftCheck(): PreShiftCheck? {
-        try {
-            val response = api.getVehicles()
-            if (!response.isSuccessful) {
-                return null
-            }
-
-            return response.body()
-                ?.mapNotNull { vehicle -> 
-                    vehicle.checks
-                        ?.maxByOrNull { it.datetime }
-                        ?.toDomain()
-                }
-                ?.maxByOrNull { it.datetime }
+    override suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
+        return try {
+            val response = api.getVehicleChecks(vehicleId)
+            if (!response.isSuccessful) return null
+            response.body()?.maxByOrNull { it.lastcheck_datetime }?.toDomain()
         } catch (e: Exception) {
-            android.util.Log.e("VehicleRepo", "Error getting last check", e)
-            return null
+            null
         }
+    }
+
+    override suspend fun submitChecklist(vehicleId: String, answers: List<Answer>): PreShiftCheck {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getChecklist(vehicleId: String): Checklist {
+        TODO("Not yet implemented")
     }
 
 

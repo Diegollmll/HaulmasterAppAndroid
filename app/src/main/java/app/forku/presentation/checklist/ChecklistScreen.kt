@@ -111,7 +111,7 @@ fun ChecklistScreen(
 
                         if (state.checkItems.all { it.userAnswer != null }) {
                             Button(
-                                onClick = { viewModel.submitCheck() },
+                                onClick = { viewModel.submitChecklist() },
                                 enabled = !state.isSubmitting,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -147,37 +147,5 @@ fun CategoryHeader(
             style = MaterialTheme.typography.titleMedium,
             color = Color.Black
         )
-    }
-}
-
-@Composable
-fun ErrorScreen(
-    message: String,
-    onRetry: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.Red,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2196F3)
-            )
-        ) {
-            Text("Retry")
-        }
     }
 }

@@ -33,7 +33,6 @@ fun VehicleDto.toDomain(): Vehicle {
         vehicleClass = vehicleClass,
         energyType = energyType,
         nextService = nextServiceHours,
-        qrCode = qrCode,
         checks = checks?.map { it.toDomain() }
     )
 }

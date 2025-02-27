@@ -1,5 +1,5 @@
 package app.forku.data.api.dto.vehicle
 
-data class VehicleStatusRequestDto(
+data class VehicleStatusChangeRequestDto(
     val status: String
 ) 

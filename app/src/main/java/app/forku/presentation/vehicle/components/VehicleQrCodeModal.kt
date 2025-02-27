@@ -5,14 +5,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import app.forku.domain.model.vehicle.Vehicle
 import app.forku.presentation.common.components.AppModal
 
 @Composable
 fun VehicleQrCodeModal(
-    vehicle: Vehicle,
+    vehicleId: String,
     onDismiss: () -> Unit
 ) {
     AppModal(onDismiss = onDismiss) {
@@ -26,23 +24,13 @@ fun VehicleQrCodeModal(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            vehicle.qrCode?.let { code ->
-                VehicleQrCode(
-                    qrCode = code,
-                    modifier = Modifier.size(256.dp)
-                )
-            } ?: Text(
-                text = "No QR Code available",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.Gray
+            VehicleQrCode(
+                vehicleId = vehicleId,
+                modifier = Modifier.size(256.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
-            
-            //Text(
-                //text = vehicle.qrCode,
-                //style = MaterialTheme.typography.bodyLarge
-            //)
+
         }
     }
 } 

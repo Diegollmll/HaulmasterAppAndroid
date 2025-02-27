@@ -4,6 +4,8 @@ import app.forku.data.api.Sub7Api
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.repository.vehicle.VehicleRepositoryImpl
 import app.forku.domain.repository.vehicle.VehicleRepository
+import app.forku.domain.repository.incident.IncidentRepository
+import app.forku.data.repository.incident.IncidentRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,4 +28,12 @@ object RepositoryModule {
     @Singleton
     fun provideGson(): Gson = GsonBuilder().create()
 
+    @Provides
+    @Singleton
+    fun provideIncidentRepository(
+        api: Sub7Api,
+        authDataStore: AuthDataStore
+    ): IncidentRepository {
+        return IncidentRepositoryImpl(api, authDataStore)
+    }
 }

@@ -6,4 +6,5 @@ interface SessionRepository {
     suspend fun getCurrentSession(): VehicleSession?
     suspend fun startSession(vehicleId: String, checkId: String): VehicleSession
     suspend fun endSession(sessionId: String): VehicleSession
+    suspend fun getActiveSessionForVehicle(vehicleId: String): VehicleSession?
 } 

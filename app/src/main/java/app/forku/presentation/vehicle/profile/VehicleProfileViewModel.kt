@@ -14,12 +14,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
+import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
+
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
     private val getVehicleUseCase: GetVehicleUseCase,
+    private val getVehicleActiveSessionUseCase: GetVehicleActiveSessionUseCase,
     private val vehicleRepository: VehicleRepository,
     private val sessionRepository: SessionRepository,
+    private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleProfileState())
@@ -36,13 +41,13 @@ class VehicleProfileViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true) }
             try {
                 val vehicle = getVehicleUseCase(vehicleId)
-                val currentSession = sessionRepository.getCurrentSession()
-                val lastPreShiftCheck = vehicleRepository.getLastPreShiftCheck()
+                val activeSession = getVehicleActiveSessionUseCase(vehicleId)
+                val lastPreShiftCheck = vehicleRepository.getLastPreShiftCheck(vehicleId)
                 
                 _state.update {
                     it.copy(
                         vehicle = vehicle,
-                        hasActiveSession = currentSession?.status == SessionStatus.ACTIVE,
+                        activeSession = activeSession,
                         hasActivePreShiftCheck = lastPreShiftCheck?.status == PreShiftStatus.IN_PROGRESS.toString(),
                         isLoading = false
                     )
@@ -58,11 +63,31 @@ class VehicleProfileViewModel @Inject constructor(
         }
     }
 
-    fun toggleQrCode(show: Boolean) {
-        if (!show) {
-            _state.update { it.copy(showQrCode = false) }
-        } else if (!state.value.showQrCode) {
-            _state.update { it.copy(showQrCode = true) }
+    fun toggleQrCode() {
+        _state.update { it.copy(showQrCode = !it.showQrCode) }
+    }
+
+    fun startVehicleSession(checkId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                val session = sessionRepository.startSession(vehicleId, checkId)
+                _state.update { 
+                    it.copy(
+                        hasActiveSession = session.status == SessionStatus.ACTIVE,
+                        isLoading = false,
+                        error = null
+                    )
+                }
+                loadVehicle() // Refresh vehicle state
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = e.message,
+                        isLoading = false
+                    )
+                }
+            }
         }
     }
 }

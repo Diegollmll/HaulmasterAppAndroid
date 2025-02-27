@@ -56,17 +56,17 @@ object QrCodeGenerator {
 
 @Composable
 fun VehicleQrCode(
-    qrCode: String,
+    vehicleId: String,
     modifier: Modifier = Modifier,
     size: Int = 512,
     errorCorrection: ErrorCorrectionLevel = ErrorCorrectionLevel.H
 ) {
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     
-    LaunchedEffect(qrCode) {
+    LaunchedEffect(vehicleId) {
         withContext(Dispatchers.Default) {
             bitmap = QrCodeGenerator.generateVehicleQrCode(
-                vehicleId = qrCode,
+                vehicleId = vehicleId,
                 size = size,
                 errorCorrection = errorCorrection
             )
@@ -76,7 +76,7 @@ fun VehicleQrCode(
     bitmap?.let { qrBitmap ->
         Image(
             bitmap = qrBitmap.asImageBitmap(),
-            contentDescription = "QR Code for vehicle $qrCode",
+            contentDescription = "QR Code for vehicle $vehicleId",
             modifier = modifier
                 .aspectRatio(1f)
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))

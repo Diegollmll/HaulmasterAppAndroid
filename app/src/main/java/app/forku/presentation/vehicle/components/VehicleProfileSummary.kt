@@ -19,6 +19,7 @@ import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.VehicleStatus
 
+
 @Composable
 fun VehicleProfileSummary(
     vehicle: Vehicle,
@@ -65,27 +66,28 @@ fun VehicleProfileSummary(
 
 private fun VehicleStatus.toDisplayString(): String = when (this) {
     VehicleStatus.IN_USE -> "In Use"
-    VehicleStatus.CHECKED_OUT -> "Checked Out"
     VehicleStatus.BLOCKED -> "Blocked"
-    VehicleStatus.CHECKED_IN -> "Ready"
+    VehicleStatus.AVAILABLE -> "Available"
     VehicleStatus.UNKNOWN -> "Unknown"
 }
 
 private fun VehicleStatus.toColor(): Color = when (this) {
-    VehicleStatus.IN_USE -> Color(0xFF4CAF50)
-    VehicleStatus.BLOCKED -> Color(0xFFF44336)
-    VehicleStatus.CHECKED_IN -> Color(0xFF2196F3)
-    VehicleStatus.CHECKED_OUT -> Color(0xFFFF9800)
-    VehicleStatus.UNKNOWN -> Color.Gray
+    VehicleStatus.IN_USE -> Color(0xFF6CAFD0)
+    VehicleStatus.BLOCKED -> Color(0xFFF64A3A)
+    VehicleStatus.AVAILABLE -> Color(0xFF21F6F5)
+    VehicleStatus.UNKNOWN -> Color(0xFFFFFF9800)
 }
 
 @Composable
 fun VehicleProfileSummary(
     vehicle: Vehicle,
-    operator: User? = null
+    activeOperator: User? = null,
+    showOperatorDetails: Boolean = true,
+    showFullDetails: Boolean = true,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(16.dp),
         colors = CardDefaults.cardColors(
@@ -93,34 +95,15 @@ fun VehicleProfileSummary(
         ),
         border = null
     ) {
-        // Upper section (no border)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            AsyncImage(
-                model = vehicle.photoModel,
-                contentDescription = "Vehicle image",
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentScale = ContentScale.Crop
-            )
+        Text(
+            text = vehicle.codename,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
+        )
 
-            Divider(
-                modifier = Modifier
-                    .height(90.dp)
-                    .width(1.dp),
-                color = Color.LightGray
-            )
-
+        if (showOperatorDetails) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.Start
+                modifier = Modifier.padding(vertical = 8.dp)
             ) {
                 Text(
                     text = "Operator",
@@ -128,12 +111,56 @@ fun VehicleProfileSummary(
                     fontSize = 12.sp
                 )
                 Text(
-                    text = operator?.name ?: "No operator assigned",
+                    text = activeOperator?.name ?: "No operator assigned",
                     color = Color.Black,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        // Vehicle image and details
+        VehicleDetailsSection(
+            vehicle = vehicle,
+            showFullDetails = showFullDetails
+        )
+    }
+}
+
+@Composable
+fun VehicleDetailsSection(
+    vehicle: Vehicle,
+    showFullDetails: Boolean = true
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = vehicle.photoModel,
+            contentDescription = "Vehicle image",
+            modifier = Modifier
+                .size(90.dp)
+                .clip(CircleShape)
+                .background(Color.LightGray),
+            contentScale = ContentScale.Crop
+        )
+
+        Divider(
+            modifier = Modifier
+                .height(90.dp)
+                .width(1.dp),
+            color = Color.LightGray
+        )
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
+        ) {
+            if (showFullDetails) {
                 Text(
                     text = "Pre-Shift Check",
                     color = Color.Gray,
@@ -147,102 +174,102 @@ fun VehicleProfileSummary(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Last Checked: ${lastCheck?.datetime}",
+                    text = "Last Checked: ${lastCheck?.lastcheck_datetime}",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
             }
         }
+    }
 
-        // Lower section with border
-        Card(
+    // Lower section with border
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(1.dp, Color(0xFFFFA726))
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            border = BorderStroke(1.dp, Color(0xFFFFA726))
+                .padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+            // ID and Next Service Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // ID and Next Service Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Text(
+                    text = vehicle.type.displayName,
+                    color = Color.Black,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Column(
+                    horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "ID: ${vehicle.codename}",
-                        color = Color.Black,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Next Service",
+                        color = Color.Gray,
+                        fontSize = 12.sp
                     )
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text(
-                            text = "Next Service",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = "${vehicle.nextService} hrs",
-                            color = Color.Black,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                    Text(
+                        text = "${vehicle.nextService} hrs",
+                        color = Color.Black,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Model, Type, and Class Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Model",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = vehicle.model,
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Column {
+                    Text(
+                        text = "Type",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = vehicle.energyType,
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
+                }
 
-                // Model, Type, and Class Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "Model",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = vehicle.model,
-                            color = Color.Black,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Type",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = vehicle.energyType,
-                            color = Color.Black,
-                            fontSize = 14.sp
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "Class",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = vehicle.vehicleClass,
-                            color = Color.Black,
-                            fontSize = 14.sp
-                        )
-                    }
+                Column {
+                    Text(
+                        text = "Class",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = vehicle.vehicleClass,
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
                 }
             }
         }
@@ -272,5 +299,30 @@ fun getPreShiftStatusText(status: String): String {
         "EXPIRED" -> "Expired"
         "OVERDUE" -> "Overdue"
         else -> status
+    }
+}
+
+@Composable
+fun VehicleStatusIndicator(status: VehicleStatus) {
+    val (color, text) = when (status) {
+        VehicleStatus.AVAILABLE -> Color.Green to "Available"
+        VehicleStatus.IN_USE -> Color.Blue to "In Use"
+        VehicleStatus.BLOCKED -> Color.Red to "Blocked"
+        VehicleStatus.UNKNOWN -> Color.Gray to "Unknown"
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .background(color, CircleShape)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }

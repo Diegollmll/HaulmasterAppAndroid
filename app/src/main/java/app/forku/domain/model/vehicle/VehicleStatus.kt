@@ -1,9 +1,8 @@
 package app.forku.domain.model.vehicle
 
 enum class VehicleStatus {
-    CHECKED_OUT,    // Sin check o check expirado
-    CHECKED_IN,     // Con check aprobado pero sin sesión activa
-    IN_USE,         // Con check aprobado y sesión activa
-    BLOCKED,        // Con check fallido
-    UNKNOWN         // Estado por defecto o error
+    AVAILABLE,    // Vehicle ready to use
+    IN_USE,       // With approved check and active session
+    BLOCKED,      // With failed check
+    UNKNOWN       // Default state when status can't be determined
 } 

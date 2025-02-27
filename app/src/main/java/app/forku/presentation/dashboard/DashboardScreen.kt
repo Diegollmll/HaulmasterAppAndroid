@@ -69,7 +69,7 @@ fun DashboardScreen(
 
     // Add debug log
     LaunchedEffect(dashboardState) {
-        android.util.Log.d("Dashboard", "State updated: vehicle=${dashboardState.vehicle}, user=${dashboardState.user}")
+        android.util.Log.d("Dashboard", "State updated: vehicle=${dashboardState.activeVehicle}, user=${dashboardState.user}")
     }
 
     Scaffold(
@@ -80,7 +80,7 @@ fun DashboardScreen(
                 title = {
                     VehicleStatusMessage(
                         sessionState = sessionState,
-                        vehicle = dashboardState.vehicle
+                        vehicle = dashboardState.activeVehicle
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -121,7 +121,7 @@ fun DashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Show vehicle summary if there's an active vehicle
-                dashboardState.vehicle?.let { vehicle ->
+                dashboardState.activeVehicle?.let { vehicle ->
                     VehicleProfileSummary(
                         vehicle = vehicle,
                         status = dashboardState.vehicleStatus,
@@ -146,7 +146,7 @@ fun DashboardScreen(
             dashboardState.error?.let { error ->
                 ErrorScreen(
                     message = error,
-                    onRetry = { dashboardViewModel.loadDashboardStatus() }
+                    onRetry = { dashboardViewModel.loadDashboard() }
                 )
             }
         }
@@ -267,18 +267,21 @@ fun VehicleStatusMessage(
     sessionState: SessionState,
     vehicle: Vehicle?
 ) {
-    android.util.Log.d("appflow", "sessionState.session?.status =${sessionState.session?.status}")
+    android.util.Log.d(
+        "appflow",
+        "sessionState.session?.status =${sessionState.session?.status}"
+    )
     val message = when {
-
-
         sessionState.session?.status == SessionStatus.ACTIVE ->
-            vehicle?.let { "${it.codename}" } ?: "Active session"
+            vehicle?.let { "Active session" }
         else -> "No active session"
     }
-    
-    Text(
-        text = message,
-        style = MaterialTheme.typography.titleMedium,
-        color = Color.White
-    )
+
+    if (message != null) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White
+        )
+    }
 }

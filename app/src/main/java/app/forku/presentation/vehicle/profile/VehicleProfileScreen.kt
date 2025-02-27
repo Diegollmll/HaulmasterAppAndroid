@@ -28,9 +28,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.hilt.navigation.compose.hiltViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,15 +73,15 @@ fun VehicleProfileScreen(
                                 onDismissRequest = { showMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Scan QR Code") },
+                                    text = { Text("Show QR Code") },
                                     onClick = {
                                         showMenu = false
-                                        onScanQrCode()
+                                        viewModel.toggleQrCode()
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Scan QR"
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = "Show QR"
                                         )
                                     }
                                 )
@@ -117,16 +118,17 @@ fun VehicleProfileScreen(
                     onRetry = { viewModel.loadVehicle() }
                 )
                 state.vehicle != null -> {
+                    val vehicle = checkNotNull(state.vehicle)
                     Box(modifier = Modifier.fillMaxSize()) {
                         VehicleProfileContent(
-                            vehicle = state.vehicle!!,
-                            onShowQrCode = { viewModel.toggleQrCode(true) }
+                            vehicle = vehicle,
+                            onShowQrCode = { viewModel.toggleQrCode() }
                         )
 
                         if (state.showQrCode) {
                             VehicleQrCodeModal(
-                                vehicle = state.vehicle!!,
-                                onDismiss = { viewModel.toggleQrCode(false) }
+                                vehicleId = vehicle.id,
+                                onDismiss = viewModel::toggleQrCode
                             )
                         }
                     }
@@ -148,11 +150,6 @@ private fun VehicleProfileContent(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = vehicle.type.name,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -163,22 +160,6 @@ private fun VehicleProfileContent(
             VehicleDetailsSection(vehicle)
 
             Spacer(modifier = Modifier.weight(1f))
-
-            OutlinedButton(
-                onClick = onShowQrCode,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color.Transparent,
-                ),
-                border = BorderStroke(1.dp, Color(0xFFFFA726))
-            ) {
-                Text(
-                    "Show QR Code",
-                    color = Color(0xFFFFA726)
-                )
-            }
         }
     }
 }

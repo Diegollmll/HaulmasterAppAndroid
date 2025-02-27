@@ -1,5 +1,7 @@
 package app.forku.data.api.dto.checklist
 
+import app.forku.domain.model.checklist.Answer
+
 data class ChecklistItemDto(
     val id: String,
     val category: String,
@@ -9,7 +11,8 @@ data class ChecklistItemDto(
     val component: String,
     val question: String,
     val description: String,
-    val criticality: String,
+    val isCritical: Boolean,
     val expectedAnswer: String,
-    val rotationGroup: Int
+    val rotationGroup: Int,
+    val userAnswer: Answer? = null
 ) 

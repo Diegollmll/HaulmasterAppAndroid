@@ -8,10 +8,14 @@ import app.forku.data.api.dto.user.LoginResponseDto
 import app.forku.data.api.dto.user.RefreshTokenRequestDto
 import app.forku.data.api.dto.user.UserDto
 import app.forku.data.api.dto.vehicle.VehicleDto
-import app.forku.data.api.dto.vehicle.VehicleStatusRequestDto
+import app.forku.data.api.dto.vehicle.VehicleStatusChangeRequestDto
 import app.forku.data.api.dto.session.SessionDto
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.api.dto.session.EndSessionRequestDto
+import app.forku.data.api.dto.checklist.UpdateChecklistRequestDto
+import app.forku.data.api.dto.incident.IncidentRequestDto
+import app.forku.data.api.dto.incident.IncidentResponseDto
+import app.forku.data.api.dto.checklist.PreShiftCheckDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -44,16 +48,16 @@ interface Sub7Api {
     @GET("checklist_questionary")
     suspend fun getChecklistQuestionary(): Response<ChecklistResponseDto>
 
-    @POST("vehicles/{id}/checks")
-    suspend fun submitCheck(
-        @Path("id") vehicleId: String,
+    @POST("vehicles/{vehicleId}/checks")
+    suspend fun createCheck(
+        @Path("vehicleId") vehicleId: String,
         @Body check: PerformChecklistRequestDto
     ): Response<PerformChecklistResponseDto>
 
-    @PUT("vehicles/{id}/status")
+    @PUT("vehicles/{id}")
     suspend fun updateVehicleStatus(
         @Path("id") id: String,
-        @Body status: VehicleStatusRequestDto
+        @Body status: VehicleStatusChangeRequestDto
     ): Response<VehicleDto>
 
     @GET("vehicles")
@@ -87,6 +91,18 @@ interface Sub7Api {
     suspend fun updateCheck(
         @Path("vehicleId") vehicleId: String,
         @Path("checkId") checkId: String,
-        @Body check: PerformChecklistRequestDto
+        @Body check: UpdateChecklistRequestDto
     ): Response<PerformChecklistResponseDto>
+
+    @POST("incidents")
+    suspend fun reportIncident(@Body incident: IncidentRequestDto): Response<IncidentResponseDto>
+
+    @GET("incidents")
+    suspend fun getIncidents(): Response<List<IncidentResponseDto>>
+
+    @GET("incidents/{id}")
+    suspend fun getIncidentById(@Path("id") id: String): Response<IncidentResponseDto>
+
+    @GET("vehicles/{vehicleId}/checks")
+    suspend fun getVehicleChecks(@Path("vehicleId") vehicleId: String): Response<List<PreShiftCheckDto>>
 }

@@ -30,14 +30,14 @@ fun ChecklistItemDto.toDomain(): ChecklistItem {
         category = categoryMapping[category] ?: throw IllegalArgumentException("Unknown category: $category"),
         subCategory = subCategory,
         energySource = energySource.map { EnergySource.valueOf(it) },
-        vehicleType = vehicleType.map { VehicleType.fromName(it.uppercase()) },
+        vehicleType = vehicleType.map { VehicleType.valueOf(it) },
         component = component,
         question = question,
         description = description,
-        isCritical = criticality == "CRITICAL",
         expectedAnswer = Answer.valueOf(expectedAnswer),
-        rotationGroup = rotationGroup,
-        userAnswer = null
+        userAnswer = userAnswer,
+        isCritical = isCritical,
+        rotationGroup = rotationGroup
     )
 }
 
@@ -77,10 +77,27 @@ fun PreShiftCheckDto.toDomain(): PreShiftCheck {
     return PreShiftCheck(
         id = id,
         userId = userId,
-        vehicleId = "",
-        datetime = datetime,
+        vehicleId = vehicleId,
+        startDateTime = startDateTime,
+        endDateTime = endDateTime,
+        lastcheck_datetime = lastcheck_datetime,
         status = status,
-        items = emptyList()
+        items = items.map { item ->
+            ChecklistItem(
+                id = item.id,
+                expectedAnswer = Answer.valueOf(item.expectedAnswer),
+                userAnswer = Answer.valueOf(item.userAnswer.toString()),
+                category = CheckCategory.VISUAL,
+                subCategory = item.subCategory ?: "",
+                energySource = item.energySource?.map { EnergySource.valueOf(it) } ?: emptyList(),
+                vehicleType = item.vehicleType?.map { VehicleType.valueOf(it) } ?: emptyList(),
+                component = item.component ?: "",
+                question = item.question ?: "",
+                description = item.description ?: "",
+                isCritical = item.isCritical,
+                rotationGroup = item.rotationGroup ?: 0
+            )
+        }
     )
 }
 
@@ -97,11 +114,15 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
         id = id,
         userId = userId,
         vehicleId = vehicleId,
-        datetime = datetime,
+        startDateTime = startDateTime,
+        endDateTime = endDateTime,
+        lastcheck_datetime = lastcheck_datetime,
         status = status,
         items = items.map { 
             ChecklistItem(
                 id = it.id,
+                expectedAnswer = Answer.valueOf(it.expectedAnswer),
+                userAnswer = Answer.valueOf(it.userAnswer),
                 category = CheckCategory.VISUAL,
                 subCategory = "",
                 energySource = emptyList(),
@@ -110,9 +131,7 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
                 question = "",
                 description = "",
                 isCritical = false,
-                expectedAnswer = Answer.valueOf(it.expectedAnswer),
-                rotationGroup = 0,
-                userAnswer = Answer.valueOf(it.userAnswer)
+                rotationGroup = 0
             )
         }
     )

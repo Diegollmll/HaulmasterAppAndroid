@@ -5,6 +5,8 @@ data class PerformChecklistResponseDto(
     val userId: String,
     val vehicleId: String,
     val items: List<PerformChecklistItemRequestDto>,
-    val datetime: String,
+    val startDateTime: String,
+    val endDateTime: String?,
+    val lastcheck_datetime: String,
     val status: String
 ) 

@@ -10,7 +10,10 @@ import app.forku.domain.usecase.checklist.GetChecklistUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.usecase.checklist.SubmitChecklistUseCase
 import app.forku.domain.repository.user.AuthRepository
-import app.forku.domain.usecase.checklist.ValidateChecklistCompletionUseCase
+import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
+import app.forku.domain.repository.vehicle.VehicleRepository
+import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.repository.session.SessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,13 +26,16 @@ class ChecklistViewModel @Inject constructor(
     private val getVehicleUseCase: GetVehicleUseCase,
     private val getChecklistUseCase: GetChecklistUseCase,
     private val submitChecklistUseCase: SubmitChecklistUseCase,
-    private val validateChecklistUseCase: ValidateChecklistCompletionUseCase,
+    private val validateChecklistUseCase: ValidateChecklistUseCase,
     private val authRepository: AuthRepository,
+    private val vehicleRepository: VehicleRepository,
+    private val sessionRepository: SessionRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val vehicleId: String = checkNotNull(savedStateHandle["vehicleId"])
-    private val _state = MutableStateFlow(ChecklistState())
+    
+    private val _state = MutableStateFlow(ChecklistState(vehicleId = vehicleId))
     val state = _state.asStateFlow()
 
     private val _navigateToDashboard = MutableStateFlow(false)
@@ -163,62 +169,47 @@ class ChecklistViewModel @Inject constructor(
         return authRepository.getCurrentUser() != null
     }
 
-    fun submitCheck() {
+    fun submitChecklist() {
         viewModelScope.launch {
-            if (!isUserAuthenticated()) {
-                _state.update {
-                    it.copy(
-                        error = "Please login to submit checklist",
-                        isSubmitting = false
-                    )
-                }
+            val validation = validateChecklistUseCase(state.value.checkItems)
+            
+            if (validation.status == PreShiftStatus.IN_PROGRESS) {
+                _state.update { it.copy(error = "Please answer all questions") }
                 return@launch
             }
-
-            val currentCheckId = state.value.checkId
-            if (currentCheckId == null) {
-                _state.update {
-                    it.copy(
-                        error = "No active check found",
-                        isSubmitting = false
-                    )
-                }
-                return@launch
-            }
-
-            _state.update { it.copy(isSubmitting = true, error = null) }
+            
             try {
-                val validation = validateChecklistUseCase(state.value.checkItems)
-                
-                if (!validation.isComplete) {
-                    throw Exception("Please complete all items before submitting")
-                }
-                
-                val completedCheck = submitChecklistUseCase(
-                    vehicleId = vehicleId,
-                    items = state.value.checkItems,
-                    checkId = currentCheckId
+                val check = vehicleRepository.submitPreShiftCheck(
+                    vehicleId = state.value.vehicleId,
+                    checkItems = state.value.checkItems,
+                    checkId = state.value.checkId
                 )
                 
-                _state.update {
-                    it.copy(
-                        isSubmitting = false,
-                        isSubmitted = true,
-                        isCompleted = true,
-                        vehicleBlocked = validation.isBlocked
-                    )
-                }
-                
-                if (validation.isPassed && !validation.isBlocked) {
-                    _navigateToDashboard.value = true
+                when (validation.status) {
+                    PreShiftStatus.COMPLETED_PASS -> {
+                        // Start vehicle session
+                        sessionRepository.startSession(
+                            vehicleId = state.value.vehicleId,
+                            checkId = check.id
+                        )
+                        // Navigate to dashboard
+                        _navigateToDashboard.value = true
+                    }
+                    PreShiftStatus.COMPLETED_FAIL -> {
+                        // Show error modal
+                        _state.update { 
+                            it.copy(
+                                showErrorModal = true,
+                                errorModalMessage = "Vehicle check failed. Please contact maintenance."
+                            )
+                        }
+                    }
+                    else -> {
+
+                    } // Handle other states if needed
                 }
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        error = e.message ?: "Failed to submit check",
-                        isSubmitting = false
-                    )
-                }
+                _state.update { it.copy(error = e.message) }
             }
         }
     }
@@ -227,3 +218,4 @@ class ChecklistViewModel @Inject constructor(
         _navigateToDashboard.value = false
     }
 }
+
