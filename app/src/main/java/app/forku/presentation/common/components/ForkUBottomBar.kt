@@ -15,55 +15,60 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import app.forku.presentation.navigation.Screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.material3.MaterialTheme
+import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.presentation.common.viewmodel.BottomSheetViewModel
+import app.forku.presentation.incident.components.IncidentTypeSelector
 
 @Composable
 fun ForkUBottomBar(
-    navController: NavController
+    navController: NavController,
+    modifier: Modifier = Modifier,
+    viewModel: BottomSheetViewModel = hiltViewModel()
 ) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomSheet by viewModel.showBottomSheet.collectAsState()
 
-    NavigationBar(
-        containerColor = Color.Black,
-        contentColor = Color.White,
-        tonalElevation = 0.dp
-    ) {
-        bottomNavItems.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.title,
-                        tint = if (currentRoute == item.route) Color.Black else Color.Gray
-                    )
-                },
-                label = {
-                    Text(
-                        text = item.title,
-                        color = if (currentRoute == item.route) Color.Black else Color.Gray
-                    )
-                },
-                selected = currentRoute == item.route,
-                onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
+    Column {
+        if (showBottomSheet) {
+            AppBottomSheet(
+                onDismiss = { viewModel.hideBottomSheet() },
+                content = {
+                    IncidentTypeSelector(
+                        onTypeSelected = { type ->
+                            navController.navigate("incident_report/$type") {
+                                popUpTo("incident_report/$type") { inclusive = true }
                             }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.Black,
-                    selectedTextColor = Color.Black,
-                    unselectedIconColor = Color(0xFFFFA726),
-                    unselectedTextColor = Color(0xFFFFA726),
-                    indicatorColor = Color(0xFFFFA726)
-                )
+                            viewModel.hideBottomSheet()
+                        },
+                        onDismiss = { viewModel.hideBottomSheet() }
+                    )
+                }
             )
+        }
+
+        NavigationBar(
+            modifier = modifier,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            bottomNavItems.forEach { item ->
+                NavigationBarItem(
+                    selected = item.route == Screen.SafetyReporting.route,
+                    onClick = {
+                        if (item.route == Screen.SafetyReporting.route) {
+                            viewModel.showBottomSheet()
+                        } else {
+                            navController.navigate(item.route) {
+                                popUpTo(item.route) { inclusive = true }
+                            }
+                        }
+                    },
+                    icon = { Icon(item.icon, contentDescription = item.title) },
+                    label = { Text(item.title) }
+                )
+            }
         }
     }
 }

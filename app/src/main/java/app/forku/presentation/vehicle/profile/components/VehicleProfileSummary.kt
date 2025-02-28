@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import app.forku.R
+import androidx.compose.ui.text.style.TextAlign
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.VehicleStatus
@@ -31,15 +31,17 @@ fun VehicleProfileSummary(
     status: VehicleStatus,
     activeOperator: User? = null,
     showOperatorDetails: Boolean = true,
-    showFullDetails: Boolean = true,
-    modifier: Modifier = Modifier
+    showPreShiftCheckDetails: Boolean = true,
+    showVehicleDetails: Boolean = true,
+    modifier: Modifier = Modifier,
+    containerColor: Color = Color.Transparent
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(0.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
+            containerColor = containerColor
         ),
         border = null
     ) {
@@ -48,22 +50,32 @@ fun VehicleProfileSummary(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = vehicle.codename,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row {
+                Column {
+                    Text(
+                        text = vehicle.codename,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column {
+                    VehicleStatusIndicator(status = status)
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
-            
-            VehicleStatusIndicator(status = status)
 
             // Vehicle image and details
             VehicleDetailsSection(
                 vehicle = vehicle,
-                showFullDetails = showFullDetails,
+                showPreShiftCheckDetails = showPreShiftCheckDetails,
                 activeOperator = activeOperator,
                 showOperatorDetails = showOperatorDetails,
+                showVehicleDetails = showVehicleDetails,
                 status = status
             )
         }
@@ -79,12 +91,11 @@ fun OperatorProfile(
 ) {
     Row(
         modifier = modifier
-            .padding(8.dp)
             .background(
                 color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(8.dp)
             )
-            .padding(8.dp),
+            .padding(0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Profile Image
@@ -101,7 +112,7 @@ fun OperatorProfile(
             contentScale = ContentScale.Crop
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
 
         // User info
         Column {
@@ -125,17 +136,18 @@ fun OperatorProfile(
 @Composable
 fun VehicleDetailsSection(
     vehicle: Vehicle,
-    showFullDetails: Boolean = true,
+    showPreShiftCheckDetails: Boolean = true,
     activeOperator: User? = null,
     showOperatorDetails: Boolean = true,
+    showVehicleDetails: Boolean = true,
     status: VehicleStatus
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(0.dp, 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.Top
     ) {
         AsyncImage(
             model = vehicle.photoModel,
@@ -154,26 +166,27 @@ fun VehicleDetailsSection(
             color = Color.LightGray
         )
 
-//        if (showOperatorDetails && status == VehicleStatus.IN_USE) {
-//            Column(
-//                modifier = Modifier.padding(vertical = 8.dp)
-//            ) {
-//                activeOperator?.role?.let {
-//                    OperatorProfile(
-//                        name = activeOperator?.name ?: "No operator assigned",
-//                        imageUrl = activeOperator.photoUrl,
-//                        modifier = Modifier.padding(16.dp),
-//                        role = it.name
-//                    )
-//                }
-//            }
-//        }
-
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.Start
         ) {
-            if (showFullDetails) {
+            // Operator
+            if (showOperatorDetails && status == VehicleStatus.IN_USE) {
+                Column(
+                    modifier = Modifier.padding(vertical = 0.dp)
+                ) {
+                    activeOperator?.role?.let {
+                        OperatorProfile(
+                            name = activeOperator?.name ?: "No operator assigned",
+                            imageUrl = activeOperator.photoUrl,
+                            modifier = Modifier.padding(0.dp, 8.dp),
+                            role = it.name
+                        )
+                    }
+                }
+            }
+
+            if (showPreShiftCheckDetails) {
                 Text(
                     text = "Pre-Shift Check",
                     color = Color.Gray,
@@ -187,7 +200,7 @@ fun VehicleDetailsSection(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Last Checked: ${lastCheck?.lastcheck_datetime}",
+                    text = "Last Checked: ${formatDateTime(lastCheck?.lastcheck_datetime ?: "")}",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
@@ -195,98 +208,88 @@ fun VehicleDetailsSection(
         }
     }
 
-    // Lower section with border
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        border = BorderStroke(1.dp, Color(0xFFFFA726))
-    ) {
-        Column(
+    if (showVehicleDetails){
+        // Lower section with border
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            border = BorderStroke(1.dp, Color(0xFFFFA726))
         ) {
-            // ID and Next Service Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
             ) {
-                Text(
-                    text = vehicle.type.displayName,
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Column(
-                    horizontalAlignment = Alignment.End
+
+                // ID and Next Service, Model, Type, and Class Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "Next Service",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = "${vehicle.nextService} hrs",
-                        color = Color.Black,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    Column {
+                        Text(
+                            text = "Type",
+                            color = Color.Gray,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = vehicle.type.displayName,
+                            color = Color.Black,
+                            fontSize = 12.sp
+                        )
+                    }
 
-            // Model, Type, and Class Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "Model",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = vehicle.model,
-                        color = Color.Black,
-                        fontSize = 14.sp
-                    )
-                }
+                    Column {
+                        Text(
+                            text = "Model",
+                            color = Color.Gray,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = vehicle.model,
+                            color = Color.Black,
+                            fontSize = 12.sp
+                        )
+                    }
 
-                Column {
-                    Text(
-                        text = "Type",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = vehicle.energyType,
-                        color = Color.Black,
-                        fontSize = 14.sp
-                    )
-                }
+                    Column {
+                        Text(
+                            text = "Energy",
+                            color = Color.Gray,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = vehicle.energyType,
+                            color = Color.Black,
+                            fontSize = 12.sp
+                        )
+                    }
 
-                Column {
-                    Text(
-                        text = "Class",
-                        color = Color.Gray,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = vehicle.vehicleClass,
-                        color = Color.Black,
-                        fontSize = 14.sp
-                    )
+
+
+                    Column {
+                        Text(
+                            text = "Next Service",
+                            color = Color.Gray,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "${vehicle.nextService} hrs",
+                            color = Color.Black,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
     }
+
 }
 
 @Composable
@@ -352,4 +355,19 @@ private fun VehicleStatus.toColor(): Color = when (this) {
     VehicleStatus.BLOCKED -> Color(0xFFF64A3A)
     VehicleStatus.AVAILABLE -> Color(0xFF21F6F5)
     VehicleStatus.UNKNOWN -> Color(0xFFFFFF9800)
+}
+
+@Composable
+private fun formatDateTime(dateTimeString: String): String {
+    return try {
+        val instant = java.time.Instant.parse(dateTimeString)
+        val localDateTime = java.time.LocalDateTime.ofInstant(
+            instant,
+            java.time.ZoneId.systemDefault()
+        )
+        val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
+        localDateTime.format(formatter)
+    } catch (e: Exception) {
+        dateTimeString // Return original string if parsing fails
+    }
 }

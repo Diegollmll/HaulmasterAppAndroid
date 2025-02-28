@@ -53,6 +53,9 @@ import app.forku.presentation.navigation.Screen
 import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.SessionStatus
+import app.forku.presentation.common.components.AppBottomSheet
+import app.forku.presentation.common.viewmodel.BottomSheetViewModel
+import app.forku.presentation.incident.components.IncidentTypeSelector
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,7 +128,10 @@ fun DashboardScreen(
                     VehicleProfileSummary(
                         vehicle = vehicle,
                         status = dashboardState.vehicleStatus,
-                        modifier = Modifier.padding(bottom = 24.dp)
+                        modifier = Modifier.padding(bottom = 24.dp),
+                        containerColor = Color.White,
+                        showVehicleDetails = false
+
                     )
                 }
                 
@@ -282,6 +288,26 @@ fun VehicleStatusMessage(
             text = message,
             style = MaterialTheme.typography.titleMedium,
             color = Color.White
+        )
+    }
+}
+
+@Composable
+fun IncidentReportBottomSheet() {
+    val viewModel: BottomSheetViewModel = hiltViewModel()
+    val showBottomSheet by viewModel.showBottomSheet.collectAsState()
+
+    if (showBottomSheet) {
+        AppBottomSheet(
+            onDismiss = { viewModel.hideBottomSheet() },
+            content = {
+                IncidentTypeSelector(
+                    onTypeSelected = { type ->
+                        // Handle type selection
+                    },
+                    onDismiss = { viewModel.hideBottomSheet() }
+                )
+            }
         )
     }
 }

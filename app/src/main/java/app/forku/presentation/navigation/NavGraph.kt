@@ -126,11 +126,17 @@ fun ForkUNavGraph(
         }
 
         composable(Screen.SafetyReporting.route) {
-            navController.navigate(Screen.IncidentReport.route)
+            // Remove direct navigation
+            // Let the BottomSheet handle the type selection first
         }
 
-        composable(Screen.IncidentReport.route) {
+        composable(
+            route = "incident_report/{type}",
+            arguments = listOf(navArgument("type") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val incidentType = backStackEntry.arguments?.getString("type") ?: return@composable
             IncidentReportScreen(
+                incidentType = incidentType,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

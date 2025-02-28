@@ -641,7 +641,453 @@ Back to top
 
 
 
+Show Jump Menu , shortcut⌘JSkip to main content
+HQ
+Home
+Lineup
+Pings
+Hey!Notification inbox
+Activity
+My Stuff
+Find
+Me
+Get help
+Norman
+Norman
+Assignments · Activity · 12:39 am on Friday AEDT
+Thursday, February 6
+Norman
+Norman
+5:29pm
+Show options…
+I can. But Tats may not join in that case. Do we need him?
+Daniel
+5:31pm
+Show options…
+I don't know, I think maybe not
+Norman
+Norman
+5:31pm
+Show options…
+we can chat now if you prefer?
+Daniel
+5:35pm
+Show options…
+did you see that right: User stories for Sub 7 - Sub 7
+Norman
+Norman
+5:39pm
+Show options…
+I thought that was done in the MVP doc?
+Daniel
+5:53pm
+Show options…
+yes
+Norman
+Norman
+6:02pm
+Show options…
+I'm on the call.
+Show options…
+Ping me when you are ready.
+Daniel
+6:19pm
+Show options…
+going
+Norman
+Norman
+7:16pm
+Show options…
+How's this?
 
+1. User without forklift certification – Learner Operator
+2. User with forklift certification – Certified Operator
+3. User with admin rights – Admin
+4. User with admin rights without forklift certification – Admin (Non-Certified)
+5. User with admin rights with forklift certification – Certified Admin
+Show options…
+Probably don't need number 3.
+An admin is either certified or non-certified.
+
+1. User without forklift certification – Learner Operator
+2. User with forklift certification – Certified Operator
+4. User with admin rights without forklift certification – Admin (Non-Certified)
+5. User with admin rights with forklift certification – Certified Admin
+Friday, February 7
+Daniel
+2:31pm
+Show options…
+The user can report an incident out of a vehicle session? For example another user which is not driving but he's going to...
+Daniel
+3:08pm
+Show options…
+when you consider that an operator is certified?, he is doing the training, when he is certified, when finish the whole training category or for every training task? he will be certified when he completes with "pass" status all training tasks?
+Daniel
+3:34pm
+Show options…
+The answers question seems to be logic but I want to confirm. Thank you!
+Tuesday, February 11
+Norman
+Norman
+2:05am
+Show options…
+Daniel
+Daniel
+The user can report an incident out of a vehicle session? For example another user which is not driving but he's going to...
+Yes, of course. Are updates needed for this?
+Show options…
+Daniel
+Daniel
+when you consider that an operator is certified?, he is doing the training, when he is certified, when finish the whole training category or for every training task? he will be certified when he completes with "pass" status all training tasks?
+Operators are certified only to do the activities that they are trained in. That means if there are 10 training activities/courses in a 'training catergory', and they have done 6, they can still perform the 6 activities but obviously not perform the other 4 until they are trained.
+So he is trained/certified for the task only.
+Daniel
+8:25am
+Show options…
+Thank you Norman!
+Daniel
+8:30am
+Show options…
+So he can be certified in just one of a few task even if he didn't completed the whole Assessment Category tasks, For example:
+I have 1. Basic Forklift Operation, and I completed 1 task but not the remainings 5, I can be certified just with first task I completed
+Show options…
+Thank you I think makes sense
+Daniel
+9:51am
+Show options…
+So they can laborate un maybe just one task 
+Show options…
+until completes other taks and in consequense the whole Category right?
+Daniel
+8:26pm
+Show options…
+I have a question, about the video recording evidence, the users can have a video by task or can have various videos for a task?
+Show options…
+Zoom Screenshot 2025-02-11 at 20.25.28.png
+Screenshot 2025-02-11 at 20.25.28.png 295 KB View full-size Download
+Norman
+Norman
+8:27pm
+Show options…
+It's a recording. So the trainer (admin) can capture video evidence that the operator was trained (and how they were trained).
+Show options…
+It is not a video learning course.
+Daniel
+8:28pm
+Show options…
+so is one video per assessment
+Show options…
+the evidence
+Norman
+Norman
+8:29pm
+Show options…
+Yes
+Daniel
+8:29pm
+Show options…
+ok!
+Show options…
+thank you!
+Norman
+👍Norman boosted the chat with '👍'
+New boost
+Show options…
+So the you are not taking care of photos?
+Show options…
+just videos
+Norman
+Norman
+8:34pm
+Show options…
+a photo won't show much in a training scenario.
+Daniel
+8:34pm
+Show options…
+ok ok 
+Show options…
+got it
+Wednesday, February 12
+Daniel
+12:40pm
+Show options…
+One Quiz performed Successfuly grants the user as "Certified Operator"?
+There are specifict points goal to approve the Quiz?
+Daniel
+3:52pm
+Show options…
+One incident can have many vehicles or the relation is One incident one vehicle (of course he can report an incident not being in the vehicle, so any vehicle will be associated)
+Show options…
+?
+Show options…
+seems logic but needs to be sure
+Norman
+Norman
+5:33pm
+Show options…
+Onboarding Experience Operators:
+Finish Experience Quiz (ForkU Level) > Vehicle Certification > Training category > Training details (Training provider, date of training etc)
+Daniel
+10:25pm
+Show options…
+Can we consider that data of "Traning details as part of the Quiz or must be another entity?
+Show options…
+But in the experience we can split it out without add complexity
+Show options…
+So those whole steps are the  "Quiz" I mean
+Norman
+Norman
+11:13pm
+Show options…
+Daniel
+Daniel
+Can we consider that data of "Traning details as part of the Quiz or must be another entity?
+Training detail data as part of the quiz?
+Show options…
+Not sure what you're asking.
+Daniel
+11:19pm
+Show options…
+I need to think this part better
+Show options…
+The Training details, to be coherent with
+Show options…
+Is like a PreCertificate 
+Norman
+Norman
+11:34pm
+Show options…
+Let me make some notes on the quiz for experienced operators
+Show options…
+Hopefully it clears things up
+Thursday, February 13
+Daniel
+4:32pm
+Show options…
+An operator can report a VehicleFail just when he is doing the PreShiftCheck or there is other case when he can report a VehicleFail?
+Daniel
+5:02pm
+Show options…
+So operator can report fails of other vehicles than he's session?
+Show options…
+Hey Norman I'm in the call
+Daniel
+5:22pm
+Show options…
+VehicleFail {
+        uuid Id PK
+        uuid VehicleId FK "Related vehicle"
+        uuid ReportedBy FK "User who reported"
+        datetime ReportedAt "When reported"
+        enum FailureType "MECHANICAL|ELECTRICAL|HYDRAULIC|STRUCTURAL|OTHER"
+        text Description "Issue details"
+        enum Severity "LOW|MEDIUM|HIGH|CRITICAL"
+        enum Status "REPORTED|INVESTIGATING|REPAIRING|RESOLVED"
+        boolean RequiresImmediateAction "Urgent flag"
+        text ActionTaken "Resolution steps"
+        datetime ResolvedAt "When fixed"
+        %%uuid ResolvedBy FK "Who fixed it"
+        boolean IsActive "Soft delete flag"
+    }
+Daniel
+9:04pm
+Show options…
+this is multi or single selection?
+• Hazard Type – Dropdown (Uneven Surface, Poor Visibility, Obstructed Path, Equipment Defect, Unsafe Loading Area, Spills, Other)
+Norman
+Norman
+9:46pm
+Show options…
+Daniel
+Daniel
+this is multi or single selection?
+• Hazard Type – Dropdown (Uneven Surface, Poor Visibility, Obstructed Path, Equipment Defect, Unsafe Loading Area, Spills, Other)
+multi
+Daniel
+10:52pm
+Show options…
+👍
+Friday, February 14
+Daniel
+12:37am
+Show options…
+If is Multi is Checkbox, if is single is dropdown
+Show options…
+so there are cases where are set dropdown and you are expected multi which is not possible and confusing 
+Show options…
+so if you want Multi set checkbox in the reference but if you want single selection set dropdown
+Norman
+Norman
+12:40am
+Show options…
+Understood.
+Show options…
+Which ones are confusing?
+Daniel
+12:43am
+Show options…
+I have a doubt
+Show options…
+Zoom Screenshot 2025-02-14 at 00.43.57.png
+Screenshot 2025-02-14 at 00.43.57.png 52.6 KB View full-size Download
+Show options…
+Those are always the same values in the lists?
+Show options…
+and are used in other such as Incidents
+Show options…
+or may be different from one to another
+Norman
+Norman
+12:45am
+Show options…
+This is unique to vehicle failure
+Daniel
+12:45am
+Show options…
+For example the Proposed Long term solutions for VehicleFail can be the same for the Incident? 
+Show options…
+ ok ok
+Norman
+Norman
+12:45am
+Show options…
+what can be done to prevent the vehicle issue from occurring again
+Daniel
+12:47am
+Show options…
+ok ok so every list of every dropdown or checkbox per Collission, Nearmiss, VehicleFail or  Hazard can be different between them or a few can be the same?
+Show options…
+for example DamageOccurrence can be the same for all that use it?
+Norman
+Norman
+12:50am
+Show options…
+Near miss and collision are similar (someone is driving the vehicle), 'hazard' and 'vehicle failure' are capturing different issues so they will be different
+Daniel
+12:51am
+Show options…
+ok! thanks!
+Norman
+👍Norman boosted the chat with '👍'
+New boost
+Tuesday, February 18
+Norman
+Norman
+12:02am
+Show options…
+Reviewed the docs, most comments are on 1.2 Pre-shift vehicle check. Everything else seems reasonable.
+Show options…
+Chat tomorrow to discuss.
+Daniel
+7:24am
+Show options…
+Thank you, good rest!
+Daniel
+4:21pm
+Show options…
+Hey Norman, do you know which will be the domain for the package name for the android app, do you know something like that?
+Show options…
+Zoom Screenshot 2025-02-18 at 16.20.52.png
+Screenshot 2025-02-18 at 16.20.52.png 17.4 KB View full-size Download
+Norman
+Norman
+4:57pm
+Show options…
+website domain is forku.app
+Show options…
+not sure about android app
+Norman
+Norman
+5:45pm
+Show options…
+Norman to complete pre-shift questions requirements i.e. how they are arranged and/or categories.
+Use claude to integrate sheerts and claude suggestions (Daniel's convo)
+Norman
+Norman
+7:31pm
+Show options…
+This may help with the pre-shift questions understanding: https://www.osha.gov/etools/powered-industrial-trucks/operating-forklift/pre-operation
+Wednesday, February 19
+Norman
+Norman
+12:33am
+Show options…
+Here's the checklist sample: https://claude.ai/share/083e5b2a-292a-49ce-8f4b-5b939bebeb92
+Claude
+Talk with Claude, an AI assistant from Anthropic
+
+Show options…
+I hit the claude limit so i will try to continue soon.
+Norman
+Norman
+6:21am
+Show options…
+Zoom Screenshot 2025-02-19 at 10.21.03 pm.png
+Screenshot 2025-02-19 at 10.21.03 pm.png 13.4 KB View full-size Download
+Show options…
+Getting this message again. Any idea how to bypass? 
+Daniel
+8:08am
+Show options…
+Good!!
+Friday, February 21
+Daniel
+5:14pm
+Show options…
+https://mockapi.io/projects/67b7789c2bddacfb270f0d6f
+Show options…
+https://mockapi.io/clone/67b7789c2bddacfb270f0d6f
+Norman
+Norman
+5:18pm
+Show options…
+norman@collectiveintention.com
+Show options…
+KpJm.a75tyTnA7f
+Norman
+Norman
+5:30pm
+Show options…
+Draft website: https://subseven-uk.vercel.app/
+Yesterday
+Norman
+Norman
+6:32pm
+Show options…
+Zoom Screenshot 2025-02-27 at 10.29.12 am.png
+Screenshot 2025-02-27 at 10.29.12 am.png 118 KB View full-size Download
+Show options…
+Above is current design to report an incident. To keep it simple, use os action sheet like pictured below. 
+Show options…
+Zoom Screenshot 2025-02-27 at 10.34.24 am.png
+Screenshot 2025-02-27 at 10.34.24 am.png 116 KB View full-size Download
+Show options…
+Most critical item at the bottom (faster tap), so list should look like this:
+Title: Report an incident:
+
+Buttons:
+Vehicle Fail
+Hazard
+Near Miss
+Collision
+Cancel
+Today
+Norman
+Norman
+1:05am
+Show options…
+Audie just told me he cannot make the meeting later. I will move it to tomorrow. Hope that's ok.
+Daniel
+👍Daniel boosted the chat with '👍'
+New boost
+Daniel
+8:11am
+Show options…
+Hey Norman! Thank you!. Making advances in the application!.
+Text options
+Add emoji
+Attach a file
+File…
 
 
 

@@ -1,11 +1,8 @@
 package app.forku.presentation.vehicle.profile
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -17,11 +14,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.vehicle.components.VehicleQrCodeModal
-import app.forku.domain.model.checklist.ChecklistItem
-import app.forku.presentation.checklist.ChecklistQuestionItem
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
@@ -159,7 +151,7 @@ fun VehicleProfileContent(
                     status = status,
                     activeOperator = state.activeOperator,
                     showOperatorDetails = true,
-                    showFullDetails = true
+                    showPreShiftCheckDetails = true
                 )
                 
                 Spacer(modifier = Modifier.height(32.dp))

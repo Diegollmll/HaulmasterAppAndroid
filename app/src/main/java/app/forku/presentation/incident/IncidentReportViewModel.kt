@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.usecase.incident.ReportIncidentUseCase
 import app.forku.domain.repository.session.SessionRepository
+import app.forku.presentation.incident.model.IncidentFormSection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,6 +45,15 @@ class IncidentReportViewModel @Inject constructor(
 
     fun setType(type: IncidentType) {
         _state.update { it.copy(type = type) }
+    }
+
+    fun setIncidentType(incidentType: String) {
+        try {
+            val type = IncidentType.valueOf(incidentType.uppercase().replace(" ", "_"))
+            _state.update { it.copy(type = type) }
+        } catch (e: IllegalArgumentException) {
+            _state.update { it.copy(error = "Invalid incident type") }
+        }
     }
 
     fun setDescription(description: String) {
@@ -94,5 +104,35 @@ class IncidentReportViewModel @Inject constructor(
 
     fun dismissSuccessDialog() {
         _state.update { it.copy(showSuccessDialog = false) }
+    }
+
+    fun updateState(newState: IncidentReportState) {
+        _state.value = newState
+    }
+
+    fun nextSection() {
+        val currentState = state.value
+        val nextSection = when (currentState.currentSection) {
+            IncidentFormSection.BasicInfo -> IncidentFormSection.PeopleInvolved
+            IncidentFormSection.PeopleInvolved -> IncidentFormSection.VehicleInfo
+            IncidentFormSection.VehicleInfo -> IncidentFormSection.IncidentDetails
+            IncidentFormSection.IncidentDetails -> IncidentFormSection.RootCauseAnalysis
+            IncidentFormSection.RootCauseAnalysis -> IncidentFormSection.Documentation
+            IncidentFormSection.Documentation -> IncidentFormSection.Documentation // Stay on last section
+        }
+        _state.update { it.copy(currentSection = nextSection) }
+    }
+
+    fun previousSection() {
+        val currentState = state.value
+        val previousSection = when (currentState.currentSection) {
+            IncidentFormSection.Documentation -> IncidentFormSection.RootCauseAnalysis
+            IncidentFormSection.RootCauseAnalysis -> IncidentFormSection.IncidentDetails
+            IncidentFormSection.IncidentDetails -> IncidentFormSection.VehicleInfo
+            IncidentFormSection.VehicleInfo -> IncidentFormSection.PeopleInvolved
+            IncidentFormSection.PeopleInvolved -> IncidentFormSection.BasicInfo
+            IncidentFormSection.BasicInfo -> IncidentFormSection.BasicInfo // Stay on first section
+        }
+        _state.update { it.copy(currentSection = previousSection) }
     }
 } 

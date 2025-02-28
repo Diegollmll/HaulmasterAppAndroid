@@ -11,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
@@ -71,7 +70,7 @@ fun ChecklistScreen(
                             vehicle = vehicle,
                             status = state.vehicleStatus,
                             showOperatorDetails = false,
-                            showFullDetails = false
+                            showPreShiftCheckDetails = false
                         )
                         
                         Spacer(modifier = Modifier.height(16.dp))
