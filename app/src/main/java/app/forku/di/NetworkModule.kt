@@ -2,6 +2,9 @@ package app.forku.di
 
 import app.forku.core.Constants
 import app.forku.data.api.Sub7Api
+import app.forku.data.api.WeatherApi
+import app.forku.domain.repository.weather.WeatherRepository
+import app.forku.data.repository.weather.WeatherRepositoryImpl
 
 import dagger.Module
 import dagger.Provides
@@ -41,5 +44,24 @@ object NetworkModule {
     @Singleton
     fun provideSub7Api(retrofit: Retrofit): Sub7Api {
         return retrofit.create(Sub7Api::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherApi(okHttpClient: OkHttpClient): WeatherApi {
+        return Retrofit.Builder()
+            .baseUrl("http://api.weatherapi.com/v1/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(WeatherApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherRepository(
+        weatherApi: WeatherApi
+    ): WeatherRepository {
+        return WeatherRepositoryImpl(weatherApi)
     }
 }

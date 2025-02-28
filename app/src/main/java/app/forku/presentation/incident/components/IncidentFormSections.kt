@@ -14,6 +14,16 @@ fun BasicInfoSection(
     onValueChange: (IncidentReportState) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Log initial state
+    SideEffect {
+        android.util.Log.d("BasicInfoSection", "Initial state location: ${state.location}")
+    }
+    
+    // Existing LaunchedEffect
+    LaunchedEffect(state.location) {
+        android.util.Log.d("BasicInfoSection", "Location value changed: ${state.location}")
+    }
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -29,7 +39,10 @@ fun BasicInfoSection(
             label = { Text("Location") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            readOnly = true,
+            enabled = false,
+            placeholder = { Text("Waiting for location...") }
         )
         
         OutlinedTextField(

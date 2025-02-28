@@ -1,4 +1,5 @@
 // app/build.gradle.kts
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -29,6 +30,16 @@ android {
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
+
+        // Read API key from local.properties
+        val properties = Properties()
+        properties.load(project.rootProject.file("local.properties").inputStream())
+
+        buildConfigField(
+            type = "String",
+            name = "WEATHER_API_KEY",
+            value = "\"${properties.getProperty("WEATHER_API_KEY")}\""
+        )
     }
 
     buildTypes {
@@ -59,6 +70,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -131,6 +143,9 @@ dependencies {
 
     // Images
     implementation(libs.coil.compose)
+    
+    // Location
+    implementation(libs.androidx.location)
 
     // Testing
     testImplementation(libs.junit)

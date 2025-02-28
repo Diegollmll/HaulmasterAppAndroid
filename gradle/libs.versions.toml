@@ -3,6 +3,7 @@
 agp = "8.2.2"
 kotlin = "1.9.22"  # Must match your compose compiler version requirements
 ksp = "1.9.20-1.0.13"
+location = "21.0.1"
 
 # Core Android libraries
 core-ktx = "1.12.0"
@@ -114,6 +115,8 @@ androidx-datastore-preferences = { group = "androidx.datastore", name = "datasto
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+
+androidx-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "location" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
