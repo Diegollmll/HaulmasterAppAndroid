@@ -18,7 +18,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.forku.presentation.incident.model.IncidentTypeFields
 import com.google.android.gms.common.api.ResolvableApiException
+import java.time.LocalTime
 
 data class IncidentReportState(
     // Common fields
@@ -27,6 +29,14 @@ data class IncidentReportState(
     val location: String = "",
     val weather: String = "",
     val description: String = "",
+    
+    // Add new common fields
+    val incidentTime: LocalTime? = null,
+    val severityLevel: String = "",
+    val preshiftCheckStatus: Boolean = false,
+    
+    // Type-specific fields wrapper
+    val typeSpecificFields: IncidentTypeFields? = null,
     
     // Session info
     val sessionId: String? = null,
@@ -64,3 +74,55 @@ data class IncidentReportState(
     val showLocationSettingsDialog: Boolean = false,
     val locationSettingsException: ResolvableApiException? = null
 )
+
+sealed class ValidationResult {
+    object Success : ValidationResult()
+    data class Error(val message: String) : ValidationResult()
+}
+
+fun IncidentReportState.validate(): ValidationResult {
+    return when (type) {
+        IncidentType.COLLISION -> validateCollision()
+        IncidentType.NEAR_MISS -> validateNearMiss()
+        IncidentType.HAZARD -> validateHazard()
+        IncidentType.VEHICLE_FAIL -> validateVehicleFailure()
+        else -> ValidationResult.Error("Invalid incident type")
+    }
+}
+
+fun IncidentReportState.validateCollision(): ValidationResult {
+    return when {
+        description.isBlank() -> ValidationResult.Error("Description is required")
+        activityAtTime.isBlank() -> ValidationResult.Error("Activity at time is required")
+        location.isBlank() -> ValidationResult.Error("Location is required")
+        vehicleId == null -> ValidationResult.Error("Vehicle information is required")
+        operatorId == null -> ValidationResult.Error("Operator information is required")
+        else -> ValidationResult.Success
+    }
+}
+
+fun IncidentReportState.validateNearMiss(): ValidationResult {
+    return when {
+        description.isBlank() -> ValidationResult.Error("Description is required")
+        activityAtTime.isBlank() -> ValidationResult.Error("Activity at time is required")
+        location.isBlank() -> ValidationResult.Error("Location is required")
+        else -> ValidationResult.Success
+    }
+}
+
+fun IncidentReportState.validateHazard(): ValidationResult {
+    return when {
+        description.isBlank() -> ValidationResult.Error("Description is required")
+        location.isBlank() -> ValidationResult.Error("Location is required")
+        else -> ValidationResult.Success
+    }
+}
+
+fun IncidentReportState.validateVehicleFailure(): ValidationResult {
+    return when {
+        description.isBlank() -> ValidationResult.Error("Description is required")
+        vehicleId == null -> ValidationResult.Error("Vehicle information is required")
+        location.isBlank() -> ValidationResult.Error("Location is required")
+        else -> ValidationResult.Success
+    }
+}
