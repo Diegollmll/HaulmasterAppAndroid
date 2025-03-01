@@ -1,9 +1,6 @@
 package app.forku.presentation.incident
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,10 +55,11 @@ fun IncidentReportScreen(
                 onNavigateBack = onNavigateBack
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         IncidentFormContent(
             state = state,
-            onValueChange = { viewModel.updateState(it) }
+            onValueChange = { viewModel.updateState(it) },
+            modifier = Modifier.padding(paddingValues)
         )
     }
 

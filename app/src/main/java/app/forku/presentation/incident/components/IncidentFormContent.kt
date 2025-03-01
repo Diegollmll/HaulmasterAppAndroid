@@ -1,69 +1,87 @@
 package app.forku.presentation.incident.components
 
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.incident.IncidentReportState
-import app.forku.presentation.incident.components.BasicInfoSection
-import app.forku.presentation.incident.components.DocumentationSection
-import app.forku.presentation.incident.components.PeopleInvolvedSection
-import app.forku.presentation.incident.components.VehicleInfoSection
 import app.forku.presentation.common.components.ExpandableCard
 
 @Composable
 fun IncidentFormContent(
     state: IncidentReportState,
-    onValueChange: (IncidentReportState) -> Unit
+    onValueChange: (IncidentReportState) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(horizontal = 16.dp)
     ) {
-        // Basic Info Section
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Incident Details Section (Always visible)
         ExpandableCard(
-            title = "Basic Information",
-            initiallyExpanded = true
+            title = "Incident Details",
+            initiallyExpanded = true,
+            style = MaterialTheme.typography.titleMedium
         ) {
             BasicInfoSection(state = state, onValueChange = onValueChange)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Vehicle Info Section (Only for specific types)
+        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
+            ExpandableCard(
+                title = "Vehicle Info",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                VehicleInfoSection(state = state, onValueChange = onValueChange)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         // People Involved Section
-        ExpandableCard(title = "People Involved") {
+        ExpandableCard(
+            title = "People Involved",
+            style = MaterialTheme.typography.titleMedium
+        ) {
             PeopleInvolvedSection(state = state, onValueChange = onValueChange)
         }
 
-        // Vehicle Info Section
-        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
-            Spacer(modifier = Modifier.height(8.dp))
-            ExpandableCard(title = "Vehicle Information") {
-                VehicleInfoSection(state = state, onValueChange = onValueChange)
-            }
-        }
-
-        // Type Specific Section
         Spacer(modifier = Modifier.height(8.dp))
+
+        // Type Specific Section with dynamic title
         IncidentTypeSpecificSection(state = state, onValueChange = onValueChange)
 
-        // Documentation Section
-        Spacer(modifier = Modifier.height(8.dp))
-        ExpandableCard(title = "Documentation") {
-            DocumentationSection(
-                state = state,
-                onValueChange = onValueChange,
-                onAddPhoto = { /* TODO */ }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Submit Button
+        Button(
+            onClick = { /* TODO: Handle submit */ },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
             )
+        ) {
+            Text("Submit")
         }
     }
 } 

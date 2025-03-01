@@ -270,7 +270,7 @@ class IncidentReportViewModel @Inject constructor(
         viewModelScope.launch {
             weatherRepository.getWeatherByCoordinates(latitude, longitude)
                 .onSuccess { weather ->
-                    val weatherDescription = "${weather.description}, Temperature: ${weather.temperature}°C, " +
+                    val weatherDescription = "${weather.description}, ${weather.temperature}°C, " +
                         "Humidity: ${weather.humidity}%, Wind: ${weather.windSpeed} m/s"
                     _state.update { it.copy(weather = weatherDescription) }
                 }

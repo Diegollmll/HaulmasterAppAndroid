@@ -17,7 +17,7 @@ class WeatherRepositoryImpl @Inject constructor(
             val weather = response.body()?.let { dto ->
                 Weather(
                     description = dto.current.condition.text,
-                    temperature = dto.current.tempC,
+                    temperature = dto.current.tempF,
                     humidity = dto.current.humidity,
                     windSpeed = dto.current.windKph
                 )

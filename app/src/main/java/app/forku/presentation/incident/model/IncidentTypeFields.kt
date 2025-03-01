@@ -1,5 +1,7 @@
 package app.forku.presentation.incident.model
 
+import app.forku.domain.model.incident.NearMissType
+
 // Create an enum for common dropdown options
 enum class InjurySeverity { NONE, MINOR, SEVERE, FATAL }
 enum class DamageType { PROPERTY, STRUCTURE, PRODUCT, VEHICLE, OTHER }
@@ -16,6 +18,7 @@ sealed class IncidentTypeFields {
     ) : IncidentTypeFields()
 
     data class NearMissFields(
+        val nearMissType: NearMissType? = null,
         val potentialSeverity: InjurySeverity = InjurySeverity.NONE,
         val potentialDamageType: DamageType? = null,
         val preventiveFactors: List<String> = emptyList(),
