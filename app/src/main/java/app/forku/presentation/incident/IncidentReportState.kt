@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.dp
 import app.forku.presentation.incident.model.IncidentTypeFields
 import com.google.android.gms.common.api.ResolvableApiException
 import java.time.LocalTime
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.Alignment
 
 data class IncidentReportState(
     // Common fields

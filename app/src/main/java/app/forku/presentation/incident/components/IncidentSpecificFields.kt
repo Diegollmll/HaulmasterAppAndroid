@@ -93,15 +93,16 @@ fun NearMissSpecificFields(
                 .padding(vertical = 8.dp)
         )
 
-        // Activity at Time
-        OutlinedTextField(
-            value = state.activityAtTime,
-            onValueChange = { onValueChange(state.copy(activityAtTime = it)) },
-            label = { Text("Activity at Time of Near Miss") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+//        // Activity at Time
+//        OutlinedTextField(
+//            value = state.activityAtTime,
+//            onValueChange = { onValueChange(state.copy(activityAtTime = it)) },
+//            label = { Text("Activity at Time of Near Miss") },
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(vertical = 8.dp)
+//        )
+
     }
 }
 

@@ -6,6 +6,7 @@ import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.user.AuthRepository
 import javax.inject.Inject
+import android.net.Uri
 
 class ReportIncidentUseCase @Inject constructor(
     private val incidentRepository: IncidentRepository,
@@ -14,7 +15,8 @@ class ReportIncidentUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(
         type: IncidentType,
-        description: String
+        description: String,
+        photos: List<Uri>
     ): Result<Incident> {
         val currentUser = authRepository.getCurrentUser()
             ?: return Result.failure(Exception("User not authenticated"))
@@ -27,7 +29,8 @@ class ReportIncidentUseCase @Inject constructor(
             timestamp = java.time.Instant.now().toString(),
             userId = currentUser.id,
             vehicleId = currentSession?.vehicleId,
-            sessionId = currentSession?.id
+            sessionId = currentSession?.id,
+            photos = photos
         )
 
         return incidentRepository.reportIncident(incident)

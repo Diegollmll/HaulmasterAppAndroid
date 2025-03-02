@@ -44,30 +44,33 @@ fun VehicleInfoSection(
         )
 
         // Load Weight
+        var expanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(
-            expanded = false,
-            onExpandedChange = { },
+            expanded = expanded,
+            onExpandedChange = { expanded = it },
         ) {
             OutlinedTextField(
                 value = state.loadWeight,
                 onValueChange = { },
                 readOnly = true,
                 label = { Text("Load Weight") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = false) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
+                    .padding(vertical = 8.dp)
             )
 
             ExposedDropdownMenu(
-                expanded = false,
-                onDismissRequest = { },
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
             ) {
                 listOf("<1t", "1-3t", "3-5t", ">5t").forEach { weight ->
                     DropdownMenuItem(
                         text = { Text(weight) },
                         onClick = { 
                             onValueChange(state.copy(loadWeight = weight))
+                            expanded = false
                         }
                     )
                 }

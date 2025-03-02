@@ -23,25 +23,26 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
-
-import android.content.IntentSender
 import com.google.android.gms.common.api.ResolvableApiException
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.result.IntentSenderRequest
+import app.forku.domain.repository.user.AuthRepository
+import android.net.Uri
 
 @HiltViewModel
 class IncidentReportViewModel @Inject constructor(
     private val reportIncidentUseCase: ReportIncidentUseCase,
     private val sessionRepository: SessionRepository,
     private val weatherRepository: WeatherRepository,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
     val state = _state.asStateFlow()
 
     private val fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
+
+    var tempPhotoUri: Uri? = null
+        private set
 
     init {
         loadCurrentSession()
@@ -59,10 +60,12 @@ class IncidentReportViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val session = sessionRepository.getCurrentSession()
+                val currentUser = authRepository.getCurrentUser()
                 _state.update { 
                     it.copy(
                         vehicleId = session?.vehicleId,
-                        sessionId = session?.id
+                        sessionId = session?.id,
+                        operatorId = currentUser?.id
                     )
                 }
             } catch (e: Exception) {
@@ -90,26 +93,24 @@ class IncidentReportViewModel @Inject constructor(
     }
 
     fun submitReport() {
-        val currentState = state.value
+        val currentState = _state.value
         
-        if (currentState.type == null) {
-            _state.update { it.copy(error = "Please select an incident type") }
-            return
-        }
-
         if (currentState.description.isBlank()) {
             _state.update { it.copy(error = "Please provide a description") }
             return
         }
 
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
             try {
+                _state.update { it.copy(isLoading = true, error = null) }
+                
                 reportIncidentUseCase(
-                    type = currentState.type,
-                    description = currentState.description
+                    type = currentState.type!!,
+                    description = currentState.description,
+                    photos = currentState.photos
                 )
-                _state.update { 
+                
+                _state.update {
                     it.copy(
                         isLoading = false,
                         isSubmitted = true,
@@ -117,7 +118,7 @@ class IncidentReportViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _state.update { 
+                _state.update {
                     it.copy(
                         isLoading = false,
                         error = e.message ?: "Failed to submit report"
@@ -277,6 +278,33 @@ class IncidentReportViewModel @Inject constructor(
                 .onFailure { error ->
                     android.util.Log.e("Weather", "Failed to fetch weather", error)
                 }
+        }
+    }
+
+    fun addPhoto(uri: Uri) {
+        _state.update { currentState ->
+            currentState.copy(
+                photos = currentState.photos + uri
+            )
+        }
+    }
+
+    fun createTempPhotoUri(context: Context): Uri? {
+        return try {
+            val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+            val photoFile = java.io.File.createTempFile(
+                "JPEG_${timeStamp}_",
+                ".jpg",
+                context.cacheDir
+            )
+            androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                photoFile
+            ).also { tempPhotoUri = it }
+        } catch (e: Exception) {
+            android.util.Log.e("Camera", "Error creating photo file", e)
+            null
         }
     }
 } 

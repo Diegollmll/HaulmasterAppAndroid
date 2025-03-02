@@ -24,6 +24,7 @@ import app.forku.presentation.common.components.ExpandableCard
 fun IncidentFormContent(
     state: IncidentReportState,
     onValueChange: (IncidentReportState) -> Unit,
+    onAddPhoto: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -34,13 +35,38 @@ fun IncidentFormContent(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Incident Details Section (Always visible)
+        // Basic Info Section (Always visible)
         ExpandableCard(
-            title = "Incident Details",
+            title = "Basic Information",
             initiallyExpanded = true,
             style = MaterialTheme.typography.titleMedium
         ) {
-            BasicInfoSection(state = state, onValueChange = onValueChange)
+            IncidentDetailsSection(state = state, onValueChange = onValueChange)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Type Specific Section with dynamic title
+        IncidentTypeSpecificSection(state = state, onValueChange = onValueChange)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Incident Details Section
+        ExpandableCard(
+            title = "Incident Details",
+            style = MaterialTheme.typography.titleMedium
+        ) {
+            IncidentDescriptionSection(state = state, onValueChange = onValueChange)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // People Involved Section
+        ExpandableCard(
+            title = "People Involved",
+            style = MaterialTheme.typography.titleMedium
+        ) {
+            PeopleInvolvedSection(state = state, onValueChange = onValueChange)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -56,18 +82,19 @@ fun IncidentFormContent(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        // People Involved Section
-        ExpandableCard(
-            title = "People Involved",
-            style = MaterialTheme.typography.titleMedium
-        ) {
-            PeopleInvolvedSection(state = state, onValueChange = onValueChange)
-        }
-
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Type Specific Section with dynamic title
-        IncidentTypeSpecificSection(state = state, onValueChange = onValueChange)
+        // Documentation Section (Always visible)
+        ExpandableCard(
+            title = "Documentation",
+            style = MaterialTheme.typography.titleMedium
+        ) {
+            DocumentationSection(
+                state = state,
+                onValueChange = onValueChange,
+                onAddPhoto = onAddPhoto
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 

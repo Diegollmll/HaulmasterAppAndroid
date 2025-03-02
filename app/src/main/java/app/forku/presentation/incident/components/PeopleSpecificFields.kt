@@ -55,6 +55,21 @@ fun BasicPeopleFields(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+
+        // Reporter field (read-only)
+        OutlinedTextField(
+            value = state.operatorId ?: "Unknown",
+            onValueChange = { },
+            label = { Text("Reported By") },
+            readOnly = true,
+            enabled = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         OutlinedTextField(
             value = state.othersInvolved.joinToString("\n"),
             onValueChange = { 

@@ -24,11 +24,6 @@ fun DocumentationSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "Documentation",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         // Photos
         Text(

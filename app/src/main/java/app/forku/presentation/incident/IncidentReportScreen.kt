@@ -20,14 +20,11 @@ import app.forku.presentation.incident.components.IncidentFormContent
 import app.forku.presentation.incident.components.LocationHandler
 import android.app.Activity
 import android.content.IntentSender
-import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
 import app.forku.presentation.incident.model.InjurySeverity
+import androidx.activity.result.contract.ActivityResultContracts
 
 
 @Composable
@@ -37,6 +34,56 @@ fun IncidentReportScreen(
     viewModel: IncidentReportViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+    
+    // Launcher para galería
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.addPhoto(it) }
+    }
+    
+    // Launcher para cámara
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            viewModel.tempPhotoUri?.let { viewModel.addPhoto(it) }
+        }
+    }
+
+    // Mostrar diálogo de selección cuando se presiona el botón de agregar foto
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+
+    if (showPhotoSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showPhotoSourceDialog = false },
+            title = { Text("Add Photo") },
+            text = { Text("Choose photo source") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPhotoSourceDialog = false
+                        galleryLauncher.launch("image/*")
+                    }
+                ) {
+                    Text("Gallery")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPhotoSourceDialog = false
+                        viewModel.createTempPhotoUri(context)?.let { uri ->
+                            cameraLauncher.launch(uri)
+                        }
+                    }
+                ) {
+                    Text("Camera")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(incidentType) {
         viewModel.setIncidentType(incidentType)
@@ -58,7 +105,8 @@ fun IncidentReportScreen(
     ) { paddingValues ->
         IncidentFormContent(
             state = state,
-            onValueChange = { viewModel.updateState(it) },
+            onValueChange = viewModel::updateState,
+            onAddPhoto = { showPhotoSourceDialog = true },
             modifier = Modifier.padding(paddingValues)
         )
     }
