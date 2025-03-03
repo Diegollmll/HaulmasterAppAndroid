@@ -2,6 +2,7 @@
 # Build tools and SDK versions
 agp = "8.2.2"
 kotlin = "1.9.22"  # Must match your compose compiler version requirements
+kotlinxSerialization = "1.6.0"
 ksp = "1.9.20-1.0.13"
 location = "21.0.1"
 
@@ -118,8 +119,12 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 
 androidx-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "location" }
 
+# Kotlin serialization
+kotlin-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

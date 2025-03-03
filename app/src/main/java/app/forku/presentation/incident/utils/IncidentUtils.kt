@@ -2,6 +2,8 @@ package app.forku.presentation.incident.utils
 
 import app.forku.domain.model.incident.IncidentType
 
+
+
 fun getProposedSolutionsByType(type: IncidentType?): List<String> {
     return when (type) {
         IncidentType.COLLISION -> listOf(

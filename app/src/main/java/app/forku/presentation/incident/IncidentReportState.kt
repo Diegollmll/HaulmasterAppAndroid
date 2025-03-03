@@ -3,41 +3,26 @@ package app.forku.presentation.incident
 import app.forku.domain.model.incident.IncidentType
 import android.net.Uri
 import app.forku.presentation.incident.model.IncidentFormSection
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import android.Manifest
-import android.content.pm.PackageManager
-import android.location.Location
-import dagger.hilt.android.qualifiers.ApplicationContext
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import app.forku.presentation.incident.model.IncidentTypeFields
+import app.forku.domain.model.incident.IncidentTypeFields
 import com.google.android.gms.common.api.ResolvableApiException
 import java.time.LocalTime
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Checkbox
-import androidx.compose.ui.Alignment
+import app.forku.domain.model.vehicle.VehicleType
+import java.time.LocalDateTime
+import app.forku.domain.model.incident.IncidentSeverityLevel
 
 data class IncidentReportState(
     // Common fields
     val type: IncidentType? = null,
     val date: Long = System.currentTimeMillis(),
     val location: String = "",
+    val locationDetails: String = "",
     val weather: String = "",
     val description: String = "",
     
     // Add new common fields
     val incidentTime: LocalTime? = null,
-    val severityLevel: String = "",
-    val preshiftCheckStatus: Boolean = false,
+    val severityLevel: IncidentSeverityLevel? = null,
+    val preshiftCheckStatus: String = "",
     
     // Type-specific fields wrapper
     val typeSpecificFields: IncidentTypeFields? = null,
@@ -53,12 +38,13 @@ data class IncidentReportState(
     
     // Vehicle info
     val vehicleId: String? = null,
-    val vehicleType: String = "",
-    val loadType: String = "",
+    val vehicleType: VehicleType? = null,
+    val vehicleName: String = "",
+    val loadBeingCarried: String = "",
     val loadWeight: String = "",
+    val lastPreshiftCheck: LocalDateTime? = null,
     
     // Incident specific
-    val activityAtTime: String = "",
     val immediateActions: List<String> = emptyList(),
     val proposedSolutions: List<String> = emptyList(),
     val photos: List<Uri> = emptyList(),
@@ -97,7 +83,6 @@ fun IncidentReportState.validate(): ValidationResult {
 fun IncidentReportState.validateCollision(): ValidationResult {
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
-        activityAtTime.isBlank() -> ValidationResult.Error("Activity at time is required")
         location.isBlank() -> ValidationResult.Error("Location is required")
         vehicleId == null -> ValidationResult.Error("Vehicle information is required")
         operatorId == null -> ValidationResult.Error("Operator information is required")
@@ -108,7 +93,6 @@ fun IncidentReportState.validateCollision(): ValidationResult {
 fun IncidentReportState.validateNearMiss(): ValidationResult {
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
-        activityAtTime.isBlank() -> ValidationResult.Error("Activity at time is required")
         location.isBlank() -> ValidationResult.Error("Location is required")
         else -> ValidationResult.Success
     }

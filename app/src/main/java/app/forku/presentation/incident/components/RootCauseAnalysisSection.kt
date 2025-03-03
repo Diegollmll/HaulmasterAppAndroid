@@ -6,8 +6,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
+import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.presentation.incident.utils.getProposedSolutionsByType
+
 
 @Composable
 fun RootCauseAnalysisSection(
@@ -15,6 +17,9 @@ fun RootCauseAnalysisSection(
     onValueChange: (IncidentReportState) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Don't show for Hazard type
+    if (state.type == IncidentType.HAZARD) return
+
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -24,37 +29,23 @@ fun RootCauseAnalysisSection(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Proposed Solutions
-        Text(
-            text = "Proposed Solutions",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
-
-        getProposedSolutionsByType(state.type).forEach { solution ->
-            OutlinedTextField(
-                value = solution,
-                onValueChange = { /* Read only */ },
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            )
-        }
-
-        // Custom solutions
-        OutlinedTextField(
-            value = state.proposedSolutions.joinToString("\n"),
-            onValueChange = { 
-                onValueChange(state.copy(
-                    proposedSolutions = it.split("\n").filter { line -> line.isNotBlank() }
-                ))
-            },
-            label = { Text("Additional Solutions") },
-            minLines = 3,
+        // Immediate Cause Dropdown
+        ImmediateCauseDropdown(
+            state = state,
+            onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
+
+        // Contributing Factors Checkboxes
+        ContributingFactorsCheckboxes(
+            state = state,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+
     }
 } 

@@ -13,9 +13,8 @@ import app.forku.data.api.dto.session.SessionDto
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.api.dto.session.EndSessionRequestDto
 import app.forku.data.api.dto.checklist.UpdateChecklistRequestDto
-import app.forku.data.api.dto.incident.IncidentRequestDto
-import app.forku.data.api.dto.incident.IncidentResponseDto
 import app.forku.data.api.dto.checklist.PreShiftCheckDto
+import app.forku.data.api.dto.incident.IncidentDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -95,13 +94,13 @@ interface Sub7Api {
     ): Response<PerformChecklistResponseDto>
 
     @POST("incidents")
-    suspend fun reportIncident(@Body incident: IncidentRequestDto): Response<IncidentResponseDto>
+    suspend fun reportIncident(@Body incident: IncidentDto): Response<IncidentDto>
 
     @GET("incidents")
-    suspend fun getIncidents(): Response<List<IncidentResponseDto>>
+    suspend fun getIncidents(): Response<List<IncidentDto>>
 
     @GET("incidents/{id}")
-    suspend fun getIncidentById(@Path("id") id: String): Response<IncidentResponseDto>
+    suspend fun getIncidentById(@Path("id") id: String): Response<IncidentDto>
 
     @GET("vehicles/{vehicleId}/checks")
     suspend fun getVehicleChecks(@Path("vehicleId") vehicleId: String): Response<List<PreShiftCheckDto>>

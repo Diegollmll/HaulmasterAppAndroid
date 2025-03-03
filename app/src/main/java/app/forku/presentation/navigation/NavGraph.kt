@@ -18,6 +18,7 @@ import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import app.forku.presentation.checklist.ChecklistViewModel
 import app.forku.presentation.incident.IncidentReportScreen
 import app.forku.presentation.incident.list.IncidentListScreen
+import app.forku.presentation.incident.IncidentReportViewModel
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -135,9 +136,13 @@ fun ForkUNavGraph(
             arguments = listOf(navArgument("type") { type = NavType.StringType })
         ) { backStackEntry ->
             val incidentType = backStackEntry.arguments?.getString("type") ?: return@composable
+            val viewModel: IncidentReportViewModel = hiltViewModel()
+            
             IncidentReportScreen(
                 incidentType = incidentType,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = viewModel,
+                navController = navController
             )
         }
 

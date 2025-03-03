@@ -26,6 +26,11 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.common.api.ResolvableApiException
 import app.forku.domain.repository.user.AuthRepository
 import android.net.Uri
+import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.repository.vehicle.VehicleRepository
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 
 @HiltViewModel
 class IncidentReportViewModel @Inject constructor(
@@ -33,7 +38,8 @@ class IncidentReportViewModel @Inject constructor(
     private val sessionRepository: SessionRepository,
     private val weatherRepository: WeatherRepository,
     @ApplicationContext private val context: Context,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val vehicleRepository: VehicleRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
@@ -61,6 +67,7 @@ class IncidentReportViewModel @Inject constructor(
             try {
                 val session = sessionRepository.getCurrentSession()
                 val currentUser = authRepository.getCurrentUser()
+                
                 _state.update { 
                     it.copy(
                         vehicleId = session?.vehicleId,
@@ -68,9 +75,37 @@ class IncidentReportViewModel @Inject constructor(
                         operatorId = currentUser?.id
                     )
                 }
+                
+                session?.vehicleId?.let { vehicleId ->
+                    try {
+                        val vehicle = vehicleRepository.getVehicle(vehicleId)
+                        
+                        // Get the last preshift check from vehicle checks
+                        val lastCheck = vehicle.checks?.maxByOrNull { it.id }
+                        
+                        // Convert string date to LocalDateTime
+                        val lastCheckDate = lastCheck?.lastcheck_datetime?.let { dateString ->
+                            try {
+                                LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+                        
+                        _state.update { currentState ->
+                            currentState.copy(
+                                vehicleType = vehicle.type,
+                                vehicleName = vehicle.codename,
+                                lastPreshiftCheck = lastCheckDate,
+                                preshiftCheckStatus = lastCheck?.status.toString()
+                            )
+                        }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = "Failed to load vehicle details") }
+                    }
+                }
             } catch (e: Exception) {
-                // Session not required for incident reporting
-                android.util.Log.w("Incident", "No active session", e)
+                _state.update { it.copy(error = "Failed to load session") }
             }
         }
     }
@@ -92,38 +127,50 @@ class IncidentReportViewModel @Inject constructor(
         _state.update { it.copy(description = description) }
     }
 
-    fun submitReport() {
-        val currentState = _state.value
-        
-        if (currentState.description.isBlank()) {
-            _state.update { it.copy(error = "Please provide a description") }
-            return
-        }
-
+    fun onSubmit() {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            
             try {
-                _state.update { it.copy(isLoading = true, error = null) }
-                
-                reportIncidentUseCase(
-                    type = currentState.type!!,
-                    description = currentState.description,
-                    photos = currentState.photos
+                val result = reportIncidentUseCase(
+                    type = state.value.type ?: throw IllegalStateException("Incident type is required"),
+                    date = state.value.date,
+                    location = state.value.location,
+                    locationDetails = state.value.locationDetails,
+                    weather = state.value.weather,
+                    description = state.value.description,
+                    incidentTime = state.value.incidentTime,
+                    severityLevel = state.value.severityLevel,
+                    preshiftCheckStatus = state.value.preshiftCheckStatus,
+                    typeSpecificFields = state.value.typeSpecificFields,
+                    sessionId = state.value.sessionId,
+                    operatorId = state.value.operatorId,
+                    othersInvolved = state.value.othersInvolved,
+                    injuries = state.value.injuries,
+                    injuryLocations = state.value.injuryLocations,
+                    vehicleId = state.value.vehicleId,
+                    vehicleType = state.value.vehicleType,
+                    vehicleName = state.value.vehicleName,
+                    photos = state.value.photos,
+                    locationCoordinates = state.value.locationCoordinates
                 )
-                
-                _state.update {
-                    it.copy(
+
+                result.onSuccess {
+                    _state.update { it.copy(
                         isLoading = false,
-                        isSubmitted = true,
                         showSuccessDialog = true
-                    )
+                    ) }
+                }.onFailure { error ->
+                    _state.update { it.copy(
+                        isLoading = false,
+                        error = error.message ?: "Failed to submit incident report"
+                    ) }
                 }
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        error = e.message ?: "Failed to submit report"
-                    )
-                }
+                _state.update { it.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to submit incident report"
+                ) }
             }
         }
     }
@@ -138,32 +185,6 @@ class IncidentReportViewModel @Inject constructor(
 
     fun updateState(newState: IncidentReportState) {
         _state.value = newState
-    }
-
-    fun nextSection() {
-        val currentState = state.value
-        val nextSection = when (currentState.currentSection) {
-            IncidentFormSection.BasicInfo -> IncidentFormSection.PeopleInvolved
-            IncidentFormSection.PeopleInvolved -> IncidentFormSection.VehicleInfo
-            IncidentFormSection.VehicleInfo -> IncidentFormSection.IncidentDetails
-            IncidentFormSection.IncidentDetails -> IncidentFormSection.RootCauseAnalysis
-            IncidentFormSection.RootCauseAnalysis -> IncidentFormSection.Documentation
-            IncidentFormSection.Documentation -> IncidentFormSection.Documentation // Stay on last section
-        }
-        _state.update { it.copy(currentSection = nextSection) }
-    }
-
-    fun previousSection() {
-        val currentState = state.value
-        val previousSection = when (currentState.currentSection) {
-            IncidentFormSection.Documentation -> IncidentFormSection.RootCauseAnalysis
-            IncidentFormSection.RootCauseAnalysis -> IncidentFormSection.IncidentDetails
-            IncidentFormSection.IncidentDetails -> IncidentFormSection.VehicleInfo
-            IncidentFormSection.VehicleInfo -> IncidentFormSection.PeopleInvolved
-            IncidentFormSection.PeopleInvolved -> IncidentFormSection.BasicInfo
-            IncidentFormSection.BasicInfo -> IncidentFormSection.BasicInfo // Stay on first section
-        }
-        _state.update { it.copy(currentSection = previousSection) }
     }
 
     fun onLocationPermissionGranted() {
@@ -271,8 +292,7 @@ class IncidentReportViewModel @Inject constructor(
         viewModelScope.launch {
             weatherRepository.getWeatherByCoordinates(latitude, longitude)
                 .onSuccess { weather ->
-                    val weatherDescription = "${weather.description}, ${weather.temperature}°C, " +
-                        "Humidity: ${weather.humidity}%, Wind: ${weather.windSpeed} m/s"
+                    val weatherDescription = "${weather.description}, ${weather.temperature}°C"
                     _state.update { it.copy(weather = weatherDescription) }
                 }
                 .onFailure { error ->
@@ -306,5 +326,9 @@ class IncidentReportViewModel @Inject constructor(
             android.util.Log.e("Camera", "Error creating photo file", e)
             null
         }
+    }
+
+    fun clearError() {
+        _state.update { it.copy(error = null) }
     }
 } 

@@ -1,6 +1,7 @@
 package app.forku.domain.model.checklist
 
 import app.forku.domain.model.checklist.ChecklistItem
+import java.time.LocalDateTime
 
 data class PreShiftCheck(
     val id: String,
@@ -10,5 +11,5 @@ data class PreShiftCheck(
     val endDateTime: String?,
     val lastcheck_datetime: String,
     val status: String,
-    val items: List<ChecklistItem>
+    val items: List<ChecklistItem> = emptyList()
 ) 

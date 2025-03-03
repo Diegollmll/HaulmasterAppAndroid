@@ -91,10 +91,18 @@ fun IncidentDetailsSection(
             label = { Text("Location") },
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+
+        // Add Location Details field
+        OutlinedTextField(
+            value = state.locationDetails,
+            onValueChange = { onValueChange(state.copy(locationDetails = it)) },
+            label = { Text("Location Details") },
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            readOnly = true,
-            enabled = false,
-            placeholder = { Text("Waiting for location...") }
+            minLines = 2
         )
         
         OutlinedTextField(
@@ -105,5 +113,23 @@ fun IncidentDetailsSection(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
+
+        // Add Severity Level Dropdown
+        SeverityLevelDropdown(
+            selected = state.severityLevel,
+            onSelected = { severity ->
+                onValueChange(state.copy(severityLevel = severity))
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+
+        // Type Specific Section with dynamic title
+        IncidentSpecificTypeFieldsSelector(state = state, onValueChange = onValueChange)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
     }
 }

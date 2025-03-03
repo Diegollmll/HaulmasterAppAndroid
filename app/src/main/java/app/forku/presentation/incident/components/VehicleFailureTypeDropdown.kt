@@ -1,0 +1,45 @@
+package app.forku.presentation.incident.components
+
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import app.forku.domain.model.incident.VehicleFailureType
+
+@Composable
+fun VehicleFailureTypeDropdown(
+    selected: VehicleFailureType?,
+    onSelected: (VehicleFailureType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = selected?.name?.replace("_", " ") ?: "",
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Type of Failure") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            VehicleFailureType.values().forEach { type ->
+                DropdownMenuItem(
+                    text = { Text(type.name.replace("_", " ")) },
+                    onClick = {
+                        onSelected(type)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+} 

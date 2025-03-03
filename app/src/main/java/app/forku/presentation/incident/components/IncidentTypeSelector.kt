@@ -17,7 +17,7 @@ fun IncidentTypeSelector(
         modifier = modifier.padding(16.dp)
     ) {
         Text(
-            text = "Select Incident Type",
+            text = "Report Incident",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
@@ -50,8 +50,8 @@ fun IncidentTypeSelector(
 
 private object IncidentTypes {
     val types = listOf(
-        IncidentType.NEAR_MISS.name,
         IncidentType.COLLISION.name,
+        IncidentType.NEAR_MISS.name,
         IncidentType.HAZARD.name,
         IncidentType.VEHICLE_FAIL
     )

@@ -35,9 +35,9 @@ fun IncidentFormContent(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Basic Info Section (Always visible)
+        // Basic Incident Details Section (Always visible)
         ExpandableCard(
-            title = "Basic Information",
+            title = "Incident Details",
             initiallyExpanded = true,
             style = MaterialTheme.typography.titleMedium
         ) {
@@ -46,27 +46,29 @@ fun IncidentFormContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Type Specific Section with dynamic title
-        IncidentTypeSpecificSection(state = state, onValueChange = onValueChange)
+        if (state.type == IncidentType.HAZARD) {
 
-        Spacer(modifier = Modifier.height(8.dp))
+            ExpandableCard(
+                title = "Immediate Actions Taken",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                HazardImmediateActionsSection(state = state, onValueChange = onValueChange)
+            }
 
-        // Incident Details Section
-        ExpandableCard(
-            title = "Incident Details",
-            style = MaterialTheme.typography.titleMedium
-        ) {
-            IncidentDescriptionSection(state = state, onValueChange = onValueChange)
+
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
 
-        // People Involved Section
-        ExpandableCard(
-            title = "People Involved",
-            style = MaterialTheme.typography.titleMedium
-        ) {
-            PeopleInvolvedSection(state = state, onValueChange = onValueChange)
+        if (state.type in listOf(IncidentType.COLLISION, IncidentType.NEAR_MISS)) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // People Involved Section
+            ExpandableCard(
+                title = "People Involved",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                PeopleInvolvedSection(state = state, onValueChange = onValueChange)
+            }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -84,16 +86,67 @@ fun IncidentFormContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Documentation Section (Always visible)
+        // Incident Description Section with Photos
         ExpandableCard(
-            title = "Documentation",
+            title = "Incident Description",
             style = MaterialTheme.typography.titleMedium
         ) {
-            DocumentationSection(
+            IncidentDescriptionSection(
                 state = state,
                 onValueChange = onValueChange,
                 onAddPhoto = onAddPhoto
             )
+        }
+
+        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExpandableCard(
+                title = "Root Cause Analysis",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                RootCauseAnalysisSection(state = state, onValueChange = onValueChange)
+            }
+        }
+
+        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL)) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExpandableCard(
+                title = "Damage & Impact",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                DamageAndImpactSection(state = state, onValueChange = onValueChange)
+            }
+        }
+
+        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExpandableCard(
+                title = "Potential Solutions",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                PotentialSolutionsSection(
+                    state = state,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Add Hazard Preventive Measures section only for HAZARD type
+        if (state.type == IncidentType.HAZARD) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExpandableCard(
+                title = "Preventive Measures",
+                style = MaterialTheme.typography.titleMedium
+            ) {
+                HazardPreventiveMeasuresSection(state = state, onValueChange = onValueChange)
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         Spacer(modifier = Modifier.height(24.dp))
