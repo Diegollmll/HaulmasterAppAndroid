@@ -50,6 +50,9 @@ class IncidentReportViewModel @Inject constructor(
     var tempPhotoUri: Uri? = null
         private set
 
+    private val _navigateToDashboard = MutableStateFlow(false)
+    val navigateToDashboard = _navigateToDashboard.asStateFlow()
+
     init {
         loadCurrentSession()
         // Try to get location immediately if permissions are already granted
@@ -129,48 +132,56 @@ class IncidentReportViewModel @Inject constructor(
 
     fun onSubmit() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
-            
-            try {
-                val result = reportIncidentUseCase(
-                    type = state.value.type ?: throw IllegalStateException("Incident type is required"),
-                    date = state.value.date,
-                    location = state.value.location,
-                    locationDetails = state.value.locationDetails,
-                    weather = state.value.weather,
-                    description = state.value.description,
-                    incidentTime = state.value.incidentTime,
-                    severityLevel = state.value.severityLevel,
-                    preshiftCheckStatus = state.value.preshiftCheckStatus,
-                    typeSpecificFields = state.value.typeSpecificFields,
-                    sessionId = state.value.sessionId,
-                    operatorId = state.value.operatorId,
-                    othersInvolved = state.value.othersInvolved,
-                    injuries = state.value.injuries,
-                    injuryLocations = state.value.injuryLocations,
-                    vehicleId = state.value.vehicleId,
-                    vehicleType = state.value.vehicleType,
-                    vehicleName = state.value.vehicleName,
-                    photos = state.value.photos,
-                    locationCoordinates = state.value.locationCoordinates
-                )
+            when (val validationResult = state.value.validate()) {
+                is ValidationResult.Success -> {
+                    _state.update { it.copy(isLoading = true) }
+                    
+                    try {
+                        val result = reportIncidentUseCase(
+                            type = state.value.type ?: throw IllegalStateException("Incident type is required"),
+                            date = state.value.date,
+                            location = state.value.location,
+                            locationDetails = state.value.locationDetails,
+                            weather = state.value.weather,
+                            description = state.value.description,
+                            incidentTime = state.value.incidentTime,
+                            severityLevel = state.value.severityLevel,
+                            preshiftCheckStatus = state.value.preshiftCheckStatus,
+                            typeSpecificFields = state.value.typeSpecificFields,
+                            sessionId = state.value.sessionId,
+                            operatorId = state.value.operatorId,
+                            othersInvolved = state.value.othersInvolved,
+                            injuries = state.value.injuries,
+                            injuryLocations = state.value.injuryLocations,
+                            vehicleId = state.value.vehicleId,
+                            vehicleType = state.value.vehicleType,
+                            vehicleName = state.value.vehicleName,
+                            photos = state.value.photos,
+                            locationCoordinates = state.value.locationCoordinates
+                        )
 
-                result.onSuccess {
-                    _state.update { it.copy(
-                        isLoading = false,
-                        showSuccessDialog = true
-                    ) }
-                }.onFailure { error ->
-                    _state.update { it.copy(
-                        isLoading = false,
-                        error = error.message ?: "Failed to submit incident report"
-                    ) }
+                        result.onSuccess {
+                            _state.update { it.copy(
+                                isLoading = false,
+                                showSuccessDialog = true
+                            ) }
+                            _navigateToDashboard.value = true
+                        }.onFailure { error ->
+                            _state.update { it.copy(
+                                isLoading = false,
+                                error = error.message ?: "Failed to submit incident report"
+                            ) }
+                        }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(
+                            isLoading = false,
+                            error = e.message ?: "Failed to submit incident report"
+                        ) }
+                    }
                 }
-            } catch (e: Exception) {
-                _state.update { it.copy(
-                    isLoading = false,
-                    error = e.message ?: "Failed to submit incident report"
-                ) }
+                is ValidationResult.Error -> {
+                    _state.update { it.copy(error = validationResult.message) }
+                }
             }
         }
     }
@@ -330,5 +341,9 @@ class IncidentReportViewModel @Inject constructor(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    fun resetNavigation() {
+        _navigateToDashboard.value = false
     }
 } 

@@ -62,7 +62,10 @@ data class IncidentReportState(
     
     // Location settings state
     val showLocationSettingsDialog: Boolean = false,
-    val locationSettingsException: ResolvableApiException? = null
+    val locationSettingsException: ResolvableApiException? = null,
+    
+    // Navigation
+    val navigateToDashboard: Boolean = false
 )
 
 sealed class ValidationResult {

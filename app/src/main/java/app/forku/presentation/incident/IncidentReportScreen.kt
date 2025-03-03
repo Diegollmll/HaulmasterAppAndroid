@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import app.forku.presentation.navigation.Screen
 
 
 @Composable
@@ -30,6 +31,19 @@ fun IncidentReportScreen(
     navController: NavController
 ) {
     val state by viewModel.state.collectAsState()
+    val navigateToDashboard by viewModel.navigateToDashboard.collectAsState()
+    val context = LocalContext.current
+    
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(navigateToDashboard) {
+        if (navigateToDashboard) {
+            navController.navigate(Screen.Dashboard.route) {
+                popUpTo(Screen.Dashboard.route) { inclusive = true }
+            }
+            viewModel.resetNavigation()
+        }
+    }
 
     LaunchedEffect(incidentType) {
         viewModel.setIncidentType(incidentType)
@@ -42,6 +56,13 @@ fun IncidentReportScreen(
         if (success) {
             viewModel.tempPhotoUri?.let { viewModel.addPhoto(it) }
         }
+    }
+
+    // Gallery launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.addPhoto(it) }
     }
 
     // Photo source selection dialog
@@ -75,10 +96,6 @@ fun IncidentReportScreen(
         )
     }
 
-    LaunchedEffect(incidentType) {
-        viewModel.setIncidentType(incidentType)
-    }
-
     LocationHandler(
         locationSettingsException = state.locationSettingsException,
         onPermissionsGranted = { viewModel.onLocationPermissionGranted() },
@@ -93,56 +110,52 @@ fun IncidentReportScreen(
             )
         }
     ) { padding ->
-        IncidentFormContent(
-            state = state,
-            onValueChange = { viewModel.updateState(it) },
-            onAddPhoto = { showPhotoSourceDialog = true },
-            modifier = Modifier.padding(padding)
-        )
-
-        Button(
-            onClick = {
-                // Validate before submitting
-                when (val validationResult = state.validate()) {
-                    is ValidationResult.Success -> viewModel.onSubmit()
-                    is ValidationResult.Error -> viewModel.clearError()
-                }
-            },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            enabled = !state.isLoading
+                .fillMaxSize()
+                .padding(padding)
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text("Submit")
+            IncidentFormContent(
+                state = state,
+                onValueChange = { viewModel.updateState(it) },
+                onAddPhoto = { showPhotoSourceDialog = true },
+                modifier = Modifier.weight(1f)
+            )
+
+            Button(
+                onClick = { viewModel.onSubmit() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                enabled = !state.isLoading
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Submit")
+                }
             }
         }
     }
 
+    // Success Dialog
     if (state.showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = {
-                viewModel.dismissSuccessDialog()
-                navController.popBackStack()
-            },
+            onDismissRequest = { viewModel.dismissSuccessDialog() },
             title = { Text("Success") },
             text = { Text("Incident report submitted successfully") },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.dismissSuccessDialog()
-                    navController.popBackStack()
-                }) {
+                TextButton(onClick = { viewModel.dismissSuccessDialog() }) {
                     Text("OK")
                 }
             }
         )
     }
 
+    // Error Dialog
     state.error?.let { error ->
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
