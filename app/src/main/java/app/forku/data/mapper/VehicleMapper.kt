@@ -39,7 +39,6 @@ fun VehicleDto.toDomain(): Vehicle {
         vehicleClass = vehicleClass,
         energyType = energyType,
         nextService = nextServiceHours,
-        checks = checks?.map { it.toDomain() },
         manufacturer = "Unknown",
         year = 0
     )
@@ -62,8 +61,7 @@ fun Vehicle.toDto(): VehicleDto {
         model = model,
         vehicleClass = vehicleClass,
         energyType = energyType,
-        nextService = nextService,
-        checks = checks?.map { it.toDto() }
+        nextService = nextService
     )
 }
 

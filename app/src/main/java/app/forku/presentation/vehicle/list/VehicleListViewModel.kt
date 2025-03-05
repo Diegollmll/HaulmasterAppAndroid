@@ -18,25 +18,32 @@ class VehicleListViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
     init {
-        loadVehicles()
+        
     }
 
-    fun loadVehicles() {
+    fun loadVehicles(showLoading: Boolean = true) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
             try {
+                _state.update { it.copy(
+                    isLoading = showLoading,
+                    isRefreshing = showLoading
+                ) }
+                
                 val vehicles = getVehiclesUseCase()
                 _state.update { 
                     it.copy(
                         vehicles = vehicles,
-                        isLoading = false
+                        isLoading = false,
+                        isRefreshing = false,
+                        error = null
                     )
                 }
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
-                        error = "Failed to load vehicles",
-                        isLoading = false
+                        error = e.message ?: "Unknown error, failed to load vehicles",
+                        isLoading = false,
+                        isRefreshing = false
                     )
                 }
             }

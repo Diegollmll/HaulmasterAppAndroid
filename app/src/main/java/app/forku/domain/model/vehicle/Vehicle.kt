@@ -18,6 +18,5 @@ data class Vehicle(
     val photoModel: String,
     val vehicleClass: String,
     val energyType: String,
-    val nextService: String,
-    val checks: List<PreShiftCheck>? = null
+    val nextService: String
 )

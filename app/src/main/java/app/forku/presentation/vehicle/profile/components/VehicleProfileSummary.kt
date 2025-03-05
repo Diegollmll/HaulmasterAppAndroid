@@ -23,18 +23,27 @@ import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.VehicleStatus
 import coil.request.ImageRequest
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import app.forku.domain.model.checklist.PreShiftCheck
+import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 
 @Composable
 fun VehicleProfileSummary(
-    vehicle: Vehicle,
+    vehicle: Vehicle?,
     status: VehicleStatus,
     activeOperator: User? = null,
     showOperatorDetails: Boolean = true,
     showPreShiftCheckDetails: Boolean = true,
     showVehicleDetails: Boolean = true,
     modifier: Modifier = Modifier,
-    containerColor: Color = Color.Transparent
+    containerColor: Color = Color.Transparent,
+    viewModel: VehicleProfileViewModel = hiltViewModel()
 ) {
     Card(
         modifier = modifier
@@ -53,7 +62,7 @@ fun VehicleProfileSummary(
             Row {
                 Column {
                     Text(
-                        text = vehicle.codename,
+                        text = vehicle?.codename ?: "No vehicle name",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
@@ -76,7 +85,8 @@ fun VehicleProfileSummary(
                 activeOperator = activeOperator,
                 showOperatorDetails = showOperatorDetails,
                 showVehicleDetails = showVehicleDetails,
-                status = status
+                status = status,
+                viewModel = viewModel
             )
         }
     }
@@ -135,13 +145,24 @@ fun OperatorProfile(
 
 @Composable
 fun VehicleDetailsSection(
-    vehicle: Vehicle,
-    showPreShiftCheckDetails: Boolean = true,
+    vehicle: Vehicle?,
+    showPreShiftCheckDetails: Boolean,
     activeOperator: User? = null,
     showOperatorDetails: Boolean = true,
     showVehicleDetails: Boolean = true,
-    status: VehicleStatus
+    status: VehicleStatus,
+    viewModel: VehicleProfileViewModel
 ) {
+    val scope = rememberCoroutineScope()
+    var lastCheck = remember { mutableStateOf<PreShiftCheck?>(null) }
+
+    // Load last check when vehicle changes
+    LaunchedEffect(vehicle?.id) {
+        vehicle?.id?.let { vehicleId ->
+            lastCheck.value = viewModel.getLastPreShiftCheck(vehicleId)
+        }
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -150,7 +171,7 @@ fun VehicleDetailsSection(
         verticalAlignment = Alignment.Top
     ) {
         AsyncImage(
-            model = vehicle.photoModel,
+            model = vehicle?.photoModel,
             contentDescription = "Vehicle image",
             modifier = Modifier
                 .size(90.dp)
@@ -192,15 +213,20 @@ fun VehicleDetailsSection(
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
-                val lastCheck = vehicle.checks?.lastOrNull()
+                
                 Text(
-                    text = getPreShiftStatusText(lastCheck?.status ?: ""),
-                    color = getPreShiftStatusColor(lastCheck?.status ?: ""),
+                    text = getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
+                    color = getPreShiftStatusColor(status = lastCheck?.value?.status ?: ""),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
+
                 Text(
-                    text = "Last Checked: ${formatDateTime(lastCheck?.lastCheckDateTime ?: "")}",
+                    text = "Last Checked: ${lastCheck?.value?.lastCheckDateTime?.let {
+                        formatDateTime(
+                            it
+                        )
+                    }}",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
@@ -238,7 +264,7 @@ fun VehicleDetailsSection(
                             fontSize = 11.sp
                         )
                         Text(
-                            text = vehicle.type.displayName,
+                            text = vehicle?.type?.displayName ?: "Unknown",
                             color = Color.Black,
                             fontSize = 12.sp
                         )
@@ -251,7 +277,7 @@ fun VehicleDetailsSection(
                             fontSize = 11.sp
                         )
                         Text(
-                            text = vehicle.model,
+                            text = vehicle?.model ?: "Unknown",
                             color = Color.Black,
                             fontSize = 12.sp
                         )
@@ -264,7 +290,7 @@ fun VehicleDetailsSection(
                             fontSize = 11.sp
                         )
                         Text(
-                            text = vehicle.energyType,
+                            text = vehicle?.energyType ?: "Unknown",
                             color = Color.Black,
                             fontSize = 12.sp
                         )
@@ -279,7 +305,7 @@ fun VehicleDetailsSection(
                             fontSize = 11.sp
                         )
                         Text(
-                            text = "${vehicle.nextService} hrs",
+                            text = "${vehicle?.nextService ?: "Unknown"} hrs",
                             color = Color.Black,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium

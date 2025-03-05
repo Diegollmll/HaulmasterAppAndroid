@@ -15,5 +15,4 @@ data class VehicleDto(
     val vehicleClass: String,
     val energyType: String,
     val nextService: String,
-    val checks: List<PreShiftCheckDto>? = null
 )

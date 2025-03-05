@@ -71,12 +71,7 @@ class SessionViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _state.update { 
-                    it.copy(
-                        error = "Failed to end session: ${e.message}",
-                        isLoading = false
-                    )
-                }
+                _state.update { it.copy(error = e.message) }
             }
         }
     }
@@ -102,5 +97,9 @@ class SessionViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun resetState() {
+        _state.update { SessionState() }
     }
 } 

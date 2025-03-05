@@ -70,7 +70,11 @@ fun ForkUNavGraph(
         composable(Screen.QRScanner.route) {
             QRScannerScreen(
                 onNavigateToPreShiftCheck = { vehicleId ->
-                    navController.navigate(Screen.Checklist.route.replace("{vehicleId}", vehicleId))
+                    navController.navigate(
+                        Screen.Checklist.route
+                            .replace("{vehicleId}", vehicleId)
+                            + "?fromScanner=true"
+                    )
                 },
                 onNavigateToVehicleProfile = { vehicleId ->
                     navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
@@ -82,17 +86,31 @@ fun ForkUNavGraph(
         }
 
         composable(
-            Screen.Checklist.route,
-            arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+            route = Screen.Checklist.route + "?fromScanner={fromScanner}",
+            arguments = listOf(
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("fromScanner") { 
+                    type = NavType.BoolType
+                    defaultValue = false 
+                }
+            )
         ) { backStackEntry ->
             val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+            val fromScanner = backStackEntry.arguments?.getBoolean("fromScanner") ?: false
             val viewModel: ChecklistViewModel = hiltViewModel()
             
             ChecklistScreen(
                 viewModel = viewModel,
                 onNavigateBack = {
-                    navController.popBackStack()
-                    //vehicleProfileViewModel.loadVehicle()
+                    if (fromScanner) {
+                        // Navigate to vehicle profile instead of going back
+                        navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId)) {
+                            // Clear the back stack up to the scanner
+                            popUpTo(Screen.QRScanner.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.popBackStack()
+                    }
                 }
             )
         }

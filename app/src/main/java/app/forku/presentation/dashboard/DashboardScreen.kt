@@ -58,6 +58,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
+import app.forku.domain.model.user.User
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -65,12 +66,22 @@ fun DashboardScreen(
     navController: NavController,
     onNavigate: (String) -> Unit,
     dashboardViewModel: DashboardViewModel = hiltViewModel(),
-    loginViewModel: LoginViewModel = hiltViewModel(),
     sessionViewModel: SessionViewModel = hiltViewModel()
 ) {
     val dashboardState by dashboardViewModel.state.collectAsStateWithLifecycle()
-    val loginState by loginViewModel.state.collectAsStateWithLifecycle()
     val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
+
+    // Add LaunchedEffect to refresh dashboard when session ends
+    LaunchedEffect(sessionState.session) {
+        if (sessionState.session == null) {
+            dashboardViewModel.refresh()
+        }
+    }
+
+    // Effect to refresh dashboard when screen becomes active
+    LaunchedEffect(Unit) {
+        dashboardViewModel.refresh()
+    }
 
     val pullRefreshState = rememberPullRefreshState(
         refreshing = dashboardState.isLoading,
@@ -94,7 +105,8 @@ fun DashboardScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 // Only show active session card if there's an active vehicle
                 dashboardState.activeVehicle?.let { vehicle ->
@@ -102,7 +114,8 @@ fun DashboardScreen(
                         ActiveSessionCard(
                             vehicle = vehicle,
                             status = dashboardState.vehicleStatus,
-                            lastCheck = dashboardState.lastPreShiftCheck
+                            lastCheck = dashboardState.lastPreShiftCheck,
+                            user = dashboardState.user
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                     }
@@ -147,34 +160,37 @@ fun DashboardScreen(
 
 @Composable
 private fun ActiveSessionCard(
-    vehicle: Vehicle,
+    vehicle: Vehicle?,
     status: VehicleStatus,
-    lastCheck: PreShiftCheck?
+    lastCheck: PreShiftCheck?,
+    user: User?
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.LightGray.copy(alpha = 0.2f)
+            containerColor = Color.White
         )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "Active session",
-                style = MaterialTheme.typography.titleMedium,
+                text = "Welcome,",
+                style = MaterialTheme.typography.headlineMedium,
                 color = Color.Black
             )
             
+            Spacer(modifier = Modifier.height(16.dp))
+            
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // User avatar
                 AsyncImage(
-                    model = vehicle.photoUrl ?: R.drawable.ic_vehicle_placeholder,
-                    contentDescription = "Vehicle image",
+                    model = user?.photoUrl ?: R.drawable.ic_vehicle_placeholder,
+                    contentDescription = "User avatar",
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(48.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop,
                     fallback = painterResource(id = R.drawable.ic_vehicle_placeholder)
@@ -184,20 +200,50 @@ private fun ActiveSessionCard(
                 
                 Column {
                     Text(
-                        text = vehicle.codename,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.DarkGray
+                        text = user?.name ?: "User",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black
                     )
-                    VehicleStatusIndicator(status = status)
-                    Text(
-                        text = "Pre-Shift Check: ${lastCheck?.status ?: "N/A"}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.DarkGray
-                    )
-                    lastCheck?.lastCheckDateTime?.let { dateTime ->
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(
+                                    color = if (vehicle != null) Color.Green else Color.Gray,
+                                    shape = CircleShape
+                                )
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        if (vehicle != null) {
+                            Text(
+                                text = "You are checked-in",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.DarkGray
+                            )
+                        } else {
+                            Text(
+                                text = "You are checked-out",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.DarkGray
+                            )
+                        }
+                    }
+                    
+                    if (vehicle != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Last Checked: ${formatDateTime(dateTime)}",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "ID: ${vehicle.id}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.DarkGray
+                        )
+                        Text(
+                            text = vehicle.codename,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = Color.DarkGray
                         )
                     }

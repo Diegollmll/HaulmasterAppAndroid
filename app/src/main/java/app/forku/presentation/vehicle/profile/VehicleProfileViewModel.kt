@@ -3,6 +3,7 @@ package app.forku.presentation.vehicle.profile
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
@@ -108,4 +109,7 @@ class VehicleProfileViewModel @Inject constructor(
         }
     }
 
+    suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
+        return checklistRepository.getLastPreShiftCheck(vehicleId)
+    }
 }

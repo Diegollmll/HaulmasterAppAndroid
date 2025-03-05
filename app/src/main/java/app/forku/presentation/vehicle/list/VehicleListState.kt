@@ -5,5 +5,6 @@ import app.forku.domain.model.vehicle.Vehicle
 data class VehicleListState(
     val vehicles: List<Vehicle> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null
 ) 

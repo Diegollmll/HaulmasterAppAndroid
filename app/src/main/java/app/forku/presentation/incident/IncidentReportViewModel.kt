@@ -30,6 +30,7 @@ import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import app.forku.domain.repository.checklist.ChecklistRepository
 
 
 @HiltViewModel
@@ -39,7 +40,8 @@ class IncidentReportViewModel @Inject constructor(
     private val weatherRepository: WeatherRepository,
     @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
-    private val vehicleRepository: VehicleRepository
+    private val vehicleRepository: VehicleRepository,
+    private val checklistRepository: ChecklistRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
@@ -82,9 +84,8 @@ class IncidentReportViewModel @Inject constructor(
                 session?.vehicleId?.let { vehicleId ->
                     try {
                         val vehicle = vehicleRepository.getVehicle(vehicleId)
-                        
-                        // Get the last preshift check from vehicle checks
-                        val lastCheck = vehicle.checks?.maxByOrNull { it.id }
+                        // Get the last preshift check from repository
+                        val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
                         
                         // Convert string date to LocalDateTime
                         val lastCheckDate = lastCheck?.lastCheckDateTime?.let { dateString ->
