@@ -207,7 +207,18 @@ fun VehicleDetailsSection(
                 }
             }
 
-            if (showPreShiftCheckDetails) {
+//            Text(
+//                text = "Vehicle",
+//                color = Color.Gray,
+//                fontSize = 12.sp
+//            )
+//            Text(
+//                text = "${vehicle?. type?.displayName}",
+//                color = Color.Gray,
+//                fontSize = 12.sp
+//            )
+
+            if (showPreShiftCheckDetails && lastCheck.value?.lastCheckDateTime != null) {
                 Text(
                     text = "Pre-Shift Check",
                     color = Color.Gray,
@@ -342,45 +353,6 @@ fun getPreShiftStatusText(status: String): String {
         "OVERDUE" -> "Overdue"
         else -> status
     }
-}
-
-@Composable
-fun VehicleStatusIndicator(status: VehicleStatus) {
-    val (color, text) = when (status) {
-        VehicleStatus.AVAILABLE -> Color.Green to "Available"
-        VehicleStatus.IN_USE -> Color.Blue to "In Use"
-        VehicleStatus.BLOCKED -> Color.Red to "Blocked"
-        VehicleStatus.UNKNOWN -> Color.Gray to "Unknown"
-    }
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .background(color, CircleShape)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-private fun VehicleStatus.toDisplayString(): String = when (this) {
-    VehicleStatus.IN_USE -> "In Use"
-    VehicleStatus.BLOCKED -> "Blocked"
-    VehicleStatus.AVAILABLE -> "Available"
-    VehicleStatus.UNKNOWN -> "Unknown"
-}
-
-private fun VehicleStatus.toColor(): Color = when (this) {
-    VehicleStatus.IN_USE -> Color(0xFF6CAFD0)
-    VehicleStatus.BLOCKED -> Color(0xFFF64A3A)
-    VehicleStatus.AVAILABLE -> Color(0xFF21F6F5)
-    VehicleStatus.UNKNOWN -> Color(0xFFFFFF9800)
 }
 
 @Composable

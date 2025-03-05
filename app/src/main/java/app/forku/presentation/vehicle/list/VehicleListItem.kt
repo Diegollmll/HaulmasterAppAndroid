@@ -18,7 +18,7 @@ import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
-
+import app.forku.domain.model.vehicle.toColor
 
 
 @Composable
@@ -61,12 +61,7 @@ fun VehicleListItem(
                     )
                     Text(
                         text = vehicle.status.name,
-                        color = when(vehicle.status) {
-                            VehicleStatus.AVAILABLE -> Color.Green
-                            VehicleStatus.IN_USE -> Color(0xFFFFA726)
-                            VehicleStatus.BLOCKED -> Color.Red
-                            VehicleStatus.UNKNOWN -> Color.Gray
-                        },
+                        color = vehicle.status.toColor(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )

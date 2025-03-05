@@ -59,6 +59,9 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
 import app.forku.domain.model.user.User
+import app.forku.domain.model.vehicle.toColor
+import app.forku.presentation.dashboard.components.SessionCard
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -108,18 +111,16 @@ fun DashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Only show active session card if there's an active vehicle
-                dashboardState.activeVehicle?.let { vehicle ->
-                    if (dashboardState.currentSession != null) {
-                        ActiveSessionCard(
-                            vehicle = vehicle,
-                            status = dashboardState.vehicleStatus,
-                            lastCheck = dashboardState.lastPreShiftCheck,
-                            user = dashboardState.user
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
-                }
+                // Always show SessionCard, but with different states
+                SessionCard(
+                    vehicle = dashboardState.activeVehicle,
+                    status = dashboardState.vehicleStatus,
+                    lastCheck = dashboardState.lastPreShiftCheck,
+                    user = dashboardState.user,
+                    isActive = dashboardState.currentSession != null
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
                 
                 // Navigation buttons grid
                 DashboardNavigationButtons(
@@ -154,101 +155,6 @@ fun DashboardScreen(
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
-        }
-    }
-}
-
-@Composable
-private fun ActiveSessionCard(
-    vehicle: Vehicle?,
-    status: VehicleStatus,
-    lastCheck: PreShiftCheck?,
-    user: User?
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(24.dp)
-        ) {
-            Text(
-                text = "Welcome,",
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color.Black
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // User avatar
-                AsyncImage(
-                    model = user?.photoUrl ?: R.drawable.ic_vehicle_placeholder,
-                    contentDescription = "User avatar",
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop,
-                    fallback = painterResource(id = R.drawable.ic_vehicle_placeholder)
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                Column {
-                    Text(
-                        text = user?.name ?: "User",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
-                    )
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(
-                                    color = if (vehicle != null) Color.Green else Color.Gray,
-                                    shape = CircleShape
-                                )
-                        )
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-                        
-                        if (vehicle != null) {
-                            Text(
-                                text = "You are checked-in",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.DarkGray
-                            )
-                        } else {
-                            Text(
-                                text = "You are checked-out",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.DarkGray
-                            )
-                        }
-                    }
-                    
-                    if (vehicle != null) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "ID: ${vehicle.id}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.DarkGray
-                        )
-                        Text(
-                            text = vehicle.codename,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.DarkGray
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -357,7 +263,7 @@ private fun NavigationButton(
         ),
         border = BorderStroke(
             width = if (isCenter) 2.dp else 1.dp,
-            color = if (isCenter) Color.Green else Color.Gray
+            color = if (isCenter) VehicleStatus.AVAILABLE.toColor() else Color.Gray
         )
     ) {
         Column(
