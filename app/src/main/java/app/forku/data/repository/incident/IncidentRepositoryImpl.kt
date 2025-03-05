@@ -53,4 +53,28 @@ class IncidentRepositoryImpl @Inject constructor(
             Result.failure(e)
         }
     }
+
+    override suspend fun getOperatorIncidents(): Result<List<Incident>> {
+        return try {
+            val currentUser = authDataStore.getCurrentUser() 
+                ?: return Result.failure(Exception("User not authenticated"))
+            
+            // Try getting all incidents first since the operator endpoint is failing
+            val response = api.getIncidents()
+            
+            if (response.isSuccessful) {
+                val allIncidents = response.body()?.map { it.toDomain() } ?: emptyList()
+                // Filter incidents for current user
+                val userIncidents = allIncidents.filter { it.userId == currentUser.id }
+                android.util.Log.d("IncidentRepo", "Found ${userIncidents.size} incidents for user ${currentUser.id}")
+                Result.success(userIncidents)
+            } else {
+                android.util.Log.e("IncidentRepo", "Error: ${response.code()} - ${response.message()}")
+                Result.failure(Exception("Failed to get incidents: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("IncidentRepo", "Exception getting incidents", e)
+            Result.failure(e)
+        }
+    }
 } 

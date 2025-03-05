@@ -13,9 +13,10 @@ class ValidateChecklistUseCase @Inject constructor() {
         }
 
         val status = when {
-            !allItemsAnswered -> PreShiftStatus.IN_PROGRESS
             hasCriticalFail -> PreShiftStatus.COMPLETED_FAIL
-            else -> PreShiftStatus.COMPLETED_PASS
+            allItemsAnswered && !hasCriticalFail -> PreShiftStatus.COMPLETED_PASS
+            else -> PreShiftStatus.IN_PROGRESS
+            //forceInProgress -> PreShiftStatus.IN_PROGRESS
         }
 
         return ChecklistValidation(

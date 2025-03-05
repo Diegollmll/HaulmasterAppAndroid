@@ -171,7 +171,7 @@ fun VehicleDetailsSection(
             horizontalAlignment = Alignment.Start
         ) {
             // Operator
-            if (showOperatorDetails && status == VehicleStatus.IN_USE) {
+            if (showOperatorDetails) {
                 Column(
                     modifier = Modifier.padding(vertical = 0.dp)
                 ) {
@@ -200,7 +200,7 @@ fun VehicleDetailsSection(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Last Checked: ${formatDateTime(lastCheck?.lastcheck_datetime ?: "")}",
+                    text = "Last Checked: ${formatDateTime(lastCheck?.lastCheckDateTime ?: "")}",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )

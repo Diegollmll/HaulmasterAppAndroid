@@ -6,4 +6,5 @@ import app.forku.domain.model.user.User
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<UserDto>
     suspend fun getCurrentUser(): User?
+    suspend fun refreshCurrentUser(): User?
 }

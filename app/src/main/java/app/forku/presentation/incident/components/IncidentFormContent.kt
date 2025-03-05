@@ -151,17 +151,5 @@ fun IncidentFormContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Submit Button
-        Button(
-            onClick = { /* TODO: Handle submit */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Text("Submit")
-        }
     }
 } 

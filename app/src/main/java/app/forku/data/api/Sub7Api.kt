@@ -8,13 +8,12 @@ import app.forku.data.api.dto.user.LoginResponseDto
 import app.forku.data.api.dto.user.RefreshTokenRequestDto
 import app.forku.data.api.dto.user.UserDto
 import app.forku.data.api.dto.vehicle.VehicleDto
-import app.forku.data.api.dto.vehicle.VehicleStatusChangeRequestDto
-import app.forku.data.api.dto.session.SessionDto
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.api.dto.session.EndSessionRequestDto
 import app.forku.data.api.dto.checklist.UpdateChecklistRequestDto
 import app.forku.data.api.dto.checklist.PreShiftCheckDto
 import app.forku.data.api.dto.incident.IncidentDto
+import app.forku.data.api.dto.session.SessionDto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -53,19 +52,11 @@ interface Sub7Api {
         @Body check: PerformChecklistRequestDto
     ): Response<PerformChecklistResponseDto>
 
-    @PUT("vehicles/{id}")
-    suspend fun updateVehicleStatus(
-        @Path("id") id: String,
-        @Body status: VehicleStatusChangeRequestDto
-    ): Response<VehicleDto>
-
     @GET("vehicles")
     suspend fun getVehicles(): Response<List<VehicleDto>>
 
     @GET("vehicles/{vehicleId}/sessions")
-    suspend fun getVehicleSessions(
-        @Path("vehicleId") vehicleId: String
-    ): Response<List<SessionDto>>
+    suspend fun getVehicleSessions(@Path("vehicleId") vehicleId: String): Response<List<SessionDto>>
 
     @POST("vehicles/{vehicleId}/sessions")
     suspend fun createSession(
@@ -104,4 +95,21 @@ interface Sub7Api {
 
     @GET("vehicles/{vehicleId}/checks")
     suspend fun getVehicleChecks(@Path("vehicleId") vehicleId: String): Response<List<PreShiftCheckDto>>
+
+    @GET("incidents/operator/{operatorId}")
+    suspend fun getOperatorIncidents(@Path("operatorId") operatorId: String): Response<List<IncidentDto>>
+
+    @GET("sessions")
+    suspend fun getSessions(): Response<List<SessionDto>>
+
+    @GET("sessions/operator/{operatorId}")
+    suspend fun getOperatorSessions(@Path("operatorId") operatorId: String): Response<List<SessionDto>>
+
+    @PUT("vehicles/{id}")
+    suspend fun updateVehicle(
+        @Path("id") id: String,
+        @Body vehicle: VehicleDto
+    ): Response<VehicleDto>
+
+
 }

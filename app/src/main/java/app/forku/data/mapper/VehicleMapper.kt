@@ -4,6 +4,7 @@ import app.forku.data.api.dto.vehicle.VehicleDto
 import app.forku.data.api.dto.vehicle.VehicleTypeDto
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleType
+import app.forku.domain.model.vehicle.VehicleStatus
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -23,7 +24,12 @@ fun VehicleDto.toDomain(): Vehicle {
     return Vehicle(
         id = id,
         type = type.toDomain(),
-        status = status,
+        status = when (status.lowercase()) {
+            "available" -> VehicleStatus.AVAILABLE
+            "in_use" -> VehicleStatus.IN_USE
+            "blocked" -> VehicleStatus.BLOCKED
+            else -> VehicleStatus.UNKNOWN
+        },
         serialNumber = serialNumber,
         description = description,
         bestSuitedFor = bestSuitedFor,
@@ -33,10 +39,38 @@ fun VehicleDto.toDomain(): Vehicle {
         vehicleClass = vehicleClass,
         energyType = energyType,
         nextService = nextServiceHours,
-        checks = checks?.map { it.toDomain() }
+        checks = checks?.map { it.toDomain() },
+        manufacturer = "Unknown",
+        year = 0
     )
 }
 
 fun VehicleTypeDto.toDomain(): VehicleType {
     return VehicleType.fromName(name)
+}
+
+fun Vehicle.toDto(): VehicleDto {
+    return VehicleDto(
+        id = id,
+        type = type.toDto(),
+        status = status.toString(),
+        serialNumber = serialNumber,
+        description = description,
+        bestSuitedFor = bestSuitedFor,
+        photoModel = photoModel,
+        codename = codename,
+        model = model,
+        vehicleClass = vehicleClass,
+        energyType = energyType,
+        nextService = nextService,
+        checks = checks?.map { it.toDto() }
+    )
+}
+
+fun VehicleType.toDto(): VehicleTypeDto {
+    return VehicleTypeDto(
+        id = id,
+        name = name,
+        requiresCertification = requiresCertification
+    )
 } 

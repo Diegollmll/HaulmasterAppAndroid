@@ -13,6 +13,7 @@ import app.forku.domain.usecase.incident.ReportIncidentUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
+import app.forku.domain.repository.checklist.ChecklistRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,20 +25,20 @@ import javax.inject.Singleton
 object UseCaseModule {
     @Provides
     @Singleton
-    fun provideGetVehicleUseCase(repository: VehicleRepository): GetVehicleUseCase {
-        return GetVehicleUseCase(repository)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGetChecklistUseCase(repository: VehicleRepository): GetChecklistUseCase {
+    fun provideGetChecklistUseCase(repository: ChecklistRepository): GetChecklistUseCase {
         return GetChecklistUseCase(repository)
     }
 
     @Provides
     @Singleton
-    fun provideSubmitChecklistUseCase(repository: VehicleRepository): SubmitChecklistUseCase {
+    fun provideSubmitChecklistUseCase(repository: ChecklistRepository): SubmitChecklistUseCase {
         return SubmitChecklistUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetVehicleUseCase(repository: VehicleRepository): GetVehicleUseCase {
+        return GetVehicleUseCase(repository)
     }
 
     @Provides

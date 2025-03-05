@@ -34,4 +34,23 @@ class AuthRepositoryImpl @Inject constructor(
         return authDataStore.getCurrentUser()
     }
 
+    override suspend fun refreshCurrentUser(): User? {
+        return try {
+            val currentUser = authDataStore.getCurrentUser() ?: return null
+            val response = api.getUser(currentUser.id)
+            
+            if (response.isSuccessful) {
+                response.body()?.let { userDto ->
+                    val updatedUser = userDto.toDomain()
+                    authDataStore.setCurrentUser(updatedUser)
+                    updatedUser
+                }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
 }

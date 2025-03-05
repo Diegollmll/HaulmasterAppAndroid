@@ -87,7 +87,7 @@ class IncidentReportViewModel @Inject constructor(
                         val lastCheck = vehicle.checks?.maxByOrNull { it.id }
                         
                         // Convert string date to LocalDateTime
-                        val lastCheckDate = lastCheck?.lastcheck_datetime?.let { dateString ->
+                        val lastCheckDate = lastCheck?.lastCheckDateTime?.let { dateString ->
                             try {
                                 LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
                             } catch (e: Exception) {

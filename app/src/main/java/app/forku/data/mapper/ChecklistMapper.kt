@@ -13,31 +13,19 @@ fun ChecklistResponseDtoElement.toDomain(): Checklist {
 }
 
 fun ChecklistItemDto.toDomain(): ChecklistItem {
-    val categoryMapping = mapOf(
-        "Visual Inspection" to CheckCategory.VISUAL,
-        "Mechanical" to CheckCategory.MECHANICAL,
-        "Power System" to CheckCategory.POWER_SYSTEM,
-        "Hydraulic System" to CheckCategory.HYDRAULIC,
-        "Controls" to CheckCategory.CONTROLS_SAFETY,
-        "Electrical" to CheckCategory.ELECTRICAL,
-        "Safety Equipment" to CheckCategory.SAFETY_EQUIPMENT,
-        "Maintenance" to CheckCategory.MAINTENANCE,
-        "Instruments" to CheckCategory.INSTRUMENTS
-    )
-
     return ChecklistItem(
         id = id,
-        category = categoryMapping[category] ?: throw IllegalArgumentException("Unknown category: $category"),
-        subCategory = subCategory,
-        energySource = energySource.map { EnergySource.valueOf(it) },
-        vehicleType = vehicleType.map { VehicleType.valueOf(it) },
-        component = component,
-        question = question,
-        description = description,
         expectedAnswer = Answer.valueOf(expectedAnswer),
-        userAnswer = userAnswer,
-        isCritical = isCritical,
-        rotationGroup = rotationGroup
+        rotationGroup = rotationGroup,
+        userAnswer = userAnswer?.let { Answer.valueOf(it.toString()) },
+        category = CheckCategory.fromString(category ?: ""),
+        subCategory = subCategory ?: "",
+        energySource = (energySource ?: emptyList()).map { EnergySource.valueOf(it) },
+        vehicleType = (vehicleType ?: emptyList()).map { VehicleType.valueOf(it) },
+        component = component ?: "",
+        question = question,
+        description = description ?: "",
+        isCritical = isCritical ?: false
     )
 }
 
@@ -73,39 +61,47 @@ fun Checklist.toRequestDto(): List<PerformChecklistItemRequestDto> {
     }
 }
 
-fun PreShiftCheckDto.toDomain(): PreShiftCheck {
-    return PreShiftCheck(
+fun PreShiftCheck.toDto(): PreShiftCheckDto {
+    return PreShiftCheckDto(
         id = id,
-        userId = userId,
-        vehicleId = vehicleId,
         startDateTime = startDateTime,
         endDateTime = endDateTime,
-        lastcheck_datetime = lastcheck_datetime,
+        lastCheckDateTime = lastCheckDateTime,
         status = status,
-        items = items.map { item ->
-            ChecklistItem(
-                id = item.id,
-                expectedAnswer = Answer.valueOf(item.expectedAnswer),
-                userAnswer = Answer.valueOf(item.userAnswer.toString()),
-                category = CheckCategory.VISUAL,
-                subCategory = item.subCategory ?: "",
-                energySource = item.energySource?.map { EnergySource.valueOf(it) } ?: emptyList(),
-                vehicleType = item.vehicleType?.map { VehicleType.valueOf(it) } ?: emptyList(),
-                component = item.component ?: "",
-                question = item.question ?: "",
-                description = item.description ?: "",
-                isCritical = item.isCritical,
-                rotationGroup = item.rotationGroup ?: 0
-            )
-        }
+        userId = userId,
+        vehicleId = vehicleId,
+        items = items.map { it.toDto() }
     )
 }
 
-fun ChecklistItem.toDto(): PerformChecklistItemRequestDto {
-    return PerformChecklistItemRequestDto(
+
+fun PreShiftCheckDto.toDomain(): PreShiftCheck {
+    return PreShiftCheck(
         id = id,
+        vehicleId = vehicleId,
+        items = items.map { it.toDomain() },
+        startDateTime = startDateTime,
+        endDateTime = endDateTime,
+        lastCheckDateTime = lastCheckDateTime,
+        status = status,
+        userId = userId
+    )
+}
+
+fun ChecklistItem.toDto(): ChecklistItemDto {
+    return ChecklistItemDto(
+        id = id,
+        category = category.name,
+        subCategory = subCategory,
+        energySource = energySource.map { it.name },
+        vehicleType = vehicleType.map { it.name },
+        component = component,
+        question = question,
+        description = description,
         expectedAnswer = expectedAnswer.name,
-        userAnswer = userAnswer?.name ?: throw IllegalStateException("User answer is required")
+        userAnswer = userAnswer,
+        rotationGroup = rotationGroup,
+        isCritical = isCritical
     )
 }
 
@@ -116,22 +112,32 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
         vehicleId = vehicleId,
         startDateTime = startDateTime,
         endDateTime = endDateTime,
-        lastcheck_datetime = lastcheck_datetime,
+        lastCheckDateTime = lastCheckDateTime,
         status = status,
         items = items.map { 
             ChecklistItem(
                 id = it.id,
-                expectedAnswer = Answer.valueOf(it.expectedAnswer),
-                userAnswer = Answer.valueOf(it.userAnswer),
-                category = CheckCategory.VISUAL,
-                subCategory = "",
-                energySource = emptyList(),
-                vehicleType = emptyList(),
-                component = "",
-                question = "",
-                description = "",
-                isCritical = false,
-                rotationGroup = 0
+                expectedAnswer = Answer.valueOf(it.expectedAnswer.uppercase()),
+                userAnswer = it.userAnswer?.let { answer -> 
+                    try {
+                        Answer.valueOf(answer.name.uppercase())
+                    } catch (e: IllegalArgumentException) {
+                        null
+                    }
+                },
+                category = CheckCategory.fromString(it.category),
+                subCategory = it.subCategory ?: "",
+                energySource = it.energySource?.map { source -> 
+                    EnergySource.valueOf(source.uppercase())
+                } ?: emptyList(),
+                vehicleType = it.vehicleType?.map { type ->
+                    VehicleType.valueOf(type.uppercase())
+                } ?: emptyList(),
+                component = it.component ?: "",
+                question = it.question,
+                description = it.description ?: "",
+                isCritical = it.isCritical ?: false,
+                rotationGroup = it.rotationGroup ?: 0
             )
         }
     )

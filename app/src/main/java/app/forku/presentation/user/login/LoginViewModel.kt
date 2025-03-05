@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.net.UnknownHostException
+import java.net.SocketTimeoutException
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -32,19 +34,22 @@ class LoginViewModel @Inject constructor(
                 
                 val result = loginUseCase(sanitizedEmail, sanitizedPassword)
                 result.onSuccess { userDto ->
-                    // For now, since we don't have tokens in the response,
-                    // we'll use a placeholder refresh token
                     tokenManager.saveToken(
-                        token = userDto.id, // Using user ID as temporary token
+                        token = userDto.id,
                         refreshToken = "temp_refresh_token"
                     )
                     _state.value = LoginState.Success(userDto)
                 }.onFailure { error ->
-                    throw error
+                    val errorMessage = when (error) {
+                        is UnknownHostException -> "No hay conexión a internet. Por favor verifica tu WiFi o datos móviles."
+                        is SocketTimeoutException -> "La conexión está muy lenta. Intenta de nuevo."
+                        else -> error.message ?: "Error desconocido"
+                    }
+                    _state.value = LoginState.Error(errorMessage)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("Login", "Login failed", e)
-                _state.value = LoginState.Error(e.message ?: "Unknown error occurred")
+                _state.value = LoginState.Error(e.message ?: "Error desconocido")
             }
         }
     }

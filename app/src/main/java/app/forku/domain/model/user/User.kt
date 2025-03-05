@@ -10,5 +10,8 @@ data class User(
     val photoUrl: String?,
     val role: UserRole,
     val permissions: List<String>,
-    val certifications: List<Certification>
+    val certifications: List<Certification>,
+    val lastMedicalCheck: String? = null,
+    val lastLogin: String? = null,
+    val isActive: Boolean = true
 )

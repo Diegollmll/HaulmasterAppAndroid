@@ -28,6 +28,7 @@ fun SessionDto.toDomain(): VehicleSession {
         status = sessionStatus,
         startLocation = startLocation,
         endLocation = endLocation,
-        durationMinutes = duration
+        durationMinutes = duration,
+        timestamp = timestamp
     )
 } 

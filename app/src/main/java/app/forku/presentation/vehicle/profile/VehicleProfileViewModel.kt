@@ -16,6 +16,7 @@ import javax.inject.Inject
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
+import app.forku.domain.repository.checklist.ChecklistRepository
 
 
 @HiltViewModel
@@ -25,6 +26,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
     private val sessionRepository: SessionRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
+    private val checklistRepository: ChecklistRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleProfileState())
@@ -33,16 +35,18 @@ class VehicleProfileViewModel @Inject constructor(
     private val vehicleId: String = checkNotNull(savedStateHandle["vehicleId"])
 
     init {
-        loadVehicle()
+        loadVehicle(showLoading = true)
     }
 
-    fun loadVehicle() {
+    fun loadVehicle(showLoading: Boolean = false) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
+            if (showLoading) {
+                _state.update { it.copy(isLoading = true) }
+            }
             try {
                 val vehicle = getVehicleUseCase(vehicleId)
                 val activeSession = getVehicleActiveSessionUseCase(vehicleId)
-                val lastPreShiftCheck = vehicleRepository.getLastPreShiftCheck(vehicleId)
+                val lastPreShiftCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
                 
                 _state.update {
                     it.copy(
@@ -57,39 +61,51 @@ class VehicleProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
-                        error = "Failed to load vehicle",
+                        error = "Error al cargar vehículo",
                         isLoading = false
                     )
                 }
             }
         }
+    }
+
+    fun refresh() {
+        loadVehicle(showLoading = false)
+    }
+
+    fun refreshWithLoading() {
+        loadVehicle(showLoading = true)
     }
 
     fun toggleQrCode() {
         _state.update { it.copy(showQrCode = !it.showQrCode) }
     }
 
-    fun startVehicleSession(checkId: String) {
+    fun startSessionFromCheck() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
             try {
-                val session = sessionRepository.startSession(vehicleId, checkId)
-                _state.update { 
-                    it.copy(
-                        hasActiveSession = session.status == SessionStatus.ACTIVE,
-                        isLoading = false,
-                        error = null
+                _state.update { it.copy(isLoading = true) }
+                
+                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                
+                if (lastCheck?.status == PreShiftStatus.COMPLETED_PASS.toString()) {
+                    val session = sessionRepository.startSession(
+                        vehicleId = vehicleId,
+                        checkId = lastCheck.id
                     )
+                    
+                    // Reload vehicle state after starting session
+                    loadVehicle()
                 }
-                loadVehicle() // Refresh vehicle state
             } catch (e: Exception) {
-                _state.update { 
+                _state.update {
                     it.copy(
-                        error = e.message,
+                        error = "Error al iniciar sesión: ${e.message}",
                         isLoading = false
                     )
                 }
             }
         }
     }
+
 }

@@ -2,10 +2,9 @@ package app.forku.data.api.dto.checklist
 
 
 data class PerformChecklistRequestDto(
-    val items: List<PerformChecklistItemRequestDto>,
+    val items: List<ChecklistItemDto>,
     val startDateTime: String,
-    val endDateTime: String? = null,
-    val lastcheck_datetime: String,
+    val lastCheckDateTime: String,
     val status: String,
-    val userId: String
+    val userId: String,
 )

@@ -12,5 +12,6 @@ data class VehicleProfileState(
     val activeSession: VehicleSessionInfo? = null,
     val activeOperator: User? = null,
     val hasActivePreShiftCheck: Boolean = false,
-    val hasActiveSession: Boolean = false
+    val hasActiveSession: Boolean = false,
+    val checkId: String? = null,
 ) 

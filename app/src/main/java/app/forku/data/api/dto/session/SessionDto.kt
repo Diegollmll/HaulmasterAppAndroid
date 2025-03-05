@@ -1,5 +1,7 @@
 package app.forku.data.api.dto.session
 
+import androidx.datastore.preferences.protobuf.Timestamp
+
 data class SessionDto(
     val id: String,
     val vehicleId: String,
@@ -8,5 +10,6 @@ data class SessionDto(
     val endTime: String?,
     val status: String,
     val startLocation: String?,
-    val endLocation: String?
+    val endLocation: String?,
+    val timestamp:String
 )

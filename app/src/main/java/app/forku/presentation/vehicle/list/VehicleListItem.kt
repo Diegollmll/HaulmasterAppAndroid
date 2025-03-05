@@ -60,12 +60,12 @@ fun VehicleListItem(
                         fontSize = 12.sp
                     )
                     Text(
-                        text = vehicle.status,
+                        text = vehicle.status.name,
                         color = when(vehicle.status) {
-                            VehicleStatus.AVAILABLE.toString() -> Color.Green
-                            VehicleStatus.IN_USE.toString() -> Color(0xFFFFA726)
-                            VehicleStatus.BLOCKED.toString() -> Color.Red
-                            else -> Color.Gray
+                            VehicleStatus.AVAILABLE -> Color.Green
+                            VehicleStatus.IN_USE -> Color(0xFFFFA726)
+                            VehicleStatus.BLOCKED -> Color.Red
+                            VehicleStatus.UNKNOWN -> Color.Gray
                         },
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium

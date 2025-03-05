@@ -11,7 +11,10 @@ data class UserDto(
     val photoUrl: String?,
     val role: String,
     val permissions: List<String>,
-    val certifications: List<CertificationDto>
+    val certifications: List<CertificationDto>,
+    val last_medical_check: String?,
+    val last_login: String?,
+    val is_active: Boolean = true
 )
 
 data class CertificationDto(

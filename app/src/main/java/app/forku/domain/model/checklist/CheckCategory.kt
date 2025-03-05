@@ -9,5 +9,18 @@ enum class CheckCategory {
     ELECTRICAL,
     SAFETY_EQUIPMENT,
     MAINTENANCE,
-    INSTRUMENTS
+    INSTRUMENTS,
+    SAFETY,
+    OPERATIONAL,
+    UNKNOWN;
+
+    companion object {
+        fun fromString(value: String): CheckCategory {
+            return try {
+                valueOf(value.uppercase())
+            } catch (e: IllegalArgumentException) {
+                UNKNOWN
+            }
+        }
+    }
 }

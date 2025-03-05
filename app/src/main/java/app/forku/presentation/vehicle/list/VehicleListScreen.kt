@@ -15,27 +15,24 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
+import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleListScreen(
+    navController: NavController,
     viewModel: VehicleListViewModel = hiltViewModel(),
-    onVehicleClick: (String) -> Unit,
-    onNavigateBack: () -> Unit
+    onVehicleClick: (String) -> Unit = { vehicleId ->
+        navController.navigate("vehicle_profile/${vehicleId}")
+    }
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Vehicles") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
+    BaseScreen(
+        navController = navController,
+        viewModel = viewModel,
+        topBarTitle = "Vehicles",
+        onRefresh = { viewModel.loadVehicles() }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -57,7 +54,7 @@ fun VehicleListScreen(
                         items(state.vehicles) { vehicle ->
                             VehicleListItem(
                                 vehicle = vehicle,
-                                onClick = { onVehicleClick(vehicle.id) }
+                                onClick = { /* Handle vehicle click */ }
                             )
                         }
                     }

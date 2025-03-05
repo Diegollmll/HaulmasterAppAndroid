@@ -4,17 +4,21 @@ import app.forku.data.api.Sub7Api
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.api.dto.session.EndSessionRequestDto
+import app.forku.data.api.dto.vehicle.VehicleDto
 import app.forku.data.api.dto.vehicle.VehicleStatusChangeRequestDto
 import app.forku.data.mapper.toDomain
 import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.model.session.SessionStatus
 import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.vehicle.VehicleRepository
 import javax.inject.Inject
 
 class SessionRepositoryImpl @Inject constructor(
     private val api: Sub7Api,
-    private val authDataStore: AuthDataStore
+    private val authDataStore: AuthDataStore,
+    private val vehicleRepository: VehicleRepository
 ) : SessionRepository {
     override suspend fun getCurrentSession(): VehicleSession? {
         return try {
@@ -64,35 +68,39 @@ class SessionRepositoryImpl @Inject constructor(
             throw Exception("User already has an active session")
         }
 
-        // Update vehicle status to IN_USE
-        val statusUpdateResponse = api.updateVehicleStatus(
-            vehicleId,
-            VehicleStatusChangeRequestDto(status = "IN_USE")
-        )
-        
-        if (!statusUpdateResponse.isSuccessful) {
-            throw Exception("Failed to update vehicle status")
-        }
+        try {
+            // Update vehicle status first
+            vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.IN_USE)
 
-        val currentDateTime = java.time.Instant.now().toString()
-        val request = StartSessionRequestDto(
-            vehicleId = vehicleId,
-            checkId = checkId,
-            timestamp = currentDateTime,
-            startTime = currentDateTime,
-            status = SessionStatus.ACTIVE.toString(),
-            userId = currentUser.id
-        )
+            val currentDateTime = java.time.Instant.now().toString()
+            val request = StartSessionRequestDto(
+                vehicleId = vehicleId,
+                checkId = checkId,
+                timestamp = currentDateTime,
+                startTime = currentDateTime,
+                status = SessionStatus.ACTIVE.toString(),
+                userId = currentUser.id
+            )
 
-        val response = api.createSession(vehicleId, request)
-        if (!response.isSuccessful) {
-            // Rollback vehicle status if session creation fails
-            api.updateVehicleStatus(vehicleId, VehicleStatusChangeRequestDto(status = "AVAILABLE"))
-            throw Exception("Failed to create session: ${response.code()}")
+            val response = api.createSession(vehicleId, request)
+            if (!response.isSuccessful) {
+                // Rollback vehicle status if session creation fails
+                vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE)
+                throw Exception("Failed to create session: ${response.code()}")
+            }
+            
+            return response.body()?.toDomain() 
+                ?: throw Exception("No session data in response")
+        } catch (e: Exception) {
+            // Ensure vehicle status is rolled back on any error
+            try {
+                vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE)
+            } catch (rollbackError: Exception) {
+                // Log rollback error but throw original error
+                android.util.Log.e("Session", "Error rolling back vehicle status", rollbackError)
+            }
+            throw e
         }
-        
-        return response.body()?.toDomain() 
-            ?: throw Exception("Empty response when starting session")
     }
 
     override suspend fun endSession(sessionId: String): VehicleSession {
@@ -101,15 +109,7 @@ class SessionRepositoryImpl @Inject constructor(
             
         try {
             // Update vehicle status back to AVAILABLE
-            val statusUpdateResponse = api.updateVehicleStatus(
-                currentSession.vehicleId,
-                VehicleStatusChangeRequestDto(status = "AVAILABLE")
-            )
-            
-            if (!statusUpdateResponse.isSuccessful) {
-                throw Exception("Failed to update vehicle status")
-            }
-            
+            vehicleRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.AVAILABLE)
             val currentDateTime = java.time.Instant.now().toString()
             val request = EndSessionRequestDto(
                 timestamp = currentDateTime,
@@ -126,10 +126,7 @@ class SessionRepositoryImpl @Inject constructor(
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session update fails
-                api.updateVehicleStatus(
-                    currentSession.vehicleId, 
-                    VehicleStatusChangeRequestDto(status = "IN_USE")
-                )
+                vehicleRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.IN_USE)
                 throw Exception("Failed to end session: ${response.code()}")
             }
             
@@ -137,10 +134,7 @@ class SessionRepositoryImpl @Inject constructor(
                 ?: throw Exception("Empty response when ending session")
         } catch (e: Exception) {
             // Ensure vehicle status is restored on any error
-            api.updateVehicleStatus(
-                currentSession.vehicleId,
-                VehicleStatusChangeRequestDto(status = "IN_USE")
-            )
+            vehicleRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.IN_USE)
             throw e
         }
     }
@@ -155,6 +149,26 @@ class SessionRepositoryImpl @Inject constructor(
             }?.toDomain()
         } catch (e: Exception) {
             null
+        }
+    }
+
+    override suspend fun getOperatorSessionHistory(): List<VehicleSession> {
+        val currentUser = authDataStore.getCurrentUser() 
+            ?: throw Exception("User not authenticated")
+        
+        return try {
+            val response = api.getSessions()
+            if (response.isSuccessful) {
+                val allSessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                // Filter sessions for current operator
+                allSessions.filter { it.userId == currentUser.id }
+            } else {
+                android.util.Log.e("SessionRepo", "Error: ${response.code()} - ${response.message()}")
+                throw Exception("Failed to get session history: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("SessionRepo", "Exception getting sessions", e)
+            throw e
         }
     }
 } 

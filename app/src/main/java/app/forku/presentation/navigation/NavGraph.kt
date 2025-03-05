@@ -1,6 +1,8 @@
 package app.forku.presentation.navigation
 
+import app.forku.presentation.user.cico.CicoHistoryScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -16,9 +18,12 @@ import app.forku.presentation.vehicle.profile.VehicleProfileScreen
 import app.forku.presentation.vehicle.scanner.QRScannerScreen
 import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import app.forku.presentation.checklist.ChecklistViewModel
+import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.incident.IncidentReportScreen
-import app.forku.presentation.incident.list.IncidentListScreen
 import app.forku.presentation.incident.IncidentReportViewModel
+import app.forku.presentation.incident.list.IncidentHistoryScreen
+import app.forku.presentation.user.profile.ProfileScreen
+
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -31,8 +36,6 @@ sealed class Screen(val route: String) {
     data object OperatorsCICOHistory : Screen("operators_cico_history")
     data object Vehicles : Screen("vehicles")
     data object SafetyReporting : Screen("safety_reporting")
-    data object IncidentReport : Screen("incident_report")
-    data object IncidentList : Screen("incident_list")
 }
 
 @Composable
@@ -55,6 +58,7 @@ fun ForkUNavGraph(
         }
 
         composable(Screen.Dashboard.route) {
+
             DashboardScreen(
                 navController = navController,
                 onNavigate = { route ->
@@ -86,23 +90,18 @@ fun ForkUNavGraph(
             
             ChecklistScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToDashboard = { 
-                    navController.navigate(Screen.Dashboard.route) {
-                        // Clear the back stack up to Dashboard
-                        popUpTo(Screen.Dashboard.route) { inclusive = true }
-                    }
+                onNavigateBack = {
+                    navController.popBackStack()
+                    //vehicleProfileViewModel.loadVehicle()
                 }
             )
         }
 
         composable(Screen.Vehicles.route) {
             VehicleListScreen(
+                navController = navController,
                 onVehicleClick = { vehicleId ->
-                    navController.navigate("vehicle_profile/$vehicleId")
-                },
-                onNavigateBack = {
-                    navController.navigateUp()
+                    navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
                 }
             )
         }
@@ -122,7 +121,8 @@ fun ForkUNavGraph(
                 },
                 onScanQrCode = {
                     navController.navigate(Screen.QRScanner.route)
-                }
+                },
+                navController = navController
             )
         }
 
@@ -146,10 +146,27 @@ fun ForkUNavGraph(
             )
         }
 
-        composable(Screen.IncidentList.route) {
-            IncidentListScreen(
-                onNavigateToReport = { 
-                    navController.navigate(Screen.IncidentReport.route)
+
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onNavigateBack = { navController.navigateUp() },
+                onNavigateToIncidents = { navController.navigate(Screen.IncidentsHistory.route) },
+                onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) }
+            )
+        }
+
+        composable(Screen.OperatorsCICOHistory.route) {
+            CicoHistoryScreen(
+                onNavigateBack = { navController.navigateUp() }
+            )
+        }
+
+        composable(Screen.IncidentsHistory.route) {
+            IncidentHistoryScreen(
+                onNavigateBack = { navController.navigateUp() },
+                onNavigateToReport = {
+                    //navController.navigate(Screen.IncidentReport.route)
                 }
             )
         }

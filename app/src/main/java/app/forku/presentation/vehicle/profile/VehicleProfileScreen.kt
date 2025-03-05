@@ -22,6 +22,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
+import androidx.navigation.NavController
+import app.forku.domain.model.checklist.PreShiftStatus
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,10 +33,35 @@ fun VehicleProfileScreen(
     onComplete: () -> Unit,
     onNavigateBack: () -> Unit,
     onPreShiftCheck: (String) -> Unit,
-    onScanQrCode: () -> Unit
+    onScanQrCode: () -> Unit,
+    navController: NavController
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.checkId) {
+        state.checkId?.let { checkId ->
+            navController.navigate(
+                "checklist/${state.vehicle?.id}?checkId=${checkId}"
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadVehicle()
+    }
+
+    LaunchedEffect(state.hasActivePreShiftCheck) {
+        android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.hasActivePreShiftCheck: ${state.hasActivePreShiftCheck}")
+        android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.hasActiveSession: ${state.hasActiveSession}")
+        android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle?.status?.name: ${state.vehicle?.status?.name}")
+//        if (!state.hasActivePreShiftCheck && !state.hasActiveSession) {
+//            //viewModel.startSessionFromCheck()
+////            val lastCheck = checklistRepository.getLastPreShiftCheck(state.vehicle?.id ?: return@LaunchedEffect)
+////            if (lastCheck?.status == PreShiftStatus.COMPLETED_PASS.toString()) {
+////            }
+//        }
+    }
 
     Scaffold(
         topBar = {
@@ -46,7 +73,8 @@ fun VehicleProfileScreen(
                     }
                 },
                 actions = {
-                    if (state.vehicle != null && !state.hasActiveSession && !state.hasActivePreShiftCheck) {
+
+                    if (state.vehicle != null && state.vehicle?.status != VehicleStatus.IN_USE) { //&& !state.hasActiveSession && !state.hasActivePreShiftCheck) {
                         Box {
                             IconButton(
                                 onClick = { showMenu = true }
@@ -77,9 +105,11 @@ fun VehicleProfileScreen(
                                 )
                                 
                                 DropdownMenuItem(
-                                    text = { Text("Pre-Shift Check") },
+                                    text = { Text( if (state.hasActivePreShiftCheck) "Continue Pre-Shift Check"
+                                    else "Start Pre-Shift Check") },
                                     onClick = {
                                         showMenu = false
+
                                         onPreShiftCheck(state.vehicle?.id ?: "")
                                     },
                                     leadingIcon = {
@@ -92,6 +122,8 @@ fun VehicleProfileScreen(
                             }
                         }
                     }
+
+
                 }
             )
         }
@@ -121,6 +153,7 @@ fun VehicleProfileScreen(
                                 onDismiss = viewModel::toggleQrCode
                             )
                         }
+
                     }
                 }
             }

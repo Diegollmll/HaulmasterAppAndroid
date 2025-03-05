@@ -5,11 +5,12 @@ data class VehicleSession(
     val vehicleId: String,
     val userId: String,
     val startTime: String,
-    val endTime: String? = null,
+    val endTime: String?,
     val status: SessionStatus,
-    val startLocation: String? = null,
-    val endLocation: String? = null,
-    val durationMinutes: Int? = null
+    val startLocation: String?,
+    val endLocation: String?,
+    val durationMinutes: Int?,
+    val timestamp: String
 )
 
 enum class SessionStatus {

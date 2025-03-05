@@ -18,7 +18,10 @@ fun UserDto.toDomain(): User {
         photoUrl = photoUrl,
         role = UserRole.fromString(role),
         permissions = permissions,
-        certifications = certifications.map { it.toDomain() }
+        certifications = certifications.map { it.toDomain() },
+        lastMedicalCheck = last_medical_check,
+        lastLogin = last_login,
+        isActive = is_active
     )
 }
 
@@ -48,6 +51,9 @@ fun User.toDto(): UserDto {
                 isValid = it.isValid,
                 expiresAt = it.expiresAt
             )
-        }
+        },
+        last_medical_check = lastMedicalCheck,
+        last_login = lastLogin,
+        is_active = isActive
     )
 } 

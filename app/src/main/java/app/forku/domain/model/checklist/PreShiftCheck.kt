@@ -9,7 +9,7 @@ data class PreShiftCheck(
     val vehicleId: String,
     val startDateTime: String,
     val endDateTime: String?,
-    val lastcheck_datetime: String,
+    val lastCheckDateTime: String,
     val status: String,
     val items: List<ChecklistItem> = emptyList()
 ) 
