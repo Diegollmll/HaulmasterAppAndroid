@@ -2,16 +2,15 @@ package app.forku.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.model.checklist.PreShiftCheck
-import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.repository.user.AuthRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.usecase.checklist.GetLastPreShiftCheckCurrentUserUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +25,8 @@ class DashboardViewModel @Inject constructor(
     private val checklistRepository: ChecklistRepository,
     private val authRepository: AuthRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
-    private val getVehicleUseCase: GetVehicleUseCase
+    private val getVehicleUseCase: GetVehicleUseCase,
+    private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DashboardState())
@@ -52,16 +52,12 @@ class DashboardViewModel @Inject constructor(
             val vehicleStatus = activeVehicle?.let { getVehicleStatusUseCase(it.id) }
                 ?: VehicleStatus.UNKNOWN
 
-            val lastCheck = activeVehicle?.let { 
-                checklistRepository.getLastPreShiftCheck(it.id)
-            }
-
             _state.update {
                 it.copy(
                     isLoading = false,
                     user = currentUser,
                     isAuthenticated = true,
-                    lastPreShiftCheck = lastCheck,
+                    lastPreShiftCheck = getLastPreShiftCheckCurrentUserUseCase(),
                     vehicleStatus = vehicleStatus,
                     currentSession = currentSession,
                     activeVehicle = activeVehicle,

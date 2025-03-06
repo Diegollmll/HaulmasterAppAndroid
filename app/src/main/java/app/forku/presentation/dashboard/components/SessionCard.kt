@@ -1,9 +1,6 @@
 package app.forku.presentation.dashboard.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,7 +11,11 @@ import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.presentation.vehicle.profile.components.VehicleStatusIndicator
-import app.forku.presentation.common.components.DateTime
+import app.forku.presentation.common.components.UserDateTimer
+import app.forku.presentation.common.components.OverlappingImages
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import androidx.compose.runtime.remember
 
 @Composable
 fun SessionCard(
@@ -22,48 +23,67 @@ fun SessionCard(
     status: VehicleStatus = VehicleStatus.AVAILABLE,
     lastCheck: PreShiftCheck? = null,
     user: User? = null,
-    isActive: Boolean = false
+    isActive: Boolean = false,
+    sessionStartTime: String? = null
 ) {
+    val startDateTime = remember(sessionStartTime) {
+        sessionStartTime?.let {
+            try {
+                LocalDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME)
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
+
+        Row (
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ){
+            Text(
+                text = if (isActive) "Active session," else "Welcome ${user?.name}!,",
+                style = MaterialTheme.typography.titleMedium,
+                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+            )
+            Spacer(modifier = Modifier.height(0.dp))
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // First Column - User Info Section
+
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp)
             ) {
-                Text(
-                    text = if (isActive) "Active session," else "Welcome!,",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
+
+
                 // User info section
                 user?.let {
                     Column(
                         horizontalAlignment = Alignment.Start
                     ) {
-                        Text(
-                            text = it.name,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = it.role.name ?: "Operator",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
+                        if (isActive && vehicle != null) {
+                            OverlappingImages(
+                                mainImageUrl = vehicle.photoUrl,
+                                overlayImageUrl = user.photoUrl,
+                                mainTint = MaterialTheme.colorScheme.onSurface,
+                                mainSize = 48,
+                                overlaySize = 24
+                            )
+                        }
                     }
                 }
             }
@@ -81,14 +101,19 @@ fun SessionCard(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     VehicleStatusIndicator(status = status)
-                    DateTime(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                    UserDateTimer(
+                        modifier = Modifier.fillMaxWidth(),
+                        sessionStartTime = if (isActive) startDateTime else null
                     )
                 } else {
-
+                    Text(
+                        text = "Last check: ${lastCheck?.lastCheckDateTime} - ${lastCheck?.status}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
+
+        
     }
 } 

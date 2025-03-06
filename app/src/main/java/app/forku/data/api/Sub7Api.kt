@@ -112,4 +112,23 @@ interface Sub7Api {
     ): Response<VehicleDto>
 
 
+    // New global checks endpoints
+    @GET("checks")
+    suspend fun getAllChecks(): Response<List<PreShiftCheckDto>>
+
+    @GET("checks/{checkId}")
+    suspend fun getCheckById(@Path("checkId") checkId: String): Response<PreShiftCheckDto>
+
+    @POST("checks")
+    suspend fun createGlobalCheck(@Body check: PreShiftCheckDto): Response<PreShiftCheckDto>
+
+    @PUT("checks/{checkId}")
+    suspend fun updateGlobalCheck(
+        @Path("checkId") checkId: String,
+        @Body check: PreShiftCheckDto
+    ): Response<PreShiftCheckDto>
+
+
+
+
 }

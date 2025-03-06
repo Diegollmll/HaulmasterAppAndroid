@@ -117,7 +117,8 @@ fun DashboardScreen(
                     status = dashboardState.vehicleStatus,
                     lastCheck = dashboardState.lastPreShiftCheck,
                     user = dashboardState.user,
-                    isActive = dashboardState.currentSession != null
+                    isActive = dashboardState.currentSession != null,
+                    sessionStartTime = dashboardState.currentSession?.startTime
                 )
                 
                 Spacer(modifier = Modifier.height(24.dp))

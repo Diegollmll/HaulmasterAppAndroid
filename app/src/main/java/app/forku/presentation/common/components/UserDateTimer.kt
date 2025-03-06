@@ -14,16 +14,25 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 
 @Composable
-fun DateTime(
+fun UserDateTimer(
     modifier: Modifier = Modifier,
-    initialDateTime: LocalDateTime = LocalDateTime.now()
+    initialDateTime: LocalDateTime = LocalDateTime.now(),
+    sessionStartTime: LocalDateTime? = null
 ) {
     var dateTime by remember { mutableStateOf(initialDateTime) }
+    var elapsedTime by remember { mutableStateOf("") }
     
     LaunchedEffect(Unit) {
         while(true) {
-            delay(1000) // Update every second
+            delay(1000)
             dateTime = LocalDateTime.now()
+            sessionStartTime?.let {
+                val duration = java.time.Duration.between(it, dateTime)
+                val hours = duration.toHours()
+                val minutes = duration.toMinutes() % 60
+                val seconds = duration.seconds % 60
+                elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+            }
         }
     }
 
@@ -31,13 +40,16 @@ fun DateTime(
         modifier = modifier,
         horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text = dateTime.format(DateTimeFormatter.ofPattern("h:mm a")),
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
+        sessionStartTime?.let {
+            Text(
+                text = "$elapsedTime",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.padding(top = 4.dp)
             )
-        )
+        }
         
         Text(
             text = dateTime.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")),
