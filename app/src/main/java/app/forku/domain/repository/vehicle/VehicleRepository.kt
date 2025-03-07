@@ -17,4 +17,5 @@ interface VehicleRepository {
     suspend fun getVehicles(): List<Vehicle>
     suspend fun getVehicleByQr(code: String): Vehicle
     suspend fun updateVehicleStatus(vehicleId: String, status: VehicleStatus): Vehicle
+    suspend fun getVehicleStatus(vehicleId: String): VehicleStatus
 }

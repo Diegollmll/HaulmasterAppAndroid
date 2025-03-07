@@ -9,7 +9,6 @@ import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.usecase.incident.ReportIncidentUseCase
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.weather.WeatherRepository
-import app.forku.presentation.incident.model.IncidentFormSection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +25,6 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.common.api.ResolvableApiException
 import app.forku.domain.repository.user.AuthRepository
 import android.net.Uri
-import app.forku.domain.model.checklist.PreShiftStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

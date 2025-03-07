@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.sp
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
+import kotlin.math.absoluteValue
 
 @Composable
 fun UserDateTimer(
@@ -20,19 +21,25 @@ fun UserDateTimer(
     sessionStartTime: LocalDateTime? = null
 ) {
     var dateTime by remember { mutableStateOf(initialDateTime) }
-    var elapsedTime by remember { mutableStateOf("") }
+    var elapsedTime by remember { mutableStateOf("00:00:00") }
     
-    LaunchedEffect(Unit) {
-        while(true) {
-            delay(1000)
-            dateTime = LocalDateTime.now()
-            sessionStartTime?.let {
-                val duration = java.time.Duration.between(it, dateTime)
-                val hours = duration.toHours()
-                val minutes = duration.toMinutes() % 60
-                val seconds = duration.seconds % 60
+    LaunchedEffect(sessionStartTime) {
+        // Only start the timer if there's a session start time
+        if (sessionStartTime != null) {
+            while(true) {
+                delay(1000)
+                dateTime = LocalDateTime.now()
+                
+                // Calculate duration from session start to current time
+                val duration = java.time.Duration.between(sessionStartTime, dateTime)
+                val hours = duration.toHours().absoluteValue
+                val minutes = duration.toMinutes().absoluteValue % 60
+                val seconds = duration.seconds.absoluteValue % 60
                 elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
             }
+        } else {
+            // Reset timer when session ends
+            elapsedTime = "00:00:00"
         }
     }
 
@@ -40,21 +47,11 @@ fun UserDateTimer(
         modifier = modifier,
         horizontalAlignment = Alignment.Start
     ) {
-        sessionStartTime?.let {
-            Text(
-                text = "$elapsedTime",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
-        
         Text(
-            text = dateTime.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy")),
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.primary
+            text = elapsedTime,
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
             ),
             modifier = Modifier.padding(top = 4.dp)
         )

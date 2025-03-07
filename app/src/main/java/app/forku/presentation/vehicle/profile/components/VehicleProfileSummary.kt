@@ -31,6 +31,9 @@ import androidx.compose.runtime.mutableStateOf
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.domain.model.checklist.getPreShiftStatusColor
+import app.forku.domain.model.checklist.getPreShiftStatusText
+import app.forku.presentation.common.utils.formatDateTime
 
 
 @Composable
@@ -217,27 +220,31 @@ fun VehicleDetailsSection(
 //                color = Color.Gray,
 //                fontSize = 12.sp
 //            )
-
-            if (showPreShiftCheckDetails && lastCheck.value?.lastCheckDateTime != null) {
-                Text(
-                    text = "Pre-Shift Check",
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
-                
-                Text(
-                    text = getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
-                    color = getPreShiftStatusColor(status = lastCheck?.value?.status ?: ""),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Text(
-                    text = "Last Checked: ${lastCheck?.value?.lastCheckDateTime?.let {
-                        formatDateTime(
-                            it
+            //&& lastCheck.value?.lastCheckDateTime != null
+            if (showPreShiftCheckDetails) {
+                Row {
+                    Column {
+                        Text(
+                            text = "Pre-Shift Check ",
+                            color = Color.Gray,
+                            fontSize = 12.sp
                         )
-                    }}",
+                    }
+                    
+                    Spacer(modifier = Modifier.width(3.dp))
+
+                    Column {
+                        Text(
+                            text = getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
+                            color = getPreShiftStatusColor(status = lastCheck?.value?.status ?: ""),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Last Checked: ${ formatDateTime(lastCheck?.value?.lastCheckDateTime ?: "No checks found.")} ",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
@@ -329,43 +336,4 @@ fun VehicleDetailsSection(
 
 }
 
-@Composable
-fun getPreShiftStatusColor(status: String): Color {
-    return when (status.uppercase()) {
-        "PENDING" -> Color.Gray
-        "IN_PROGRESS" -> Color(0xFFFFA726) // Orange
-        "COMPLETED_PASS" -> Color(0xFF4CAF50) // Green
-        "COMPLETED_FAIL" -> Color.Red
-        "EXPIRED" -> Color.Red
-        "OVERDUE" -> Color.Red
-        else -> Color.Gray
-    }
-}
 
-@Composable
-fun getPreShiftStatusText(status: String): String {
-    return when (status.uppercase()) {
-        "PENDING" -> "Pending"
-        "IN_PROGRESS" -> "In Progress"
-        "COMPLETED_PASS" -> "PASS"
-        "COMPLETED_FAIL" -> "FAIL"
-        "EXPIRED" -> "Expired"
-        "OVERDUE" -> "Overdue"
-        else -> status
-    }
-}
-
-@Composable
-private fun formatDateTime(dateTimeString: String): String {
-    return try {
-        val instant = java.time.Instant.parse(dateTimeString)
-        val localDateTime = java.time.LocalDateTime.ofInstant(
-            instant,
-            java.time.ZoneId.systemDefault()
-        )
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
-        localDateTime.format(formatter)
-    } catch (e: Exception) {
-        dateTimeString // Return original string if parsing fails
-    }
-}

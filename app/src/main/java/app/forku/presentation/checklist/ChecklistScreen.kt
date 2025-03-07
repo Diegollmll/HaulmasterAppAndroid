@@ -20,117 +20,116 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChecklistScreen(
     viewModel: ChecklistViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    navController: NavController,
+    onBackPressed: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val navigateBack by viewModel.navigateBack.collectAsState()
-
-    LaunchedEffect(navigateBack) {
-        if (navigateBack) {
-            onNavigateBack()
-            viewModel.resetNavigation()
-        }
-    }
-
-    BackHandler {
-        viewModel.onBackPressed()
-    }
-
-
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Pre-shift Check") },
-                navigationIcon = {
-                    IconButton(onClick = { viewModel.onBackPressed() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
+    
+    BaseScreen(
+        navController = navController,
+        viewModel = viewModel,
+        showBottomBar = false,
+        topBarTitle = "Pre-Shift Check"
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-
-            if (state.isLoading) {
-                LoadingOverlay()
-            }
-
-            state.error?.let { error ->
-                ErrorScreen(
-                    message = error,
-                    onRetry = { viewModel.loadVehicleAndChecklist() }
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // Keep VehicleProfileSummary
-                state.vehicle?.let { vehicle ->
-                    VehicleProfileSummary(
-                        vehicle = vehicle,
-                        status = state.vehicleStatus
+            when (val currentState = state) {
+                null -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
-
-                // Add padding to the questionnaire section
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    // Group items by category
-                    val groupedItems = state.checkItems.groupBy { it.category }
-                    groupedItems.forEach { (category, items) ->
-                        // Keep CategoryHeader
-                        CategoryHeader(
-                            categoryName = category.name,
-                            modifier = Modifier.padding(bottom = 1.dp)
+                else -> {
+                    if (currentState.isLoading) {
+                        LoadingOverlay()
+                    }
+                    
+                    if (currentState.error != null) {
+                        ErrorScreen(
+                            message = currentState.error,
+                            onRetry = { viewModel.loadChecklistData() }
                         )
-
-                        items.forEach { item ->
-                            ChecklistQuestionItem(
-                                question = item,
-                                onResponseChanged = viewModel::updateItemResponse,
-                                modifier = Modifier.padding(bottom = 1.dp)
+                    }
+                    
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Keep VehicleProfileSummary
+                        currentState.vehicle?.let { vehicle ->
+                            VehicleProfileSummary(
+                                vehicle = vehicle,
+                                status = vehicle.status
                             )
                         }
-                    }
 
-
-                    // Only show submit button when all items are answered
-                    if (!state.isLoading &&
-                        state.checkItems.isNotEmpty() &&
-                        state.checkItems.all { it.userAnswer != null }) {
-                        Button(
-                            onClick = { viewModel.submitCheck() },
+                        // Add padding to the questionnaire section
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
+                                .padding(horizontal = 16.dp)
                         ) {
-                            Text(text = "Submit Check")
-                        }
-                    }
-                }
+                            // Group items by category
+                            val groupedItems = currentState.checkItems?.groupBy { it.category }
+                            groupedItems?.forEach { (category, items) ->
+                                // Keep CategoryHeader
+                                CategoryHeader(
+                                    categoryName = category.name,
+                                    modifier = Modifier.padding(bottom = 1.dp)
+                                )
 
-                state.message?.let { message ->
-                    Snackbar(
-                        modifier = Modifier
-                            .padding(16.dp)
-                    ) {
-                        Text(message)
+                                items.forEach { item ->
+                                    ChecklistQuestionItem(
+                                        question = item,
+                                        onResponseChanged = viewModel::updateItemResponse,
+                                        modifier = Modifier.padding(bottom = 1.dp)
+                                    )
+                                }
+                            }
+
+
+                            // Only show submit button when all items are answered
+                            if (!currentState.isLoading &&
+                                currentState.checkItems.isNotEmpty() &&
+                                currentState.checkItems.all { it.userAnswer != null }) {
+                                Button(
+                                    onClick = { viewModel.submitCheck() },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(text = "Submit Check")
+                                }
+                            }
+                        }
+
+                        currentState.message?.let { message ->
+                            Snackbar(
+                                modifier = Modifier
+                                    .padding(16.dp)
+                            ) {
+                                Text(message)
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
+
+    // Handle back navigation
+    LaunchedEffect(viewModel.navigateBack.collectAsState().value) {
+        if (viewModel.navigateBack.value) {
+            onBackPressed()
+            viewModel.resetNavigation()
         }
     }
 }

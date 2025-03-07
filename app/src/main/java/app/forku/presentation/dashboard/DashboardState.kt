@@ -15,7 +15,14 @@ data class DashboardState(
     val isAuthenticated: Boolean = false,
     val showQrScanner: Boolean = false,
     val currentSession: VehicleSession? = null,
-    val activeVehicle: Vehicle? = null,
-    val vehicleStatus: VehicleStatus = VehicleStatus.AVAILABLE,
+    val displayVehicle: Vehicle? = null,
     val navigationTarget: String? = null
-) 
+)
+//{
+//    val displayVehicle: Vehicle?
+//        get() = when {
+//            currentSession != null -> getVehicleUseCase(currentSession.vehicleId)
+//            lastPreShiftCheck != null -> getVehicleUseCase(lastPreShiftCheck.vehicleId)
+//            else -> null
+//        }
+//}

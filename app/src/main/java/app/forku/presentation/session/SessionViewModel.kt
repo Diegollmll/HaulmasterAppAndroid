@@ -50,28 +50,28 @@ class SessionViewModel @Inject constructor(
     fun endSession() {
         viewModelScope.launch {
             try {
+                _state.update { it.copy(isLoading = true) }
+                
                 val currentSession = state.value.session
-                if (currentSession == null) {
+                if (currentSession != null) {
+                    val endedSession = sessionRepository.endSession(currentSession.id)
                     _state.update { 
                         it.copy(
-                            error = "No active session to end",
-                            isLoading = false
+                            session = endedSession,
+                            isLoading = false,
+                            error = null
                         )
                     }
-                    return@launch
-                }
-                
-                _state.update { it.copy(isLoading = true) }
-                val endedSession = sessionRepository.endSession(currentSession.id)
-                _state.update { 
-                    it.copy(
-                        session = null,
-                        isLoading = false,
-                        error = null
-                    )
+                } else {
+                    throw Exception("No hay sesión activa para finalizar")
                 }
             } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
+                _state.update { 
+                    it.copy(
+                        error = "Error al finalizar sesión: ${e.message}",
+                        isLoading = false
+                    )
+                }
             }
         }
     }
@@ -91,7 +91,7 @@ class SessionViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
-                        error = "Failed to load current session: ${e.message}",
+                        error = "Error al cargar sesión: ${e.message}",
                         isLoading = false
                     )
                 }

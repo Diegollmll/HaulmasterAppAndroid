@@ -3,8 +3,9 @@ package app.forku.presentation.vehicle.scanner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.vehicle.VehicleStatus
+import app.forku.domain.model.vehicle.getErrorMessage
+import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.vehicle.VehicleRepository
-import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,36 +36,16 @@ class QRScannerViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
-                // Get vehicle status using the use case
                 val vehicleStatus = getVehicleStatusUseCase(vehicleId)
                 
-                when (vehicleStatus) {
-                    VehicleStatus.AVAILABLE -> {
-                        _navigation.value = NavigationEvent.ToPreShiftCheck(vehicleId)
-                    }
-                    VehicleStatus.IN_USE -> {
-                        _state.update { 
-                            it.copy(
-                                error = "Vehicle is already in use",
-                                isLoading = false
-                            )
-                        }
-                    }
-                    VehicleStatus.BLOCKED -> {
-                        _state.update { 
-                            it.copy(
-                                error = "Vehicle is currently blocked",
-                                isLoading = false
-                            )
-                        }
-                    }
-                    VehicleStatus.UNKNOWN -> {
-                        _state.update { 
-                            it.copy(
-                                error = "Unable to determine vehicle status",
-                                isLoading = false
-                            )
-                        }
+                if (vehicleStatus.isAvailable()) {
+                    _navigation.value = NavigationEvent.ToPreShiftCheck(vehicleId)
+                } else {
+                    _state.update { 
+                        it.copy(
+                            error = vehicleStatus.getErrorMessage(),
+                            isLoading = false
+                        )
                     }
                 }
             } catch (e: Exception) {

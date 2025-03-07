@@ -101,11 +101,10 @@ fun ForkUNavGraph(
             
             ChecklistScreen(
                 viewModel = viewModel,
-                onNavigateBack = {
+                navController = navController,
+                onBackPressed = {
                     if (fromScanner) {
-                        // Navigate to vehicle profile instead of going back
                         navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId)) {
-                            // Clear the back stack up to the scanner
                             popUpTo(Screen.QRScanner.route) { inclusive = true }
                         }
                     } else {

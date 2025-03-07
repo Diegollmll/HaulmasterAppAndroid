@@ -2,7 +2,7 @@ package app.forku.domain.usecase.checklist
 
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.Answer
-import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.model.checklist.CheckStatus
 import javax.inject.Inject
 
 class ValidateChecklistUseCase @Inject constructor() {
@@ -13,9 +13,9 @@ class ValidateChecklistUseCase @Inject constructor() {
         }
 
         val status = when {
-            hasCriticalFail -> PreShiftStatus.COMPLETED_FAIL
-            allItemsAnswered && !hasCriticalFail -> PreShiftStatus.COMPLETED_PASS
-            else -> PreShiftStatus.IN_PROGRESS
+            hasCriticalFail -> CheckStatus.COMPLETED_FAIL
+            allItemsAnswered && !hasCriticalFail -> CheckStatus.COMPLETED_PASS
+            else -> CheckStatus.IN_PROGRESS
             //forceInProgress -> PreShiftStatus.IN_PROGRESS
         }
 
@@ -29,7 +29,7 @@ class ValidateChecklistUseCase @Inject constructor() {
 }
 
 data class ChecklistValidation(
-    val status: PreShiftStatus,
+    val status: CheckStatus,
     val isComplete: Boolean,
     val isBlocked: Boolean,
     val canStartSession: Boolean

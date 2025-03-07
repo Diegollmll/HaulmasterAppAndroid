@@ -1,7 +1,6 @@
 package app.forku.presentation.checklist
 
-import app.forku.domain.model.checklist.PreShiftStatus
-import app.forku.domain.model.checklist.Answer
+import app.forku.domain.model.checklist.CheckStatus
 
 
 fun ChecklistState.canSubmit(): Boolean {
@@ -14,8 +13,8 @@ fun ChecklistState.canComplete(): Boolean {
 
 fun ChecklistState.getCompletionMessage(): String? {
     return when (checkStatus) {
-        PreShiftStatus.COMPLETED_PASS.toString() -> "Check completado exitosamente"
-        PreShiftStatus.COMPLETED_FAIL.toString() -> "Check completado con fallas"
+        CheckStatus.COMPLETED_PASS.toString() -> "Check completado exitosamente"
+        CheckStatus.COMPLETED_FAIL.toString() -> "Check completado con fallas"
         else -> null
     }
 } 

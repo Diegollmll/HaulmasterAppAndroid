@@ -1,25 +1,16 @@
 package app.forku.data.repository.vehicle
 
-import app.forku.domain.model.session.VehicleSession
 import app.forku.data.api.Sub7Api
-import app.forku.data.api.dto.checklist.PerformChecklistRequestDto
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
-import app.forku.domain.model.checklist.Answer
 import app.forku.domain.model.vehicle.Vehicle
-import app.forku.domain.model.checklist.Checklist
-import app.forku.domain.model.checklist.ChecklistItem
-import app.forku.domain.model.checklist.PreShiftCheck
-import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import javax.inject.Inject
-import app.forku.data.api.dto.session.StartSessionRequestDto
-import app.forku.data.api.dto.session.EndSessionRequestDto
-import app.forku.domain.repository.session.SessionRepository
-import app.forku.data.api.dto.checklist.UpdateChecklistRequestDto
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.model.vehicle.VehicleStatus
+import app.forku.domain.repository.checklist.ChecklistRepository
 
 
 class VehicleRepositoryImpl @Inject constructor(
@@ -52,25 +43,32 @@ class VehicleRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getVehicleStatus(vehicleId: String): VehicleStatus {
+        // Implementation remains the same, but use VehicleStatus directly instead of through UseCase
+        throw UnsupportedOperationException("Method not implemented")
+    }
+
     override suspend fun updateVehicleStatus(vehicleId: String, status: VehicleStatus): Vehicle {
         try {
-            // First get the current vehicle to update
-            val vehicle = getVehicle(vehicleId)
+            // First get the current vehicle
+            val response = api.getVehicle(vehicleId)
+            val vehicle = response.body()?.toDomain() 
+                ?: throw Exception("Vehicle not found")
             
-            // Update the vehicle with new status
+            // Update only the status
             val updatedVehicle = vehicle.copy(status = status)
             
-            // Make the PUT request to update the entire vehicle
-            val response = api.updateVehicle(
+            // Make the PUT request with the updated vehicle
+            val updateResponse = api.updateVehicle(
                 id = vehicleId,
                 vehicle = updatedVehicle.toDto()
             )
-
-            if (!response.isSuccessful) {
-                throw Exception("Failed to update vehicle status: ${response.code()}")
+            
+            if (!updateResponse.isSuccessful) {
+                throw Exception("Failed to update vehicle status: ${updateResponse.code()}")
             }
-
-            return response.body()?.toDomain() 
+            
+            return updateResponse.body()?.toDomain() 
                 ?: throw Exception("No vehicle data in response")
         } catch (e: Exception) {
             throw Exception("Error updating vehicle status: ${e.message}")

@@ -23,7 +23,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
 import androidx.navigation.NavController
-import app.forku.domain.model.checklist.PreShiftStatus
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -173,11 +172,7 @@ fun VehicleProfileContent(
                 .padding(16.dp)
         ) {
             state.vehicle?.let { vehicle ->
-                val status = if (state.hasActiveSession) {
-                    VehicleStatus.IN_USE
-                } else {
-                    VehicleStatus.AVAILABLE
-                }
+                val status = vehicle.status
 
                 VehicleProfileSummary(
                     vehicle = vehicle,

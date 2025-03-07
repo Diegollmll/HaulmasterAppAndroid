@@ -9,7 +9,7 @@ class GetLastPreShiftCheckCurrentUserUseCase @Inject constructor(
     private val checklistRepository: ChecklistRepository,
     private val authRepository: AuthRepository
 ) {
-    suspend operator fun invoke(): PreShiftCheck {
+    suspend operator fun invoke(): PreShiftCheck? {
         val currentUser = authRepository.getCurrentUser() 
             ?: throw Exception("User not authenticated")
 
@@ -19,8 +19,7 @@ class GetLastPreShiftCheckCurrentUserUseCase @Inject constructor(
             check.userId == currentUser.id
         }
 
-        // Get the most recent check
+        // Get the most recent check, return null if none found
         return userVehicleChecks.maxByOrNull { it.lastCheckDateTime }
-            ?: throw Exception("No previous check found for this user and vehicle")
     }
 } 

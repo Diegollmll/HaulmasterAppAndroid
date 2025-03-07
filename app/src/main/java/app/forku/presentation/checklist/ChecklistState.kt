@@ -4,7 +4,7 @@ import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.RotationRules
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.checklist.Answer
 
 data class ChecklistState(
@@ -21,10 +21,10 @@ data class ChecklistState(
     val vehicleId: String = "",
     val showErrorModal: Boolean = false,
     val errorModalMessage: String? = null,
-    val vehicleStatus: VehicleStatus = VehicleStatus.UNKNOWN,
+    val vehicleStatus: VehicleStatus,
     val message: String? = null,
     val lastSavedAt: String? = null,
-    val checkStatus: String = PreShiftStatus.IN_PROGRESS.toString()
+    val checkStatus: String
 ) {
     val isEmpty: Boolean
         get() = checkItems.isEmpty()

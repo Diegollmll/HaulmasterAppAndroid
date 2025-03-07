@@ -19,9 +19,12 @@ abstract class BindingsModule {
         userRepositoryImpl: UserRepositoryImpl
     ): UserRepository
 
+    // Remove or comment out this binding
+    /*
     @Binds
     @Singleton
     abstract fun bindSessionRepository(
         impl: SessionRepositoryImpl
     ): SessionRepository
+    */
 } 

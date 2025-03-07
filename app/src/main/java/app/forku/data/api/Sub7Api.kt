@@ -20,7 +20,6 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
-
 interface Sub7Api {
     @GET("users")
     suspend fun getUsers(): Response<List<UserDto>>
@@ -46,43 +45,8 @@ interface Sub7Api {
     @GET("checklist_questionary")
     suspend fun getChecklistQuestionary(): Response<ChecklistResponseDto>
 
-    @POST("vehicles/{vehicleId}/checks")
-    suspend fun createCheck(
-        @Path("vehicleId") vehicleId: String,
-        @Body check: PerformChecklistRequestDto
-    ): Response<PerformChecklistResponseDto>
-
     @GET("vehicles")
     suspend fun getVehicles(): Response<List<VehicleDto>>
-
-    @GET("vehicles/{vehicleId}/sessions")
-    suspend fun getVehicleSessions(@Path("vehicleId") vehicleId: String): Response<List<SessionDto>>
-
-    @POST("vehicles/{vehicleId}/sessions")
-    suspend fun createSession(
-        @Path("vehicleId") vehicleId: String,
-        @Body request: StartSessionRequestDto
-    ): Response<SessionDto>
-
-    @PUT("vehicles/{vehicleId}/sessions/{sessionId}")
-    suspend fun updateSession(
-        @Path("vehicleId") vehicleId: String,
-        @Path("sessionId") sessionId: String,
-        @Body request: EndSessionRequestDto
-    ): Response<SessionDto>
-
-    @GET("vehicles/{vehicleId}/checks/{checkId}")
-    suspend fun getCheck(
-        @Path("vehicleId") vehicleId: String,
-        @Path("checkId") checkId: String
-    ): Response<PerformChecklistResponseDto>
-
-    @PUT("vehicles/{vehicleId}/checks/{checkId}")
-    suspend fun updateCheck(
-        @Path("vehicleId") vehicleId: String,
-        @Path("checkId") checkId: String,
-        @Body check: UpdateChecklistRequestDto
-    ): Response<PerformChecklistResponseDto>
 
     @POST("incidents")
     suspend fun reportIncident(@Body incident: IncidentDto): Response<IncidentDto>
@@ -93,26 +57,13 @@ interface Sub7Api {
     @GET("incidents/{id}")
     suspend fun getIncidentById(@Path("id") id: String): Response<IncidentDto>
 
-    @GET("vehicles/{vehicleId}/checks")
-    suspend fun getVehicleChecks(@Path("vehicleId") vehicleId: String): Response<List<PreShiftCheckDto>>
-
-    @GET("incidents/operator/{operatorId}")
-    suspend fun getOperatorIncidents(@Path("operatorId") operatorId: String): Response<List<IncidentDto>>
-
-    @GET("sessions")
-    suspend fun getSessions(): Response<List<SessionDto>>
-
-    @GET("sessions/operator/{operatorId}")
-    suspend fun getOperatorSessions(@Path("operatorId") operatorId: String): Response<List<SessionDto>>
-
     @PUT("vehicles/{id}")
     suspend fun updateVehicle(
         @Path("id") id: String,
         @Body vehicle: VehicleDto
     ): Response<VehicleDto>
 
-
-    // New global checks endpoints
+    // Global checks endpoints
     @GET("checks")
     suspend fun getAllChecks(): Response<List<PreShiftCheckDto>>
 
@@ -129,6 +80,21 @@ interface Sub7Api {
     ): Response<PreShiftCheckDto>
 
 
+    // Global session endpoints
+    @GET("sessions")
+    suspend fun getAllSessions(): Response<List<SessionDto>>
 
+    @GET("sessions/{sessionId}")
+    suspend fun getSessionById(@Path("sessionId") sessionId: String): Response<SessionDto>
+
+    @POST("sessions")
+    suspend fun createSession(@Body session: StartSessionRequestDto): Response<SessionDto>
+
+    @PUT("sessions/{sessionId}")
+    suspend fun updateSession(
+        @Path("sessionId") sessionId: String,
+        @Body session: SessionDto
+    ): Response<SessionDto>
 
 }
+

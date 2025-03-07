@@ -27,8 +27,8 @@ fun VehicleDto.toDomain(): Vehicle {
         status = when (status.lowercase()) {
             "available" -> VehicleStatus.AVAILABLE
             "in_use" -> VehicleStatus.IN_USE
-            "blocked" -> VehicleStatus.BLOCKED
-            else -> VehicleStatus.UNKNOWN
+            "out_of_service" -> VehicleStatus.OUT_OF_SERVICE
+            else -> VehicleStatus.AVAILABLE
         },
         serialNumber = serialNumber,
         description = description,

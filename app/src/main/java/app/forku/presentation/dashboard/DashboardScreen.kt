@@ -112,16 +112,15 @@ fun DashboardScreen(
                 verticalArrangement = Arrangement.Center
             ) {
                 // Always show SessionCard, but with different states
+
                 SessionCard(
-                    vehicle = dashboardState.activeVehicle,
-                    status = dashboardState.vehicleStatus,
+                    vehicle = dashboardState.displayVehicle,
                     lastCheck = dashboardState.lastPreShiftCheck,
                     user = dashboardState.user,
-                    isActive = dashboardState.currentSession != null,
-                    sessionStartTime = dashboardState.currentSession?.startTime
+                    currentSession = dashboardState.currentSession
                 )
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 // Navigation buttons grid
                 DashboardNavigationButtons(
@@ -287,61 +286,4 @@ private fun NavigationButton(
     }
 }
 
-@Composable
-fun VehicleStatusMessage(
-    sessionState: SessionState,
-    vehicle: Vehicle?
-) {
-    android.util.Log.d(
-        "appflow",
-        "sessionState.session?.status =${sessionState.session?.status}"
-    )
-    val message = when {
-        sessionState.session?.status == SessionStatus.ACTIVE ->
-            vehicle?.let { "Active session" }
-        else -> "No active session"
-    }
 
-    if (message != null) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.Black
-        )
-    }
-}
-
-@Composable
-fun IncidentReportBottomSheet() {
-    val viewModel: BottomSheetViewModel = hiltViewModel()
-    val showBottomSheet by viewModel.showBottomSheet.collectAsState()
-
-    if (showBottomSheet) {
-        AppBottomSheet(
-            onDismiss = { viewModel.hideBottomSheet() },
-            content = {
-                IncidentTypeSelector(
-                    onTypeSelected = { type ->
-                        // Handle type selection
-                    },
-                    onDismiss = { viewModel.hideBottomSheet() }
-                )
-            }
-        )
-    }
-}
-
-@Composable
-private fun formatDateTime(dateTimeString: String): String {
-    return try {
-        val instant = java.time.Instant.parse(dateTimeString)
-        val localDateTime = java.time.LocalDateTime.ofInstant(
-            instant,
-            java.time.ZoneId.systemDefault()
-        )
-        val formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
-        localDateTime.format(formatter)
-    } catch (e: Exception) {
-        dateTimeString // Return original string if parsing fails
-    }
-}

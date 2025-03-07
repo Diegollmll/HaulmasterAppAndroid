@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.dp
 import app.forku.presentation.incident.IncidentReportState
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.Alignment
-import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.incident.IncidentType
 
 @Composable
@@ -83,7 +83,7 @@ fun VehicleInfoSection(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
-            val statusCondition = state.preshiftCheckStatus == PreShiftStatus.COMPLETED_PASS.toString()
+            val statusCondition = state.preshiftCheckStatus == CheckStatus.COMPLETED_PASS.toString()
             val statusColor = if (statusCondition) {
                 MaterialTheme.colorScheme.primary
             } else {

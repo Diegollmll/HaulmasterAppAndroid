@@ -16,104 +16,147 @@ import app.forku.presentation.common.components.OverlappingImages
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import androidx.compose.runtime.remember
+import app.forku.domain.model.session.VehicleSession
+import app.forku.presentation.common.utils.formatDateTime
+
 
 @Composable
 fun SessionCard(
-    vehicle: Vehicle? = null,
-    status: VehicleStatus = VehicleStatus.AVAILABLE,
-    lastCheck: PreShiftCheck? = null,
-    user: User? = null,
-    isActive: Boolean = false,
-    sessionStartTime: String? = null
+    vehicle: Vehicle?,
+    lastCheck: PreShiftCheck?,
+    user: User?,
+    currentSession: VehicleSession?
 ) {
-    val startDateTime = remember(sessionStartTime) {
-        sessionStartTime?.let {
-            try {
-                LocalDateTime.parse(it, DateTimeFormatter.ISO_DATE_TIME)
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
+        SessionContent(
+            vehicle = vehicle,
+            status = if (currentSession != null) VehicleStatus.IN_USE else vehicle?.status ?: VehicleStatus.AVAILABLE,
+            user = user,
+            startDateTime = remember(currentSession?.startTime) {
+                currentSession?.startTime?.let {
+                    try {
+                        // Parseamos la fecha UTC y la convertimos a LocalDateTime
+                        val instant = java.time.Instant.parse(it)
+                        instant.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            },
+            lastCheck = lastCheck,
+            isActive = currentSession != null
+        )
+    }
+}
 
-        Row (
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ){
+@Composable
+private fun SessionContent(
+    vehicle: Vehicle?,
+    status: VehicleStatus,
+    user: User?,
+    startDateTime: LocalDateTime?,
+    lastCheck: PreShiftCheck?,
+    isActive: Boolean = false,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        if (!isActive) {
             Text(
-                text = if (isActive) "Active session," else "Welcome ${user?.name}!,",
+                text = "Welcome ${user?.name ?: ""}!",
                 style = MaterialTheme.typography.titleMedium,
-                color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.height(0.dp))
         }
-
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(top = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-
+            // Left Column - User/Vehicle Info
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp)
             ) {
-
-
-                // User info section
                 user?.let {
-                    Column(
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        if (isActive && vehicle != null) {
-                            OverlappingImages(
-                                mainImageUrl = vehicle.photoUrl,
-                                overlayImageUrl = user.photoUrl,
-                                mainTint = MaterialTheme.colorScheme.onSurface,
-                                mainSize = 48,
-                                overlaySize = 24
-                            )
-                        }
+                    if (vehicle != null) {
+                        OverlappingImages(
+                            mainImageUrl = vehicle.photoModel,
+                            overlayImageUrl = user.photoUrl,
+                            mainTint = MaterialTheme.colorScheme.onSurface,
+                            mainSize = 90,
+                            overlaySize = 45
+                        )
                     }
                 }
             }
 
-            // Second Column - Vehicle/Clock Section
+            // Right Column - Vehicle Details and Timer
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp),
                 horizontalAlignment = Alignment.Start
             ) {
-                if (isActive && vehicle != null) {
+                vehicle?.let {
                     Text(
-                        text = "Vehicle: ${vehicle.codename}",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Vehicle: ${it.codename}",
+                        style = MaterialTheme.typography.bodyLarge
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     VehicleStatusIndicator(status = status)
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     UserDateTimer(
                         modifier = Modifier.fillMaxWidth(),
-                        sessionStartTime = if (isActive) startDateTime else null
-                    )
-                } else {
-                    Text(
-                        text = "Last check: ${lastCheck?.lastCheckDateTime} - ${lastCheck?.status}",
-                        style = MaterialTheme.typography.bodyMedium
+                        sessionStartTime = startDateTime
                     )
                 }
             }
         }
 
-        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 3.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(0.dp),
+                horizontalAlignment = Alignment.Start
+            ) {
+                if (lastCheck != null) {
+                    Text(
+                        text = "Check: ${lastCheck.lastCheckDateTime?.let { formatDateTime(it) }}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "${lastCheck.status}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = "Press Check In to get started!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+
     }
-} 
+}

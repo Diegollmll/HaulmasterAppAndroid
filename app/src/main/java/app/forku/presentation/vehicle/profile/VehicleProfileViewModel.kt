@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.checklist.PreShiftCheck
-import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.model.session.SessionStatus
@@ -18,6 +18,8 @@ import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.model.vehicle.getErrorMessage
+import app.forku.domain.model.vehicle.isAvailable
 
 
 @HiltViewModel
@@ -41,28 +43,44 @@ class VehicleProfileViewModel @Inject constructor(
 
     fun loadVehicle(showLoading: Boolean = false) {
         viewModelScope.launch {
-            if (showLoading) {
-                _state.update { it.copy(isLoading = true) }
-            }
             try {
-                val vehicle = getVehicleUseCase(vehicleId)
-                val activeSession = getVehicleActiveSessionUseCase(vehicleId)
-                val lastPreShiftCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                _state.update { it.copy(isLoading = showLoading) }
                 
-                _state.update {
+                android.util.Log.d("appflow VehicleProfile", "Loading vehicle with ID: $vehicleId")
+                
+                // Get vehicle details
+                val vehicle = vehicleRepository.getVehicle(vehicleId)
+                
+                if (vehicle == null) {
+                    android.util.Log.e("appflow VehicleProfile", "Vehicle not found for ID: $vehicleId")
+                    throw Exception("Error al cargar vehiculo")
+                }
+                
+                android.util.Log.d("appflow VehicleProfile", "Vehicle loaded successfully: ${vehicle.id}")
+                
+                // Get active session for this vehicle
+                val activeSession = sessionRepository.getActiveSessionForVehicle(vehicleId)
+                android.util.Log.d("appflow VehicleProfile", "Active session: ${activeSession?.id}")
+                
+                // Get last pre-shift check
+                val lastPreShiftCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                android.util.Log.d("appflow VehicleProfile", "Last pre-shift check: ${lastPreShiftCheck?.id}")
+                
+                _state.update { 
                     it.copy(
                         vehicle = vehicle,
                         activeSession = activeSession,
-                        activeOperator = activeSession?.operator,
-                        hasActivePreShiftCheck = lastPreShiftCheck?.status == PreShiftStatus.IN_PROGRESS.toString(),
-                        hasActiveSession = activeSession?.session?.status == SessionStatus.ACTIVE,
-                        isLoading = false
+                        hasActiveSession = activeSession != null,
+                        hasActivePreShiftCheck = lastPreShiftCheck?.status == CheckStatus.IN_PROGRESS.toString(),
+                        isLoading = false,
+                        error = null
                     )
                 }
             } catch (e: Exception) {
+                android.util.Log.e("appflow VehicleProfile", "Error loading vehicle", e)
                 _state.update {
                     it.copy(
-                        error = "Error al cargar vehículo",
+                        error = e.message ?: "Error desconocido",
                         isLoading = false
                     )
                 }
@@ -87,9 +105,15 @@ class VehicleProfileViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
+                // Check vehicle status first
+                val vehicleStatus = getVehicleStatusUseCase(vehicleId)
+                if (!vehicleStatus.isAvailable()) {
+                    throw Exception(vehicleStatus.getErrorMessage())
+                }
+                
                 val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
                 
-                if (lastCheck?.status == PreShiftStatus.COMPLETED_PASS.toString()) {
+                if (lastCheck?.status == CheckStatus.COMPLETED_PASS.toString()) {
                     val session = sessionRepository.startSession(
                         vehicleId = vehicleId,
                         checkId = lastCheck.id

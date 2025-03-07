@@ -47,20 +47,63 @@ class DashboardViewModel @Inject constructor(
             val currentUser = authRepository.getCurrentUser()
                 ?: throw Exception("User not authenticated")
 
+            // Obtenemos la sesión actual
             val currentSession = sessionRepository.getCurrentSession()
-            val activeVehicle = currentSession?.let { getVehicleUseCase(it.vehicleId) }
-            val vehicleStatus = activeVehicle?.let { getVehicleStatusUseCase(it.id) }
-                ?: VehicleStatus.UNKNOWN
+
+            // Obtenemos el vehículo de la sesión activa si existe
+            val sessionVehicle = currentSession?.let { 
+                getVehicleUseCase(it.vehicleId)
+            }
+            
+            // Obtenemos el último check
+            val lastPreShiftCheck = try {
+                getLastPreShiftCheckCurrentUserUseCase()
+            } catch (e: Exception) {
+                null
+            }
+            
+            // Obtenemos el vehículo del último check si no hay sesión activa
+            val checkVehicle = if (currentSession == null) {
+                lastPreShiftCheck?.let { 
+                    getVehicleUseCase(it.vehicleId)
+                }
+            } else null
+            
+            // Log session vehicle details
+            android.util.Log.d("appflow DashboardViewModel", "Session Vehicle: $sessionVehicle")
+            sessionVehicle?.let {
+                android.util.Log.d("appflow DashboardViewModel", """
+                    Session Vehicle Properties:
+                    - ID: ${it.id}
+                    - Codename: ${it.codename}
+                    - Status: ${it.status}
+                    - Photo URL: ${it.photoModel}          
+                """.trimIndent())
+            }
+
+            // Log check vehicle details  
+            android.util.Log.d("appflow DashboardViewModel", "Check Vehicle: $checkVehicle")
+            checkVehicle?.let {
+                android.util.Log.d("appflow DashboardViewModel", """
+                    Check Vehicle Properties:
+                    - ID: ${it.id}
+                    - Codename: ${it.codename} 
+                    - Status: ${it.status}
+                    - Photo URL: ${it.photoModel}
+                """.trimIndent())
+            }
+
+
+
 
             _state.update {
                 it.copy(
                     isLoading = false,
                     user = currentUser,
                     isAuthenticated = true,
-                    lastPreShiftCheck = getLastPreShiftCheckCurrentUserUseCase(),
-                    vehicleStatus = vehicleStatus,
+                    lastPreShiftCheck = lastPreShiftCheck,
                     currentSession = currentSession,
-                    activeVehicle = activeVehicle,
+                    displayVehicle = sessionVehicle ?: checkVehicle,
                     error = null
                 )
             }

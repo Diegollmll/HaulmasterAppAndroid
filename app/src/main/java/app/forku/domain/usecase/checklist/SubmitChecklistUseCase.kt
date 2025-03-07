@@ -2,7 +2,7 @@ package app.forku.domain.usecase.checklist
 
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.PreShiftCheck
-import app.forku.domain.model.checklist.PreShiftStatus
+import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.repository.checklist.ChecklistRepository
 import javax.inject.Inject
 
@@ -13,7 +13,7 @@ class SubmitChecklistUseCase @Inject constructor(
         vehicleId: String,
         items: List<ChecklistItem>,
         checkId: String? = null,
-        status: String = PreShiftStatus.IN_PROGRESS.toString()
+        status: String = CheckStatus.IN_PROGRESS.toString()
     ): PreShiftCheck {
         return checklistRepository.submitPreShiftCheck(
             vehicleId = vehicleId,
