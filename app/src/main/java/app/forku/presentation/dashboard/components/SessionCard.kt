@@ -1,5 +1,6 @@
 package app.forku.presentation.dashboard.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,8 +17,14 @@ import app.forku.presentation.common.components.OverlappingImages
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import androidx.compose.runtime.remember
+import androidx.core.graphics.toColorInt
+import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.vehicle.toColor
+import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.presentation.common.utils.formatDateTime
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 
 
 @Composable
@@ -25,7 +32,8 @@ fun SessionCard(
     vehicle: Vehicle?,
     lastCheck: PreShiftCheck?,
     user: User?,
-    currentSession: VehicleSession?
+    currentSession: VehicleSession?,
+    onCheckClick: ((String) -> Unit)? = null
 ) {
     Card(
         modifier = Modifier
@@ -49,7 +57,8 @@ fun SessionCard(
                 }
             },
             lastCheck = lastCheck,
-            isActive = currentSession != null
+            isActive = currentSession != null,
+            onCheckClick = { checkId -> onCheckClick?.invoke(checkId) }
         )
     }
 }
@@ -62,9 +71,11 @@ private fun SessionContent(
     startDateTime: LocalDateTime?,
     lastCheck: PreShiftCheck?,
     isActive: Boolean = false,
+    onCheckClick: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
@@ -139,14 +150,31 @@ private fun SessionContent(
                 horizontalAlignment = Alignment.Start
             ) {
                 if (lastCheck != null) {
-                    Text(
-                        text = "Check: ${lastCheck.lastCheckDateTime?.let { formatDateTime(it) }}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "${lastCheck.status}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                enabled = lastCheck.status == CheckStatus.IN_PROGRESS.toString() && onCheckClick != null,
+                                onClick = { lastCheck.id?.let { onCheckClick(it) } }
+                            )
+                            .padding(8.dp),
+                    ) {
+
+                        Text(
+                            text = "Check: ${lastCheck.lastCheckDateTime?.let { formatDateTime(it) }}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 9.sp
+                            )
+                        )
+                        Text(
+                            text = lastCheck.status,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 8.sp
+                            )
+                        )
+
+                    }
+
                 } else {
                     Text(
                         text = "Press Check In to get started!",

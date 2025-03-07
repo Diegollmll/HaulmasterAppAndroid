@@ -126,7 +126,12 @@ fun DashboardScreen(
                     vehicle = dashboardState.displayVehicle,
                     lastCheck = dashboardState.lastPreShiftCheck,
                     user = dashboardState.user,
-                    currentSession = dashboardState.currentSession
+                    currentSession = dashboardState.currentSession,
+                    onCheckClick = { checkId ->
+                        dashboardState.displayVehicle?.id?.let { vehicleId ->
+                            onNavigate("checklist/$vehicleId?checkId=$checkId")
+                        }
+                    }
                 )
                 
                 Spacer(modifier = Modifier.height(20.dp))
