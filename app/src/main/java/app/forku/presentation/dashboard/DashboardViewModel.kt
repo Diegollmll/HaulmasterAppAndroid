@@ -130,4 +130,47 @@ class DashboardViewModel @Inject constructor(
             loadDashboard(showLoading = true)
         }
     }
+
+    fun endCurrentSession() {
+        viewModelScope.launch {
+            try {
+                android.util.Log.d("appflow DashboardViewModel", "Starting endCurrentSession")
+                _state.update { it.copy(isLoading = true) }
+                
+                val currentSession = state.value.currentSession
+                android.util.Log.d("appflow DashboardViewModel", "Current session: $currentSession")
+                
+                if (currentSession != null) {
+                    android.util.Log.d("appflow DashboardViewModel", "Ending session with ID: ${currentSession.id}")
+                    sessionRepository.endSession(currentSession.id)
+                    
+                    // Actualizar el estado después de finalizar la sesión
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            currentSession = null,
+                            displayVehicle = null,
+                            error = null
+                        )
+                    }
+                    
+                    android.util.Log.d("appflow DashboardViewModel", "Session ended successfully, reloading dashboard")
+                    // Recargar el dashboard para obtener el nuevo estado
+                    loadDashboard(showLoading = false)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("appflow DashboardViewModel", "Error ending session", e)
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = "Error al finalizar sesión: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearError() {
+        _state.update { it.copy(error = null) }
+    }
 } 

@@ -68,13 +68,12 @@ private fun SessionContent(
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        if (!isActive) {
-            Text(
-                text = "Welcome ${user?.name ?: ""}!",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        
+        Text(
+            text = if (isActive) "Active Session" else "Welcome ${user?.name ?: ""}!",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
         
         Row(
             modifier = Modifier
@@ -105,12 +104,12 @@ private fun SessionContent(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 8.dp),
+                    .padding(start = 3.dp),
                 horizontalAlignment = Alignment.Start
             ) {
                 vehicle?.let {
                     Text(
-                        text = "Vehicle: ${it.codename}",
+                        text = "${it.codename}",
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))

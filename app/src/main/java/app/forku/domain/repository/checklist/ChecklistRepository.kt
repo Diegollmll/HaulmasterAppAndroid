@@ -22,4 +22,6 @@ interface ChecklistRepository {
     suspend fun updateGlobalCheck(checkId: String, check: PreShiftCheck): PreShiftCheck
     
     suspend fun hasChecklistInCreation(vehicleId: String): Boolean
+
+    suspend fun canStartCheck(vehicleId: String): Boolean
 } 

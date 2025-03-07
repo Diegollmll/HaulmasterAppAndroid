@@ -36,8 +36,8 @@ interface Sub7Api {
     @POST("users/refresh-token")
     suspend fun refreshToken(@Body request: RefreshTokenRequestDto): Response<LoginResponseDto>
 
-    @GET("vehicles/qr/{code}")
-    suspend fun getVehicleByQr(@Path("code") code: String): Response<VehicleDto>
+    //@GET("vehicles/qr/{code}")
+    //suspend fun getVehicleByQr(@Path("code") code: String): Response<VehicleDto>
 
     @GET("vehicles/{id}")
     suspend fun getVehicle(@Path("id") id: String): Response<VehicleDto>

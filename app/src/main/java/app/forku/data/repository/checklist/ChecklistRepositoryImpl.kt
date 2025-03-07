@@ -1,13 +1,12 @@
 package app.forku.data.repository.checklist
 
+import app.forku.domain.repository.vehicle.VehicleStatusChecker
 import app.forku.data.api.Sub7Api
 import app.forku.data.datastore.AuthDataStore
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import javax.inject.Inject
 
-import app.forku.data.api.dto.checklist.PerformChecklistRequestDto
-import app.forku.data.api.dto.checklist.UpdateChecklistRequestDto
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
 import app.forku.domain.model.checklist.Checklist
@@ -15,10 +14,8 @@ import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.CheckStatus
 import java.time.Instant
-import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.repository.vehicle.VehicleStatusUpdater
-import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
+
 
 
 class ChecklistRepositoryImpl @Inject constructor(
@@ -153,5 +150,10 @@ class ChecklistRepositoryImpl @Inject constructor(
             false
         }
     }
+
+    override suspend fun canStartCheck(vehicleId: String): Boolean {
+        return true // Assuming the logic is moved to VehicleValidationService
+    }
+    
 
 }

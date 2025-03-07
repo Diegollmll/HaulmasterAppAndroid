@@ -50,7 +50,7 @@ fun UserDateTimer(
         Text(
             text = elapsedTime,
             style = MaterialTheme.typography.headlineLarge.copy(
-                fontSize = 32.sp,
+                fontSize = 34.sp,
                 fontWeight = FontWeight.Bold
             ),
             modifier = Modifier.padding(top = 4.dp)

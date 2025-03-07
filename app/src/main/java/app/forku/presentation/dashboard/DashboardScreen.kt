@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +60,7 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.runtime.setValue
 import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.toColor
 import app.forku.presentation.dashboard.components.SessionCard
@@ -68,16 +71,24 @@ import app.forku.presentation.dashboard.components.SessionCard
 fun DashboardScreen(
     navController: NavController,
     onNavigate: (String) -> Unit,
-    dashboardViewModel: DashboardViewModel = hiltViewModel(),
-    sessionViewModel: SessionViewModel = hiltViewModel()
+    dashboardViewModel: DashboardViewModel = hiltViewModel()
 ) {
     val dashboardState by dashboardViewModel.state.collectAsStateWithLifecycle()
-    val sessionState by sessionViewModel.state.collectAsStateWithLifecycle()
+    
+    // Add loading state observation
+    var isCheckoutLoading by remember { mutableStateOf(false) }
 
-    // Add LaunchedEffect to refresh dashboard when session ends
-    LaunchedEffect(sessionState.session) {
-        if (sessionState.session == null) {
-            dashboardViewModel.refresh()
+    // Handle loading state during checkout
+    LaunchedEffect(dashboardState.currentSession) {
+        if (dashboardState.currentSession == null && isCheckoutLoading) {
+            isCheckoutLoading = false
+        }
+    }
+
+    // Handle errors
+    LaunchedEffect(dashboardState.error) {
+        dashboardState.error?.let {
+            isCheckoutLoading = false
         }
     }
 
@@ -111,8 +122,6 @@ fun DashboardScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Always show SessionCard, but with different states
-
                 SessionCard(
                     vehicle = dashboardState.displayVehicle,
                     lastCheck = dashboardState.lastPreShiftCheck,
@@ -122,7 +131,6 @@ fun DashboardScreen(
                 
                 Spacer(modifier = Modifier.height(20.dp))
                 
-                // Navigation buttons grid
                 DashboardNavigationButtons(
                     onNavigateToProfile = { onNavigate(Screen.Profile.route) },
                     onNavigateToIncidents = { onNavigate(Screen.IncidentsHistory.route) },
@@ -130,23 +138,36 @@ fun DashboardScreen(
                     onNavigateToActivity = { onNavigate(Screen.OperatorsCICOHistory.route) },
                     onCheckOut = {
                         if (dashboardState.currentSession != null) {
-                            sessionViewModel.endSession()
+                            isCheckoutLoading = true
+                            dashboardViewModel.endCurrentSession()
                         } else {
                             onNavigate(Screen.QRScanner.route)
                         }
                     },
-                    showCheckOut = dashboardState.currentSession != null
+                    showCheckOut = dashboardState.currentSession != null,
+                    isCheckoutLoading = isCheckoutLoading
+                )
+            }
+
+            // Show loading indicator
+            if (isCheckoutLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
                 )
             }
 
             // Show error if any
             dashboardState.error?.let { error ->
-                ErrorScreen(
-                    message = error,
-                    onRetry = {
-                        dashboardViewModel.refresh()
+                Snackbar(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    action = {
+                        TextButton(onClick = { dashboardViewModel.clearError() }) {
+                            Text("Retry")
+                        }
                     }
-                )
+                ) {
+                    Text(error)
+                }
             }
 
             // Pull to refresh indicator
@@ -166,7 +187,8 @@ private fun DashboardNavigationButtons(
     onNavigateToVehicles: () -> Unit,
     onNavigateToActivity: () -> Unit,
     onCheckOut: () -> Unit,
-    showCheckOut: Boolean
+    showCheckOut: Boolean,
+    isCheckoutLoading: Boolean
 ) {
     Box(
         modifier = Modifier

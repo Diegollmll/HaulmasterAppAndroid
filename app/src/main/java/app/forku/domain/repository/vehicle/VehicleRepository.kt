@@ -15,7 +15,7 @@ import kotlinx.coroutines.delay
 interface VehicleRepository {
     suspend fun getVehicle(id: String): Vehicle
     suspend fun getVehicles(): List<Vehicle>
-    suspend fun getVehicleByQr(code: String): Vehicle
+    suspend fun getVehicleByQr(code: String, checkAvailability: Boolean = true): Vehicle
     suspend fun updateVehicleStatus(vehicleId: String, status: VehicleStatus): Vehicle
     suspend fun getVehicleStatus(vehicleId: String): VehicleStatus
 }

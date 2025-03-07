@@ -41,27 +41,23 @@ fun QRScannerScreen(
     viewModel: QRScannerViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val navigation by viewModel.navigation.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     val cameraPermissionState = rememberPermissionState(
         permission = Manifest.permission.CAMERA
     )
+
     val previewView = remember { PreviewView(context) }
 
     // Handle navigation events
-    LaunchedEffect(navigation) {
-        when (val nav = navigation) {
-            is QRScannerViewModel.NavigationEvent.ToPreShiftCheck -> {
-                onNavigateToPreShiftCheck(nav.vehicleId)
-                viewModel.resetNavigation()
+    LaunchedEffect(state) {
+        state.vehicle?.id?.let { vehicleId ->
+            if (state.navigateToChecklist) {
+                onNavigateToPreShiftCheck(vehicleId)
+            } else if (state.navigateToProfile) {
+                onNavigateToVehicleProfile(vehicleId)
             }
-            is QRScannerViewModel.NavigationEvent.ToVehicleProfile -> {
-                onNavigateToVehicleProfile(nav.vehicleId)
-                viewModel.resetNavigation()
-            }
-            QRScannerViewModel.NavigationEvent.None -> {}
         }
     }
 
@@ -88,65 +84,48 @@ fun QRScannerScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
         ) {
             if (cameraPermissionState.status.isGranted) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AndroidView(
-                        factory = { previewView },
-                        modifier = Modifier.fillMaxSize()
-                    ) { preview ->
-                        setupQrCodeScanning(
-                            context = context,
-                            lifecycleOwner = lifecycleOwner,
-                            previewView = preview,
-                            onQrCodeScanned = viewModel::onQRScanned
-                        )
-                    }
-                    
-                    // Add QR frame overlay
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        QRCodeFrame()
-                    }
+                AndroidView(
+                    factory = { previewView },
+                    modifier = Modifier.fillMaxSize()
+                ) { preview ->
+                    setupQrCodeScanning(
+                        context = context,
+                        lifecycleOwner = lifecycleOwner,
+                        previewView = preview,
+                        onQrCodeScanned = { code ->
+                            viewModel.onQrScanned(code)
+                        }
+                    )
+                }
+
+                // QR frame overlay
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    QRCodeFrame()
                 }
             } else {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
                     Text("Camera permission is required to scan QR codes")
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
-                        Text("Request Permission")
+                        Text("Grant Permission")
                     }
                 }
             }
 
-            // Show loading indicator
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            // Show error message if any
-            state.error?.let { error ->
-                AlertDialog(
-                    onDismissRequest = { viewModel.clearError() },
-                    title = { Text("Error") },
-                    text = { Text(error) },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
-                        }
-                    }
-                )
+            if (state.error != null) {
+                Toast.makeText(context, state.error, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -158,60 +137,50 @@ private fun setupQrCodeScanning(
     previewView: PreviewView,
     onQrCodeScanned: (String) -> Unit
 ) {
-    val executor = Executors.newSingleThreadExecutor()
     val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+    val executor = Executors.newSingleThreadExecutor()
     
-    val preview = Preview.Builder().build().also { 
-        it.setSurfaceProvider(previewView.surfaceProvider)
-    }
+    cameraProviderFuture.addListener({
+        val cameraProvider = cameraProviderFuture.get()
+        val preview = Preview.Builder().build()
+        preview.setSurfaceProvider(previewView.surfaceProvider)
 
-    val imageAnalysis = ImageAnalysis.Builder()
-        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .build()
+        val imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
 
-    imageAnalysis.setAnalyzer(executor) { imageProxy ->
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val image = InputImage.fromMediaImage(
-                mediaImage,
-                imageProxy.imageInfo.rotationDegrees
-            )
-
-            val scanner = BarcodeScanning.getClient()
-            scanner.process(image)
-                .addOnSuccessListener { barcodes ->
-                    barcodes.firstOrNull()?.rawValue?.let { qrCode ->
-                        onQrCodeScanned(qrCode)
+        imageAnalysis.setAnalyzer(executor) { imageProxy ->
+            val mediaImage = imageProxy.image
+            if (mediaImage != null) {
+                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                val scanner = BarcodeScanning.getClient()
+                
+                scanner.process(image)
+                    .addOnSuccessListener { barcodes ->
+                        barcodes.firstOrNull()?.rawValue?.let { code ->
+                            onQrCodeScanned(code)
+                        }
                     }
-                }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
+                    .addOnCompleteListener {
+                        imageProxy.close()
+                    }
+            } else {
+                imageProxy.close()
+            }
         }
-    }
 
-    try {
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
+        try {
             cameraProvider.unbindAll()
-            
             cameraProvider.bindToLifecycle(
                 lifecycleOwner,
                 CameraSelector.DEFAULT_BACK_CAMERA,
                 preview,
                 imageAnalysis
             )
-        }, ContextCompat.getMainExecutor(context))
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(
-            context,
-            "Failed to initialize camera: ${e.message}",
-            Toast.LENGTH_LONG
-        ).show()
-    }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }, ContextCompat.getMainExecutor(context))
 }
 
 @Composable
@@ -219,10 +188,6 @@ private fun QRCodeFrame() {
     Box(
         modifier = Modifier
             .size(250.dp)
-            .border(
-                width = 2.dp,
-                color = Color.White,
-                shape = RoundedCornerShape(12.dp)
-            )
+            .border(2.dp, Color.White, RoundedCornerShape(16.dp))
     )
 }

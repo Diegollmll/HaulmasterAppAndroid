@@ -70,17 +70,13 @@ fun ForkUNavGraph(
         composable(Screen.QRScanner.route) {
             QRScannerScreen(
                 onNavigateToPreShiftCheck = { vehicleId ->
-                    navController.navigate(
-                        Screen.Checklist.route
-                            .replace("{vehicleId}", vehicleId)
-                            + "?fromScanner=true"
-                    )
+                    navController.navigate("checklist/${vehicleId}?fromScanner=true")
                 },
                 onNavigateToVehicleProfile = { vehicleId ->
                     navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
                 },
                 onNavigateBack = {
-                    navController.navigateUp()
+                    navController.popBackStack()
                 }
             )
         }

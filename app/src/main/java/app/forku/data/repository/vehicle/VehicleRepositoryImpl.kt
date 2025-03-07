@@ -10,13 +10,17 @@ import app.forku.domain.repository.vehicle.VehicleRepository
 import javax.inject.Inject
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.model.vehicle.VehicleStatus
+import app.forku.domain.model.vehicle.getErrorMessage
+import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.vehicle.VehicleStatusRepository
 
 
 class VehicleRepositoryImpl @Inject constructor(
     private val api: Sub7Api,
     private val authDataStore: AuthDataStore,
-    private val validateChecklistUseCase: ValidateChecklistUseCase
+    private val validateChecklistUseCase: ValidateChecklistUseCase,
+    private val vehicleStatusRepository: VehicleStatusRepository
 ) : VehicleRepository {
 
     override suspend fun getVehicle(id: String): Vehicle {
@@ -25,10 +29,25 @@ class VehicleRepositoryImpl @Inject constructor(
             ?: throw Exception("Vehicle not found")
     }
 
-    override suspend fun getVehicleByQr(code: String): Vehicle {
-        val response = api.getVehicleByQr(code)
-        return response.body()?.toDomain()
-            ?: throw Exception("Vehicle not found")
+    override suspend fun getVehicleByQr(code: String, checkAvailability: Boolean): Vehicle {
+        try {
+            // Get vehicle from API
+            val response = api.getVehicle(code)
+            val vehicle = response.body()?.toDomain()
+                ?: throw Exception("Vehículo no encontrado")
+
+            if (checkAvailability) {
+                // Check vehicle status
+                val status = vehicleStatusRepository.getVehicleStatus(vehicle.id)
+                if (!status.isAvailable()) {
+                    throw Exception(status.getErrorMessage())
+                }
+            }
+
+            return vehicle
+        } catch (e: Exception) {
+            throw Exception("Vehículo no encontrado o no disponible: ${e.message}")
+        }
     }
 
     override suspend fun getVehicles(): List<Vehicle> {

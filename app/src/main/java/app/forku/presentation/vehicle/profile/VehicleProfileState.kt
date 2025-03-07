@@ -15,4 +15,6 @@ data class VehicleProfileState(
     val showQrCode: Boolean = false,
     val activeOperator: User? = null,
     val checkId: String? = null,
+    val canStartCheck: Boolean = false,
+    val navigateToChecklist: Boolean = false
 ) 

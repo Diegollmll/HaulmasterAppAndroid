@@ -133,6 +133,43 @@ class VehicleProfileViewModel @Inject constructor(
         }
     }
 
+    fun startCheckForVehicle(vehicleId: String) {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true) }
+                
+                val canStartCheck = checklistRepository.canStartCheck(vehicleId)
+                if (!canStartCheck) {
+                    _state.update { 
+                        it.copy(
+                            error = "Cannot start check - Vehicle is currently in use",
+                            isLoading = false,
+                            canStartCheck = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        navigateToChecklist = true,
+                        canStartCheck = true,
+                        error = null
+                    )
+                }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = "Error: ${e.message}",
+                        isLoading = false,
+                        canStartCheck = false
+                    )
+                }
+            }
+        }
+    }
+
     suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
         return checklistRepository.getLastPreShiftCheck(vehicleId)
     }
