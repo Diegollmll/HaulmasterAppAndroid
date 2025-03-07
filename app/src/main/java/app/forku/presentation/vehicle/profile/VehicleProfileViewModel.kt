@@ -20,6 +20,7 @@ import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
+import app.forku.domain.repository.user.UserRepository
 
 
 @HiltViewModel
@@ -30,6 +31,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val sessionRepository: SessionRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val checklistRepository: ChecklistRepository,
+    private val userRepository: UserRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleProfileState())
@@ -46,7 +48,8 @@ class VehicleProfileViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = showLoading) }
                 
-                android.util.Log.d("appflow VehicleProfile", "Loading vehicle with ID: $vehicleId")
+                // Get any active session for the user (regardless of vehicle)
+                val currentSession = sessionRepository.getCurrentSession()
                 
                 // Get vehicle details
                 val vehicle = vehicleRepository.getVehicle(vehicleId)
@@ -66,12 +69,18 @@ class VehicleProfileViewModel @Inject constructor(
                 val lastPreShiftCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
                 android.util.Log.d("appflow VehicleProfile", "Last pre-shift check: ${lastPreShiftCheck?.id}")
                 
+                // Fetch operator details if there's an active session
+                val operator = activeSession?.userId?.let { userId ->
+                    userRepository.getUserById(userId)
+                }
+                
                 _state.update { 
                     it.copy(
                         vehicle = vehicle,
                         activeSession = activeSession,
-                        hasActiveSession = activeSession != null,
+                        hasActiveSession = currentSession != null,
                         hasActivePreShiftCheck = lastPreShiftCheck?.status == CheckStatus.IN_PROGRESS.toString(),
+                        activeOperator = operator,
                         isLoading = false,
                         error = null
                     )
@@ -80,7 +89,7 @@ class VehicleProfileViewModel @Inject constructor(
                 android.util.Log.e("appflow VehicleProfile", "Error loading vehicle", e)
                 _state.update {
                     it.copy(
-                        error = e.message ?: "Error desconocido",
+                        error = "Error: ${e.message}",
                         isLoading = false
                     )
                 }

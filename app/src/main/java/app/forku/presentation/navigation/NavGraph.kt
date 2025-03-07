@@ -15,7 +15,7 @@ import app.forku.presentation.dashboard.DashboardScreen
 import app.forku.presentation.checklist.ChecklistScreen
 import app.forku.presentation.vehicle.list.VehicleListScreen
 import app.forku.presentation.vehicle.profile.VehicleProfileScreen
-import app.forku.presentation.vehicle.scanner.QRScannerScreen
+import app.forku.presentation.scanner.QRScannerScreen
 import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import app.forku.presentation.checklist.ChecklistViewModel
 import app.forku.presentation.dashboard.DashboardViewModel

@@ -1,4 +1,4 @@
-package app.forku.presentation.vehicle.scanner
+package app.forku.presentation.scanner
 
 import app.forku.domain.model.vehicle.Vehicle
 

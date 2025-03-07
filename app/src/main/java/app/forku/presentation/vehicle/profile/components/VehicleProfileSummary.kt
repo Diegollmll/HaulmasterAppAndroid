@@ -177,10 +177,8 @@ fun VehicleDetailsSection(
             model = vehicle?.photoModel,
             contentDescription = "Vehicle image",
             modifier = Modifier
-                .size(90.dp)
-                .clip(CircleShape)
-                .background(Color.LightGray),
-            contentScale = ContentScale.Crop
+                .size(136.dp),
+            contentScale = ContentScale.Fit
         )
 
         Divider(
@@ -230,9 +228,10 @@ fun VehicleDetailsSection(
                             fontSize = 12.sp
                         )
                     }
-                    
-                    Spacer(modifier = Modifier.width(3.dp))
 
+                    Spacer(modifier = Modifier.width(3.dp))
+                }
+                Row {
                     Column {
                         Text(
                             text = getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
@@ -244,7 +243,7 @@ fun VehicleDetailsSection(
                 }
 
                 Text(
-                    text = "Last Checked: ${ formatDateTime(lastCheck?.value?.lastCheckDateTime ?: "No checks found.")} ",
+                    text = "${ formatDateTime(lastCheck?.value?.lastCheckDateTime ?: "No checks found.")} ",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )

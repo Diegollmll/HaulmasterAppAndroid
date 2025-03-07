@@ -73,7 +73,7 @@ fun VehicleProfileScreen(
                 },
                 actions = {
 
-                    if (state.vehicle != null && state.vehicle?.status != VehicleStatus.IN_USE) { //&& !state.hasActiveSession && !state.hasActivePreShiftCheck) {
+                    if (state.vehicle != null && state.vehicle?.status != VehicleStatus.IN_USE && !state.hasActiveSession) {
                         Box {
                             IconButton(
                                 onClick = { showMenu = true }

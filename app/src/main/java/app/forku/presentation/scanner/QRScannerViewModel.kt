@@ -1,5 +1,6 @@
-package app.forku.presentation.vehicle.scanner
+package app.forku.presentation.scanner
 
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.vehicle.Vehicle
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+
 @HiltViewModel
 class QRScannerViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
@@ -21,6 +23,14 @@ class QRScannerViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(QRScannerState())
     val state = _state.asStateFlow()
+
+    private var cameraProvider: ProcessCameraProvider? = null
+    
+    override fun onCleared() {
+        super.onCleared()
+        cameraProvider?.unbindAll()
+        cameraProvider = null
+    }
 
     fun onQrScanned(code: String) {
         viewModelScope.launch {
@@ -55,4 +65,4 @@ class QRScannerViewModel @Inject constructor(
             }
         }
     }
-    }
+}

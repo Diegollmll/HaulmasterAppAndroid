@@ -21,33 +21,33 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 interface Sub7Api {
+
+    // Users
     @GET("users")
     suspend fun getUsers(): Response<List<UserDto>>
 
     @GET("users/{id}")
     suspend fun getUser(@Path("id") id: String): Response<UserDto>
 
-    @GET("users/me")
-    suspend fun getCurrentUser(): Response<UserDto>
-
     @POST("users")
     suspend fun login(@Body request: LoginRequestDto): Response<UserDto>
 
-    @POST("users/refresh-token")
-    suspend fun refreshToken(@Body request: RefreshTokenRequestDto): Response<LoginResponseDto>
 
-    //@GET("vehicles/qr/{code}")
-    //suspend fun getVehicleByQr(@Path("code") code: String): Response<VehicleDto>
+    // Vehicles
+    @GET("vehicles")
+    suspend fun getVehicles(): Response<List<VehicleDto>>
 
     @GET("vehicles/{id}")
     suspend fun getVehicle(@Path("id") id: String): Response<VehicleDto>
 
-    @GET("checklist_questionary")
-    suspend fun getChecklistQuestionary(): Response<ChecklistResponseDto>
+    @PUT("vehicles/{id}")
+    suspend fun updateVehicle(
+        @Path("id") id: String,
+        @Body vehicle: VehicleDto
+    ): Response<VehicleDto>
 
-    @GET("vehicles")
-    suspend fun getVehicles(): Response<List<VehicleDto>>
 
+    // Incidents
     @POST("incidents")
     suspend fun reportIncident(@Body incident: IncidentDto): Response<IncidentDto>
 
@@ -57,11 +57,10 @@ interface Sub7Api {
     @GET("incidents/{id}")
     suspend fun getIncidentById(@Path("id") id: String): Response<IncidentDto>
 
-    @PUT("vehicles/{id}")
-    suspend fun updateVehicle(
-        @Path("id") id: String,
-        @Body vehicle: VehicleDto
-    ): Response<VehicleDto>
+
+    //PreShiftCheck Questionary
+    @GET("checklist_questionary")
+    suspend fun getChecklistQuestionary(): Response<ChecklistResponseDto>
 
     // Global checks endpoints
     @GET("checks")
