@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +89,7 @@ private fun IncidentHistoryItem(incident: IncidentItem) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = incident.date,
+                    text = getRelativeTimeSpanString(incident.date),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

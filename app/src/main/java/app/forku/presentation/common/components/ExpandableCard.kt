@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun ExpandableCard(
@@ -42,8 +44,13 @@ fun ExpandableCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded },
-        color = MaterialTheme.colorScheme.surface
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { 
+                expanded = !expanded 
+            },
+        color = Color.Transparent
     ) {
         Column {
             Row(

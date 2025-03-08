@@ -25,6 +25,7 @@ import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.presentation.common.utils.formatDateTime
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 
 @Composable
@@ -161,15 +162,15 @@ private fun SessionContent(
                     ) {
 
                         Text(
-                            text = "Check: ${lastCheck.lastCheckDateTime?.let { formatDateTime(it) }}",
+                            text = "Check: ${lastCheck.lastCheckDateTime?.let { getRelativeTimeSpanString(it) }}",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 9.sp
+                                fontSize = 11.sp
                             )
                         )
                         Text(
                             text = lastCheck.status,
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 8.sp
+                                fontSize = 10.sp
                             )
                         )
 

@@ -18,7 +18,8 @@ import app.forku.presentation.navigation.Screen
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import android.view.View
-import android.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import app.forku.presentation.common.theme.BackgroundGray
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -28,9 +29,10 @@ class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        window.statusBarColor = Color.BLACK
+        window.statusBarColor = BackgroundGray.toArgb()
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
         super.onCreate(savedInstanceState)
         setContent {

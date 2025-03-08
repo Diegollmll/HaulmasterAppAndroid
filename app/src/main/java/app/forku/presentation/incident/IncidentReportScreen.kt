@@ -20,7 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
+
 
 
 @Composable
@@ -102,13 +104,11 @@ fun IncidentReportScreen(
         onPermissionsDenied = { viewModel.onLocationPermissionDenied() }
     )
 
-    Scaffold(
-        topBar = {
-            IncidentTopBar(
-                incidentType = state.type,
-                onNavigateBack = onNavigateBack
-            )
-        }
+    BaseScreen(
+        navController = navController,
+        viewModel = viewModel,
+        showBottomBar = false,
+        topBarTitle = "$incidentType Incident"
     ) { padding ->
         Column(
             modifier = Modifier

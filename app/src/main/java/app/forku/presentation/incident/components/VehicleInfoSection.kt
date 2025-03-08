@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.ui.Alignment
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.incident.IncidentType
+import app.forku.presentation.common.utils.getRelativeTimeSpanFromDateTime
 
 @Composable
 fun VehicleInfoSection(
@@ -60,9 +61,8 @@ fun VehicleInfoSection(
         )
 
         // Last Preshift Check Date/Time
-        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
         OutlinedTextField(
-            value = state.lastPreshiftCheck?.format(formatter) ?: "No preshift check recorded",
+            value = state.lastPreshiftCheck?.let { getRelativeTimeSpanFromDateTime(it) } ?: "No preshift check recorded",
             onValueChange = { /* Read-only */ },
             label = { Text("Last Preshift Check") },
             enabled = false,

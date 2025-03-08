@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.checklist.getPreShiftStatusColor
 import app.forku.domain.model.checklist.getPreShiftStatusText
 import app.forku.presentation.common.utils.formatDateTime
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 
 @Composable
@@ -243,7 +244,9 @@ fun VehicleDetailsSection(
                 }
 
                 Text(
-                    text = "${ formatDateTime(lastCheck?.value?.lastCheckDateTime ?: "No checks found.")} ",
+                    text = lastCheck?.value?.lastCheckDateTime?.let { 
+                        getRelativeTimeSpanString(it) 
+                    } ?: "No checks found.",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
