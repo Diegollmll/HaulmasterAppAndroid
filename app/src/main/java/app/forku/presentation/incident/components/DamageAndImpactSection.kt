@@ -30,7 +30,7 @@ fun DamageAndImpactSection(
         var expanded by remember { mutableStateOf(false) }
         val currentDamage = when (val fields = state.typeSpecificFields) {
             is IncidentTypeFields.CollisionFields -> fields.damageOccurrence?.name
-            is IncidentTypeFields.VehicleFailureFields -> fields.damageOccurrence?.name
+            is IncidentTypeFields.VehicleFailFields -> fields.damageOccurrence?.name
             else -> null
         }?.replace("_", " ")
 
@@ -61,7 +61,7 @@ fun DamageAndImpactSection(
                             val newFields = when (val fields = state.typeSpecificFields) {
                                 is IncidentTypeFields.CollisionFields ->
                                     fields.copy(damageOccurrence = damage)
-                                is IncidentTypeFields.VehicleFailureFields ->
+                                is IncidentTypeFields.VehicleFailFields ->
                                     fields.copy(damageOccurrence = damage)
                                 else -> fields
                             }
@@ -86,7 +86,7 @@ fun DamageAndImpactSection(
             val isChecked = when (val fields = state.typeSpecificFields) {
                 is IncidentTypeFields.CollisionFields ->
                     impact.name in fields.environmentalImpact.split(",").filter { it.isNotEmpty() }
-                is IncidentTypeFields.VehicleFailureFields ->
+                is IncidentTypeFields.VehicleFailFields ->
                     impact.name in fields.environmentalImpact.split(",").filter { it.isNotEmpty() }
                 else -> false
             }
@@ -112,7 +112,7 @@ fun DamageAndImpactSection(
                                 
                                 fields.copy(environmentalImpact = currentImpacts.joinToString(","))
                             }
-                            is IncidentTypeFields.VehicleFailureFields -> {
+                            is IncidentTypeFields.VehicleFailFields -> {
                                 val currentImpacts = fields.environmentalImpact
                                     .split(",")
                                     .filter { it.isNotEmpty() }

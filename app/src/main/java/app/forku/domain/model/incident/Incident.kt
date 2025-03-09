@@ -16,8 +16,8 @@ data class Incident(
     val vehicleType: VehicleType?,
     val vehicleName: String,
     // Nuevos campos consolidados de carga
-    val isLoadCarried: Boolean = false,        // ADDED: Movido desde VehicleFailureFields
-    val loadBeingCarried: String = "",         // ADDED: Campo para detalles de la carga
+    val isLoadCarried: Boolean = false,
+    val loadBeingCarried: String = "",
     val loadWeight: LoadWeight? = null, 
 
     val sessionId: String? = null,

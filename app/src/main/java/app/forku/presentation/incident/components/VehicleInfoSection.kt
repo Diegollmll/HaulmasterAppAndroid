@@ -14,6 +14,7 @@ import app.forku.presentation.common.components.CustomOutlinedTextField
 import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.common.utils.getRelativeTimeSpanFromDateTime
 
+
 @Composable
 fun VehicleInfoSection(
     state: IncidentReportState,
@@ -23,9 +24,27 @@ fun VehicleInfoSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
+        // Always show vehicle selector, but with selected vehicle if exists
+        VehicleSelector(
+            vehicles = state.availableVehicles,
+            selectedVehicleId = state.vehicleId,
+            onVehicleSelected = { vehicle ->
+                onValueChange(state.copy(
+                    vehicleId = vehicle.id,
+                    vehicleType = vehicle.type,
+                    vehicleName = vehicle.codename
+                ))
+                // The ViewModel will handle loading the preshift check
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+        
+        FormFieldDivider()
 
         // Vehicle Type (Auto-filled)
-        if(false) {
+        if(true) {
             CustomOutlinedTextField(
                 value = state.vehicleType?.name?.replace("_", " ") ?: "",
                 onValueChange = { /* Read-only */ },
@@ -52,7 +71,7 @@ fun VehicleInfoSection(
 
         FormFieldDivider()
 
-        if(false) {
+        if(true) {
             // Vehicle ID (Auto-filled)
             CustomOutlinedTextField(
                 value = state.vehicleId ?: "",

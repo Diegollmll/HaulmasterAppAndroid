@@ -20,6 +20,7 @@ import app.forku.domain.repository.user.AuthRepository
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
+import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -27,7 +28,11 @@ import app.forku.domain.repository.checklist.ChecklistRepository
 
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
-
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 
 @HiltViewModel
 class IncidentReportViewModel @Inject constructor(
@@ -56,10 +61,27 @@ class IncidentReportViewModel @Inject constructor(
     private val _navigateToDashboard = MutableStateFlow(false)
     val navigateToDashboard = _navigateToDashboard.asStateFlow()
 
+    private var isSubmitting = false
+
+    private var needsSync = false
+    private var searchJob: Job? = null
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
+
+    private var hasLoadedChecks = false
+
     init {
-        loadCurrentSession()
+        loadInitialData()
         checkLocationPermission()
         observeLocationUpdates()
+        
+        // Add observer for vehicleId changes
+        viewModelScope.launch {
+            _state.collect { state ->
+                state.vehicleId?.let { vehicleId ->
+                    loadVehiclePreShiftCheck(vehicleId)
+                }
+            }
+        }
     }
 
     private fun observeLocationUpdates() {
@@ -87,40 +109,32 @@ class IncidentReportViewModel @Inject constructor(
         }
     }
 
-    private fun loadCurrentSession() {
+    private fun loadInitialData() {
         viewModelScope.launch {
             try {
+                // Load available vehicles first
+                val vehicles = vehicleRepository.getVehicles()
+                _state.update { it.copy(availableVehicles = vehicles) }
+
+                // Then try to get current session
                 val session = sessionRepository.getCurrentSession()
                 val currentUser = authRepository.getCurrentUser()
-                
-                _state.update { 
-                    it.copy(
-                        vehicleId = session?.vehicleId,
-                        sessionId = session?.id,
-                        operatorId = currentUser?.id
-                    )
-                }
                 
                 session?.vehicleId?.let { vehicleId ->
                     try {
                         val vehicle = vehicleRepository.getVehicle(vehicleId)
-                        // Get the last preshift check from repository
                         val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
-                        
-                        // Convert string date to LocalDateTime
-                        val lastCheckDate = lastCheck?.lastCheckDateTime?.let { dateString ->
-                            try {
-                                LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }
                         
                         _state.update { currentState ->
                             currentState.copy(
+                                vehicleId = vehicle.id,
                                 vehicleType = vehicle.type,
                                 vehicleName = vehicle.codename,
-                                lastPreshiftCheck = lastCheckDate,
+                                sessionId = session.id,
+                                operatorId = currentUser?.id,
+                                lastPreshiftCheck = lastCheck?.lastCheckDateTime?.let { dateString ->
+                                    LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
+                                },
                                 preshiftCheckStatus = lastCheck?.status.toString()
                             )
                         }
@@ -129,7 +143,32 @@ class IncidentReportViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _state.update { it.copy(error = "Failed to load session") }
+                _state.update { it.copy(error = "Failed to load initial data") }
+            }
+        }
+    }
+
+    private fun loadVehiclePreShiftCheck(vehicleId: String) {
+        if (hasLoadedChecks) return
+        
+        viewModelScope.launch {
+            try {
+                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                _state.update { currentState -> 
+                    currentState.copy(
+                        lastPreshiftCheck = lastCheck?.lastCheckDateTime?.let { dateString ->
+                            try {
+                                LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
+                            } catch (e: Exception) {
+                                null
+                            }
+                        },
+                        preshiftCheckStatus = lastCheck?.status ?: "No preshift check recorded"
+                    )
+                }
+                hasLoadedChecks = true
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Failed to load preshift check") }
             }
         }
     }
@@ -151,67 +190,78 @@ class IncidentReportViewModel @Inject constructor(
         _state.update { it.copy(description = description) }
     }
 
-    fun onSubmit() {
+    fun submitIncident() {
+        if (isSubmitting) return
+        
         viewModelScope.launch {
-            when (val validationResult = state.value.validate()) {
-                is ValidationResult.Success -> {
-                    _state.update { it.copy(isLoading = true) }
-                    
-                    try {
-                        val result = reportIncidentUseCase(
-                            type = state.value.type ?: throw IllegalStateException("Incident type is required"),
-                            date = state.value.date,
-                            location = state.value.location,
-                            locationDetails = state.value.locationDetails,
-                            weather = state.value.weather,
-                            description = state.value.description,
-                            incidentTime = state.value.incidentTime,
-                            severityLevel = state.value.severityLevel,
-                            preshiftCheckStatus = state.value.preshiftCheckStatus,
-                            typeSpecificFields = state.value.typeSpecificFields,
-                            sessionId = state.value.sessionId,
-                            operatorId = state.value.operatorId,
-                            othersInvolved = state.value.othersInvolved,
-                            injuries = state.value.injuries,
-                            injuryLocations = state.value.injuryLocations,
-                            vehicleId = state.value.vehicleId,
-                            vehicleType = state.value.vehicleType,
-                            vehicleName = state.value.vehicleName,
-                            isLoadCarried = state.value.isLoadCarried,
-                            loadBeingCarried = state.value.loadBeingCarried,
-                            loadWeight = state.value.loadWeight,
-                            photos = state.value.photos,
-                            locationCoordinates = state.value.locationCoordinates
-                        )
+            try {
+                isSubmitting = true
+                
+                when (val validationResult = state.value.validate()) {
+                    is ValidationResult.Success -> {
+                        _state.update { it.copy(isLoading = true) }
+                        
+                        try {
+                            val result = reportIncidentUseCase(
+                                type = state.value.type ?: throw IllegalStateException("Incident type is required"),
+                                date = state.value.date,
+                                location = state.value.location,
+                                locationDetails = state.value.locationDetails,
+                                weather = state.value.weather,
+                                description = state.value.description,
+                                incidentTime = state.value.incidentTime,
+                                severityLevel = state.value.severityLevel,
+                                preshiftCheckStatus = state.value.preshiftCheckStatus,
+                                typeSpecificFields = state.value.typeSpecificFields,
+                                sessionId = state.value.sessionId,
+                                operatorId = state.value.operatorId,
+                                othersInvolved = state.value.othersInvolved,
+                                injuries = state.value.injuries,
+                                injuryLocations = state.value.injuryLocations,
+                                vehicleId = state.value.vehicleId,
+                                vehicleType = state.value.vehicleType,
+                                vehicleName = state.value.vehicleName,
+                                isLoadCarried = state.value.isLoadCarried,
+                                loadBeingCarried = state.value.loadBeingCarried,
+                                loadWeight = state.value.loadWeight,
+                                photos = state.value.photos,
+                                locationCoordinates = state.value.locationCoordinates
+                            )
 
-                        result.onSuccess {
+                            result.onSuccess {
+                                _state.update { it.copy(
+                                    isLoading = false,
+                                    showSuccessDialog = true
+                                ) }
+                                _navigateToDashboard.value = true
+                            }.onFailure { error ->
+                                _state.update { it.copy(
+                                    isLoading = false,
+                                    error = error.message ?: "Failed to submit incident report"
+                                ) }
+                            }
+                        } catch (e: Exception) {
                             _state.update { it.copy(
                                 isLoading = false,
-                                showSuccessDialog = true
-                            ) }
-                            _navigateToDashboard.value = true
-                        }.onFailure { error ->
-                            _state.update { it.copy(
-                                isLoading = false,
-                                error = error.message ?: "Failed to submit incident report"
+                                error = e.message ?: "Failed to submit incident report"
                             ) }
                         }
-                    } catch (e: Exception) {
-                        _state.update { it.copy(
-                            isLoading = false,
-                            error = e.message ?: "Failed to submit incident report"
-                        ) }
+                    }
+                    is ValidationResult.Error -> {
+                        _state.update { it.copy(error = validationResult.message) }
                     }
                 }
-                is ValidationResult.Error -> {
-                    _state.update { it.copy(error = validationResult.message) }
-                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Failed to submit incident") }
+            } finally {
+                isSubmitting = false
             }
         }
     }
 
     fun resetForm() {
-        _state.value = IncidentReportState()
+        hasLoadedChecks = false
+        _state.update { IncidentReportState() }
     }
 
     fun dismissSuccessDialog() {
@@ -219,7 +269,16 @@ class IncidentReportViewModel @Inject constructor(
     }
 
     fun updateState(newState: IncidentReportState) {
-        _state.value = newState
+        // If vehicle changed, trigger vehicle selection logic
+        if (newState.vehicleId != state.value.vehicleId) {
+            newState.vehicleId?.let { vehicleId ->
+                state.value.availableVehicles.find { it.id == vehicleId }?.let { vehicle ->
+                    onVehicleSelected(vehicle)
+                    return
+                }
+            }
+        }
+        _state.update { newState }
     }
 
     fun onLocationPermissionGranted() {
@@ -281,6 +340,80 @@ class IncidentReportViewModel @Inject constructor(
 
     fun resetNavigation() {
         _navigateToDashboard.value = false
+    }
+
+    fun updateField(fieldName: String, value: String) {
+        _state.update { currentState ->
+            when (fieldName) {
+                "location" -> currentState.copy(location = value)
+                "locationDetails" -> currentState.copy(locationDetails = value)
+                "weather" -> currentState.copy(weather = value)
+                "injuries" -> currentState.copy(injuries = value)
+                "vehicleName" -> currentState.copy(vehicleName = value)
+                "loadBeingCarried" -> currentState.copy(loadBeingCarried = value)
+                "description" -> currentState.copy(description = value)
+                else -> currentState
+            }
+        }
+        
+        // Instead of immediate API call, just mark as needing sync
+        needsSync = true
+        
+        // Debounce the actual API call
+        debouncedSync()
+    }
+
+    private fun debouncedSync() {
+        searchJob?.cancel()
+        searchJob = coroutineScope.launch {
+            delay(2000) // Increased debounce time to 2 seconds
+            if (needsSync && shouldMakeApiCall()) {
+                fetchUpdatedData()
+                needsSync = false
+            }
+        }
+    }
+
+    private fun shouldMakeApiCall(): Boolean {
+        val currentState = state.value
+        return when (currentState.validate()) {
+            is ValidationResult.Success -> !currentState.isLoading && currentState.type != null
+            is ValidationResult.Error -> false
+        }
+    }
+
+    private fun fetchUpdatedData() {
+        viewModelScope.launch {
+            try {
+                // Your API call implementation
+            } catch (e: Exception) {
+                // Error handling
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        searchJob?.cancel()
+        coroutineScope.cancel()
+    }
+
+    fun onVehicleSelected(vehicle: Vehicle) {
+        hasLoadedChecks = false  // Reset flag when new vehicle is selected
+        viewModelScope.launch {
+            try {
+                _state.update { currentState ->
+                    currentState.copy(
+                        vehicleId = vehicle.id,
+                        vehicleType = vehicle.type,
+                        vehicleName = vehicle.codename
+                    )
+                }
+                loadVehiclePreShiftCheck(vehicle.id)
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Failed to load vehicle details") }
+            }
+        }
     }
 
 } 

@@ -3,13 +3,13 @@ package app.forku.presentation.incident.components
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import app.forku.domain.model.incident.VehicleFailureType
+import app.forku.domain.model.incident.VehicleFailType
 import app.forku.presentation.common.components.CustomOutlinedTextField
 
 @Composable
-fun VehicleFailureTypeDropdown(
-    selected: VehicleFailureType?,
-    onSelected: (VehicleFailureType) -> Unit,
+fun VehicleFailTypeDropdown(
+    selected: VehicleFailType?,
+    onSelected: (VehicleFailType) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -32,7 +32,7 @@ fun VehicleFailureTypeDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            VehicleFailureType.values().forEach { type ->
+            VehicleFailType.values().forEach { type ->
                 DropdownMenuItem(
                     text = { Text(type.name.replace("_", " ")) },
                     onClick = {

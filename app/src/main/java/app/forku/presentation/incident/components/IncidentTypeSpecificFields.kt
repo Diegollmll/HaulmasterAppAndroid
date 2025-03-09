@@ -4,7 +4,6 @@ package app.forku.presentation.incident.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -104,11 +103,11 @@ fun VehicleFailSpecificField(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        VehicleFailureTypeDropdown(
-            selected = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)?.failureType,
+        VehicleFailTypeDropdown(
+            selected = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailFields)?.failureType,
             onSelected = { selectedType ->
-                val currentFields = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)
-                    ?: IncidentTypeFields.VehicleFailureFields(
+                val currentFields = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailFields)
+                    ?: IncidentTypeFields.VehicleFailFields(
                         failureType = selectedType,
                         systemAffected = "",
                         maintenanceHistory = "",

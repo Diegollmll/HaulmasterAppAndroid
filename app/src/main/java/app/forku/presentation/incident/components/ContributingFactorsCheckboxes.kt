@@ -39,7 +39,7 @@ fun ContributingFactorsCheckboxes(
                     factor in fields.contributingFactors
                 is IncidentTypeFields.NearMissFields ->
                     factor in fields.contributingFactors
-                is IncidentTypeFields.VehicleFailureFields ->
+                is IncidentTypeFields.VehicleFailFields ->
                     factor in fields.contributingFactors
                 else -> false
             }
@@ -70,7 +70,7 @@ fun ContributingFactorsCheckboxes(
                                 }
                                 fields.copy(contributingFactors = newFactors)
                             }
-                            is IncidentTypeFields.VehicleFailureFields -> {
+                            is IncidentTypeFields.VehicleFailFields -> {
                                 val newFactors = if (checked) {
                                     fields.contributingFactors + (factor as VehicleFailContributingFactor)
                                 } else {

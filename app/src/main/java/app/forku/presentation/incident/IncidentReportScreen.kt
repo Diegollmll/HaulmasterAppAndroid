@@ -129,22 +129,13 @@ fun IncidentReportScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            ForkuButton(
-                onClick = { viewModel.onSubmit() },
+            SubmitButton(
+                onClick = { viewModel.submitIncident() },
+                enabled = !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                enabled = !state.isLoading
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Submit")
-                }
-            }
+                    .padding(16.dp)
+            )
         }
     }
 
@@ -178,6 +169,29 @@ fun IncidentReportScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun SubmitButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    var lastClickTime by remember { mutableStateOf(0L) }
+    
+    ForkuButton(
+        onClick = {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastClickTime > 1000) { // 1 second debounce
+                lastClickTime = currentTime
+                onClick()
+            }
+        },
+        enabled = enabled,
+        modifier = modifier
+    ) {
+        Text("Submit Report")
     }
 }
 

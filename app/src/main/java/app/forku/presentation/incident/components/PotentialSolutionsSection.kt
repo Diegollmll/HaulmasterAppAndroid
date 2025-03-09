@@ -47,7 +47,7 @@ fun PotentialSolutionsSection(
                     action in fields.immediateActions
                 is IncidentTypeFields.NearMissFields ->
                     action in fields.immediateActions
-                is IncidentTypeFields.VehicleFailureFields ->
+                is IncidentTypeFields.VehicleFailFields ->
                     action in fields.immediateActions
                 else -> false
             }
@@ -74,7 +74,7 @@ fun PotentialSolutionsSection(
                             }
                             fields.copy(immediateActions = newActions)
                         }
-                        is IncidentTypeFields.VehicleFailureFields -> {
+                        is IncidentTypeFields.VehicleFailFields -> {
                             val newActions = if (checked) {
                                 fields.immediateActions + (action as VehicleFailImmediateAction)
                             } else {
@@ -111,7 +111,7 @@ fun PotentialSolutionsSection(
                     solution in fields.longTermSolutions
                 is IncidentTypeFields.NearMissFields ->
                     solution in fields.longTermSolutions
-                is IncidentTypeFields.VehicleFailureFields ->
+                is IncidentTypeFields.VehicleFailFields ->
                     solution in fields.longTermSolutions
                 else -> false
             }
@@ -138,7 +138,7 @@ fun PotentialSolutionsSection(
                             }
                             fields.copy(longTermSolutions = newSolutions)
                         }
-                        is IncidentTypeFields.VehicleFailureFields -> {
+                        is IncidentTypeFields.VehicleFailFields -> {
                             val newSolutions = if (checked) {
                                 fields.longTermSolutions + (solution as VehicleFailLongTermSolution)
                             } else {

@@ -30,8 +30,8 @@ sealed class IncidentTypeFields {
         val preventiveMeasures: Set<HazardPreventiveMeasure> = emptySet(),
     ) : IncidentTypeFields()
 
-    data class VehicleFailureFields(
-        val failureType: VehicleFailureType?,
+    data class VehicleFailFields(
+        val failureType: VehicleFailType?,
         val systemAffected: String,
         val maintenanceHistory: String,
         val operationalImpact: String,

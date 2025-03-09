@@ -35,11 +35,6 @@ fun IncidentHistoryScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToReport) {
-                        Icon(Icons.Default.Add, "New Report")
-                    }
                 }
             )
         }

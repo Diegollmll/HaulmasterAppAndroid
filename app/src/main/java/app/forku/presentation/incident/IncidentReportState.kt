@@ -10,6 +10,7 @@ import app.forku.domain.model.vehicle.VehicleType
 import java.time.LocalDateTime
 import app.forku.domain.model.incident.IncidentSeverityLevel
 import app.forku.domain.model.incident.LoadWeight
+import app.forku.domain.model.vehicle.Vehicle
 
 
 data class IncidentReportState(
@@ -68,7 +69,11 @@ data class IncidentReportState(
     val locationSettingsException: ResolvableApiException? = null,
     
     // Navigation
-    val navigateToDashboard: Boolean = false
+    val navigateToDashboard: Boolean = false,
+    
+    // Add to IncidentReportState
+    val availableVehicles: List<Vehicle> = emptyList(),
+    val showVehicleSelector: Boolean = false
 )
 
 sealed class ValidationResult {
@@ -81,7 +86,7 @@ fun IncidentReportState.validate(): ValidationResult {
         IncidentType.COLLISION -> validateCollision()
         IncidentType.NEAR_MISS -> validateNearMiss()
         IncidentType.HAZARD -> validateHazard()
-        IncidentType.VEHICLE_FAIL -> validateVehicleFailure()
+        IncidentType.VEHICLE_FAIL -> validateVehicleFail()
         else -> ValidationResult.Error("Invalid incident type")
     }
 }
@@ -112,7 +117,7 @@ fun IncidentReportState.validateHazard(): ValidationResult {
     }
 }
 
-fun IncidentReportState.validateVehicleFailure(): ValidationResult {
+fun IncidentReportState.validateVehicleFail(): ValidationResult {
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
         vehicleId == null -> ValidationResult.Error("Vehicle information is required")

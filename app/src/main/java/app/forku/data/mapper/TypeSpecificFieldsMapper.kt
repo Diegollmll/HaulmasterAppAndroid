@@ -42,8 +42,8 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "preventiveMeasures" to preventiveMeasures.joinToString(",") { it.name }
             )
         )
-        is IncidentTypeFields.VehicleFailureFields -> TypeSpecificFieldsDto(
-            type = "VEHICLE_FAILURE",
+        is IncidentTypeFields.VehicleFailFields -> TypeSpecificFieldsDto(
+            type = "VEHICLE_FAIL",
             data = mapOf(
                 "failureType" to (failureType?.name ?: ""),
                 "systemAffected" to systemAffected,
@@ -123,8 +123,8 @@ fun TypeSpecificFieldsDto.toDomain(type: String): IncidentTypeFields {
                 ?.map { HazardPreventiveMeasure.valueOf(it) }
                 ?.toSet() ?: emptySet()
         )
-        "VEHICLE_FAILURE" -> IncidentTypeFields.VehicleFailureFields(
-            failureType = data["failureType"]?.let { VehicleFailureType.valueOf(it) },
+        "VEHICLE_FAIL" -> IncidentTypeFields.VehicleFailFields(
+            failureType = data["failureType"]?.let { VehicleFailType.valueOf(it) },
             systemAffected = data["systemAffected"] ?: "",
             maintenanceHistory = data["maintenanceHistory"] ?: "",
             operationalImpact = data["operationalImpact"] ?: "",

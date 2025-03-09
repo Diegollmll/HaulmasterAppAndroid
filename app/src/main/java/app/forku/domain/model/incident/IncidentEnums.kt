@@ -189,7 +189,7 @@ enum class HazardPreventiveMeasure {
     OTHER
 }
 
-enum class VehicleFailureType {
+enum class VehicleFailType {
     BRAKE_FAILURE,
     STEERING_ISSUE,
     HYDRAULIC_LEAK,

@@ -209,15 +209,6 @@ fun IncidentFormContent(
             }
         }
 
-        ForkuButton(
-            onClick = onAddPhoto,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            Text("Add Photo")
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
     }
-} 
+}

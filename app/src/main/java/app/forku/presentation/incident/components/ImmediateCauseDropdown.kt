@@ -5,7 +5,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,7 +31,7 @@ fun ImmediateCauseDropdown(
     val currentCause = when (val fields = state.typeSpecificFields) {
         is IncidentTypeFields.CollisionFields -> fields.immediateCause?.name
         is IncidentTypeFields.NearMissFields -> fields.immediateCause?.name
-        is IncidentTypeFields.VehicleFailureFields -> fields.immediateCause?.name
+        is IncidentTypeFields.VehicleFailFields -> fields.immediateCause?.name
         else -> null
     }?.replace("_", " ")
 
@@ -70,7 +69,7 @@ fun ImmediateCauseDropdown(
                                 fields.copy(immediateCause = cause as CollisionImmediateCause)
                             is IncidentTypeFields.NearMissFields ->
                                 fields.copy(immediateCause = cause as NearMissImmediateCause)
-                            is IncidentTypeFields.VehicleFailureFields ->
+                            is IncidentTypeFields.VehicleFailFields ->
                                 fields.copy(immediateCause = cause as VehicleFailImmediateCause)
                             else -> fields
                         }
