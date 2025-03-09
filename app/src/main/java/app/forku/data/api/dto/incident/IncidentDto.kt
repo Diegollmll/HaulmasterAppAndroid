@@ -1,5 +1,6 @@
 package app.forku.data.api.dto.incident
 
+
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,8 +10,6 @@ data class IncidentDto(
     val description: String,
     val timestamp: String,
     val userId: String,
-    val vehicleId: String? = null,
-    val sessionId: String? = null,
     val status: String,
     val photoUrls: List<String>,
     val date: Long,
@@ -20,18 +19,26 @@ data class IncidentDto(
     val incidentTime: String?,
     val severityLevel: String?,
     val preshiftCheckStatus: String,
-    val typeSpecificFields: TypeSpecificFieldsDto?,
+    
+    // Vehicle info with consolidated load fields
+    val vehicleId: String?,
+    val vehicleType: String?,
+    val vehicleName: String,
+    val isLoadCarried: Boolean,
+    val loadBeingCarried: String,
+    val loadWeight: String?,
+    
+    // People involved
     val operatorId: String?,
     val othersInvolved: List<String>,
     val injuries: String,
     val injuryLocations: List<String>,
-    val vehicleType: String?,
-    val vehicleName: String,
-    val locationCoordinates: String?
-)
+    
+    // Type-specific fields
+    val typeSpecificFields: TypeSpecificFieldsDto,
 
-@Serializable
-data class TypeSpecificFieldsDto(
-    val type: String,
-    val data: Map<String, String>
+    // Additional fields
+    val photos: List<String>,
+    val locationCoordinates: String?,
+    val sessionId: String?
 )

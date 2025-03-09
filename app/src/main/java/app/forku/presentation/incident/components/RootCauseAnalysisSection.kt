@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import app.forku.domain.model.incident.IncidentType
+import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.presentation.incident.utils.getProposedSolutionsByType
 
@@ -23,11 +24,6 @@ fun RootCauseAnalysisSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "Root Cause Analysis",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         // Immediate Cause Dropdown
         ImmediateCauseDropdown(
@@ -37,6 +33,8 @@ fun RootCauseAnalysisSection(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
+
+        FormFieldDivider()
 
         // Contributing Factors Checkboxes
         ContributingFactorsCheckboxes(

@@ -12,6 +12,7 @@ import app.forku.domain.model.vehicle.VehicleType
 import app.forku.domain.model.incident.IncidentSeverityLevel
 import app.forku.domain.model.incident.IncidentTypeFields
 import java.time.LocalTime
+import app.forku.domain.model.incident.LoadWeight
 
 class ReportIncidentUseCase @Inject constructor(
     private val incidentRepository: IncidentRepository,
@@ -37,6 +38,9 @@ class ReportIncidentUseCase @Inject constructor(
         vehicleId: String?,
         vehicleType: VehicleType?,
         vehicleName: String,
+        isLoadCarried: Boolean = false,
+        loadBeingCarried: String = "",
+        loadWeight: LoadWeight? = null,
         photos: List<Uri>,
         locationCoordinates: String?
     ): Result<Incident> {
@@ -53,8 +57,7 @@ class ReportIncidentUseCase @Inject constructor(
                 vehicleId = vehicleId,
                 sessionId = sessionId,
                 status = IncidentStatus.REPORTED,
-                photos = photos
-            ).copy(
+                photos = photos,
                 date = date,
                 location = location,
                 locationDetails = locationDetails,
@@ -69,6 +72,9 @@ class ReportIncidentUseCase @Inject constructor(
                 injuryLocations = injuryLocations,
                 vehicleType = vehicleType,
                 vehicleName = vehicleName,
+                isLoadCarried = isLoadCarried,
+                loadBeingCarried = loadBeingCarried,
+                loadWeight = loadWeight,
                 locationCoordinates = locationCoordinates
             )
 

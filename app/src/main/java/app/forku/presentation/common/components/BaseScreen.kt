@@ -89,7 +89,7 @@ fun BaseScreen(
                         ) {
                             Text(
                                 text = topBarTitle,
-                                style = MaterialTheme.typography.headlineMedium
+                                style = MaterialTheme.typography.titleMedium
                             )
                         }
                     }

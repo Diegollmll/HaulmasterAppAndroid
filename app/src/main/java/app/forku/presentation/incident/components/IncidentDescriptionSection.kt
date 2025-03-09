@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import app.forku.presentation.common.components.CustomOutlinedTextField
+import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.incident.IncidentReportState
 import coil.compose.AsyncImage
 import getImmediateActionsByType
@@ -27,10 +29,10 @@ fun IncidentDescriptionSection(
         modifier = modifier.fillMaxWidth()
     ) {
         // Description
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = state.description,
             onValueChange = { onValueChange(state.copy(description = it)) },
-            label = { Text("Narrative Description") },
+            label = "Narrative Description",
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
@@ -38,17 +40,25 @@ fun IncidentDescriptionSection(
             minLines = 4
         )
 
+        FormFieldDivider()
+
         // Photos Section
         Text(
             text = "Photos/Evidence",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         // Photo grid
+        val itemSize = 120.dp
+        val rows = (state.photos.size + 4) / 3 // +1 por el botón de añadir, redondeado hacia arriba
+        val gridHeight = itemSize * rows
+
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
-            modifier = Modifier.height(200.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(gridHeight),
             contentPadding = PaddingValues(8.dp)
         ) {
             items(state.photos) { photoUri ->

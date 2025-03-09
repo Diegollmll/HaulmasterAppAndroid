@@ -16,11 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.presentation.common.components.ExpandableCard
 import app.forku.presentation.common.components.ContentCard
 import androidx.compose.ui.graphics.Color
+import app.forku.presentation.common.components.ForkuButton
 
 @Composable
 fun IncidentFormContent(
@@ -35,15 +37,20 @@ fun IncidentFormContent(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         
         // Basic Incident Details Section (Always visible)
         ExpandableCard(
             title = "Incident Details",
             initiallyExpanded = true,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 16.sp
+            )
         ) {
-            ContentCard(backgroundColor = Color.White) {
+            ContentCard(
+                backgroundColor = Color.White,
+                modifier = Modifier.padding(0.dp)
+            ) {
                 IncidentDetailsSection(state = state, onValueChange = onValueChange)
             }
         }
@@ -51,10 +58,20 @@ fun IncidentFormContent(
         if (state.type == IncidentType.HAZARD) {
             ExpandableCard(
                 title = "Immediate Actions Taken",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
-                    HazardImmediateActionsSection(state = state, onValueChange = onValueChange)
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    HazardImmediateActionsSection(
+                        state = state,
+                        onValueChange = onValueChange,
+                        modifier = Modifier.padding(horizontal = 13.dp)
+                    )
                 }
             }
         }
@@ -63,9 +80,15 @@ fun IncidentFormContent(
             // People Involved Section
             ExpandableCard(
                 title = "People Involved",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
                     PeopleInvolvedSection(state = state, onValueChange = onValueChange)
                 }
             }
@@ -75,9 +98,15 @@ fun IncidentFormContent(
         if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
             ExpandableCard(
                 title = "Vehicle Info",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
                     VehicleInfoSection(state = state, onValueChange = onValueChange)
                 }
             }
@@ -86,9 +115,15 @@ fun IncidentFormContent(
         // Incident Description Section with Photos
         ExpandableCard(
             title = "Incident Description",
-            style = MaterialTheme.typography.titleMedium
+            initiallyExpanded = true,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 16.sp
+            )
         ) {
-            ContentCard(backgroundColor = Color.White) {
+            ContentCard(
+                backgroundColor = Color.White,
+                modifier = Modifier.padding(vertical = 4.dp)
+            ) {
                 IncidentDescriptionSection(
                     state = state,
                     onValueChange = onValueChange,
@@ -100,9 +135,15 @@ fun IncidentFormContent(
         if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
             ExpandableCard(
                 title = "Root Cause Analysis",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
                     RootCauseAnalysisSection(state = state, onValueChange = onValueChange)
                 }
             }
@@ -111,9 +152,15 @@ fun IncidentFormContent(
         if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL)) {
             ExpandableCard(
                 title = "Damage & Impact",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
                     DamageAndImpactSection(state = state, onValueChange = onValueChange)
                 }
             }
@@ -122,9 +169,15 @@ fun IncidentFormContent(
         if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
             ExpandableCard(
                 title = "Potential Solutions",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
                     PotentialSolutionsSection(
                         state = state,
                         onValueChange = onValueChange,
@@ -138,14 +191,33 @@ fun IncidentFormContent(
         if (state.type == IncidentType.HAZARD) {
             ExpandableCard(
                 title = "Preventive Measures",
-                style = MaterialTheme.typography.titleMedium
+                initiallyExpanded = true,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp
+                )
             ) {
-                ContentCard(backgroundColor = Color.White) {
-                    HazardPreventiveMeasuresSection(state = state, onValueChange = onValueChange)
+                ContentCard(
+                    backgroundColor = Color.White,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    HazardPreventiveMeasuresSection(
+                        state = state,
+                        onValueChange = onValueChange,
+                        modifier = Modifier.padding(horizontal = 13.dp)
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        ForkuButton(
+            onClick = onAddPhoto,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Add Photo")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 } 

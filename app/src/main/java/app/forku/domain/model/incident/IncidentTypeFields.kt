@@ -31,17 +31,19 @@ sealed class IncidentTypeFields {
     ) : IncidentTypeFields()
 
     data class VehicleFailureFields(
-        val failureType: VehicleFailureType? = null,
+        val failureType: VehicleFailureType?,
+        val systemAffected: String,
+        val maintenanceHistory: String,
+        val operationalImpact: String,
+        val immediateCause: VehicleFailImmediateCause?,
+        val contributingFactors: Set<VehicleFailContributingFactor>,
+        val immediateActions: Set<VehicleFailImmediateAction>,
+        val longTermSolutions: Set<VehicleFailLongTermSolution>,
+        val damageOccurrence: DamageOccurrence?,
+        val environmentalImpact: String,
+        // Campos de carga
         val isLoadCarried: Boolean = false,
-        val loadWeight: LoadWeight? = null,
-        val systemAffected: String = "",
-        val maintenanceHistory: String = "",
-        val operationalImpact: String = "",
-        val immediateCause: VehicleFailImmediateCause? = null,
-        val contributingFactors: Set<VehicleFailContributingFactor> = emptySet(),
-        val immediateActions: Set<VehicleFailImmediateAction> = emptySet(),
-        val longTermSolutions: Set<VehicleFailLongTermSolution> = emptySet(),
-        val damageOccurrence: DamageOccurrence? = null,
-        val environmentalImpact: String = "",
+        val loadBeingCarried: String = "",
+        val loadWeight: LoadWeight? = null
     ) : IncidentTypeFields()
 }

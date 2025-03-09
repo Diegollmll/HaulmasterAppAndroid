@@ -4,6 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import app.forku.domain.model.incident.VehicleFailureType
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 @Composable
 fun VehicleFailureTypeDropdown(
@@ -18,11 +19,11 @@ fun VehicleFailureTypeDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = selected?.name?.replace("_", " ") ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Type of Failure") },
+            label = "Type of Failure",
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor()
         )

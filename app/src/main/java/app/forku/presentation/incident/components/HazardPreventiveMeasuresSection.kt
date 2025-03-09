@@ -20,11 +20,6 @@ fun HazardPreventiveMeasuresSection(
     if (state.type != IncidentType.HAZARD) return
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Preventive Measures",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         Text(
             text = "Recommended Actions",

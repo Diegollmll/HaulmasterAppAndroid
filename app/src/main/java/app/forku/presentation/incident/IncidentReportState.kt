@@ -9,6 +9,8 @@ import java.time.LocalTime
 import app.forku.domain.model.vehicle.VehicleType
 import java.time.LocalDateTime
 import app.forku.domain.model.incident.IncidentSeverityLevel
+import app.forku.domain.model.incident.LoadWeight
+
 
 data class IncidentReportState(
     // Common fields
@@ -40,8 +42,9 @@ data class IncidentReportState(
     val vehicleId: String? = null,
     val vehicleType: VehicleType? = null,
     val vehicleName: String = "",
+    val isLoadCarried: Boolean = false,
     val loadBeingCarried: String = "",
-    val loadWeight: String = "",
+    val loadWeight: LoadWeight? = null,
     val lastPreshiftCheck: LocalDateTime? = null,
     
     // Incident specific

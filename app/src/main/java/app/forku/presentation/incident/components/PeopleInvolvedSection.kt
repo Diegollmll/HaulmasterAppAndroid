@@ -17,11 +17,6 @@ fun PeopleInvolvedSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "People Involved",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
         
         // Add fields based on incident type
         when (state.type) {

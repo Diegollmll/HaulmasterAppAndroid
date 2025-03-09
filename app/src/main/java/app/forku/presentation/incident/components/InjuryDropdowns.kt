@@ -14,8 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
-
-
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 
 @Composable
@@ -31,13 +30,13 @@ fun InjurySeverityDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = selected.name.replace("_", " "),
             onValueChange = {},
             readOnly = true,
-            label = { Text("Injuries Reported") },
+            label = "Injuries Reported",
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            modifier = Modifier.menuAnchor().fillMaxWidth()
         )
         
         DropdownMenu(
@@ -70,13 +69,13 @@ fun InjuryLocationsDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = if (selected.isEmpty()) "" else selected.joinToString(", ") { it.name.replace("_", " ") },
             onValueChange = {},
             readOnly = true,
-            label = { Text("Injury Locations") },
+            label = "Injury Locations",
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            modifier = Modifier.menuAnchor().fillMaxWidth()
         )
         
         DropdownMenu(

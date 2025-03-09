@@ -16,19 +16,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationSettingsRequest
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.common.api.ResolvableApiException
 import app.forku.domain.repository.user.AuthRepository
 import android.net.Uri
+import app.forku.core.location.LocationManager
+import app.forku.core.location.LocationState
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import app.forku.domain.repository.checklist.ChecklistRepository
+
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 
 
 @HiltViewModel
@@ -39,13 +37,18 @@ class IncidentReportViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authRepository: AuthRepository,
     private val vehicleRepository: VehicleRepository,
-    private val checklistRepository: ChecklistRepository
+    private val checklistRepository: ChecklistRepository,
+    private val locationManager: LocationManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
     val state = _state.asStateFlow()
 
-    private val fusedLocationClient: FusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(context)
+    val locationState = locationManager.locationState.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        LocationState()
+    )
 
     var tempPhotoUri: Uri? = null
         private set
@@ -55,8 +58,27 @@ class IncidentReportViewModel @Inject constructor(
 
     init {
         loadCurrentSession()
-        // Try to get location immediately if permissions are already granted
         checkLocationPermission()
+        observeLocationUpdates()
+    }
+
+    private fun observeLocationUpdates() {
+        viewModelScope.launch {
+            locationState.collect { locationStateValue ->
+                locationStateValue.location?.let { location ->
+                    _state.update { it.copy(
+                        location = location,
+                        locationCoordinates = location
+                    )}
+                }
+                locationStateValue.error?.let { error ->
+                    _state.update { it.copy(error = error) }
+                }
+                if (locationStateValue.latitude != null && locationStateValue.longitude != null) {
+                    fetchWeather(locationStateValue.latitude, locationStateValue.longitude)
+                }
+            }
+        }
     }
 
     private fun checkLocationPermission() {
@@ -155,6 +177,9 @@ class IncidentReportViewModel @Inject constructor(
                             vehicleId = state.value.vehicleId,
                             vehicleType = state.value.vehicleType,
                             vehicleName = state.value.vehicleName,
+                            isLoadCarried = state.value.isLoadCarried,
+                            loadBeingCarried = state.value.loadBeingCarried,
+                            loadWeight = state.value.loadWeight,
                             photos = state.value.photos,
                             locationCoordinates = state.value.locationCoordinates
                         )
@@ -198,111 +223,22 @@ class IncidentReportViewModel @Inject constructor(
     }
 
     fun onLocationPermissionGranted() {
-        viewModelScope.launch {
-            try {
-                val locationRequest = LocationRequest.Builder(10000)
-                    .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                    .setMinUpdateIntervalMillis(5000)
-                    .build()
-
-                val builder = LocationSettingsRequest.Builder()
-                    .addLocationRequest(locationRequest)
-                    .setAlwaysShow(true)
-                    .build()
-
-                val client = LocationServices.getSettingsClient(context)
-                
-                client.checkLocationSettings(builder)
-                    .addOnSuccessListener {
-                        android.util.Log.d("ViewModel", "Location settings satisfied")
-                        requestLocation(locationRequest)
-                    }
-                    .addOnFailureListener { exception ->
-                        android.util.Log.e("ViewModel", "Location settings check failed", exception)
-                        if (exception is ResolvableApiException) {
-                            // Instead of trying to handle resolution here, expose it to the UI
-                            _state.update { it.copy(
-                                locationSettingsException = exception,
-                                error = "Please enable location services"
-                            )}
-                        }
-                    }
-            } catch (e: SecurityException) {
-                android.util.Log.e("ViewModel", "Security exception getting location", e)
-                _state.update { it.copy(error = "Location permission error") }
-            }
-        }
-    }
-
-    private fun requestLocation(locationRequest: LocationRequest) {
-        try {
-            android.util.Log.d("ViewModel", "Requesting location updates")
-            fusedLocationClient.lastLocation
-                .addOnSuccessListener { location ->
-                    if (location != null) {
-                        val coordinates = "${location.latitude}, ${location.longitude}"
-                        android.util.Log.d("ViewModel", "Got last location: $coordinates")
-                        fetchWeather(location.latitude, location.longitude)
-                        _state.update { state ->
-                            state.copy(
-                                location = coordinates,
-                                hasLocationPermission = true
-                            )
-                        }
-                    } else {
-                        android.util.Log.d("ViewModel", "Last location null, requesting updates")
-                        // Last location was null, request updates
-                        fusedLocationClient.requestLocationUpdates(
-                            locationRequest,
-                            object : LocationCallback() {
-                                override fun onLocationResult(locationResult: LocationResult) {
-                                    val latestLocation = locationResult.lastLocation
-                                    if (latestLocation != null) {
-                                        val coordinates = "${latestLocation.latitude}, ${latestLocation.longitude}"
-                                        android.util.Log.d("ViewModel", "New location received: $coordinates")
-                                        _state.update { state ->
-                                            state.copy(
-                                                location = coordinates,
-                                                hasLocationPermission = true
-                                            )
-                                        }
-                                        fusedLocationClient.removeLocationUpdates(this)
-                                        fetchWeather(latestLocation.latitude, latestLocation.longitude)
-                                    }
-                                }
-                            },
-                            null
-                        )
-                    }
-                }
-                .addOnFailureListener { e ->
-                    android.util.Log.e("ViewModel", "Failed to get last location", e)
-                    _state.update { it.copy(error = "Failed to get location") }
-                }
-        } catch (e: SecurityException) {
-            android.util.Log.e("ViewModel", "Security exception in requestLocation", e)
-            _state.update { it.copy(error = "Location permission error") }
-        }
+        locationManager.onLocationPermissionGranted()
     }
 
     fun onLocationPermissionDenied() {
-        _state.update { it.copy(
-            error = "Location permission is required for accurate incident reporting"
-        )}
+        locationManager.onLocationPermissionDenied()
     }
 
     fun onLocationSettingsDenied() {
-        _state.update { it.copy(
-            error = "Location services are required for accurate incident reporting",
-            locationSettingsException = null
-        )}
+        locationManager.onLocationSettingsDenied()
     }
 
     private fun fetchWeather(latitude: Double, longitude: Double) {
         viewModelScope.launch {
             weatherRepository.getWeatherByCoordinates(latitude, longitude)
                 .onSuccess { weather ->
-                    val weatherDescription = "${weather.description}, ${weather.temperature}°C"
+                    val weatherDescription = "${weather.description}, ${weather.temperature}°F"
                     _state.update { it.copy(weather = weatherDescription) }
                 }
                 .onFailure { error ->
@@ -340,9 +276,11 @@ class IncidentReportViewModel @Inject constructor(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+        locationManager.clearError()
     }
 
     fun resetNavigation() {
         _navigateToDashboard.value = false
     }
+
 } 

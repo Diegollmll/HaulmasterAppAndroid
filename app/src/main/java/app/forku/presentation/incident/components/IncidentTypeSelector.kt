@@ -6,6 +6,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.toDisplayText
+import app.forku.presentation.common.components.ForkuButton
 
 @Composable
 fun IncidentTypeSelector(
@@ -23,21 +25,17 @@ fun IncidentTypeSelector(
         )
         
         IncidentTypes.types.forEach { type ->
-            ElevatedButton(
+            ForkuButton(
                 onClick = { 
                     onTypeSelected(type.toString())
                     onDismiss()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                colors = ButtonDefaults.elevatedButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+                    .padding(vertical = 4.dp)
             ) {
                 Text(
-                    text = type.toString(),
+                    text = IncidentType.valueOf(type.toString()).toDisplayText(),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )

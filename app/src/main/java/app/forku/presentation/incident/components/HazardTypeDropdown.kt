@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.HazardType
 import app.forku.domain.model.incident.IncidentTypeFields
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 @Composable
 fun HazardTypeDropdown(
@@ -25,13 +26,13 @@ fun HazardTypeDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = currentType ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Hazard Type") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            label = "Hazard Type",
+            modifier = Modifier.menuAnchor(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
         )
         
         DropdownMenu(

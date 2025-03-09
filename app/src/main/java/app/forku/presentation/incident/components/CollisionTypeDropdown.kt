@@ -1,5 +1,7 @@
 package app.forku.presentation.incident.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -12,9 +14,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.CollisionType
 import app.forku.domain.model.incident.IncidentTypeFields
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 
 @Composable
@@ -35,13 +39,13 @@ fun CollisionTypeDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = currentType ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Collision Type") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            label = "Collision Type",
+            modifier = Modifier.menuAnchor().fillMaxWidth().padding(vertical = 0.dp),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
         )
         
         DropdownMenu(

@@ -5,9 +5,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.InjuryLocation
+import app.forku.presentation.common.components.CustomOutlinedTextField
+import app.forku.presentation.common.components.FormFieldDivider
 
 @Composable
 fun CollisionPeopleFields(
@@ -34,6 +37,8 @@ fun CollisionPeopleFields(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
+
+        FormFieldDivider()
 
         InjuryLocationsDropdown(
             selected = collisionFields.injuryLocations.mapNotNull { 
@@ -71,31 +76,39 @@ fun BasicPeopleFields(
     Column(modifier = modifier.fillMaxWidth()) {
 
         // Reporter field (read-only)
-        OutlinedTextField(
-            value = state.operatorId ?: "Unknown",
-            onValueChange = { },
-            label = { Text("Reported By") },
-            readOnly = true,
-            enabled = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+        if(false){
+            CustomOutlinedTextField(
+                value = state.operatorId ?: "Unknown",
+                onValueChange = { },
+                label = "Reported By",
+                readOnly = true,
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            FormFieldDivider()
 
-        OutlinedTextField(
+        }
+
+
+        CustomOutlinedTextField(
             value = state.othersInvolved.joinToString("\n"),
             onValueChange = { 
                 onValueChange(state.copy(
                     othersInvolved = it.split("\n").filter { line -> line.isNotBlank() }
                 ))
             },
-            label = { Text("Others Involved") },
+            label = "Others Involved",
             minLines = 3,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
         )
+        if (state.type in listOf(IncidentType.COLLISION)) {
+            FormFieldDivider()
+        }
+
     }
 } 

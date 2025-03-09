@@ -23,7 +23,7 @@ fun ContributingFactorsCheckboxes(
         Text(
             text = "Contributing Factors",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         val factors = when (state.type) {

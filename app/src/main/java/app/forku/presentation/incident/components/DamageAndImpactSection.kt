@@ -11,6 +11,8 @@ import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.DamageOccurrence
 import app.forku.domain.model.incident.EnvironmentalImpact
 import app.forku.domain.model.incident.IncidentTypeFields
+import app.forku.presentation.common.components.CustomOutlinedTextField
+import app.forku.presentation.common.components.FormFieldDivider
 
 @Composable
 fun DamageAndImpactSection(
@@ -24,12 +26,6 @@ fun DamageAndImpactSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "Damage & Impact",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
         // Damage Occurrence Dropdown
         var expanded by remember { mutableStateOf(false) }
         val currentDamage = when (val fields = state.typeSpecificFields) {
@@ -43,11 +39,11 @@ fun DamageAndImpactSection(
             onExpandedChange = { expanded = it },
             modifier = Modifier.fillMaxWidth()
         ) {
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = currentDamage ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Damage Occurrence") },
+                label = "Damage Occurrence",
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
                     .menuAnchor()
@@ -77,13 +73,13 @@ fun DamageAndImpactSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        FormFieldDivider()
 
         // Environmental Impact Checkboxes
         Text(
             text = "Environmental Impact",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         EnvironmentalImpact.values().forEach { impact ->

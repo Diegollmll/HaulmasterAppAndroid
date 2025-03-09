@@ -42,38 +42,45 @@ fun ExpandableCard(
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { 
-                expanded = !expanded 
-            },
+        modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent
     ) {
         Column {
-            Row(
+            // Header row - clickable area
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { 
+                        expanded = !expanded 
+                    },
+                color = Color.Transparent
             ) {
-                Text(
-                    text = title,
-                    style = style,
-                    modifier = Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = if (expanded) 
-                        Icons.Default.KeyboardArrowUp 
-                    else 
-                        Icons.Default.ArrowDropDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand"
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 11.dp, vertical = 13.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        style = style,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = if (expanded) 
+                            Icons.Default.KeyboardArrowUp 
+                        else 
+                            Icons.Default.ArrowDropDown,
+                        contentDescription = if (expanded) "Collapse" else "Expand"
+                    )
+                }
             }
             
+            // Content area - not clickable
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically() + fadeIn(),
@@ -82,7 +89,7 @@ fun ExpandableCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = 0.dp)
                 ) {
                     content()
                 }

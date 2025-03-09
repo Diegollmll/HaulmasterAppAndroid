@@ -1,5 +1,6 @@
 package app.forku.presentation.incident.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -18,6 +19,7 @@ import app.forku.domain.model.incident.CollisionImmediateCause
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.NearMissImmediateCause
 import app.forku.domain.model.incident.VehicleFailImmediateCause
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 @Composable
 fun ImmediateCauseDropdown(
@@ -46,13 +48,13 @@ fun ImmediateCauseDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = currentCause ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Immediate Cause") },
+            label = "Immediate Cause",
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            modifier = Modifier.menuAnchor().fillMaxWidth()
         )
         
         DropdownMenu(

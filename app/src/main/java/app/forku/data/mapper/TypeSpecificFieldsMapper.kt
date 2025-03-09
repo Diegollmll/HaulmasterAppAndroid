@@ -4,6 +4,8 @@ import app.forku.data.api.dto.incident.TypeSpecificFieldsDto
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.*
 
+
+
 fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
     return when (this) {
         is IncidentTypeFields.CollisionFields -> TypeSpecificFieldsDto(
@@ -44,8 +46,6 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
             type = "VEHICLE_FAILURE",
             data = mapOf(
                 "failureType" to (failureType?.name ?: ""),
-                "isLoadCarried" to isLoadCarried.toString(),
-                "loadWeight" to (loadWeight?.name ?: ""),
                 "systemAffected" to systemAffected,
                 "maintenanceHistory" to maintenanceHistory,
                 "operationalImpact" to operationalImpact,
@@ -60,7 +60,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
     }
 }
 
-fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
+fun TypeSpecificFieldsDto.toDomain(type: String): IncidentTypeFields {
     return when (type) {
         "COLLISION" -> IncidentTypeFields.CollisionFields(
             collisionType = data["collisionType"]?.let { CollisionType.valueOf(it) },
@@ -125,8 +125,6 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
         )
         "VEHICLE_FAILURE" -> IncidentTypeFields.VehicleFailureFields(
             failureType = data["failureType"]?.let { VehicleFailureType.valueOf(it) },
-            isLoadCarried = data["isLoadCarried"]?.toBoolean() ?: false,
-            loadWeight = data["loadWeight"]?.let { LoadWeight.valueOf(it) },
             systemAffected = data["systemAffected"] ?: "",
             maintenanceHistory = data["maintenanceHistory"] ?: "",
             operationalImpact = data["operationalImpact"] ?: "",
@@ -147,7 +145,10 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
                 ?.map { VehicleFailLongTermSolution.valueOf(it) }
                 ?.toSet() ?: emptySet(),
             damageOccurrence = data["damageOccurrence"]?.let { DamageOccurrence.valueOf(it) },
-            environmentalImpact = data["environmentalImpact"] ?: ""
+            environmentalImpact = data["environmentalImpact"] ?: "",
+            isLoadCarried = isLoadCarried,
+            loadBeingCarried = loadBeingCarried,
+            loadWeight = loadWeight?.let { LoadWeight.valueOf(it) }
         )
         else -> throw IllegalArgumentException("Unknown incident type: $type")
     }

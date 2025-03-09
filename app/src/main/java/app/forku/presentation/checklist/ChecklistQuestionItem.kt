@@ -24,7 +24,7 @@ fun ChecklistQuestionItem(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

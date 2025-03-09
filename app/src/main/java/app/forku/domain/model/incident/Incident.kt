@@ -10,7 +10,16 @@ data class Incident(
     val description: String,
     val timestamp: String,
     val userId: String,
-    val vehicleId: String? = null,
+
+    // Vehicle info
+    val vehicleId: String?,
+    val vehicleType: VehicleType?,
+    val vehicleName: String,
+    // Nuevos campos consolidados de carga
+    val isLoadCarried: Boolean = false,        // ADDED: Movido desde VehicleFailureFields
+    val loadBeingCarried: String = "",         // ADDED: Campo para detalles de la carga
+    val loadWeight: LoadWeight? = null, 
+
     val sessionId: String? = null,
     val status: IncidentStatus = IncidentStatus.REPORTED,
     val photos: List<Uri> = emptyList(),
@@ -28,7 +37,5 @@ data class Incident(
     val othersInvolved: List<String> = emptyList(),
     val injuries: String = "",
     val injuryLocations: List<String> = emptyList(),
-    val vehicleType: VehicleType? = null,
-    val vehicleName: String = "",
     val locationCoordinates: String? = null
 ) 

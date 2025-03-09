@@ -11,6 +11,8 @@ import androidx.compose.ui.unit.dp
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.NearMissType
+import app.forku.presentation.common.components.CustomOutlinedTextField
+import app.forku.presentation.common.components.FormFieldDivider
 
 
 @Composable
@@ -25,17 +27,17 @@ fun CollisionTypeSpecificField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 0.dp)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        FormFieldDivider()
 
         CommonCausesDropdown(
             state = state,
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 0.dp)
         )
     }
 }
@@ -83,14 +85,14 @@ fun HazardTypeSpecificField(
                 .padding(vertical = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        FormFieldDivider()
 
         HazardConsequencesSection(
             state = state,
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(horizontal = 13.dp, vertical = 8.dp)
         )
     }
 }
@@ -106,7 +108,22 @@ fun VehicleFailSpecificField(
             selected = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)?.failureType,
             onSelected = { selectedType ->
                 val currentFields = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)
-                    ?: IncidentTypeFields.VehicleFailureFields()
+                    ?: IncidentTypeFields.VehicleFailureFields(
+                        failureType = selectedType,
+                        systemAffected = "",
+                        maintenanceHistory = "",
+                        operationalImpact = "",
+                        immediateCause = null,
+                        contributingFactors = emptySet(),
+                        immediateActions = emptySet(),
+                        longTermSolutions = emptySet(),
+                        damageOccurrence = null,
+                        environmentalImpact = "",
+                        isLoadCarried = state.isLoadCarried,
+                        loadBeingCarried = state.loadBeingCarried,
+                        loadWeight = state.loadWeight
+                    )
+
                 onValueChange(state.copy(
                     typeSpecificFields = currentFields.copy(failureType = selectedType)
                 ))
@@ -115,49 +132,6 @@ fun VehicleFailSpecificField(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Load Being Carried Switch
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Was Load Being Carried?",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Switch(
-                checked = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)?.isLoadCarried ?: false,
-                onCheckedChange = { checked ->
-                    val currentFields = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)
-                        ?: IncidentTypeFields.VehicleFailureFields()
-                    onValueChange(state.copy(
-                        typeSpecificFields = currentFields.copy(isLoadCarried = checked)
-                    ))
-                }
-            )
-        }
-
-        // Load Weight Dropdown (only visible if load was being carried)
-        if ((state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)?.isLoadCarried == true) {
-            LoadWeightDropdown(
-                selected = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)?.loadWeight,
-                onSelected = { selectedWeight ->
-                    val currentFields = (state.typeSpecificFields as? IncidentTypeFields.VehicleFailureFields)
-                        ?: IncidentTypeFields.VehicleFailureFields()
-                    onValueChange(state.copy(
-                        typeSpecificFields = currentFields.copy(loadWeight = selectedWeight)
-                    ))
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            )
-        }
     }
 }
 
@@ -175,13 +149,13 @@ fun NearMissTypeDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = selected?.name?.replace("_", " ") ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Near Miss Type") },
+            label = "Near Miss Type",
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            modifier = Modifier.menuAnchor().fillMaxWidth()
         )
         
         DropdownMenu(

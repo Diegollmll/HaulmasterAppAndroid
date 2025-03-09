@@ -9,6 +9,8 @@ import app.forku.domain.model.incident.IncidentSeverityLevel
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import android.net.Uri
+import app.forku.data.api.dto.incident.TypeSpecificFieldsDto
+import app.forku.domain.model.incident.LoadWeight
 
 fun Incident.toDto(): IncidentDto {
     return IncidentDto(
@@ -28,14 +30,21 @@ fun Incident.toDto(): IncidentDto {
         incidentTime = incidentTime?.format(DateTimeFormatter.ISO_TIME),
         severityLevel = severityLevel?.name,
         preshiftCheckStatus = preshiftCheckStatus,
-        typeSpecificFields = typeSpecificFields?.toDto(),
+        typeSpecificFields = typeSpecificFields?.toDto() ?: TypeSpecificFieldsDto(
+            type = type.name,
+            data = emptyMap()
+        ),
         operatorId = operatorId,
         othersInvolved = othersInvolved,
         injuries = injuries,
         injuryLocations = injuryLocations,
         vehicleType = vehicleType?.name,
         vehicleName = vehicleName,
-        locationCoordinates = locationCoordinates
+        isLoadCarried = isLoadCarried,
+        loadBeingCarried = loadBeingCarried,
+        loadWeight = loadWeight?.name,
+        locationCoordinates = locationCoordinates,
+        photos = photos.map { it.toString() }
     )
 }
 
@@ -57,13 +66,16 @@ fun IncidentDto.toDomain(): Incident {
         incidentTime = incidentTime?.let { LocalTime.parse(it) },
         severityLevel = severityLevel?.let { IncidentSeverityLevel.valueOf(it) },
         preshiftCheckStatus = preshiftCheckStatus,
-        typeSpecificFields = typeSpecificFields?.toDomain(),
+        typeSpecificFields = typeSpecificFields.toDomain(type),
         operatorId = operatorId,
         othersInvolved = othersInvolved,
         injuries = injuries,
         injuryLocations = injuryLocations,
         vehicleType = vehicleType?.let { VehicleType.valueOf(it) },
         vehicleName = vehicleName,
+        isLoadCarried = isLoadCarried,
+        loadBeingCarried = loadBeingCarried,
+        loadWeight = loadWeight?.let { LoadWeight.valueOf(it) },
         locationCoordinates = locationCoordinates
     )
 } 

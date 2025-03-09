@@ -10,6 +10,8 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.ui.Alignment
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.incident.IncidentType
+import app.forku.presentation.common.components.CustomOutlinedTextField
+import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.common.utils.getRelativeTimeSpanFromDateTime
 
 @Composable
@@ -21,133 +23,121 @@ fun VehicleInfoSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "Vehicle Information",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         // Vehicle Type (Auto-filled)
-        OutlinedTextField(
-            value = state.vehicleType?.name?.replace("_", " ") ?: "",
-            onValueChange = { /* Read-only */ },
-            label = { Text("Vehicle Type") },
-            enabled = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+        if(false) {
+            CustomOutlinedTextField(
+                value = state.vehicleType?.name?.replace("_", " ") ?: "",
+                onValueChange = { /* Read-only */ },
+                label = "Vehicle Type",
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+
+            FormFieldDivider()
+        }
 
         // Vehicle Name (Auto-filled)
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = state.vehicleName,
             onValueChange = { /* Read-only */ },
-            label = { Text("Vehicle Name") },
+            label = "Vehicle Name",
             enabled = false,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
 
-        // Vehicle ID (Auto-filled)
-        OutlinedTextField(
-            value = state.vehicleId ?: "",
-            onValueChange = { /* Read-only */ },
-            label = { Text("Vehicle ID") },
-            enabled = false,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+        FormFieldDivider()
+
+        if(false) {
+            // Vehicle ID (Auto-filled)
+            CustomOutlinedTextField(
+                value = state.vehicleId ?: "",
+                onValueChange = { /* Read-only */ },
+                label = "Vehicle ID",
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+
+            FormFieldDivider()
+        }
 
         // Last Preshift Check Date/Time
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = state.lastPreshiftCheck?.let { getRelativeTimeSpanFromDateTime(it) } ?: "No preshift check recorded",
             onValueChange = { /* Read-only */ },
-            label = { Text("Last Preshift Check") },
+            label = "Last Preshift Check",
             enabled = false,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(top = 8.dp, bottom = 0.dp)
         )
 
         // Preshift Check Status
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             Text(
-                text = "Preshift Check Status:",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f)
-            )
-            val statusCondition = state.preshiftCheckStatus == CheckStatus.COMPLETED_PASS.toString()
-            val statusColor = if (statusCondition) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.error
-            }
-            
-            Text(
-                text = if (statusCondition) "PASSED" else "FAILED",
-                color = statusColor,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(start = 8.dp)
+                text = state.preshiftCheckStatus,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(start = 0.dp, top = 0.dp)
             )
         }
 
-        if (state.type != IncidentType.VEHICLE_FAIL){
-            // Load Being Carried
-            OutlinedTextField(
+        // Load Being Carried Switch
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 13.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Was Load Being Carried?",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Switch(
+                checked = state.isLoadCarried,
+                onCheckedChange = { checked ->
+                    onValueChange(state.copy(isLoadCarried = checked))
+                }
+            )
+        }
+
+        if (state.isLoadCarried) {
+            FormFieldDivider()
+            
+            // Load Being Carried Details
+            CustomOutlinedTextField(
                 value = state.loadBeingCarried,
                 onValueChange = { onValueChange(state.copy(loadBeingCarried = it)) },
-                label = { Text("Load Being Carried") },
+                label = "Load Being Carried",
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             )
 
-            // Load Weight
-            var expanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = it },
-            ) {
-                OutlinedTextField(
-                    value = state.loadWeight,
-                    onValueChange = { },
-                    readOnly = true,
-                    label = { Text("Load Weight") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor()
-                        .padding(vertical = 8.dp)
-                )
+            FormFieldDivider()
 
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    //TODO: consolidate with other already enum
-                    listOf("<1t", "1-3t", "3-5t", ">5t").forEach { weight ->
-                        DropdownMenuItem(
-                            text = { Text(weight) },
-                            onClick = {
-                                onValueChange(state.copy(loadWeight = weight))
-                                expanded = false
-                            }
-                        )
-                    }
-                }
-            }
-
+            // Load Weight Dropdown
+            LoadWeightDropdown(
+                selected = state.loadWeight,
+                onSelected = { selectedWeight ->
+                    onValueChange(state.copy(loadWeight = selectedWeight))
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
         }
-
-
-
-
     }
 } 

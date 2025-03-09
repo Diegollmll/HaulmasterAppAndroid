@@ -1,5 +1,6 @@
 package app.forku.presentation.incident
 
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,7 +14,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.presentation.incident.components.IncidentTopBar
 import app.forku.presentation.incident.components.IncidentFormContent
-import app.forku.presentation.incident.components.LocationHandler
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.setValue
@@ -22,7 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
-
+import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.toDisplayText
+import android.Manifest
+import android.content.pm.PackageManager
+import app.forku.presentation.common.components.ForkuButton
+import app.forku.presentation.common.components.LocationPermissionHandler
 
 
 @Composable
@@ -33,11 +38,12 @@ fun IncidentReportScreen(
     navController: NavController
 ) {
     val state by viewModel.state.collectAsState()
+    val locationState by viewModel.locationState.collectAsState()
     val navigateToDashboard by viewModel.navigateToDashboard.collectAsState()
     val context = LocalContext.current
     
     var showPhotoSourceDialog by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(navigateToDashboard) {
         if (navigateToDashboard) {
             navController.navigate(Screen.Dashboard.route) {
@@ -74,7 +80,7 @@ fun IncidentReportScreen(
             title = { Text("Add Photo") },
             text = { Text("Choose photo source") },
             confirmButton = {
-                TextButton(
+                ForkuButton(
                     onClick = {
                         showPhotoSourceDialog = false
                         galleryLauncher.launch("image/*")
@@ -84,7 +90,7 @@ fun IncidentReportScreen(
                 }
             },
             dismissButton = {
-                TextButton(
+                ForkuButton(
                     onClick = {
                         showPhotoSourceDialog = false
                         viewModel.createTempPhotoUri(context)?.let { uri ->
@@ -98,17 +104,18 @@ fun IncidentReportScreen(
         )
     }
 
-    LocationHandler(
-        locationSettingsException = state.locationSettingsException,
-        onPermissionsGranted = { viewModel.onLocationPermissionGranted() },
-        onPermissionsDenied = { viewModel.onLocationPermissionDenied() }
+    LocationPermissionHandler(
+        locationSettingsException = locationState.locationSettingsException,
+        onPermissionsGranted = viewModel::onLocationPermissionGranted,
+        onPermissionsDenied = viewModel::onLocationPermissionDenied,
+        onLocationSettingsDenied = viewModel::onLocationSettingsDenied
     )
 
     BaseScreen(
         navController = navController,
         viewModel = viewModel,
         showBottomBar = false,
-        topBarTitle = "$incidentType Incident"
+        topBarTitle = "${IncidentType.valueOf(incidentType).toDisplayText()} Incident"
     ) { padding ->
         Column(
             modifier = Modifier
@@ -122,7 +129,7 @@ fun IncidentReportScreen(
                 modifier = Modifier.weight(1f)
             )
 
-            Button(
+            ForkuButton(
                 onClick = { viewModel.onSubmit() },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -148,7 +155,9 @@ fun IncidentReportScreen(
             title = { Text("Success") },
             text = { Text("Incident report submitted successfully") },
             confirmButton = {
-                TextButton(onClick = { viewModel.dismissSuccessDialog() }) {
+                ForkuButton(
+                    onClick = { viewModel.dismissSuccessDialog() }
+                ) {
                     Text("OK")
                 }
             }
@@ -162,7 +171,9 @@ fun IncidentReportScreen(
             title = { Text("Error") },
             text = { Text(error) },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearError() }) {
+                ForkuButton(
+                    onClick = { viewModel.clearError() }
+                ) {
                     Text("OK")
                 }
             }

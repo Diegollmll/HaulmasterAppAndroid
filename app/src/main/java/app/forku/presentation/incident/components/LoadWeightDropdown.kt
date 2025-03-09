@@ -4,6 +4,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import app.forku.domain.model.incident.LoadWeight
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 @Composable
 fun LoadWeightDropdown(
@@ -18,11 +19,11 @@ fun LoadWeightDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = selected?.name?.replace("_", " ")?.replace("T", "t") ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Load Weight") },
+            label = "Load Weight",
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor()
         )

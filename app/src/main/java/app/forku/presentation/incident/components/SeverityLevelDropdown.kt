@@ -1,9 +1,11 @@
 package app.forku.presentation.incident.components
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import app.forku.domain.model.incident.IncidentSeverityLevel
+import app.forku.presentation.common.components.CustomOutlinedTextField
 
 @Composable
 fun SeverityLevelDropdown(
@@ -18,15 +20,15 @@ fun SeverityLevelDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        CustomOutlinedTextField(
             value = selected?.name?.replace("_", " ") ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Incident Severity Level") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor()
+            label = "Severity Level",
+            modifier = Modifier.menuAnchor().fillMaxWidth(),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
         )
-        
+
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }

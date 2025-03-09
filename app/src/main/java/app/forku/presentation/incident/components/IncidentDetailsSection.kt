@@ -9,10 +9,11 @@ import app.forku.presentation.incident.IncidentReportState
 import java.time.LocalTime
 import android.app.TimePickerDialog
 import android.app.DatePickerDialog
-import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.ui.platform.LocalContext
+import app.forku.presentation.common.components.CustomOutlinedTextField
+import app.forku.presentation.common.components.FormFieldDivider
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -59,11 +60,22 @@ fun IncidentDetailsSection(
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    Column(
-        modifier = modifier.fillMaxWidth()
-    ) {
-        // DateTime field
-        OutlinedTextField(
+    Column(modifier = modifier.fillMaxWidth()) {
+        
+        // Location Details field
+        CustomOutlinedTextField(
+            value = state.locationDetails,
+            onValueChange = { onValueChange(state.copy(locationDetails = it)) },
+            label = "Location Details",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 0.dp),
+            minLines = 1
+        )
+
+        FormFieldDivider()
+
+        CustomOutlinedTextField(
             value = buildString {
                 append(dateFormatter.format(Date(state.date)))
                 state.incidentTime?.let { time ->
@@ -72,7 +84,7 @@ fun IncidentDetailsSection(
                 }
             },
             onValueChange = { },
-            label = { Text("Date and Time") },
+            label = "Date and Time",
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = { datePickerDialog.show() }) {
@@ -81,38 +93,40 @@ fun IncidentDetailsSection(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .clickable { datePickerDialog.show() }
+                .padding(horizontal = 0.dp, vertical = 3.dp)
         )
 
-        OutlinedTextField(
-            value = state.location,
-            onValueChange = { onValueChange(state.copy(location = it)) },
-            label = { Text("Location") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+        FormFieldDivider()
 
-        // Add Location Details field
-        OutlinedTextField(
-            value = state.locationDetails,
-            onValueChange = { onValueChange(state.copy(locationDetails = it)) },
-            label = { Text("Location Details") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            minLines = 2
-        )
-        
-        OutlinedTextField(
-            value = state.weather,
-            onValueChange = { onValueChange(state.copy(weather = it)) },
-            label = { Text("Weather Conditions") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+        // Hidden Weather Conditions field - maintains state but not visible
+        if (false) {  // This ensures the composable is never rendered
+            CustomOutlinedTextField(
+                value = state.weather,
+                onValueChange = { },
+                label = "Weather Conditions",
+                readOnly = true,
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 0.dp)
+            )
+            FormFieldDivider()
+        }
+
+        // Hidden Location field - maintains state but not visible
+        if (false) {  // This ensures the composable is never rendered
+            CustomOutlinedTextField(
+                value = state.location,
+                onValueChange = { },
+                label = "Location",
+                readOnly = true,
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 0.dp)
+            )
+            FormFieldDivider()
+        }
 
         // Add Severity Level Dropdown
         SeverityLevelDropdown(
@@ -122,14 +136,14 @@ fun IncidentDetailsSection(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 0.dp)
         )
+
+        FormFieldDivider()
 
         // Type Specific Section with dynamic title
         IncidentSpecificTypeFieldsSelector(state = state, onValueChange = onValueChange)
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-
+        //Spacer(modifier = Modifier.height(16.dp))
     }
 }

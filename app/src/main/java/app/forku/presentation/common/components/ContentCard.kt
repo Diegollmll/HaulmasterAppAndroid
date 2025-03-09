@@ -20,7 +20,7 @@ fun ContentCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(13.dp),
         shape = RoundedCornerShape(16.dp),
         color = backgroundColor,
         tonalElevation = 1.dp
@@ -28,7 +28,7 @@ fun ContentCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(13.dp)
         ) {
             content()
         }

@@ -15,6 +15,7 @@ import app.forku.domain.model.incident.NearMissLongTermSolution
 import app.forku.domain.model.incident.VehicleFailLongTermSolution
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import app.forku.presentation.common.components.FormFieldDivider
 
 
 @Composable
@@ -30,7 +31,7 @@ fun PotentialSolutionsSection(
         Text(
             text = "Immediate Actions Taken",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         val immediateActions = when (state.type) {
@@ -88,13 +89,13 @@ fun PotentialSolutionsSection(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        FormFieldDivider()
 
         // Long-term Solutions
         Text(
             text = "Proposed Long-term Solutions",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         val longTermSolutions = when (state.type) {
