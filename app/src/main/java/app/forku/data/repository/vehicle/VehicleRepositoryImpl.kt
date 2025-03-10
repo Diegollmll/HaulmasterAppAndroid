@@ -1,23 +1,21 @@
 package app.forku.data.repository.vehicle
 
-import app.forku.data.api.Sub7Api
+import app.forku.data.api.GeneralApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
 import app.forku.domain.model.vehicle.Vehicle
-import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import javax.inject.Inject
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
-import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 
 
 class VehicleRepositoryImpl @Inject constructor(
-    private val api: Sub7Api,
+    private val api: GeneralApi,
     private val authDataStore: AuthDataStore,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
     private val vehicleStatusRepository: VehicleStatusRepository

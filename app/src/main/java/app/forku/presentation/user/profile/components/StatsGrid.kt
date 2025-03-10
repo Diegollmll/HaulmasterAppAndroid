@@ -26,12 +26,12 @@ fun StatsGrid(state: ProfileState) {
     ) {
         StatCard(
             title = "Total Time",
-            value = "${state.operator?.totalHours ?: 0} hrs",
+            value = "${state.user?.totalHours ?: 0} hrs",
             modifier = Modifier.weight(1f)
         )
         StatCard(
             title = "Total Travelled",
-            value = "${state.operator?.totalDistance ?: 0}km",
+            value = "${state.user?.totalDistance ?: 0}km",
             modifier = Modifier.weight(1f)
         )
     }
@@ -44,12 +44,12 @@ fun StatsGrid(state: ProfileState) {
     ) {
         StatCard(
             title = "Tasks Completed",
-            value = "${state.operator?.tasksCompleted ?: 0}",
+            value = "${state.user?.tasksCompleted ?: 0}",
             modifier = Modifier.weight(1f)
         )
         StatCard(
             title = "Incidents Reported",
-            value = "${state.operator?.incidentsReported ?: 0}",
+            value = "${state.user?.incidentsReported ?: 0}",
             modifier = Modifier.weight(1f)
         )
     }
@@ -75,7 +75,7 @@ private fun StatCard(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(

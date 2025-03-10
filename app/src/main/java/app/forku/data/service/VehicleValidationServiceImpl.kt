@@ -1,7 +1,6 @@
 package app.forku.data.service
 
-import app.forku.data.api.Sub7Api
-import app.forku.domain.model.checklist.CheckStatus
+import app.forku.data.api.GeneralApi
 import app.forku.domain.model.session.SessionStatus
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
@@ -13,7 +12,7 @@ import app.forku.domain.service.VehicleStatusDeterminer
 import javax.inject.Inject
 
 class VehicleValidationServiceImpl @Inject constructor(
-    private val api: Sub7Api,
+    private val api: GeneralApi,
     private val sessionStatusChecker: SessionStatusChecker,
     private val checklistRepository: ChecklistRepository,
     private val vehicleStatusDeterminer: VehicleStatusDeterminer

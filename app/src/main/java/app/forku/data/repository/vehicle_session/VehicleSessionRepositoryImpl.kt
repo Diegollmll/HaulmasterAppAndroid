@@ -1,9 +1,8 @@
-package app.forku.data.repository.session
+package app.forku.data.repository.vehicle_session
 
-import app.forku.data.api.Sub7Api
+import app.forku.data.api.GeneralApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.api.dto.session.StartSessionRequestDto
-import app.forku.data.api.dto.session.EndSessionRequestDto
 import app.forku.data.mapper.toDomain
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.session.SessionStatus
@@ -12,13 +11,12 @@ import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.session.SessionRepository
-import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import javax.inject.Inject
 
-class SessionRepositoryImpl @Inject constructor(
-    private val api: Sub7Api,
+class VehicleSessionRepositoryImpl @Inject constructor(
+    private val api: GeneralApi,
     private val authDataStore: AuthDataStore,
     private val vehicleStatusRepository: VehicleStatusRepository,
     private val checklistRepository: ChecklistRepository

@@ -1,6 +1,6 @@
 package app.forku.data.repository.vehicle
 
-import app.forku.data.api.Sub7Api
+import app.forku.data.api.GeneralApi
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
 import app.forku.domain.model.vehicle.VehicleStatus
@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 
 class VehicleStatusUpdaterImpl @Inject constructor(
-    private val api: Sub7Api
+    private val api: GeneralApi
 ) : VehicleStatusUpdater {
     override suspend fun updateVehicleStatus(vehicleId: String, status: VehicleStatus): Boolean {
         return try {

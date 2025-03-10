@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import app.forku.data.local.TokenManager
+import app.forku.data.local.TourPreferences
 import app.forku.presentation.user.login.LoginState
 import app.forku.presentation.user.login.LoginViewModel
 import app.forku.presentation.common.components.ErrorScreen
@@ -26,6 +27,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var tokenManager: TokenManager
 
+    @Inject
+    lateinit var tourPreferences: TourPreferences
+
     private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +42,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val loginState by loginViewModel.state.collectAsState()
             val hasToken = tokenManager.getToken() != null
+            val tourCompleted = tourPreferences.hasTourCompleted()
 
             ForkUTheme {
                 when (loginState) {
@@ -52,19 +57,15 @@ class MainActivity : ComponentActivity() {
                     }
                     else -> {
                         NavGraph(
-                            startDestination = if (loginState is LoginState.Success || hasToken) {
-                                Screen.Dashboard.route
-                            } else {
-                                //Screen.Dashboard.route
-                                Screen.Login.route
+                            startDestination = when {
+                                !tourCompleted -> Screen.Tour.route
+                                loginState is LoginState.Success || hasToken -> Screen.Dashboard.route
+                                else -> Screen.Login.route
                             }
                         )
                     }
                 }
             }
-
-
-
         }
     }
 }

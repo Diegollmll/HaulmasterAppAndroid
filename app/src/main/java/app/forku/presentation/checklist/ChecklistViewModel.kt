@@ -9,13 +9,13 @@ import app.forku.domain.model.checklist.RotationRules
 import app.forku.domain.usecase.checklist.GetChecklistUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.usecase.checklist.SubmitChecklistUseCase
-import app.forku.domain.repository.user.AuthRepository
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.user.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +30,7 @@ class ChecklistViewModel @Inject constructor(
     private val getChecklistUseCase: GetChecklistUseCase,
     private val submitChecklistUseCase: SubmitChecklistUseCase,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
-    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val checklistRepository: ChecklistRepository,
     private val sessionRepository: SessionRepository,
     savedStateHandle: SavedStateHandle
@@ -222,7 +222,7 @@ class ChecklistViewModel @Inject constructor(
     }
 
     private suspend fun isUserAuthenticated(): Boolean {
-        return authRepository.getCurrentUser() != null
+        return userRepository.getCurrentUser() != null
     }
 
     fun onBackPressed() {

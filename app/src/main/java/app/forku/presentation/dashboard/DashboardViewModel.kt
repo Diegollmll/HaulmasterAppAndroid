@@ -3,10 +3,10 @@ package app.forku.presentation.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.repository.user.AuthRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckCurrentUserUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
@@ -23,7 +23,7 @@ class DashboardViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
     private val sessionRepository: SessionRepository,
     private val checklistRepository: ChecklistRepository,
-    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val getVehicleUseCase: GetVehicleUseCase,
     private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase
@@ -44,7 +44,7 @@ class DashboardViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
             }
             
-            val currentUser = authRepository.getCurrentUser()
+            val currentUser = userRepository.getCurrentUser()
                 ?: throw Exception("User not authenticated")
 
             // Obtenemos la sesión actual

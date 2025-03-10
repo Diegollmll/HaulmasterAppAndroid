@@ -4,7 +4,7 @@ import app.forku.domain.model.incident.Incident
 import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.session.SessionRepository
-import app.forku.domain.repository.user.AuthRepository
+import app.forku.domain.repository.user.UserRepository
 import javax.inject.Inject
 import android.net.Uri
 import app.forku.domain.model.incident.IncidentStatus
@@ -16,7 +16,7 @@ import app.forku.domain.model.incident.LoadWeight
 
 class ReportIncidentUseCase @Inject constructor(
     private val incidentRepository: IncidentRepository,
-    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository
 ) {
     suspend operator fun invoke(
@@ -44,7 +44,7 @@ class ReportIncidentUseCase @Inject constructor(
         photos: List<Uri>,
         locationCoordinates: String?
     ): Result<Incident> {
-        val currentUser = authRepository.getCurrentUser()
+        val currentUser = userRepository.getCurrentUser()
             ?: return Result.failure(Exception("User not authenticated"))
 
         return try {

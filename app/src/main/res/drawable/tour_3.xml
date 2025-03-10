@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+    
+    <!-- Checklist background -->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M50,40 L150,40 L150,160 L50,160 Z"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+<!--        -->
+<!--    &lt;!&ndash; Checklist lines &ndash;&gt;-->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M70,70 L130,70"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M70,100 L130,100"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M70,130 L130,130"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+<!--        -->
+<!--    &lt;!&ndash; Checkmarks &ndash;&gt;-->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M60,65 L65,75 L75,60"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M60,95 L65,105 L75,90"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+<!--    <path-->
+<!--        android:fillColor="#FFD700"-->
+<!--        android:pathData="M60,125 L65,135 L75,120"-->
+<!--        android:strokeWidth="4"-->
+<!--        android:strokeColor="#FFD700"/>-->
+</vector> 

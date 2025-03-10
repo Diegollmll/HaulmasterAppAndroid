@@ -2,10 +2,9 @@ package app.forku.presentation.user.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.model.user.Operator
 import app.forku.domain.repository.session.SessionRepository
-import app.forku.domain.repository.user.AuthRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
+import app.forku.domain.repository.user.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,10 +12,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository,
     private val vehicleRepository: VehicleRepository
 ) : ViewModel() {
@@ -27,16 +25,40 @@ class ProfileViewModel @Inject constructor(
         loadProfile()
     }
 
+    fun logout() {
+        viewModelScope.launch {
+            try {
+                userRepository.logout()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Error al cerrar sesión: ${e.message}") }
+            }
+        }
+    }
+
     fun refreshProfile() {
         loadProfile()
     }
 
     private fun loadProfile() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true) }
             try {
-                // Force refresh user data from API
-                val currentUser = authRepository.refreshCurrentUser()
+                _state.update { it.copy(isLoading = true, error = null) }
+                
+                // Get current user first
+                val currentUser = userRepository.getCurrentUser() ?: run {
+                    _state.update {
+                        it.copy(
+                            error = "No hay usuario autenticado",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+
+                // Try to refresh user data from API
+                val refreshResult = userRepository.refreshCurrentUser()
+                val updatedUser = refreshResult.getOrNull() ?: currentUser
+
                 val currentSession = sessionRepository.getCurrentSession()
                 val activeVehicle = currentSession?.let {
                     vehicleRepository.getVehicle(it.vehicleId)
@@ -44,29 +66,18 @@ class ProfileViewModel @Inject constructor(
 
                 _state.update {
                     it.copy(
-                        isLoading = false,
-                        user = currentUser,
+                        user = updatedUser,
+                        currentSession = currentSession,
                         activeVehicle = activeVehicle,
-                        operator = currentUser?.let { user ->
-                            Operator(
-                                user = user,
-                                name = user.name,
-                                experienceLevel = "Rookie", // This should come from backend
-                                points = 150,
-                                totalHours = 890.1f,
-                                totalDistance = 13212,
-                                tasksCompleted = 124,
-                                incidentsReported = 5,
-                                lastMedicalCheck = user.lastMedicalCheck
-                            )
-                        }
+                        isLoading = false,
+                        error = null
                     )
                 }
             } catch (e: Exception) {
-                _state.update { 
+                _state.update {
                     it.copy(
-                        isLoading = false,
-                        error = "Failed to load profile"
+                        error = "Error al cargar perfil: ${e.message}",
+                        isLoading = false
                     )
                 }
             }

@@ -61,7 +61,7 @@ fun ProfileScreen(
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = "Operator Profile",
+        topBarTitle = "User Profile",
         content = { padding ->
             Column(
                 modifier = Modifier
@@ -78,7 +78,8 @@ fun ProfileScreen(
                 ) {
                     ProfileHeader(
                         state = state,
-                        navController = navController
+                        navController = navController,
+                        viewModel = viewModel
                     )
                     StatsGrid(state)
                     ProfileSections(
@@ -97,7 +98,8 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHeader(
     state: ProfileState,
-    navController: NavController
+    navController: NavController,
+    viewModel: ProfileViewModel
 ) {
     Box(
         modifier = Modifier
@@ -168,7 +170,7 @@ private fun ProfileHeader(
                             .padding(start = 16.dp)
                     ) {
                         Text(
-                            text = "Operator",
+                            text = state.user?.role?.name ?: "Guest",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
@@ -183,7 +185,7 @@ private fun ProfileHeader(
                             color = Color.Gray
                         )
                         Text(
-                            text = state.operator?.experienceLevel ?: "Rookie",
+                            text = state.user?.experienceLevel ?: "Rookie",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Spacer(modifier = Modifier.height(8.dp))
@@ -199,7 +201,29 @@ private fun ProfileHeader(
                                     color = Color.Gray
                                 )
                                 Text(
-                                    text = "${state.operator?.points ?: 0}pts",
+                                    text = "${state.user?.points ?: 0}pts",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "Hours",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = "${state.user?.totalHours ?: 0}h",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "Distance",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = "${state.user?.totalDistance ?: 0}km",
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
@@ -217,9 +241,32 @@ private fun ProfileHeader(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFFFA726)
                         ),
-                        modifier = Modifier.padding(start = 8.dp).fillMaxWidth()
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .fillMaxWidth()
                     ) {
                         Text("Performance Report")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row {
+                    Button(
+                        onClick = {
+                            viewModel.logout()
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Text("Logout")
                     }
                 }
             }

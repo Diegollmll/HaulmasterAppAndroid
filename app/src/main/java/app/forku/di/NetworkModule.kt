@@ -1,16 +1,15 @@
 package app.forku.di
 
 import app.forku.core.Constants
-import app.forku.data.api.Sub7Api
+import app.forku.data.api.GeneralApi
 import app.forku.data.api.WeatherApi
+import app.forku.data.api.interceptor.AuthInterceptor
 import app.forku.domain.repository.weather.WeatherRepository
 import app.forku.data.repository.weather.WeatherRepositoryImpl
-
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -23,16 +22,18 @@ import java.util.concurrent.TimeUnit
 object NetworkModule {
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 
@@ -48,13 +49,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideSub7Api(okHttpClient: OkHttpClient): Sub7Api {
-        return Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(Sub7Api::class.java)
+    fun provideGeneralApi(retrofit: Retrofit): GeneralApi {
+        return retrofit.create(GeneralApi::class.java)
     }
 
     @Provides

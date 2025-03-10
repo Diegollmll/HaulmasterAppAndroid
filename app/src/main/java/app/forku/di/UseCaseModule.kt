@@ -6,7 +6,6 @@ import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.usecase.vehicle.GetVehiclesUseCase
 import app.forku.domain.usecase.checklist.SubmitChecklistUseCase
 import app.forku.domain.repository.incident.IncidentRepository
-import app.forku.domain.repository.user.AuthRepository
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.incident.ReportIncidentUseCase
 
@@ -16,6 +15,9 @@ import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
+import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
+
+import app.forku.domain.usecase.user.LoginUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -53,10 +55,10 @@ object UseCaseModule {
     @Singleton
     fun provideReportIncidentUseCase(
         repository: IncidentRepository,
-        authRepository: AuthRepository,
+        userRepository: UserRepository,
         sessionRepository: SessionRepository
     ): ReportIncidentUseCase {
-        return ReportIncidentUseCase(repository, authRepository, sessionRepository)
+        return ReportIncidentUseCase(repository, userRepository, sessionRepository)
     }
 
     @Provides
@@ -70,9 +72,9 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideGetLastPreShiftCheckByVehicleUseCase(
-        checklistRepository: ChecklistRepository
+        repository: ChecklistRepository
     ): GetLastPreShiftCheckByVehicleUseCase {
-        return GetLastPreShiftCheckByVehicleUseCase(checklistRepository)
+        return GetLastPreShiftCheckByVehicleUseCase(repository)
     }
 
     @Provides
@@ -82,5 +84,19 @@ object UseCaseModule {
         userRepository: UserRepository
     ): GetVehicleActiveSessionUseCase {
         return GetVehicleActiveSessionUseCase(sessionRepository, userRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideValidateChecklistUseCase(): ValidateChecklistUseCase {
+        return ValidateChecklistUseCase()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginUseCase(
+        userRepository: UserRepository
+    ): LoginUseCase {
+        return LoginUseCase(userRepository)
     }
 } 

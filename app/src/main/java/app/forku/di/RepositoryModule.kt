@@ -1,7 +1,7 @@
 package app.forku.di
 
 import app.forku.domain.repository.vehicle.VehicleStatusChecker
-import app.forku.data.api.Sub7Api
+import app.forku.data.api.GeneralApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.repository.vehicle.VehicleRepositoryImpl
 import app.forku.domain.repository.vehicle.VehicleRepository
@@ -12,26 +12,25 @@ import app.forku.data.repository.checklist.ChecklistRepositoryImpl
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import app.forku.data.repository.vehicle.VehicleStatusRepositoryImpl
-import app.forku.data.repository.session.SessionRepositoryImpl
+import app.forku.data.repository.vehicle_session.VehicleSessionRepositoryImpl
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.vehicle.VehicleStatusUpdater
 import app.forku.data.repository.vehicle.VehicleStatusUpdaterImpl
 import app.forku.domain.repository.session.SessionStatusChecker
-import app.forku.data.repository.session.SessionStatusCheckerImpl
+import app.forku.data.repository.vehicle_session.VehicleSessionStatusCheckerImpl
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
 import app.forku.data.repository.checklist.ChecklistStatusNotifierImpl
 import app.forku.domain.service.VehicleValidationService
 import app.forku.data.service.VehicleValidationServiceImpl
 import app.forku.domain.service.VehicleStatusDeterminer
 import app.forku.data.service.VehicleStatusDeterminerImpl
-
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -40,7 +39,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideVehicleStatusUpdater(
-        api: Sub7Api
+        api: GeneralApi
     ): VehicleStatusUpdater {
         return VehicleStatusUpdaterImpl(api)
     }
@@ -48,9 +47,9 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSessionStatusChecker(
-        api: Sub7Api
+        api: GeneralApi
     ): SessionStatusChecker {
-        return SessionStatusCheckerImpl(api)
+        return VehicleSessionStatusCheckerImpl(api)
     }
 
     @Provides
@@ -71,7 +70,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideVehicleValidationService(
-        api: Sub7Api,
+        api: GeneralApi,
         sessionStatusChecker: SessionStatusChecker,
         checklistRepository: ChecklistRepository,
         vehicleStatusDeterminer: VehicleStatusDeterminer
@@ -87,7 +86,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideChecklistRepository(
-        api: Sub7Api,
+        api: GeneralApi,
         authDataStore: AuthDataStore,
         validateChecklistUseCase: ValidateChecklistUseCase,
         checklistStatusNotifier: ChecklistStatusNotifier
@@ -112,12 +111,12 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSessionRepository(
-        api: Sub7Api,
+        api: GeneralApi,
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
         checklistRepository: ChecklistRepository
     ): SessionRepository {
-        return SessionRepositoryImpl(api, authDataStore, vehicleStatusRepository, checklistRepository)
+        return VehicleSessionRepositoryImpl(api, authDataStore, vehicleStatusRepository, checklistRepository)
     }
 
     @Provides
@@ -127,7 +126,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideIncidentRepository(
-        api: Sub7Api,
+        api: GeneralApi,
         authDataStore: AuthDataStore
     ): IncidentRepository {
         return IncidentRepositoryImpl(api, authDataStore)
@@ -136,7 +135,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideVehicleRepository(
-        api: Sub7Api,
+        api: GeneralApi,
         authDataStore: AuthDataStore,
         validateChecklistUseCase: ValidateChecklistUseCase,
         vehicleStatusRepository: VehicleStatusRepository

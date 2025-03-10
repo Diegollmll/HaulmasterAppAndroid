@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import app.forku.domain.repository.user.AuthRepository
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
@@ -33,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import app.forku.domain.repository.user.UserRepository
 
 @HiltViewModel
 class IncidentReportViewModel @Inject constructor(
@@ -40,7 +40,7 @@ class IncidentReportViewModel @Inject constructor(
     private val sessionRepository: SessionRepository,
     private val weatherRepository: WeatherRepository,
     @ApplicationContext private val context: Context,
-    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository,
     private val checklistRepository: ChecklistRepository,
     private val locationManager: LocationManager
@@ -118,7 +118,7 @@ class IncidentReportViewModel @Inject constructor(
 
                 // Then try to get current session
                 val session = sessionRepository.getCurrentSession()
-                val currentUser = authRepository.getCurrentUser()
+                val currentUser = userRepository.getCurrentUser()
                 
                 session?.vehicleId?.let { vehicleId ->
                     try {

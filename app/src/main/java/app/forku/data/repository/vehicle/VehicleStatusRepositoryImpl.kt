@@ -1,17 +1,8 @@
 package app.forku.data.repository.vehicle
 
-import app.forku.data.api.Sub7Api
-import app.forku.data.mapper.toDomain
-import app.forku.data.mapper.toDto
-import app.forku.domain.model.checklist.CheckStatus
-import app.forku.domain.model.session.SessionStatus
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.repository.checklist.ChecklistRepository
-import app.forku.domain.repository.session.SessionStatusChecker
-import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import app.forku.domain.repository.vehicle.VehicleStatusUpdater
-import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.service.VehicleValidationService
 import javax.inject.Inject
 

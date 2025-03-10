@@ -11,6 +11,12 @@ data class User(
     val role: UserRole,
     val permissions: List<String>,
     val certifications: List<Certification>,
+    val experienceLevel: String = "Rookie",
+    val points: Int = 0,
+    val totalHours: Float = 0f,
+    val totalDistance: Int = 0,
+    val tasksCompleted: Int = 0,
+    val incidentsReported: Int = 0,
     val lastMedicalCheck: String? = null,
     val lastLogin: String? = null,
     val isActive: Boolean = true

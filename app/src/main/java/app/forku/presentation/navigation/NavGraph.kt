@@ -24,9 +24,12 @@ import app.forku.presentation.user.profile.ProfileScreen
 import app.forku.presentation.vehicle.manual.PerformanceReportScreen
 
 import app.forku.presentation.incident.detail.IncidentDetailScreen
+import app.forku.presentation.tour.TourScreen
+import app.forku.presentation.user.register.RegisterScreen
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
+    data object Register : Screen("register")
     data object Dashboard : Screen("dashboard")
     data object QRScanner : Screen("qr_scanner")
     data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
@@ -39,12 +42,13 @@ sealed class Screen(val route: String) {
     data object Notifications : Screen("notifications")
     data object PerformanceReport : Screen("performance_report")
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
+    data object Tour : Screen("tour")
 }
 
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Login.route
+    startDestination: String = Screen.Tour.route
 ) {
     NavHost(
         navController = navController,
@@ -201,6 +205,16 @@ fun NavGraph(
             val incidentId = backStackEntry.arguments?.getString("incidentId") ?: return@composable
             IncidentDetailScreen(
                 incidentId = incidentId,
+                navController = navController
+            )
+        }
+
+        composable(Screen.Tour.route) {
+            TourScreen(navController = navController)
+        }
+
+        composable("register") {
+            RegisterScreen(
                 navController = navController
             )
         }

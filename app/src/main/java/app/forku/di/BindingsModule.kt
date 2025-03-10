@@ -2,8 +2,6 @@ package app.forku.di
 
 import app.forku.data.repository.user.UserRepositoryImpl
 import app.forku.domain.repository.user.UserRepository
-import app.forku.data.repository.session.SessionRepositoryImpl
-import app.forku.domain.repository.session.SessionRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
