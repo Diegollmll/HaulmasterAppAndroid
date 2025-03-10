@@ -11,26 +11,27 @@ import app.forku.presentation.common.components.AppModal
 @Composable
 fun VehicleQrCodeModal(
     vehicleId: String,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier.size(256.dp)
 ) {
-    AppModal(onDismiss = onDismiss) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Vehicle QR Code",
-                style = MaterialTheme.typography.titleLarge
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            VehicleQrCode(
-                vehicleId = vehicleId,
-                modifier = Modifier.size(256.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
+    AppModal(
+        onDismiss = onDismiss,
+        onConfirm = onDismiss,
+        title = "Vehicle QR Code",
+        message = "Scan this QR code to access vehicle information",
+        confirmText = "Accept",
+        dismissText = "Cancel",
+        content = {
+            Column(
+                modifier = modifier,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                VehicleQrCode(
+                    vehicleId = vehicleId,
+                    modifier = Modifier.size(256.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
-    }
+    )
 } 

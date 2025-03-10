@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 @HiltViewModel
 class CicoHistoryViewModel @Inject constructor(
@@ -34,9 +35,9 @@ class CicoHistoryViewModel @Inject constructor(
                         CicoEntry(
                             id = session.id,
                             vehicleName = vehicle.codename,
-                            date = session.startTime,
-                            checkInTime = session.startTime,
-                            checkOutTime = session.endTime
+                            date = getRelativeTimeSpanString(session.startTime),
+                            checkInTime = getRelativeTimeSpanString(session.startTime),
+                            checkOutTime = session.endTime?.let { getRelativeTimeSpanString(it) }
                         )
                     } catch (e: Exception) {
                         android.util.Log.e("CICO", "Error loading vehicle for session ${session.id}", e)

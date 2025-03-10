@@ -15,7 +15,7 @@ material = "1.11.0"
 #compose = "1.5.4"  # Must match kotlin version compatibility
 compose = "1.5.8"
 #compose-compiler = "1.5.8"
-compose-material = "1.6.1"
+compose-material = "1.6.2"
 
 compose-bom = "2024.02.00"
 activity-compose = "1.8.2"
@@ -123,6 +123,9 @@ androidx-location = { group = "com.google.android.gms", name = "play-services-lo
 
 # Kotlin serialization
 kotlin-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "compose-material" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose-material" }
 
 
 [plugins]

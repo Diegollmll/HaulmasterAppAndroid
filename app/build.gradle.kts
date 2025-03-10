@@ -1,5 +1,6 @@
 // app/build.gradle.kts
 import java.util.Properties
+//import app.forku.R
 
 plugins {
     alias(libs.plugins.android.application)
@@ -165,5 +166,9 @@ dependencies {
 
     // Kotlin Serialization
     implementation(libs.kotlin.serialization)
+
+    // Material Icons
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
 
 }

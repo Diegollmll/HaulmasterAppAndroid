@@ -1,5 +1,6 @@
 package app.forku.presentation.incident.list
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,58 +18,72 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
+import app.forku.presentation.navigation.Screen
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun IncidentHistoryScreen(
     viewModel: IncidentHistoryViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToReport: () -> Unit
+    onNavigateToReport: () -> Unit,
+    navController: NavController
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Incident Reports") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        when {
-            state.isLoading -> LoadingOverlay()
-            state.error != null -> ErrorScreen(
-                message = state.error ?: "Unknown error occurred",
-                onRetry = { viewModel.loadIncidents() }
-            )
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                ) {
-                    items(
-                        items = state.incidents,
-                        key = { it.id }
-                    ) { incident ->
-                        IncidentHistoryItem(incident)
+    BaseScreen(
+        navController = navController,
+        showTopBar = true,
+        topBarTitle = "Incident Reports",
+        content = { padding ->
+            when {
+                state.isLoading -> LoadingOverlay()
+                state.error != null -> ErrorScreen(
+                    message = state.error ?: "Unknown error occurred",
+                    onRetry = { viewModel.loadIncidents() }
+                )
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        items(
+                            items = state.incidents,
+                            key = { it.id }
+                        ) { incident ->
+                            IncidentHistoryItem(
+                                incident = incident,
+                                onClick = {
+                                    navController.navigate(
+                                        Screen.IncidentDetail.route.replace(
+                                            "{incidentId}",
+                                            incident.id
+                                        )
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
-    }
+    )
 }
 
 @Composable
-private fun IncidentHistoryItem(incident: IncidentItem) {
+private fun IncidentHistoryItem(
+    incident: IncidentItem,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.small
     ) {
         Column(
             modifier = Modifier

@@ -89,23 +89,6 @@ fun ProfileScreen(
                         onCicoHistoryClick = onNavigateToCicoHistory
                     )
                 }
-
-//                // Performance Report Button
-//                Button(
-//                    onClick = {
-//                        navController.navigate(Screen.PerformanceReport.route)
-//                    },
-//                    colors = ButtonDefaults.buttonColors(
-//                        containerColor = Color(0xFFFFA726)
-//                    ),
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(vertical = 8.dp)
-//                ) {
-//                    Text("Performance Report")
-//                }
-
-
             }
         }
     )
@@ -119,7 +102,6 @@ private fun ProfileHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
             .padding(16.dp)
     ) {
         Card(

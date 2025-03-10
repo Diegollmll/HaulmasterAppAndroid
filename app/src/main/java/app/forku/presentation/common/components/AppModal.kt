@@ -10,32 +10,39 @@ import androidx.compose.ui.window.Dialog
 @Composable
 fun AppModal(
     onDismiss: () -> Unit,
-    showCloseButton: Boolean = true,
-    content: @Composable () -> Unit
+    onConfirm: () -> Unit,
+    title: String,
+    message: String,
+    confirmText: String = "Accept",
+    dismissText: String = "Cancel",
+    content: @Composable (() -> Unit)? = null
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                content()
-                
-                if (showCloseButton) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                Text(message)
+                content?.let {
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Close")
-                    }
+                    it()
                 }
             }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(confirmText)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text(dismissText)
+            }
         }
-    }
+    )
 } 

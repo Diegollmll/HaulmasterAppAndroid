@@ -33,7 +33,12 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.icons.filled.ClearAll
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Report
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.sp
 import app.forku.domain.model.vehicle.toColor
 import app.forku.presentation.dashboard.components.SessionCard
 
@@ -182,7 +187,7 @@ private fun DashboardNavigationButtons(
                 .size(120.dp)
         ) {
             NavigationButton(
-                icon = if (showCheckOut) Icons.Default.Close else Icons.Default.PlayArrow,
+                icon = if (showCheckOut) Icons.Default.Close else Icons.Default.QrCodeScanner,
                 text = if (showCheckOut) "Check Out" else "Check In",
                 onClick = onCheckOut,
                 isCenter = true
@@ -209,7 +214,7 @@ private fun DashboardNavigationButtons(
                 .padding(start = 8.dp)
         ) {
             NavigationButton(
-                icon = Icons.Default.Star,
+                icon = Icons.Default.ClearAll,
                 text = "Vehicles",
                 onClick = onNavigateToVehicles
             )
@@ -222,7 +227,7 @@ private fun DashboardNavigationButtons(
                 .padding(top = 8.dp)
         ) {
             NavigationButton(
-                icon = Icons.Default.Menu,
+                icon = Icons.Default.History,
                 text = "CICO",
                 onClick = onNavigateToActivity
             )
@@ -235,7 +240,7 @@ private fun DashboardNavigationButtons(
                 .padding(end = 8.dp)
         ) {
             NavigationButton(
-                icon = Icons.Default.Search,
+                icon = Icons.Default.Report,
                 text = "Incidents",
                 onClick = onNavigateToIncidents
             )
@@ -264,14 +269,14 @@ private fun NavigationButton(
             contentColor = Color.Black
         ),
         border = BorderStroke(
-            width = if (isCenter) 2.dp else 1.dp,
-            color = if (isCenter) VehicleStatus.AVAILABLE.toColor() else Color.Gray
+            width = if (isCenter) 3.dp else 0.dp,
+            color = if (isCenter) VehicleStatus.AVAILABLE.toColor().copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.3f)
         )
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(0.dp)
+            modifier = Modifier.padding(0.dp).fillMaxWidth()
         ) {
             Icon(
                 imageVector = icon,
@@ -281,7 +286,7 @@ private fun NavigationButton(
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                 maxLines = 1
             )
         }

@@ -14,46 +14,43 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
+import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CicoHistoryScreen(
     viewModel: CicoHistoryViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    navController: NavController
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("CICO History") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        when {
-            state.isLoading -> LoadingOverlay()
-            state.error != null -> ErrorScreen(
-                message = state.error ?: "Unknown error occurred",
-                onRetry = { viewModel.loadCicoHistory() }
-            )
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                ) {
-                    items(state.cicoHistory) { entry ->
-                        CicoHistoryItem(entry)
+    BaseScreen(
+        navController = navController,
+        showTopBar = true,
+        topBarTitle = "CICO History",
+        content = { padding ->
+            when {
+                state.isLoading -> LoadingOverlay()
+                state.error != null -> ErrorScreen(
+                    message = state.error ?: "Unknown error occurred",
+                    onRetry = { viewModel.loadCicoHistory() }
+                )
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                    ) {
+                        items(state.cicoHistory) { entry ->
+                            CicoHistoryItem(entry)
+                        }
                     }
                 }
             }
         }
-    }
+    )
 }
 
 @Composable
@@ -85,17 +82,21 @@ private fun CicoHistoryItem(entry: CicoEntry) {
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = "Check In: ${entry.checkInTime}",
                     style = MaterialTheme.typography.bodyMedium
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Check Out: ${entry.checkOutTime ?: "In Progress"}",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (entry.checkOutTime == null) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.typography.bodyMedium.color
                 )
             }
         }

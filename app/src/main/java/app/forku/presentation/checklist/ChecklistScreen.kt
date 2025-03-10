@@ -22,6 +22,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.presentation.common.components.BaseScreen
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import app.forku.presentation.common.components.AppModal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +33,20 @@ fun ChecklistScreen(
     navController: NavController,
     onBackPressed: () -> Unit
 ) {
+    var showConfirmationDialog = remember { mutableStateOf(false) }
+    
+    if (showConfirmationDialog.value) {
+        AppModal(
+            onDismiss = { showConfirmationDialog.value = false },
+            onConfirm = {
+                showConfirmationDialog.value = false
+                viewModel.submitCheck()
+            },
+            title = "Submit Checklist",
+            message = "Are you sure you want to submit this checklist?"
+        )
+    }
+
     val state by viewModel.state.collectAsState()
     
     BaseScreen(
@@ -101,7 +118,7 @@ fun ChecklistScreen(
                                 // Only show submit button when all items are answered
                                 if (currentState.showSubmitButton && currentState.allAnswered && !currentState.hasCriticalFail) {
                                     Button(
-                                        onClick = { viewModel.submitCheck() },
+                                        onClick = { showConfirmationDialog.value = true },
                                         enabled = currentState.showSubmitButton && currentState.allAnswered && !currentState.hasCriticalFail,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -110,7 +127,7 @@ fun ChecklistScreen(
                                             containerColor = MaterialTheme.colorScheme.primary
                                         )
                                     ) {
-                                        Text("Submit Check")
+                                        Text("Submit Checklist")
                                     }
                                 }
                             }

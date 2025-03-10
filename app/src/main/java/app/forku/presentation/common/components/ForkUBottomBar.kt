@@ -25,10 +25,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.core.AppIcons
 import app.forku.presentation.common.viewmodel.BottomSheetViewModel
 import app.forku.presentation.incident.components.IncidentTypeSelector
 import app.forku.presentation.dashboard.DashboardState
+import androidx.compose.ui.graphics.painter.Painter
 
 @Composable
 fun ForkUBottomBar(
@@ -65,7 +68,7 @@ fun ForkUBottomBar(
             tonalElevation = 0.dp
         ) {
             val navItems = listOf(
-                BottomNavItem("Home", Icons.Default.Home, Screen.Dashboard.route),
+                BottomNavItem("Home", painterResource(id = AppIcons.General.home), Screen.Dashboard.route),
                 // BottomNavItem(
                 //     title = "Checklist",
                 //     icon = Icons.Default.CheckCircle,
@@ -77,16 +80,19 @@ fun ForkUBottomBar(
                 //     enabled = currentVehicleId != null && currentCheckId != null && 
                 //               dashboardState.currentSession != null
                 // ),
-                BottomNavItem("Report", Icons.Default.Add, Screen.SafetyReporting.route),
+                BottomNavItem("Report", painterResource(id = AppIcons.General.addIncident), Screen.SafetyReporting.route),
                 // BottomNavItem("Alerts", Icons.Default.Notifications, Screen.Notifications.route),
+
+                //Icon(, "Cuenta")
                 BottomNavItem(
                     title = "Vehicle",
-                    icon = Icons.Default.ShoppingCart,
+                    icon = painterResource(id = AppIcons.General.forklift),
                     route = currentVehicleId?.let { 
                         Screen.VehicleProfile.route.replace("{vehicleId}", it) 
                     } ?: Screen.Vehicles.route,
                     enabled = currentVehicleId != null
                 )
+
             )
 
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
@@ -113,7 +119,7 @@ fun ForkUBottomBar(
                     enabled = item.enabled,
                     icon = {
                         Icon(
-                            imageVector = item.icon,
+                            painter = item.icon,
                             contentDescription = item.title,
                             modifier = Modifier.size(24.dp)
                         )
@@ -134,7 +140,7 @@ fun ForkUBottomBar(
 
 private data class BottomNavItem(
     val title: String,
-    val icon: ImageVector,
+    val icon: Painter,
     val route: String,
     val enabled: Boolean = true,
     val checkId: String? = null

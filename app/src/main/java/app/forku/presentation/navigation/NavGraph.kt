@@ -23,7 +23,7 @@ import app.forku.presentation.incident.list.IncidentHistoryScreen
 import app.forku.presentation.user.profile.ProfileScreen
 import app.forku.presentation.vehicle.manual.PerformanceReportScreen
 
-
+import app.forku.presentation.incident.detail.IncidentDetailScreen
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -38,6 +38,7 @@ sealed class Screen(val route: String) {
     data object SafetyReporting : Screen("safety_reporting")
     data object Notifications : Screen("notifications")
     data object PerformanceReport : Screen("performance_report")
+    data object IncidentDetail : Screen("incident_detail/{incidentId}")
 }
 
 @Composable
@@ -161,8 +162,6 @@ fun NavGraph(
             )
         }
 
-
-
         composable(Screen.Profile.route) {
             ProfileScreen(
                 navController = navController,
@@ -174,7 +173,8 @@ fun NavGraph(
 
         composable(Screen.OperatorsCICOHistory.route) {
             CicoHistoryScreen(
-                onNavigateBack = { navController.navigateUp() }
+                onNavigateBack = { navController.navigateUp() },
+                navController = navController
             )
         }
 
@@ -183,12 +183,24 @@ fun NavGraph(
                 onNavigateBack = { navController.navigateUp() },
                 onNavigateToReport = {
                     //navController.navigate(Screen.IncidentReport.route)
-                }
+                },
+                navController = navController
             )
         }
 
         composable(Screen.PerformanceReport.route) {
             PerformanceReportScreen(
+                navController = navController
+            )
+        }
+
+        composable(
+            route = Screen.IncidentDetail.route,
+            arguments = listOf(navArgument("incidentId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val incidentId = backStackEntry.arguments?.getString("incidentId") ?: return@composable
+            IncidentDetailScreen(
+                incidentId = incidentId,
                 navController = navController
             )
         }
