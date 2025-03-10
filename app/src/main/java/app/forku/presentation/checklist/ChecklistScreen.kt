@@ -34,96 +34,101 @@ fun ChecklistScreen(
     
     BaseScreen(
         navController = navController,
+        showTopBar = true,
+        showBottomBar = true,
         viewModel = viewModel,
-        showBottomBar = false,
-        topBarTitle = "Pre-Shift Check"
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val currentState = state) {
-                null -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                else -> {
-                    if (currentState.isLoading) {
-                        LoadingOverlay()
-                    }
-                    
-                    if (currentState.error != null) {
-                        ErrorScreen(
-                            message = currentState.error,
-                            onRetry = { viewModel.loadChecklistData() }
+        topBarTitle = "Vehicle Check",
+        onRefresh = { viewModel.loadChecklistData() },
+        content = { padding ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val currentState = state) {
+                    null -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
                         )
                     }
-                    
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        // Keep VehicleProfileSummary
-                        currentState.vehicle?.let { vehicle ->
-                            VehicleProfileSummary(
-                                vehicle = vehicle,
-                                status = vehicle.status
+                    else -> {
+                        if (currentState.isLoading) {
+                            LoadingOverlay()
+                        }
+                        
+                        if (currentState.error != null) {
+                            ErrorScreen(
+                                message = currentState.error,
+                                onRetry = { viewModel.loadChecklistData() }
                             )
                         }
-
-                        // Add padding to the questionnaire section
+                        
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                                .fillMaxSize()
+                                .padding(padding)
+                                .verticalScroll(rememberScrollState())
                         ) {
-                            // Group items by category
-                            val groupedItems = currentState.checkItems?.groupBy { it.category }
-                            groupedItems?.forEach { (category, items) ->
-                                // Keep CategoryHeader
-                                CategoryHeader(
-                                    categoryName = category.name,
-                                    modifier = Modifier.padding(bottom = 1.dp)
+                            // Keep VehicleProfileSummary
+                            currentState.vehicle?.let { vehicle ->
+                                VehicleProfileSummary(
+                                    vehicle = vehicle,
+                                    status = vehicle.status
                                 )
+                            }
 
-                                items.forEach { item ->
-                                    ChecklistQuestionItem(
-                                        question = item,
-                                        onResponseChanged = viewModel::updateItemResponse,
+                            // Add padding to the questionnaire section
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                            ) {
+                                // Group items by category
+                                val groupedItems = currentState.checkItems?.groupBy { it.category }
+                                groupedItems?.forEach { (category, items) ->
+                                    // Keep CategoryHeader
+                                    CategoryHeader(
+                                        categoryName = category.name,
                                         modifier = Modifier.padding(bottom = 1.dp)
                                     )
+
+                                    items.forEach { item ->
+                                        ChecklistQuestionItem(
+                                            question = item,
+                                            onResponseChanged = viewModel::updateItemResponse,
+                                            modifier = Modifier.padding(bottom = 1.dp)
+                                        )
+                                    }
+                                }
+
+
+                                // Only show submit button when all items are answered
+                                if (currentState.showSubmitButton && currentState.allAnswered && !currentState.hasCriticalFail) {
+                                    Button(
+                                        onClick = { viewModel.submitCheck() },
+                                        enabled = currentState.showSubmitButton && currentState.allAnswered && !currentState.hasCriticalFail,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Text("Submit Check")
+                                    }
                                 }
                             }
 
-
-                            // Only show submit button when all items are answered
-                            if (!currentState.isLoading &&
-                                currentState.checkItems.isNotEmpty() &&
-                                currentState.checkItems.all { it.userAnswer != null }) {
-                                Button(
-                                    onClick = { viewModel.submitCheck() },
+                            currentState.message?.let { message ->
+                                Snackbar(
                                     modifier = Modifier
-                                        .fillMaxWidth()
                                         .padding(16.dp)
                                 ) {
-                                    Text(text = "Submit Check")
+                                    Text(message)
                                 }
-                            }
-                        }
-
-                        currentState.message?.let { message ->
-                            Snackbar(
-                                modifier = Modifier
-                                    .padding(16.dp)
-                            ) {
-                                Text(message)
                             }
                         }
                     }
                 }
             }
         }
-    }
+    )
 
     // Handle back navigation
     LaunchedEffect(viewModel.navigateBack.collectAsState().value) {

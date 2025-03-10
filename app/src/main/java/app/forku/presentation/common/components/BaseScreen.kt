@@ -17,14 +17,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import app.forku.presentation.common.theme.BackgroundGray
+import app.forku.presentation.dashboard.DashboardState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BaseScreen(
     navController: NavController,
+    modifier: Modifier = Modifier,
+    showTopBar: Boolean = false,
+    showBottomBar: Boolean = false,
+    currentVehicleId: String? = null,
+    currentCheckId: String? = null,
+    dashboardState: DashboardState? = null,
     viewModel: ViewModel? = null,
-    showTopBar: Boolean = true,
-    showBottomBar: Boolean = true,
     topBarTitle: String = "",
     onRefresh: (() -> Unit)? = null,
     showLoadingOnRefresh: Boolean = false,
@@ -107,7 +112,12 @@ fun BaseScreen(
 
             // Bottom Bar
             if (showBottomBar) {
-                ForkUBottomBar(navController = navController)
+                ForkUBottomBar(
+                    navController = navController,
+                    currentVehicleId = currentVehicleId,
+                    currentCheckId = currentCheckId,
+                    dashboardState = dashboardState ?: DashboardState()
+                )
             }
         }
     }

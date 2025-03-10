@@ -42,8 +42,9 @@ fun VehicleListScreen(
 
     BaseScreen(
         navController = navController,
-        viewModel = viewModel,
+        showTopBar = true,
         topBarTitle = "Vehicles",
+        showBottomBar = true,
         onRefresh = { viewModel.loadVehicles(true) },
         showLoadingOnRefresh = false
     ) { padding ->

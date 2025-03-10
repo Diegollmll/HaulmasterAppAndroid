@@ -1,13 +1,10 @@
 package app.forku.presentation.dashboard
 
-import android.text.format.DateUtils.formatDateTime
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -21,47 +18,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import app.forku.R
-import app.forku.presentation.common.components.ErrorScreen
-import app.forku.presentation.common.components.ForkUBottomBar
-import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.navigation.Screen
-import app.forku.presentation.session.SessionViewModel
-import app.forku.presentation.user.login.LoginViewModel
-import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.model.checklist.PreShiftCheck
-import app.forku.domain.model.session.SessionStatus
-import app.forku.presentation.session.SessionState
-import app.forku.presentation.vehicle.profile.components.VehicleStatusIndicator
-import coil.compose.AsyncImage
 import androidx.compose.material3.Icon
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.platform.LocalContext
-import app.forku.presentation.common.components.AppBottomSheet
-import app.forku.presentation.common.viewmodel.BottomSheetViewModel
-import app.forku.presentation.incident.components.IncidentTypeSelector
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Menu
 import app.forku.presentation.common.components.BaseScreen
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.setValue
-import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.toColor
 import app.forku.presentation.dashboard.components.SessionCard
 
@@ -70,10 +42,10 @@ import app.forku.presentation.dashboard.components.SessionCard
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    onNavigate: (String) -> Unit,
-    dashboardViewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    onNavigate: (String) -> Unit
 ) {
-    val dashboardState by dashboardViewModel.state.collectAsStateWithLifecycle()
+    val dashboardState by viewModel.state.collectAsState()
     
     // Add loading state observation
     var isCheckoutLoading by remember { mutableStateOf(false) }
@@ -94,20 +66,20 @@ fun DashboardScreen(
 
     // Effect to refresh dashboard when screen becomes active
     LaunchedEffect(Unit) {
-        dashboardViewModel.refresh()
+        viewModel.refresh()
     }
 
     val pullRefreshState = rememberPullRefreshState(
         refreshing = dashboardState.isLoading,
-        onRefresh = { dashboardViewModel.refreshWithLoading() }
+        onRefresh = { viewModel.refreshWithLoading() }
     )
 
     BaseScreen(
         navController = navController,
-        viewModel = dashboardViewModel,
-        showTopBar = false,
-        onRefresh = { dashboardViewModel.refresh() },
-        showLoadingOnRefresh = true
+        showBottomBar = true,
+        currentVehicleId = dashboardState.currentSession?.vehicleId,
+        currentCheckId = dashboardState.lastPreShiftCheck?.id,
+        dashboardState = dashboardState
     ) { padding ->
         Box(
             modifier = Modifier
@@ -141,10 +113,11 @@ fun DashboardScreen(
                     onNavigateToIncidents = { onNavigate(Screen.IncidentsHistory.route) },
                     onNavigateToVehicles = { onNavigate(Screen.Vehicles.route) },
                     onNavigateToActivity = { onNavigate(Screen.OperatorsCICOHistory.route) },
+                    onNavigateToManual = { onNavigate(Screen.PerformanceReport.route) },
                     onCheckOut = {
                         if (dashboardState.currentSession != null) {
                             isCheckoutLoading = true
-                            dashboardViewModel.endCurrentSession()
+                            viewModel.endCurrentSession()
                         } else {
                             onNavigate(Screen.QRScanner.route)
                         }
@@ -166,7 +139,7 @@ fun DashboardScreen(
                 Snackbar(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     action = {
-                        TextButton(onClick = { dashboardViewModel.clearError() }) {
+                        TextButton(onClick = { viewModel.clearError() }) {
                             Text("Retry")
                         }
                     }
@@ -191,6 +164,7 @@ private fun DashboardNavigationButtons(
     onNavigateToIncidents: () -> Unit,
     onNavigateToVehicles: () -> Unit,
     onNavigateToActivity: () -> Unit,
+    onNavigateToManual: () -> Unit,
     onCheckOut: () -> Unit,
     showCheckOut: Boolean,
     isCheckoutLoading: Boolean
@@ -266,6 +240,7 @@ private fun DashboardNavigationButtons(
                 onClick = onNavigateToIncidents
             )
         }
+
     }
 }
 

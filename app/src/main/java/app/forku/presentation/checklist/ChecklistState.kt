@@ -24,7 +24,8 @@ data class ChecklistState(
     val vehicleStatus: VehicleStatus,
     val message: String? = null,
     val lastSavedAt: String? = null,
-    val checkStatus: String
+    val checkStatus: String,
+    val isReadOnly: Boolean = false
 ) {
     val isEmpty: Boolean
         get() = checkItems.isEmpty()
@@ -39,5 +40,8 @@ data class ChecklistState(
         get() = checkItems.any { item -> 
             item.isCritical && item.userAnswer == Answer.FAIL 
         }
+
+    val showSubmitButton: Boolean
+        get() = !isReadOnly && checkStatus == CheckStatus.IN_PROGRESS.toString()
 }
 

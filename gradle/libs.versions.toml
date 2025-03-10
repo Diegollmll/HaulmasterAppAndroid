@@ -3,7 +3,7 @@
 agp = "8.2.2"
 kotlin = "1.9.22"  # Must match your compose compiler version requirements
 kotlinxSerialization = "1.6.0"
-ksp = "1.9.20-1.0.13"
+ksp = "1.9.22-1.0.17"
 location = "21.0.1"
 
 # Core Android libraries
@@ -123,6 +123,7 @@ androidx-location = { group = "com.google.android.gms", name = "play-services-lo
 
 # Kotlin serialization
 kotlin-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

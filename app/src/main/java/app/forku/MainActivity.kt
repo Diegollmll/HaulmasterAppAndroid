@@ -13,7 +13,7 @@ import app.forku.presentation.user.login.LoginViewModel
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.components.LoadingScreen
 import app.forku.presentation.common.theme.ForkUTheme
-import app.forku.presentation.navigation.ForkUNavGraph
+import app.forku.presentation.navigation.NavGraph
 import app.forku.presentation.navigation.Screen
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                     }
                     else -> {
-                        ForkUNavGraph(
+                        NavGraph(
                             startDestination = if (loginState is LoginState.Success || hasToken) {
                                 Screen.Dashboard.route
                             } else {

@@ -45,7 +45,21 @@ class ChecklistViewModel @Inject constructor(
     val navigateBack = _navigateBack.asStateFlow()
 
     init {
-        loadChecklistData()
+        viewModelScope.launch {
+            // Prevent creating new checks if there's an active session
+            val currentSession = sessionRepository.getCurrentSession()
+            if (currentSession != null) {
+                // Get the last completed check for this vehicle
+                val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString())
+                if (lastCompletedCheck != null) {
+                    loadExistingCheck(lastCompletedCheck.id)
+                } else {
+                    loadChecklistData() // Fallback to normal flow if no check found
+                }
+            } else {
+                loadChecklistData()
+            }
+        }
     }
 
     fun loadChecklistData() {
@@ -140,6 +154,9 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun updateItemResponse(id: String, isYes: Boolean) {
+        if (state.value?.isReadOnly == true) {
+            return // Don't allow updates if check is read-only
+        }
         viewModelScope.launch {
             try {
                 val currentItems = state.value?.checkItems?.toMutableList() ?: mutableListOf()
@@ -186,6 +203,9 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun clearItemResponse(id: String) {
+        if (state.value?.isReadOnly == true) {
+            return // Don't allow updates if check is read-only
+        }
         val currentItems = state.value?.checkItems?.toMutableList() ?: mutableListOf()
         val itemIndex = currentItems.indexOfFirst { it.id == id }
         
@@ -214,6 +234,9 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun submitCheck() {
+        if (state.value?.isReadOnly == true) {
+            return // Don't allow submission if check is read-only
+        }
         viewModelScope.launch {
             try {
                 _state.update { it?.copy(isSubmitting = true) }
@@ -288,52 +311,33 @@ class ChecklistViewModel @Inject constructor(
         }
     }
 
-//    fun updateAnswer(itemId: String, answer: Answer) {
-//        val currentItems = state.value.checkItems.toMutableList()
-//        val itemIndex = currentItems.indexOfFirst { it.id == itemId }
-//
-//        if (itemIndex != -1) {
-//            val updatedItem = currentItems[itemIndex].copy(userAnswer = answer)
-//            currentItems[itemIndex] = updatedItem
-//
-//            _state.update {
-//                it.copy(checkItems = currentItems)
-//            }
-//
-//            // Guardamos automáticamente después de cada respuesta
-//            submitCheck(completed = false)
-//        }
-//    }
-
-//    fun dismissErrorModal() {
-//        _state.update {
-//            it.copy(
-//                showErrorModal = false,
-//                errorModalMessage = null
-//            )
-//        }
-//    }
-
-//    fun validateBeforeComplete(): Boolean {
-//        val validation = validateChecklistUseCase(state.value.checkItems)
-//        if (!validation.isComplete) {
-//            _state.update {
-//                it.copy(
-//                    showErrorModal = true,
-//                    errorModalMessage = "Por favor completa todas las preguntas requeridas antes de finalizar"
-//                )
-//            }
-//            return false
-//        }
-//        return true
-//    }
-
-    // Función para completar el check
-//    fun completeCheck() {
-//        if (validateBeforeComplete()) {
-//            submitCheck(completed = true)
-//        }
-//    }
-
+    private fun loadExistingCheck(checkId: String) {
+        viewModelScope.launch {
+            try {
+                val check = checklistRepository.getCheckById(checkId)
+                val vehicle = getVehicleUseCase(vehicleId.toString())
+                
+                check?.let {
+                    _state.value = ChecklistState(
+                        vehicle = vehicle,
+                        vehicleId = vehicleId.toString(),
+                        vehicleStatus = VehicleStatus.IN_USE,
+                        checkItems = it.items,
+                        checkId = it.id,
+                        checkStatus = it.status,
+                        isCompleted = it.status != CheckStatus.IN_PROGRESS.toString(),
+                        isSubmitted = it.status != CheckStatus.IN_PROGRESS.toString(),
+                        isReadOnly = it.status != CheckStatus.IN_PROGRESS.toString()
+                    )
+                }
+            } catch (e: Exception) {
+                _state.value = ChecklistState(
+                    vehicleId = vehicleId.toString(),
+                    vehicleStatus = VehicleStatus.AVAILABLE,
+                    checkStatus = CheckStatus.NOT_STARTED.toString(),
+                    error = "Failed to load existing check: ${e.message}"
+                )
+            }
+        }
+    }
 }
-

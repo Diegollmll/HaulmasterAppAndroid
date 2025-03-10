@@ -44,6 +44,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.user.profile.components.ProfileSections
 import app.forku.presentation.user.profile.components.StatsGrid
 import coil.compose.AsyncImage
+import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
+import app.forku.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,47 +54,68 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToIncidents: () -> Unit,
-    onNavigateToCicoHistory: () -> Unit
+    onNavigateToCicoHistory: () -> Unit,
+    navController: NavController
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    BaseScreen(
+        navController = navController,
+        showTopBar = true,
+        topBarTitle = "Operator Profile",
+        content = { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp)
+            ) {
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshProfile()
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Operator Profile") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    ProfileHeader(
+                        state = state,
+                        navController = navController
+                    )
+                    StatsGrid(state)
+                    ProfileSections(
+                        state = state,
+                        onQualificationsClick = { /* Navigate to qualifications */ },
+                        onIncidentReportsClick = onNavigateToIncidents,
+                        onTrainingRecordClick = { /* Navigate to training */ },
+                        onCicoHistoryClick = onNavigateToCicoHistory
+                    )
                 }
-            )
+
+//                // Performance Report Button
+//                Button(
+//                    onClick = {
+//                        navController.navigate(Screen.PerformanceReport.route)
+//                    },
+//                    colors = ButtonDefaults.buttonColors(
+//                        containerColor = Color(0xFFFFA726)
+//                    ),
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(vertical = 8.dp)
+//                ) {
+//                    Text("Performance Report")
+//                }
+
+
+            }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            ProfileHeader(state)
-            StatsGrid(state)
-            ProfileSections(
-                state = state,
-                onQualificationsClick = { /* Navigate to qualifications */ },
-                onIncidentReportsClick = onNavigateToIncidents,
-                onTrainingRecordClick = { /* Navigate to training */ },
-                onCicoHistoryClick = onNavigateToCicoHistory
-            )
-        }
-    }
+    )
 }
 
 @Composable
-private fun ProfileHeader(state: ProfileState) {
+private fun ProfileHeader(
+    state: ProfileState,
+    navController: NavController
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -197,16 +221,23 @@ private fun ProfileHeader(state: ProfileState) {
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
-                            Button(
-                                onClick = { /* Navigate to vehicle */ },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFFFA726)
-                                ),
-                                modifier = Modifier.padding(start = 8.dp)
-                            ) {
-                                Text("My Vehicle")
-                            }
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row {
+                    Button(
+                        onClick = {
+                            navController.navigate(Screen.PerformanceReport.route)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFA726)
+                        ),
+                        modifier = Modifier.padding(start = 8.dp).fillMaxWidth()
+                    ) {
+                        Text("Performance Report")
                     }
                 }
             }

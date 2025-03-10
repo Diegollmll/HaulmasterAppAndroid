@@ -15,6 +15,7 @@ dependencyResolutionManagement {
         // Same order as above for consistency
         google()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
 
     //versionCatalogs {

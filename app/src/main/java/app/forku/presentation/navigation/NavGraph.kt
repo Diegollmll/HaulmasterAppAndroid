@@ -2,7 +2,6 @@ package app.forku.presentation.navigation
 
 import app.forku.presentation.user.cico.CicoHistoryScreen
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -18,11 +17,12 @@ import app.forku.presentation.vehicle.profile.VehicleProfileScreen
 import app.forku.presentation.scanner.QRScannerScreen
 import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import app.forku.presentation.checklist.ChecklistViewModel
-import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.incident.IncidentReportScreen
 import app.forku.presentation.incident.IncidentReportViewModel
 import app.forku.presentation.incident.list.IncidentHistoryScreen
 import app.forku.presentation.user.profile.ProfileScreen
+import app.forku.presentation.vehicle.manual.PerformanceReportScreen
+
 
 
 sealed class Screen(val route: String) {
@@ -36,10 +36,12 @@ sealed class Screen(val route: String) {
     data object OperatorsCICOHistory : Screen("operators_cico_history")
     data object Vehicles : Screen("vehicles")
     data object SafetyReporting : Screen("safety_reporting")
+    data object Notifications : Screen("notifications")
+    data object PerformanceReport : Screen("performance_report")
 }
 
 @Composable
-fun ForkUNavGraph(
+fun NavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Login.route
 ) {
@@ -163,6 +165,7 @@ fun ForkUNavGraph(
 
         composable(Screen.Profile.route) {
             ProfileScreen(
+                navController = navController,
                 onNavigateBack = { navController.navigateUp() },
                 onNavigateToIncidents = { navController.navigate(Screen.IncidentsHistory.route) },
                 onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) }
@@ -181,6 +184,12 @@ fun ForkUNavGraph(
                 onNavigateToReport = {
                     //navController.navigate(Screen.IncidentReport.route)
                 }
+            )
+        }
+
+        composable(Screen.PerformanceReport.route) {
+            PerformanceReportScreen(
+                navController = navController
             )
         }
     }
