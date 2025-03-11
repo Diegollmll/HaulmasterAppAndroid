@@ -1,6 +1,7 @@
 package app.forku.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -34,5 +35,13 @@ object AppModule {
     @ApplicationScope
     fun provideCoroutineScope(): CoroutineScope {
         return CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(
+        @ApplicationContext context: Context
+    ): SharedPreferences {
+        return context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
     }
 }

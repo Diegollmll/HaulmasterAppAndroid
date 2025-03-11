@@ -21,6 +21,12 @@ interface GeneralApi {
     @POST("users")
     suspend fun createUser(@Body user: UserDto): Response<UserDto>
 
+    @PUT("users/{id}")
+    suspend fun updateUser(
+        @Path("id") id: String,
+        @Body user: UserDto
+    ): Response<UserDto>
+
     // Vehicles
     @GET("vehicles")
     suspend fun getVehicles(): Response<List<VehicleDto>>

@@ -10,9 +10,14 @@ import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckCurrentUserUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
+import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.user.User
+import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
+import app.forku.presentation.user.login.LoginState
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -26,15 +31,72 @@ class DashboardViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val getVehicleUseCase: GetVehicleUseCase,
-    private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase
+    private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase,
+    private val getLastPreShiftCheckUseCase: GetLastPreShiftCheckByVehicleUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DashboardState())
     val state = _state.asStateFlow()
     
+    private val _currentUser = MutableStateFlow<User?>(null)
+    val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
+
+    private val _tourCompleted = MutableStateFlow(false)
+    val tourCompleted: StateFlow<Boolean> = _tourCompleted.asStateFlow()
+
+    private val _loginState = MutableStateFlow<LoginState>(LoginState.Initial)
+    val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
+
+    private val _hasToken = MutableStateFlow(false)
+    val hasToken: StateFlow<Boolean> = _hasToken.asStateFlow()
+    
     init {
+        loadCurrentUser()
+        loadTourCompletionStatus()
+        checkLoginState()
+        checkAuthToken()
         viewModelScope.launch {
             loadDashboard(showLoading = true)
+        }
+    }
+    
+    private fun loadCurrentUser() {
+        viewModelScope.launch {
+            try {
+                val user = userRepository.getCurrentUser()
+                _currentUser.value = user
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Error loading user: ${e.message}") }
+            }
+        }
+    }
+    
+    private fun loadTourCompletionStatus() {
+        viewModelScope.launch {
+            val completed = userRepository.getTourCompletionStatus()
+            _tourCompleted.value = completed
+        }
+    }
+    
+    private fun checkLoginState() {
+        viewModelScope.launch {
+            val currentUser = getCurrentUser()
+            _loginState.value = if (currentUser != null) {
+                LoginState.Success(user = currentUser)
+            } else {
+                LoginState.Initial
+            }
+        }
+    }
+    
+    private fun checkAuthToken() {
+        viewModelScope.launch {
+            try {
+                val token = userRepository.getAuthToken()
+                _hasToken.value = !token.isNullOrEmpty()
+            } catch (e: Exception) {
+                _hasToken.value = false
+            }
         }
     }
     
@@ -172,5 +234,14 @@ class DashboardViewModel @Inject constructor(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+
+    fun getCurrentUser(): User? = _currentUser.value
+
+    fun setTourCompleted() {
+        viewModelScope.launch {
+            userRepository.setTourCompleted()
+            _tourCompleted.value = true
+        }
     }
 } 

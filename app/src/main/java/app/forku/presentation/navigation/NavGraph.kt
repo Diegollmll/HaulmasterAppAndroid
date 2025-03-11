@@ -2,6 +2,8 @@ package app.forku.presentation.navigation
 
 import app.forku.presentation.user.cico.CicoHistoryScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -26,6 +28,14 @@ import app.forku.presentation.vehicle.manual.PerformanceReportScreen
 import app.forku.presentation.incident.detail.IncidentDetailScreen
 import app.forku.presentation.tour.TourScreen
 import app.forku.presentation.user.register.RegisterScreen
+import app.forku.presentation.dashboard.AdminDashboardScreen
+import app.forku.presentation.dashboard.OperatorDashboardScreen
+import app.forku.presentation.dashboard.UnauthorizedScreen
+import app.forku.domain.model.user.Permissions
+import app.forku.presentation.common.components.PermissionGate
+import app.forku.presentation.dashboard.DashboardViewModel
+import app.forku.presentation.user.login.LoginState
+
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -43,6 +53,8 @@ sealed class Screen(val route: String) {
     data object PerformanceReport : Screen("performance_report")
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
     data object Tour : Screen("tour")
+    data object AdminDashboard : Screen("admin_dashboard")
+    data object OperatorDashboard : Screen("operator_dashboard")
 }
 
 @Composable
@@ -50,9 +62,19 @@ fun NavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Tour.route
 ) {
+    val viewModel = hiltViewModel<DashboardViewModel>()
+    val currentUser by viewModel.currentUser.collectAsState()
+    val tourCompleted by viewModel.tourCompleted.collectAsState()
+    val loginState by viewModel.loginState.collectAsState()
+    val hasToken by viewModel.hasToken.collectAsState()
+
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = when {
+            !tourCompleted -> Screen.Tour.route
+            loginState is LoginState.Success || hasToken -> Screen.Dashboard.route
+            else -> Screen.Login.route
+        }
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
@@ -65,13 +87,33 @@ fun NavGraph(
         }
 
         composable(Screen.Dashboard.route) {
-
-            DashboardScreen(
-                navController = navController,
-                onNavigate = { route ->
-                    navController.navigate(route)
+            val currentUser = viewModel.getCurrentUser()
+            when {
+                currentUser?.permissions?.containsAll(Permissions.ADMIN_PERMISSIONS) == true -> {
+                    AdminDashboardScreen(
+                        navController = navController,
+                        onNavigate = { route ->
+                            navController.navigate(route)
+                        }
+                    )
                 }
-            )
+                currentUser?.permissions?.containsAll(Permissions.OPERATOR_PERMISSIONS) == true -> {
+                    OperatorDashboardScreen(
+                        navController = navController,
+                        onNavigate = { route ->
+                            navController.navigate(route)
+                        }
+                    )
+                }
+                else -> {
+                    DashboardScreen(
+                        navController = navController,
+                        onNavigate = { route ->
+                            navController.navigate(route)
+                        }
+                    )
+                }
+            }
         }
 
         composable(Screen.QRScanner.route) {
@@ -217,6 +259,34 @@ fun NavGraph(
             RegisterScreen(
                 navController = navController
             )
+        }
+
+        // Rutas protegidas para Admin
+        composable(Screen.AdminDashboard.route) {
+            val currentUser = viewModel.getCurrentUser()
+            PermissionGate(
+                user = currentUser,
+                requiredPermissions = Permissions.ADMIN_PERMISSIONS,
+                unauthorizedContent = { 
+                    UnauthorizedScreen()
+                }
+            ) {
+                AdminDashboardScreen()
+            }
+        }
+
+        // Rutas protegidas para Operator
+        composable(Screen.OperatorDashboard.route) {
+            val currentUser = viewModel.getCurrentUser()
+            PermissionGate(
+                user = currentUser,
+                requiredPermissions = Permissions.OPERATOR_PERMISSIONS,
+                unauthorizedContent = { 
+                    UnauthorizedScreen()
+                }
+            ) {
+                OperatorDashboardScreen()
+            }
         }
     }
 }

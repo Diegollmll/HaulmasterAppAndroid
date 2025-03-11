@@ -41,7 +41,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.sp
 import app.forku.domain.model.vehicle.toColor
 import app.forku.presentation.dashboard.components.SessionCard
-
+import app.forku.domain.model.user.Permissions
+import app.forku.presentation.common.components.PermissionGate
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -51,6 +52,7 @@ fun DashboardScreen(
     onNavigate: (String) -> Unit
 ) {
     val dashboardState by viewModel.state.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
     
     // Add loading state observation
     var isCheckoutLoading by remember { mutableStateOf(false) }
@@ -79,6 +81,27 @@ fun DashboardScreen(
         onRefresh = { viewModel.refreshWithLoading() }
     )
 
+    Column {
+        // Contenido común para todos los usuarios
+        CommonContent()
+
+        // Funcionalidades específicas para Admin
+        PermissionGate(
+            user = currentUser,
+            requiredPermissions = setOf(Permissions.MANAGE_USERS),
+        ) {
+            UserManagementSection()
+        }
+
+        // Funcionalidades específicas para Operator
+        PermissionGate(
+            user = currentUser,
+            requiredPermissions = setOf(Permissions.OPERATE_VEHICLE),
+        ) {
+            VehicleOperationSection()
+        }
+    }
+
     BaseScreen(
         navController = navController,
         showBottomBar = true,
@@ -102,7 +125,7 @@ fun DashboardScreen(
                 SessionCard(
                     vehicle = dashboardState.displayVehicle,
                     lastCheck = dashboardState.lastPreShiftCheck,
-                    user = dashboardState.user,
+                    user = currentUser,
                     currentSession = dashboardState.currentSession,
                     onCheckClick = { checkId ->
                         dashboardState.displayVehicle?.id?.let { vehicleId ->
@@ -291,6 +314,21 @@ private fun NavigationButton(
             )
         }
     }
+}
+
+@Composable
+private fun CommonContent() {
+    // Implementation of CommonContent
+}
+
+@Composable
+private fun UserManagementSection() {
+    // Implementation of UserManagementSection
+}
+
+@Composable
+private fun VehicleOperationSection() {
+    // Implementation of VehicleOperationSection
 }
 
 

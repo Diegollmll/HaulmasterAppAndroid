@@ -45,15 +45,17 @@ fun User.toDto(): UserDto {
         photoUrl = photoUrl,
         role = role.name,
         permissions = permissions,
-        certifications = certifications.map { 
-            CertificationDto(
-                vehicleTypeId = it.vehicleTypeId,
-                isValid = it.isValid,
-                expiresAt = it.expiresAt
-            )
-        },
+        certifications = certifications.map { it.toDto() },
         last_medical_check = lastMedicalCheck,
         last_login = lastLogin,
         is_active = isActive
+    )
+}
+
+fun Certification.toDto(): CertificationDto {
+    return CertificationDto(
+        vehicleTypeId = vehicleTypeId,
+        isValid = isValid,
+        expiresAt = expiresAt
     )
 } 

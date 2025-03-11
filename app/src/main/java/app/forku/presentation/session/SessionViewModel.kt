@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.user.UserRepository
+import app.forku.domain.usecase.session.StartVehicleSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SessionViewModel @Inject constructor(
+    private val startVehicleSessionUseCase: StartVehicleSessionUseCase,
     private val sessionRepository: SessionRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
@@ -27,14 +29,24 @@ class SessionViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                val session = sessionRepository.startSession(vehicleId, checkId)
-                _state.update { 
-                    it.copy(
-                        session = session,
-                        isLoading = false,
-                        error = null
-                    )
-                }
+                startVehicleSessionUseCase(vehicleId, checkId)
+                    .onSuccess { session ->
+                        _state.update { 
+                            it.copy(
+                                session = session,
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    }
+                    .onFailure { error ->
+                        _state.update { 
+                            it.copy(
+                                error = "Failed to start session: ${error.message}",
+                                isLoading = false
+                            )
+                        }
+                    }
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
