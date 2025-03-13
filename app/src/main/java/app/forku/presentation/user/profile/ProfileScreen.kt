@@ -45,6 +45,7 @@ import app.forku.presentation.user.profile.components.ProfileSections
 import app.forku.presentation.user.profile.components.StatsGrid
 import coil.compose.AsyncImage
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 
@@ -55,7 +56,8 @@ fun ProfileScreen(
     onNavigateBack: () -> Unit,
     onNavigateToIncidents: () -> Unit,
     onNavigateToCicoHistory: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     BaseScreen(
@@ -91,7 +93,8 @@ fun ProfileScreen(
                     )
                 }
             }
-        }
+        },
+        networkManager = networkManager
     )
 }
 
@@ -175,7 +178,7 @@ private fun ProfileHeader(
                             color = Color.Gray
                         )
                         Text(
-                            text = state.user?.name ?: "",
+                            text = state.user?.fullName ?: "",
                             style = MaterialTheme.typography.titleLarge
                         )
                         Spacer(modifier = Modifier.height(8.dp))

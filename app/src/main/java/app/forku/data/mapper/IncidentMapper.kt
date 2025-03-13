@@ -34,7 +34,6 @@ fun Incident.toDto(): IncidentDto {
             type = type.name,
             data = emptyMap()
         ),
-        operatorId = operatorId,
         othersInvolved = othersInvolved,
         injuries = injuries,
         injuryLocations = injuryLocations,
@@ -67,7 +66,6 @@ fun IncidentDto.toDomain(): Incident {
         severityLevel = severityLevel?.let { IncidentSeverityLevel.valueOf(it) },
         preshiftCheckStatus = preshiftCheckStatus,
         typeSpecificFields = typeSpecificFields.toDomain(type),
-        operatorId = operatorId,
         othersInvolved = othersInvolved,
         injuries = injuries,
         injuryLocations = injuryLocations,

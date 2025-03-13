@@ -33,7 +33,6 @@ data class Incident(
     val severityLevel: IncidentSeverityLevel? = null,
     val preshiftCheckStatus: String = "",
     val typeSpecificFields: IncidentTypeFields? = null,
-    val operatorId: String? = null,
     val othersInvolved: List<String> = emptyList(),
     val injuries: String = "",
     val injuryLocations: List<String> = emptyList(),

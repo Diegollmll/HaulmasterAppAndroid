@@ -16,23 +16,30 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.theme.BackgroundGray
 import app.forku.presentation.dashboard.DashboardState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.material3.surfaceColorAtElevation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BaseScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    showTopBar: Boolean = false,
+    showTopBar: Boolean = true,
     showBottomBar: Boolean = false,
+    showBackButton: Boolean = true,
     currentVehicleId: String? = null,
     currentCheckId: String? = null,
     dashboardState: DashboardState? = null,
     viewModel: ViewModel? = null,
-    topBarTitle: String = "",
+    topBarTitle: String? = null,
     onRefresh: (() -> Unit)? = null,
     showLoadingOnRefresh: Boolean = false,
+    networkManager: NetworkConnectivityManager,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -41,7 +48,6 @@ fun BaseScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                // Refresh silencioso al volver a la pantalla
                 onRefresh?.invoke()
             }
         }
@@ -56,7 +62,8 @@ fun BaseScreen(
         color = backgroundColor
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Spacer(modifier = Modifier.height(24.dp))
+            // Network Status Bar at the very top
+            NetworkStatusBar(networkManager = networkManager)
             
             // Header section
             if (showTopBar) {
@@ -65,27 +72,46 @@ fun BaseScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    // Back button
-                    TextButton(
-                        onClick = { navController.navigateUp() },
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            "Back",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
+                    // Back button with additional top padding - only show if showBackButton is true
+                    if (showBackButton) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 24.dp)
+                        ) {
+                            // Custom back button implementation
+                            Row(
+                                modifier = Modifier
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        enabled = true,
+                                        onClickLabel = "Back",
+                                        role = androidx.compose.ui.semantics.Role.Button,
+                                        onClick = { navController.navigateUp() }
+                                    )
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "Back",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
                     }
                     
-                    // Title with spacing
-                    if (topBarTitle.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                    // Title with spacing - adjust padding based on whether back button is shown
+                    if (topBarTitle?.isNotEmpty() == true) {
+                        Spacer(modifier = Modifier.height(if (showBackButton) 8.dp else 24.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -107,7 +133,7 @@ fun BaseScreen(
                     .fillMaxSize()
                     .weight(1f)
             ) {
-                content(PaddingValues(horizontal = 2.dp))
+                content(PaddingValues(horizontal = 16.dp))
             }
 
             // Bottom Bar

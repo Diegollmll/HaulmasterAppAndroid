@@ -143,4 +143,39 @@ class LocationManager @Inject constructor(
     fun clearError() {
         _locationState.update { it.copy(error = null) }
     }
+
+    fun startLocationUpdates() {
+        coroutineScope.launch {
+            try {
+                val locationRequest = LocationRequest.Builder(10000)
+                    .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                    .setMinUpdateIntervalMillis(5000)
+                    .build()
+
+                requestLocationSettings()
+            } catch (e: SecurityException) {
+                _locationState.update { it.copy(
+                    error = "Location permission error",
+                    hasLocationPermission = false
+                )}
+            }
+        }
+    }
+
+    fun requestSingleUpdate() {
+        try {
+            val locationRequest = LocationRequest.Builder(10000)
+                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+                .setMinUpdateIntervalMillis(5000)
+                .setMaxUpdateDelayMillis(10000)
+                .build()
+
+            requestLocation(locationRequest)
+        } catch (e: SecurityException) {
+            _locationState.update { it.copy(
+                error = "Location permission error",
+                hasLocationPermission = false
+            )}
+        }
+    }
 } 

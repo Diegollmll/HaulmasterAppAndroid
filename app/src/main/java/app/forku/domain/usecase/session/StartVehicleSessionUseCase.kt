@@ -1,8 +1,7 @@
 package app.forku.domain.usecase.session
 
 import app.forku.domain.model.session.VehicleSession
-import app.forku.domain.model.user.Permissions
-import app.forku.domain.model.user.hasPermission
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.user.UserRepository
 import javax.inject.Inject
@@ -15,7 +14,7 @@ class StartVehicleSessionUseCase @Inject constructor(
         val currentUser = userRepository.getCurrentUser()
             ?: return Result.failure(Exception("User not logged in"))
 
-        if (!currentUser.hasPermission(Permissions.OPERATE_VEHICLE)) {
+        if (currentUser.role != UserRole.OPERATOR) {
             return Result.failure(Exception("User does not have permission to operate vehicles"))
         }
 

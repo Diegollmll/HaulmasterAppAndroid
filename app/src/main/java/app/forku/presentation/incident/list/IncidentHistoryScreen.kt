@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -19,57 +20,79 @@ import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 
-
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun IncidentHistoryScreen(
     viewModel: IncidentHistoryViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToReport: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = state.isLoading,
+        onRefresh = { viewModel.loadIncidents() }
+    )
 
     BaseScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = "Incident Reports",
         content = { padding ->
-            when {
-                state.isLoading -> LoadingOverlay()
-                state.error != null -> ErrorScreen(
-                    message = state.error ?: "Unknown error occurred",
-                    onRetry = { viewModel.loadIncidents() }
-                )
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                    ) {
-                        items(
-                            items = state.incidents,
-                            key = { it.id }
-                        ) { incident ->
-                            IncidentHistoryItem(
-                                incident = incident,
-                                onClick = {
-                                    navController.navigate(
-                                        Screen.IncidentDetail.route.replace(
-                                            "{incidentId}",
-                                            incident.id
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pullRefresh(pullRefreshState)
+            ) {
+                when {
+                    state.error != null -> ErrorScreen(
+                        message = state.error ?: "Unknown error occurred",
+                        onRetry = { viewModel.loadIncidents() }
+                    )
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(padding)
+                        ) {
+                            items(
+                                items = state.incidents,
+                                key = { it.id }
+                            ) { incident ->
+                                IncidentHistoryItem(
+                                    incident = incident,
+                                    onClick = {
+                                        navController.navigate(
+                                            Screen.IncidentDetail.route.replace(
+                                                "{incidentId}",
+                                                incident.id
+                                            )
                                         )
-                                    )
-                                }
-                            )
+                                    }
+                                )
+                            }
                         }
                     }
                 }
+
+                PullRefreshIndicator(
+                    refreshing = state.isLoading,
+                    state = pullRefreshState,
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
-        }
+        },
+        networkManager = networkManager
     )
 }
 

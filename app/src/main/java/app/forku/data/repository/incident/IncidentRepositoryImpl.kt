@@ -14,6 +14,9 @@ class IncidentRepositoryImpl @Inject constructor(
 ) : IncidentRepository {
     override suspend fun reportIncident(incident: Incident): Result<Incident> {
         return try {
+            val currentUser = authDataStore.getCurrentUser() 
+                ?: return Result.failure(Exception("User not authenticated"))
+            
             val response = api.reportIncident(incident.toDto())
             if (response.isSuccessful) {
                 Result.success(response.body()?.toDomain() 

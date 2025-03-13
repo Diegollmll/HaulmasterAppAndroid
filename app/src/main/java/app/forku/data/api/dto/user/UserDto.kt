@@ -7,14 +7,14 @@ data class UserDto(
     val email: String,
     val password: String,
     val username: String,
-    val name: String,
+    val firstName: String,
+    val lastName: String,
     val photoUrl: String?,
     val role: String,
-    val permissions: List<String>,
     val certifications: List<CertificationDto>,
-    val last_medical_check: String?,
-    val last_login: String?,
-    val is_active: Boolean = true
+    val lastMedicalCheck: String?,
+    val lastLogin: String?,
+    val isActive: Boolean = true
 )
 
 data class CertificationDto(

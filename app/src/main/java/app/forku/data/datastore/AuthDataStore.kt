@@ -27,10 +27,10 @@ class AuthDataStore @Inject constructor(
         val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         val EMAIL = stringPreferencesKey("email")
         val USERNAME = stringPreferencesKey("username")
-        val NAME = stringPreferencesKey("name")
+        val FIRST_NAME = stringPreferencesKey("first_name")
+        val LAST_NAME = stringPreferencesKey("last_name")
         val PHOTO_URL = stringPreferencesKey("photo_url")
         val ROLE = stringPreferencesKey("role")
-        val PERMISSIONS = stringSetPreferencesKey("permissions")
         val USER_KEY = stringPreferencesKey("user")
         val TOKEN_KEY = stringPreferencesKey("token")
     }
@@ -38,9 +38,13 @@ class AuthDataStore @Inject constructor(
     @Volatile
     private var cachedToken: String? = null
 
-    fun getToken(): String? = cachedToken
+    fun getToken(): String? {
+        android.util.Log.d("AuthDataStore", "Getting cached token: $cachedToken")
+        return cachedToken
+    }
 
     suspend fun setToken(token: String?) {
+        android.util.Log.d("AuthDataStore", "Setting token: ${token?.take(10)}...")
         cachedToken = token
         context.dataStore.edit { preferences ->
             if (token != null) {
@@ -52,33 +56,84 @@ class AuthDataStore @Inject constructor(
     }
 
     suspend fun setCurrentUser(user: User) {
+        android.util.Log.d("AuthDataStore", """
+            Setting current user:
+            - ID: ${user.id}
+            - Name: ${user.fullName}
+            - Token: ${user.token.take(10)}...
+            - Role: ${user.role}
+        """.trimIndent())
+        
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_ID] = user.id
             preferences[PreferencesKeys.TOKEN] = user.token
             preferences[PreferencesKeys.REFRESH_TOKEN] = user.refreshToken
             preferences[PreferencesKeys.EMAIL] = user.email
             preferences[PreferencesKeys.USERNAME] = user.username
-            preferences[PreferencesKeys.NAME] = user.name
+            preferences[PreferencesKeys.FIRST_NAME] = user.firstName
+            preferences[PreferencesKeys.LAST_NAME] = user.lastName
             preferences[PreferencesKeys.PHOTO_URL] = user.photoUrl ?: ""
             preferences[PreferencesKeys.ROLE] = user.role.name
-            preferences[PreferencesKeys.PERMISSIONS] = user.permissions.toSet()
             preferences[PreferencesKeys.TOKEN_KEY] = user.token
         }
         cachedToken = user.token
+        android.util.Log.d("AuthDataStore", "User data stored successfully")
     }
 
     suspend fun getCurrentUser(): User? {
         return try {
             val preferences = context.dataStore.data.first()
-            val userId = preferences[PreferencesKeys.USER_ID] ?: return null
-            val token = preferences[PreferencesKeys.TOKEN] ?: return null
-            val refreshToken = preferences[PreferencesKeys.REFRESH_TOKEN] ?: return null
-            val email = preferences[PreferencesKeys.EMAIL] ?: return null
-            val username = preferences[PreferencesKeys.USERNAME] ?: return null
-            val name = preferences[PreferencesKeys.NAME] ?: return null
+            
+            // Log all stored preferences for debugging
+            android.util.Log.d("AuthDataStore", """
+                Stored preferences:
+                - USER_ID: ${preferences[PreferencesKeys.USER_ID]}
+                - TOKEN: ${preferences[PreferencesKeys.TOKEN]?.take(10)}...
+                - TOKEN_KEY: ${preferences[PreferencesKeys.TOKEN_KEY]?.take(10)}...
+                - EMAIL: ${preferences[PreferencesKeys.EMAIL]}
+                - USERNAME: ${preferences[PreferencesKeys.USERNAME]}
+                - FIRST_NAME: ${preferences[PreferencesKeys.FIRST_NAME]}
+                - LAST_NAME: ${preferences[PreferencesKeys.LAST_NAME]}
+                - ROLE: ${preferences[PreferencesKeys.ROLE]}
+            """.trimIndent())
+            
+            val userId = preferences[PreferencesKeys.USER_ID]
+            android.util.Log.d("AuthDataStore", "Getting current user - Found ID: $userId")
+            
+            if (userId == null) {
+                android.util.Log.e("AuthDataStore", "No user ID found in preferences")
+                return null
+            }
+            
+            val token = preferences[PreferencesKeys.TOKEN] ?: run {
+                android.util.Log.e("AuthDataStore", "No token found for user $userId")
+                return null
+            }
+            val refreshToken = preferences[PreferencesKeys.REFRESH_TOKEN] ?: run {
+                android.util.Log.e("AuthDataStore", "No refresh token found for user $userId")
+                return null
+            }
+            val email = preferences[PreferencesKeys.EMAIL] ?: run {
+                android.util.Log.e("AuthDataStore", "No email found for user $userId")
+                return null
+            }
+            val username = preferences[PreferencesKeys.USERNAME] ?: run {
+                android.util.Log.e("AuthDataStore", "No username found for user $userId")
+                return null
+            }
+            val firstName = preferences[PreferencesKeys.FIRST_NAME] ?: run {
+                android.util.Log.e("AuthDataStore", "No first name found for user $userId")
+                return null
+            }
+            val lastName = preferences[PreferencesKeys.LAST_NAME] ?: run {
+                android.util.Log.e("AuthDataStore", "No last name found for user $userId")
+                return null
+            }
             val photoUrl = preferences[PreferencesKeys.PHOTO_URL]
-            val role = preferences[PreferencesKeys.ROLE]?.let { UserRole.fromString(it) } ?: return null
-            val permissions = preferences[PreferencesKeys.PERMISSIONS]?.toList() ?: emptyList()
+            val role = preferences[PreferencesKeys.ROLE]?.let { UserRole.fromString(it) } ?: run {
+                android.util.Log.e("AuthDataStore", "No role found for user $userId")
+                return null
+            }
 
             User(
                 id = userId,
@@ -86,26 +141,38 @@ class AuthDataStore @Inject constructor(
                 refreshToken = refreshToken,
                 email = email,
                 username = username,
-                name = name,
+                firstName = "$firstName",
+                lastName = "$lastName",
                 photoUrl = photoUrl?.takeIf { it.isNotEmpty() },
                 role = role,
-                permissions = permissions,
                 certifications = emptyList()
-            )
+            ).also {
+                android.util.Log.d("AuthDataStore", """
+                    User retrieved successfully:
+                    - ID: ${it.id}
+                    - Name: ${it.fullName}
+                    - Token: ${it.token.take(10)}...
+                    - Role: ${it.role}
+                """.trimIndent())
+            }
         } catch (e: Exception) {
+            android.util.Log.e("AuthDataStore", "Error getting current user", e)
             null
         }
     }
 
     suspend fun clearAuth() {
+        android.util.Log.d("AuthDataStore", "Clearing all auth data")
         context.dataStore.edit { preferences ->
             preferences.clear()
         }
+        cachedToken = null
     }
 
     suspend fun initializeToken() {
         cachedToken = context.dataStore.data.map { preferences ->
             preferences[PreferencesKeys.TOKEN_KEY]
         }.first()
+        android.util.Log.d("AuthDataStore", "Initialized token: ${cachedToken?.take(10)}...")
     }
 } 

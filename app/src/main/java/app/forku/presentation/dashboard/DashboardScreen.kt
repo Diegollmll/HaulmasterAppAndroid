@@ -39,23 +39,32 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.sp
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.vehicle.toColor
 import app.forku.presentation.dashboard.components.SessionCard
-import app.forku.domain.model.user.Permissions
-import app.forku.presentation.common.components.PermissionGate
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.clickable
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DashboardScreen(
     navController: NavController,
+    onNavigate: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigate: (String) -> Unit
+    networkManager: NetworkConnectivityManager
 ) {
     val dashboardState by viewModel.state.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     
     // Add loading state observation
     var isCheckoutLoading by remember { mutableStateOf(false) }
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = dashboardState.isLoading,
+        onRefresh = { viewModel.refreshWithLoading() }
+    )
 
     // Handle loading state during checkout
     LaunchedEffect(dashboardState.currentSession) {
@@ -76,51 +85,26 @@ fun DashboardScreen(
         viewModel.refresh()
     }
 
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = dashboardState.isLoading,
-        onRefresh = { viewModel.refreshWithLoading() }
-    )
-
-    Column {
-        // Contenido común para todos los usuarios
-        CommonContent()
-
-        // Funcionalidades específicas para Admin
-        PermissionGate(
-            user = currentUser,
-            requiredPermissions = setOf(Permissions.MANAGE_USERS),
-        ) {
-            UserManagementSection()
-        }
-
-        // Funcionalidades específicas para Operator
-        PermissionGate(
-            user = currentUser,
-            requiredPermissions = setOf(Permissions.OPERATE_VEHICLE),
-        ) {
-            VehicleOperationSection()
-        }
-    }
-
     BaseScreen(
         navController = navController,
         showBottomBar = true,
+        showBackButton = false,
         currentVehicleId = dashboardState.currentSession?.vehicleId,
         currentCheckId = dashboardState.lastPreShiftCheck?.id,
-        dashboardState = dashboardState
+        dashboardState = dashboardState,
+        networkManager = networkManager
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .pullRefresh(pullRefreshState)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .padding(padding)
+                    .padding(top = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 SessionCard(
                     vehicle = dashboardState.displayVehicle,
@@ -155,28 +139,6 @@ fun DashboardScreen(
                 )
             }
 
-            // Show loading indicator
-            if (isCheckoutLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            // Show error if any
-            dashboardState.error?.let { error ->
-                Snackbar(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    action = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Retry")
-                        }
-                    }
-                ) {
-                    Text(error)
-                }
-            }
-
-            // Pull to refresh indicator
             PullRefreshIndicator(
                 refreshing = dashboardState.isLoading,
                 state = pullRefreshState,
@@ -282,15 +244,18 @@ private fun NavigationButton(
 ) {
     val buttonSize = if (isCenter) 120.dp else 90.dp
     val iconSize = if (isCenter) 32.dp else 24.dp
+    val interactionSource = remember { MutableInteractionSource() }
     
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.size(buttonSize),
+    Surface(
+        modifier = modifier
+            .size(buttonSize)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
         shape = CircleShape,
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White,
-            contentColor = Color.Black
-        ),
+        color = Color.White,
         border = BorderStroke(
             width = if (isCenter) 3.dp else 0.dp,
             color = if (isCenter) VehicleStatus.AVAILABLE.toColor().copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.3f)
@@ -299,7 +264,9 @@ private fun NavigationButton(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(0.dp).fillMaxWidth()
+            modifier = Modifier
+                .padding(0.dp)
+                .fillMaxWidth()
         ) {
             Icon(
                 imageVector = icon,
@@ -319,11 +286,6 @@ private fun NavigationButton(
 @Composable
 private fun CommonContent() {
     // Implementation of CommonContent
-}
-
-@Composable
-private fun UserManagementSection() {
-    // Implementation of UserManagementSection
 }
 
 @Composable

@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,7 +34,8 @@ fun VehicleProfileScreen(
     onNavigateBack: () -> Unit,
     onPreShiftCheck: (String) -> Unit,
     onScanQrCode: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
@@ -149,7 +151,8 @@ fun VehicleProfileScreen(
                         if (state.showQrCode) {
                             VehicleQrCodeModal(
                                 vehicleId = vehicle.id,
-                                onDismiss = viewModel::toggleQrCode
+                                onDismiss = viewModel::toggleQrCode,
+                                onShare = viewModel::shareQrCode
                             )
                         }
 

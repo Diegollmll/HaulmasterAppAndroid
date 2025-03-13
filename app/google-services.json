@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "238145798774",
+    "project_id": "forku-1800d",
+    "storage_bucket": "forku-1800d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:238145798774:android:f68955833a23698cbc1557",
+        "android_client_info": {
+          "package_name": "app.forku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDENsT7S-iAo5fm2o64F3S5YTi5LXwaXQ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

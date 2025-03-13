@@ -25,13 +25,15 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import app.forku.core.network.NetworkConnectivityManager
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun VehicleListScreen(
     navController: NavController,
     viewModel: VehicleListViewModel = hiltViewModel(),
-    onVehicleClick: (String) -> Unit
+    onVehicleClick: (String) -> Unit,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     
@@ -46,7 +48,8 @@ fun VehicleListScreen(
         topBarTitle = "Vehicles",
         showBottomBar = true,
         onRefresh = { viewModel.loadVehicles(true) },
-        showLoadingOnRefresh = false
+        showLoadingOnRefresh = false,
+        networkManager = networkManager
     ) { padding ->
         Box(
             modifier = Modifier

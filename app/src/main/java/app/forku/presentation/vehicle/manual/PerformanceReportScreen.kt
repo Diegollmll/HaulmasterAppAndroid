@@ -7,12 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 
 @Composable
 fun PerformanceReportScreen(
     navController: NavController,
-    pdfUrl: String = "https://drive.google.com/file/d/1UXNMsRFqJH4fPfjtDvbvX-N57tGu-uUJ/preview"
+    pdfUrl: String = "https://drive.google.com/file/d/1UXNMsRFqJH4fPfjtDvbvX-N57tGu-uUJ/preview",
+    networkManager: NetworkConnectivityManager
 ) {
     BaseScreen(
         navController = navController,
@@ -29,6 +31,7 @@ fun PerformanceReportScreen(
                 },
                 modifier = Modifier.fillMaxSize()
             )
-        }
+        },
+        networkManager = networkManager
     )
 } 

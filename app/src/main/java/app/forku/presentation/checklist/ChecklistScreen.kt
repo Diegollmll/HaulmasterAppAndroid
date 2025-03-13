@@ -24,14 +24,17 @@ import androidx.navigation.NavController
 import app.forku.presentation.common.components.BaseScreen
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.AppModal
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChecklistScreen(
     viewModel: ChecklistViewModel = hiltViewModel(),
     navController: NavController,
-    onBackPressed: () -> Unit
+    onBackPressed: () -> Unit,
+    networkManager: NetworkConnectivityManager
 ) {
     var showConfirmationDialog = remember { mutableStateOf(false) }
     
@@ -54,7 +57,8 @@ fun ChecklistScreen(
         showTopBar = true,
         showBottomBar = true,
         viewModel = viewModel,
-        topBarTitle = "Vehicle Check",
+        topBarTitle = "Pre-Shift Check",
+        networkManager = networkManager,
         onRefresh = { viewModel.loadChecklistData() },
         content = { padding ->
             Box(modifier = Modifier.fillMaxSize()) {
@@ -116,10 +120,10 @@ fun ChecklistScreen(
 
 
                                 // Only show submit button when all items are answered
-                                if (currentState.showSubmitButton && currentState.allAnswered && !currentState.hasCriticalFail) {
+                                if (currentState.showSubmitButton && currentState.allAnswered) {
                                     Button(
                                         onClick = { showConfirmationDialog.value = true },
-                                        enabled = currentState.showSubmitButton && currentState.allAnswered && !currentState.hasCriticalFail,
+                                        enabled = currentState.showSubmitButton && currentState.allAnswered,
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(16.dp),

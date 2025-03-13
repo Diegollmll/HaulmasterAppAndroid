@@ -2,8 +2,7 @@ package app.forku.domain.model.user
 
 enum class UserRole {
     ADMIN,
-    OPERATOR,
-    USER;
+    OPERATOR;
 
     companion object {
         fun fromString(role: String): UserRole {

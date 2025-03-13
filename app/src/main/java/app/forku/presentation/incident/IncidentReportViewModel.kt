@@ -19,6 +19,8 @@ import javax.inject.Inject
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
+import app.forku.data.repository.notification.NotificationRepository
+import app.forku.domain.model.incident.toDisplayText
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
@@ -34,6 +36,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import app.forku.domain.repository.user.UserRepository
 
+
 @HiltViewModel
 class IncidentReportViewModel @Inject constructor(
     private val reportIncidentUseCase: ReportIncidentUseCase,
@@ -43,7 +46,8 @@ class IncidentReportViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository,
     private val checklistRepository: ChecklistRepository,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
@@ -87,17 +91,22 @@ class IncidentReportViewModel @Inject constructor(
     private fun observeLocationUpdates() {
         viewModelScope.launch {
             locationState.collect { locationStateValue ->
-                locationStateValue.location?.let { location ->
+                if (locationStateValue.location != null) {
                     _state.update { it.copy(
-                        location = location,
-                        locationCoordinates = location
+                        location = locationStateValue.location,
+                        locationCoordinates = locationStateValue.location,
+                        locationLoaded = true
                     )}
                 }
+                
+                if (locationStateValue.latitude != null && locationStateValue.longitude != null) {
+                    if (!state.value.weatherLoaded) {
+                        fetchWeather(locationStateValue.latitude, locationStateValue.longitude)
+                    }
+                }
+
                 locationStateValue.error?.let { error ->
                     _state.update { it.copy(error = error) }
-                }
-                if (locationStateValue.latitude != null && locationStateValue.longitude != null) {
-                    fetchWeather(locationStateValue.latitude, locationStateValue.longitude)
                 }
             }
         }
@@ -116,9 +125,42 @@ class IncidentReportViewModel @Inject constructor(
                 val vehicles = vehicleRepository.getVehicles()
                 _state.update { it.copy(availableVehicles = vehicles) }
 
+                // Get current user first
+                var currentUser = userRepository.getCurrentUser()
+                android.util.Log.d("IncidentReport", "Initial current user fetch: $currentUser")
+                
+                // If no user found, try to refresh
+                if (currentUser == null) {
+                    android.util.Log.d("IncidentReport", "No user found, attempting to refresh")
+                    val refreshResult = userRepository.refreshCurrentUser()
+                    currentUser = refreshResult.getOrNull()
+                    android.util.Log.d("IncidentReport", "After refresh, current user: $currentUser")
+                }
+                
+                // Set user information regardless of session
+                currentUser?.let { user ->
+                    android.util.Log.d("IncidentReport", """
+                        Setting user info:
+                        - ID: ${user.id}
+                        - Name: ${user.fullName}
+                        - Token: ${user.token.take(10)}...
+                        - Role: ${user.role}
+                    """.trimIndent())
+                    
+                    _state.update { currentState ->
+                        currentState.copy(
+                            userId = user.id,
+                            reporterName = user.fullName
+                        )
+                    }
+                } ?: run {
+                    android.util.Log.e("IncidentReport", "No user found after refresh attempt")
+                    _state.update { it.copy(error = "User not authenticated") }
+                }
+
                 // Then try to get current session
                 val session = sessionRepository.getCurrentSession()
-                val currentUser = userRepository.getCurrentUser()
+                android.util.Log.d("IncidentReport", "Current session: $session")
                 
                 session?.vehicleId?.let { vehicleId ->
                     try {
@@ -131,7 +173,6 @@ class IncidentReportViewModel @Inject constructor(
                                 vehicleType = vehicle.type,
                                 vehicleName = vehicle.codename,
                                 sessionId = session.id,
-                                operatorId = currentUser?.id,
                                 lastPreshiftCheck = lastCheck?.lastCheckDateTime?.let { dateString ->
                                     LocalDateTime.parse(dateString, DateTimeFormatter.ISO_DATE_TIME)
                                 },
@@ -143,6 +184,7 @@ class IncidentReportViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("IncidentReport", "Error in loadInitialData", e)
                 _state.update { it.copy(error = "Failed to load initial data") }
             }
         }
@@ -214,7 +256,7 @@ class IncidentReportViewModel @Inject constructor(
                                 preshiftCheckStatus = state.value.preshiftCheckStatus,
                                 typeSpecificFields = state.value.typeSpecificFields,
                                 sessionId = state.value.sessionId,
-                                operatorId = state.value.operatorId,
+                                userId = state.value.userId,
                                 othersInvolved = state.value.othersInvolved,
                                 injuries = state.value.injuries,
                                 injuryLocations = state.value.injuryLocations,
@@ -228,7 +270,14 @@ class IncidentReportViewModel @Inject constructor(
                                 locationCoordinates = state.value.locationCoordinates
                             )
 
-                            result.onSuccess {
+                            result.onSuccess { incident ->
+                                // Show notification for the new incident
+                                notificationRepository.simulateIncidentNotification(
+                                    incidentId = incident.id ?: "unknown",
+                                    title = "New ${incident.type.toDisplayText()} Reported",
+                                    message = "Location: ${incident.location}"
+                                )
+                                
                                 _state.update { it.copy(
                                     isLoading = false,
                                     showSuccessDialog = true
@@ -282,27 +331,42 @@ class IncidentReportViewModel @Inject constructor(
     }
 
     fun onLocationPermissionGranted() {
-        locationManager.onLocationPermissionGranted()
+        viewModelScope.launch {
+            try {
+                locationManager.startLocationUpdates()
+                // Esperar un momento para que la ubicación se actualice
+                delay(1000)
+                // Forzar una actualización de ubicación
+                locationManager.requestSingleUpdate()
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Error starting location updates: ${e.message}") }
+            }
+        }
     }
 
     fun onLocationPermissionDenied() {
-        locationManager.onLocationPermissionDenied()
+        _state.update { it.copy(
+            error = "Location permission is required to report incidents"
+        )}
     }
 
     fun onLocationSettingsDenied() {
-        locationManager.onLocationSettingsDenied()
+        _state.update { it.copy(
+            error = "Location settings need to be enabled to report incidents"
+        )}
     }
 
     private fun fetchWeather(latitude: Double, longitude: Double) {
         viewModelScope.launch {
-            weatherRepository.getWeatherByCoordinates(latitude, longitude)
-                .onSuccess { weather ->
-                    val weatherDescription = "${weather.description}, ${weather.temperature}°F"
-                    _state.update { it.copy(weather = weatherDescription) }
-                }
-                .onFailure { error ->
-                    android.util.Log.e("Weather", "Failed to fetch weather", error)
-                }
+            try {
+                val weather = weatherRepository.getCurrentWeather(latitude, longitude)
+                _state.update { it.copy(
+                    weather = weather,
+                    weatherLoaded = true
+                )}
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Error fetching weather: ${e.message}") }
+            }
         }
     }
 

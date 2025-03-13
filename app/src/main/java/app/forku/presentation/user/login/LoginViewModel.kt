@@ -8,7 +8,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.net.UnknownHostException
 import java.net.SocketTimeoutException
-import app.forku.data.local.TokenManager
+import app.forku.data.datastore.AuthDataStore
+import app.forku.data.local.TourPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
-    private val tokenManager: TokenManager
+    private val authDataStore: AuthDataStore,
+    private val tourPreferences: TourPreferences
 ) : ViewModel() {
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
     val state = _state.asStateFlow()
@@ -29,10 +31,8 @@ class LoginViewModel @Inject constructor(
 
                 val result = loginUseCase(sanitizedEmail, sanitizedPassword)
                 result.onSuccess { user ->
-                    tokenManager.saveToken(
-                        token = user.id,
-                        refreshToken = "temp_refresh_token"
-                    )
+                    authDataStore.setCurrentUser(user)
+                    tourPreferences.setTourCompleted()
                     _state.value = LoginState.Success(user)
                 }.onFailure { error ->
                     val errorMessage = when (error) {
@@ -55,7 +55,7 @@ class LoginViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
-            tokenManager.clearToken()
+            authDataStore.clearAuth()
             _state.value = LoginState.Idle
         }
     }

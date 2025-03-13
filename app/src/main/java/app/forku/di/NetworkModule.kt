@@ -9,6 +9,7 @@ import app.forku.data.repository.weather.WeatherRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -16,6 +17,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 import java.util.concurrent.TimeUnit
+import android.content.Context
+import app.forku.core.network.NetworkConnectivityManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -70,5 +73,13 @@ object NetworkModule {
         weatherApi: WeatherApi
     ): WeatherRepository {
         return WeatherRepositoryImpl(weatherApi)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkConnectivityManager(
+        @ApplicationContext context: Context
+    ): NetworkConnectivityManager {
+        return NetworkConnectivityManager(context)
     }
 }

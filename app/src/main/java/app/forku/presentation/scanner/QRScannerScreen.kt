@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.forku.core.network.NetworkConnectivityManager
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -39,7 +40,8 @@ fun QRScannerScreen(
     onNavigateToPreShiftCheck: (String) -> Unit,
     onNavigateToVehicleProfile: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    viewModel: QRScannerViewModel = hiltViewModel()
+    viewModel: QRScannerViewModel = hiltViewModel(),
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current

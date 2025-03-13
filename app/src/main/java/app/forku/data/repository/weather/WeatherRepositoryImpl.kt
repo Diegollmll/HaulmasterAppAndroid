@@ -29,4 +29,18 @@ class WeatherRepositoryImpl @Inject constructor(
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    override suspend fun getCurrentWeather(latitude: Double, longitude: Double): String {
+        return try {
+            val weatherResult = getWeatherByCoordinates(latitude, longitude)
+            weatherResult.fold(
+                onSuccess = { weather ->
+                    "${weather.description}, ${weather.temperature}°F, ${weather.humidity}% humidity"
+                },
+                onFailure = { "Weather data unavailable" }
+            )
+        } catch (e: Exception) {
+            "Weather data unavailable"
+        }
+    }
 } 

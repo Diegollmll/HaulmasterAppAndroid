@@ -82,7 +82,7 @@ private fun SessionContent(
     ) {
         
         Text(
-            text = if (isActive) "Active Session" else "Welcome ${user?.name ?: ""}!",
+            text = if (isActive) "Active Session" else "Welcome ${user?.firstName ?: ""}!",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary
         )

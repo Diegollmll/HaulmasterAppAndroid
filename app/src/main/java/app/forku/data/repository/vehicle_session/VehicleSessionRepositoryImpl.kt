@@ -141,20 +141,23 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getActiveSessionForVehicle(vehicleId: String): VehicleSession? {
-        return try {
-            val response = api.getAllSessions()
-            if (response.isSuccessful) {
-                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
-                sessions.find { 
-                    it.vehicleId == vehicleId && 
-                    it.status == SessionStatus.ACTIVE 
-                }
-            } else {
-                null
+        android.util.Log.d("VehicleSession", "Fetching active session for vehicle: $vehicleId")
+        val response = api.getAllSessions()
+        if (response.isSuccessful) {
+            android.util.Log.d("VehicleSession", "API response successful. Status code: ${response.code()}")
+            val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+            android.util.Log.d("VehicleSession", "Total sessions fetched: ${sessions.size}")
+            
+            val activeSession = sessions.find { 
+                it.vehicleId == vehicleId && 
+                it.status == SessionStatus.ACTIVE 
             }
-        } catch (e: Exception) {
-            null
+            
+            android.util.Log.d("VehicleSession", "Active session for vehicle $vehicleId: $activeSession")
+            return activeSession
         }
+        android.util.Log.w("VehicleSession", "Failed to fetch sessions. Status code: ${response.code()}")
+        return null
     }
 
     override suspend fun getOperatorSessionHistory(): List<VehicleSession> {

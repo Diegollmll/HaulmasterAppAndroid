@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.user.login.LoginScreen
 import app.forku.presentation.dashboard.DashboardScreen
 import app.forku.presentation.checklist.ChecklistScreen
@@ -29,13 +30,12 @@ import app.forku.presentation.incident.detail.IncidentDetailScreen
 import app.forku.presentation.tour.TourScreen
 import app.forku.presentation.user.register.RegisterScreen
 import app.forku.presentation.dashboard.AdminDashboardScreen
-import app.forku.presentation.dashboard.OperatorDashboardScreen
 import app.forku.presentation.dashboard.UnauthorizedScreen
-import app.forku.domain.model.user.Permissions
-import app.forku.presentation.common.components.PermissionGate
 import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.user.login.LoginState
-
+import app.forku.domain.model.user.UserRole
+import app.forku.presentation.user.session.OperatorSessionListScreen
+import app.forku.presentation.vehicle.session.VehicleSessionListScreen
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -54,13 +54,15 @@ sealed class Screen(val route: String) {
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
     data object Tour : Screen("tour")
     data object AdminDashboard : Screen("admin_dashboard")
-    data object OperatorDashboard : Screen("operator_dashboard")
+    data object VehicleSessionList : Screen("vehicle_session_list")
+    data object OperatorSessionList : Screen("operator_session_list")
 }
 
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = Screen.Tour.route
+    startDestination: String = Screen.Tour.route,
+    networkManager: NetworkConnectivityManager
 ) {
     val viewModel = hiltViewModel<DashboardViewModel>()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -72,48 +74,63 @@ fun NavGraph(
         navController = navController,
         startDestination = when {
             !tourCompleted -> Screen.Tour.route
-            loginState is LoginState.Success || hasToken -> Screen.Dashboard.route
+            loginState is LoginState.Success || hasToken -> {
+                when (currentUser?.role) {
+                    UserRole.ADMIN -> Screen.AdminDashboard.route
+                    else -> Screen.Dashboard.route
+                }
+            }
             else -> Screen.Login.route
         }
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(Screen.Dashboard.route) {
+                onLoginSuccess = { user ->
+                    val route = when (user.role) {
+                        UserRole.ADMIN -> Screen.AdminDashboard.route
+                        else -> Screen.Dashboard.route
+                    }
+                    navController.navigate(route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
-                }
+                },
+                networkManager = networkManager,
+                navController = navController
+            )
+        }
+
+        composable(Screen.Register.route) {
+            RegisterScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.Tour.route) {
+            TourScreen(
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
         composable(Screen.Dashboard.route) {
-            val currentUser = viewModel.getCurrentUser()
-            when {
-                currentUser?.permissions?.containsAll(Permissions.ADMIN_PERMISSIONS) == true -> {
-                    AdminDashboardScreen(
-                        navController = navController,
-                        onNavigate = { route ->
-                            navController.navigate(route)
-                        }
-                    )
-                }
-                currentUser?.permissions?.containsAll(Permissions.OPERATOR_PERMISSIONS) == true -> {
-                    OperatorDashboardScreen(
-                        navController = navController,
-                        onNavigate = { route ->
-                            navController.navigate(route)
-                        }
-                    )
-                }
-                else -> {
-                    DashboardScreen(
-                        navController = navController,
-                        onNavigate = { route ->
-                            navController.navigate(route)
-                        }
-                    )
-                }
-            }
+            DashboardScreen(
+                navController = navController,
+                onNavigate = { route ->
+                    navController.navigate(route)
+                },
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.AdminDashboard.route) {
+            AdminDashboardScreen(
+                navController = navController,
+                onNavigate = { route ->
+                    navController.navigate(route)
+                },
+                networkManager = networkManager
+            )
         }
 
         composable(Screen.QRScanner.route) {
@@ -126,7 +143,8 @@ fun NavGraph(
                 },
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                networkManager = networkManager
             )
         }
 
@@ -155,7 +173,8 @@ fun NavGraph(
                     } else {
                         navController.popBackStack()
                     }
-                }
+                },
+                networkManager = networkManager
             )
         }
 
@@ -164,7 +183,8 @@ fun NavGraph(
                 navController = navController,
                 onVehicleClick = { vehicleId ->
                     navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
-                }
+                },
+                networkManager = networkManager
             )
         }
 
@@ -184,7 +204,8 @@ fun NavGraph(
                 onScanQrCode = {
                     navController.navigate(Screen.QRScanner.route)
                 },
-                navController = navController
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
@@ -204,7 +225,8 @@ fun NavGraph(
                 incidentType = incidentType,
                 onNavigateBack = { navController.popBackStack() },
                 viewModel = viewModel,
-                navController = navController
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
@@ -213,14 +235,16 @@ fun NavGraph(
                 navController = navController,
                 onNavigateBack = { navController.navigateUp() },
                 onNavigateToIncidents = { navController.navigate(Screen.IncidentsHistory.route) },
-                onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) }
+                onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) },
+                networkManager = networkManager
             )
         }
 
         composable(Screen.OperatorsCICOHistory.route) {
             CicoHistoryScreen(
                 onNavigateBack = { navController.navigateUp() },
-                navController = navController
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
@@ -230,13 +254,15 @@ fun NavGraph(
                 onNavigateToReport = {
                     //navController.navigate(Screen.IncidentReport.route)
                 },
-                navController = navController
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
         composable(Screen.PerformanceReport.route) {
             PerformanceReportScreen(
-                navController = navController
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
@@ -247,46 +273,26 @@ fun NavGraph(
             val incidentId = backStackEntry.arguments?.getString("incidentId") ?: return@composable
             IncidentDetailScreen(
                 incidentId = incidentId,
-                navController = navController
+                navController = navController,
+                networkManager = networkManager
             )
         }
 
-        composable(Screen.Tour.route) {
-            TourScreen(navController = navController)
-        }
-
-        composable("register") {
-            RegisterScreen(
-                navController = navController
+        composable(Screen.VehicleSessionList.route) {
+            VehicleSessionListScreen(
+                navController = navController,
+                onVehicleClick = { vehicleId ->
+                    navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
+                },
+                networkManager = networkManager
             )
         }
 
-        // Rutas protegidas para Admin
-        composable(Screen.AdminDashboard.route) {
-            val currentUser = viewModel.getCurrentUser()
-            PermissionGate(
-                user = currentUser,
-                requiredPermissions = Permissions.ADMIN_PERMISSIONS,
-                unauthorizedContent = { 
-                    UnauthorizedScreen()
-                }
-            ) {
-                AdminDashboardScreen()
-            }
-        }
-
-        // Rutas protegidas para Operator
-        composable(Screen.OperatorDashboard.route) {
-            val currentUser = viewModel.getCurrentUser()
-            PermissionGate(
-                user = currentUser,
-                requiredPermissions = Permissions.OPERATOR_PERMISSIONS,
-                unauthorizedContent = { 
-                    UnauthorizedScreen()
-                }
-            ) {
-                OperatorDashboardScreen()
-            }
+        composable(Screen.OperatorSessionList.route) {
+            OperatorSessionListScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
         }
     }
 }

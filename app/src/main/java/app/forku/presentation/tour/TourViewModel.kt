@@ -2,7 +2,7 @@ package app.forku.presentation.tour
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.data.local.TokenManager
+import app.forku.data.datastore.AuthDataStore
 import app.forku.data.local.TourPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TourViewModel @Inject constructor(
-    private val tokenManager: TokenManager,
+    private val authDataStore: AuthDataStore,
     private val tourPreferences: TourPreferences
 ) : ViewModel() {
 

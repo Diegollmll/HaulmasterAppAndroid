@@ -76,9 +76,9 @@ fun BasicPeopleFields(
     Column(modifier = modifier.fillMaxWidth()) {
 
         // Reporter field (read-only)
-        if(false){
+        if(true){
             CustomOutlinedTextField(
-                value = state.operatorId ?: "Unknown",
+                value = state.userId ?: "Unknown",
                 onValueChange = { },
                 label = "Reported By",
                 readOnly = true,

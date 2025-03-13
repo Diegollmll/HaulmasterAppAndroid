@@ -5,9 +5,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import app.forku.data.local.TokenManager
+import androidx.compose.ui.Modifier
+import app.forku.data.datastore.AuthDataStore
 import app.forku.data.local.TourPreferences
 import app.forku.presentation.user.login.LoginState
 import app.forku.presentation.user.login.LoginViewModel
@@ -21,14 +25,20 @@ import javax.inject.Inject
 import android.view.View
 import androidx.compose.ui.graphics.toArgb
 import app.forku.presentation.common.theme.BackgroundGray
+import androidx.lifecycle.lifecycleScope
+import app.forku.core.network.NetworkConnectivityManager
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
-    lateinit var tokenManager: TokenManager
+    lateinit var authDataStore: AuthDataStore
 
     @Inject
     lateinit var tourPreferences: TourPreferences
+
+    @Inject
+    lateinit var networkManager: NetworkConnectivityManager
 
     private val loginViewModel: LoginViewModel by viewModels()
 
@@ -39,9 +49,15 @@ class MainActivity : ComponentActivity() {
                 View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
         super.onCreate(savedInstanceState)
+        
+        // Inicializar el token al inicio
+        lifecycleScope.launch {
+            authDataStore.initializeToken()
+        }
+
         setContent {
             val loginState by loginViewModel.state.collectAsState()
-            val hasToken = tokenManager.getToken() != null
+            val hasToken = authDataStore.getToken() != null
             val tourCompleted = tourPreferences.hasTourCompleted()
 
             ForkUTheme {
@@ -61,7 +77,8 @@ class MainActivity : ComponentActivity() {
                                 !tourCompleted -> Screen.Tour.route
                                 loginState is LoginState.Success || hasToken -> Screen.Dashboard.route
                                 else -> Screen.Login.route
-                            }
+                            },
+                            networkManager = networkManager
                         )
                     }
                 }

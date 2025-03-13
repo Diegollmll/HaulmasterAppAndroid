@@ -5,24 +5,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun IncidentDetailScreen(
     incidentId: String,
     viewModel: IncidentDetailViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = state.isLoading,
+        onRefresh = { viewModel.loadIncidentDetail(incidentId) }
+    )
 
     // Cargar los detalles cuando se inicia la pantalla
     LaunchedEffect(incidentId) {
@@ -33,10 +45,12 @@ fun IncidentDetailScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = "Incident Details",
+        networkManager = networkManager,
         content = { padding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .pullRefresh(pullRefreshState)
                     .padding(padding)
             ) {
                 when {

@@ -16,8 +16,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.R
+import app.forku.core.network.NetworkConnectivityManager
+import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import kotlinx.coroutines.launch
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 
 data class TourPage(
     val title: String,
@@ -29,107 +33,122 @@ data class TourPage(
 @Composable
 fun TourScreen(
     navController: NavController,
-    viewModel: TourViewModel = hiltViewModel()
+    viewModel: TourViewModel = hiltViewModel(),
+    networkManager: NetworkConnectivityManager
 ) {
-    val state by viewModel.state.collectAsState()
-    val scope = rememberCoroutineScope()
-    
-    val pages = listOf(
-        TourPage(
-            "Driver safety and team compliance on any device.",
-            "Learn why you're here.",
-            R.drawable.tour_1
-        ),
-        TourPage(
-            "Track compliance and safety in any workplace.",
-            "Reflections and goals",
-            R.drawable.tour_2
-        ),
-        TourPage(
-            "Track tasks with your team or while working solo.",
-            "Goals and Reflection",
-            R.drawable.tour_3
-        ),
-        TourPage(
-            "Follow your goals and find your motivation.",
-            "Register to begin",
-            R.drawable.tour_4
+    BaseScreen(
+        navController = navController,
+        showTopBar = false,
+        networkManager = networkManager
+    ) { padding ->
+        val state by viewModel.state.collectAsState()
+        val scope = rememberCoroutineScope()
+        
+        val pages = listOf(
+            TourPage(
+                "Driver safety and team compliance on any device.",
+                "Learn why you're here.",
+                R.drawable.tour_1
+            ),
+            TourPage(
+                "Track compliance and safety in any workplace.",
+                "Reflections and goals",
+                R.drawable.tour_2
+            ),
+            TourPage(
+                "Track tasks with your team or while working solo.",
+                "Goals and Reflection",
+                R.drawable.tour_3
+            ),
+            TourPage(
+                "Follow your goals and find your motivation.",
+                "Register to begin",
+                R.drawable.tour_4
+            )
         )
-    )
 
-    val pagerState = rememberPagerState(pageCount = { pages.size })
+        val pagerState = rememberPagerState(pageCount = { pages.size })
 
-    LaunchedEffect(pagerState.currentPage) {
-        viewModel.onEvent(TourEvent.NextPage)
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-        ) { page ->
-            TourPage(pages[page])
+        LaunchedEffect(pagerState.currentPage) {
+            viewModel.onEvent(TourEvent.NextPage)
         }
 
-        // Page indicator
-        Row(
-            Modifier
-                .height(50.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            repeat(pagerState.pageCount) { iteration ->
-                val color = if (pagerState.currentPage == iteration) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) { page ->
+                TourPage(pages[page])
+            }
+
+            // Page indicator
+            Row(
+                Modifier
+                    .height(50.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(pagerState.pageCount) { iteration ->
+                    val color = if (pagerState.currentPage == iteration) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(2.dp)
+                            .background(color, MaterialTheme.shapes.small)
+                            .size(8.dp)
+                    )
                 }
-                Box(
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .background(color, MaterialTheme.shapes.small)
-                        .size(8.dp)
-                )
             }
-        }
 
-        // Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = { 
-                    navController.navigate("register") {
-                        popUpTo("tour") { inclusive = true }
-                    }
-                },
-                modifier = Modifier.weight(1f)
+            // Buttons - only show when on the last page
+            AnimatedVisibility(
+                visible = pagerState.currentPage == pages.size - 1,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
             ) {
-                Text("Register")
-            }
-            
-            Button(
-                onClick = { 
-                    navController.navigate("login") {
-                        popUpTo("tour") { inclusive = true }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { 
+                            viewModel.onEvent(TourEvent.Register)
+                            navController.navigate(Screen.Register.route) {
+                                popUpTo(Screen.Tour.route) { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Register")
                     }
-                },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text("Login")
+                    
+                    Button(
+                        onClick = { 
+                            viewModel.onEvent(TourEvent.Login)
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Tour.route) { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        Text("Login")
+                    }
+                }
             }
         }
     }

@@ -23,13 +23,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.LoadingScreen
 import app.forku.presentation.navigation.Screen
+
 
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    viewModel: RegisterViewModel = hiltViewModel()
+    viewModel: RegisterViewModel = hiltViewModel(),
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current

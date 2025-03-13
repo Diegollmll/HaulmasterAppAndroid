@@ -29,10 +29,10 @@ fun DamageAndImpactSection(
         // Damage Occurrence Dropdown
         var expanded by remember { mutableStateOf(false) }
         val currentDamage = when (val fields = state.typeSpecificFields) {
-            is IncidentTypeFields.CollisionFields -> fields.damageOccurrence?.name
-            is IncidentTypeFields.VehicleFailFields -> fields.damageOccurrence?.name
+            is IncidentTypeFields.CollisionFields -> fields.damageOccurrence
+            is IncidentTypeFields.VehicleFailFields -> fields.damageOccurrence
             else -> null
-        }?.replace("_", " ")
+        }
 
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -40,10 +40,10 @@ fun DamageAndImpactSection(
             modifier = Modifier.fillMaxWidth()
         ) {
             CustomOutlinedTextField(
-                value = currentDamage ?: "",
+                value = currentDamage?.name?.replace("_", " ") ?: "",
                 onValueChange = {},
                 readOnly = true,
-                label = "Damage Occurrence",
+                label = "Damage Occurrence *",
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
                     .menuAnchor()

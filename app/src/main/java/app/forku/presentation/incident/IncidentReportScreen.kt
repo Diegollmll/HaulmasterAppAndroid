@@ -26,6 +26,7 @@ import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.model.incident.toDisplayText
 import android.Manifest
 import android.content.pm.PackageManager
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.ForkuButton
 import app.forku.presentation.common.components.LocationPermissionHandler
 
@@ -35,7 +36,8 @@ fun IncidentReportScreen(
     incidentType: String,
     onNavigateBack: () -> Unit,
     viewModel: IncidentReportViewModel = hiltViewModel(),
-    navController: NavController
+    navController: NavController,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsState()
     val locationState by viewModel.locationState.collectAsState()
@@ -115,7 +117,8 @@ fun IncidentReportScreen(
         navController = navController,
         viewModel = viewModel,
         showBottomBar = false,
-        topBarTitle = "${IncidentType.valueOf(incidentType).toDisplayText()} Incident"
+        topBarTitle = "${IncidentType.valueOf(incidentType).toDisplayText()} Incident",
+        networkManager = networkManager
     ) { padding ->
         Column(
             modifier = Modifier

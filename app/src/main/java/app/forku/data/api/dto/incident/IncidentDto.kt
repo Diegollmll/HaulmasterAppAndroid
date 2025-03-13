@@ -29,7 +29,6 @@ data class IncidentDto(
     val loadWeight: String?,
     
     // People involved
-    val operatorId: String?,
     val othersInvolved: List<String>,
     val injuries: String,
     val injuryLocations: List<String>,

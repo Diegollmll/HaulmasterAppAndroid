@@ -13,21 +13,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.LoadingOverlay
+import app.forku.domain.model.user.User
+import app.forku.domain.model.user.UserRole
+import androidx.navigation.NavController
+import app.forku.presentation.navigation.Screen
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: (User) -> Unit,
+    networkManager: NetworkConnectivityManager,
+    navController: NavController
 ) {
-    var username by remember { mutableStateOf("") }
+    val state by viewModel.state.collectAsState()
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val state by viewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(state) {
         if (state is LoginState.Success) {
-            onLoginSuccess()
+            onLoginSuccess((state as LoginState.Success).user)
         }
     }
 
@@ -61,8 +69,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
+                value = email,
+                onValueChange = { email = it },
                 label = { Text("Phone or email") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -104,13 +112,13 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.login(username, password) },
+                onClick = { viewModel.login(email, password) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFFA726),
                     contentColor = Color.Black
                 ),
-                enabled = username.isNotBlank() && password.isNotBlank() && state !is LoginState.Loading
+                enabled = email.isNotBlank() && password.isNotBlank() && state !is LoginState.Loading
             ) {
                 if (state is LoginState.Loading) {
                     CircularProgressIndicator(
@@ -121,6 +129,28 @@ fun LoginScreen(
                     Text("Log in")
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Don't have an account? ",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                TextButton(
+                    onClick = { navController.navigate(Screen.Register.route) },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFFFA726)
+                    )
+                ) {
+                    Text("Register")
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
 

@@ -1,5 +1,10 @@
 package app.forku.presentation.vehicle.profile
 
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +14,7 @@ import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.model.session.SessionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -21,7 +27,9 @@ import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.user.UserRepository
-
+import app.forku.presentation.vehicle.components.QrCodeGenerator
+import java.io.File
+import java.io.FileOutputStream
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -32,7 +40,8 @@ class VehicleProfileViewModel @Inject constructor(
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val checklistRepository: ChecklistRepository,
     private val userRepository: UserRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleProfileState())
     val state = _state.asStateFlow()
@@ -107,6 +116,50 @@ class VehicleProfileViewModel @Inject constructor(
 
     fun toggleQrCode() {
         _state.update { it.copy(showQrCode = !it.showQrCode) }
+    }
+
+    fun shareQrCode() {
+        viewModelScope.launch {
+            try {
+                state.value.vehicle?.let { vehicle ->
+                    // Generate QR code bitmap
+                    val qrBitmap = QrCodeGenerator.generateVehicleQrCode(vehicle.id)
+                    
+                    // Save bitmap to temporary file
+                    val cachePath = File(context.cacheDir, "qr_codes")
+                    cachePath.mkdirs()
+                    
+                    val file = File(cachePath, "vehicle_qr_${vehicle.id}.png")
+                    FileOutputStream(file).use { out ->
+                        qrBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    }
+                    
+                    // Get content URI using FileProvider
+                    val contentUri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                    
+                    // Create share intent
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "image/png"
+                        putExtra(Intent.EXTRA_STREAM, contentUri)
+                        putExtra(Intent.EXTRA_SUBJECT, "Vehicle QR Code")
+                        putExtra(Intent.EXTRA_TEXT, "Scan this QR code to access vehicle information")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    
+                    // Start share activity
+                    val chooserIntent = Intent.createChooser(shareIntent, "Share QR Code")
+                    chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(chooserIntent)
+                }
+            } catch (e: Exception) {
+                // Handle error
+                _state.update { it.copy(error = "Error sharing QR code: ${e.message}") }
+            }
+        }
     }
 
     fun startSessionFromCheck() {

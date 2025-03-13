@@ -200,7 +200,7 @@ fun VehicleDetailsSection(
                 ) {
                     activeOperator?.role?.let {
                         OperatorProfile(
-                            name = activeOperator?.name ?: "No operator assigned",
+                            name = activeOperator?.fullName ?: "No operator assigned",
                             imageUrl = activeOperator.photoUrl,
                             modifier = Modifier.padding(0.dp, 8.dp),
                             role = it.name

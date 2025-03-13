@@ -7,27 +7,22 @@ import app.forku.domain.model.user.User
 import app.forku.domain.repository.user.UserRepository
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.mapper.toDto
-import app.forku.domain.model.user.Permissions
 import app.forku.domain.model.user.UserRole
+import app.forku.data.local.TourPreferences
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Singleton
-import android.content.SharedPreferences
 import kotlinx.coroutines.flow.Flow
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
     private val api: GeneralApi,
     private val authDataStore: AuthDataStore,
-    private val sharedPreferences: SharedPreferences
+    private val tourPreferences: TourPreferences
 ) : UserRepository {
     
-    companion object {
-        private const val PREF_TOUR_COMPLETED = "tour_completed"
-    }
-
     override suspend fun getUserById(id: String): User? {
         return try {
             val response = api.getUser(id)
@@ -43,20 +38,49 @@ class UserRepositoryImpl @Inject constructor(
             // Obtener todos los usuarios
             val response = api.getUsers()
             if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Failed to fetch users"))
+                android.util.Log.e("appflow UserRepository", "Server error: ${response.code()}")
+                return@withContext Result.failure(Exception("Error de servidor. Por favor intenta más tarde"))
             }
 
-            // Buscar usuario por email y password
+            // Log the response for debugging
+            android.util.Log.d("appflow UserRepository", "Users response: ${response.body()}")
+
+            // Primero verificar si existe el email
+            val userWithEmail = response.body()?.find { it.email == email }
+            if (userWithEmail == null) {
+                android.util.Log.e("appflow UserRepository", "User not found with email: $email")
+                return@withContext Result.failure(Exception("El correo electrónico no está registrado"))
+            }
+
+            // Log user found
+            android.util.Log.d("appflow UserRepository", "Found user: $userWithEmail")
+
+            // Luego verificar la contraseña
             val user = response.body()?.find { 
                 it.email == email && it.password == password 
-            }?.toDomain() ?: return@withContext Result.failure(Exception("Invalid credentials"))
+            }?.toDomain()
+            
+            if (user == null) {
+                android.util.Log.e("appflow UserRepository", "Invalid password for email: $email")
+                return@withContext Result.failure(Exception("Contraseña incorrecta"))
+            }
+
+            // Verificar si el usuario está activo
+            if (!user.isActive) {
+                android.util.Log.e("appflow UserRepository", "User account is inactive: $email")
+                return@withContext Result.failure(Exception("Tu cuenta está desactivada. Contacta al administrador"))
+            }
+
+            // Log successful login
+            android.util.Log.d("appflow UserRepository", "Successful login for user: ${user.email}")
 
             // Guardar usuario en AuthDataStore
             authDataStore.setCurrentUser(user)
             
             Result.success(user)
         } catch (e: Exception) {
-            Result.failure(e)
+            android.util.Log.e("UserRepository", "Error during login", e)
+            Result.failure(Exception("Error de conexión. Verifica tu internet e intenta de nuevo"))
         }
     }
 
@@ -79,29 +103,24 @@ class UserRepositoryImpl @Inject constructor(
             }
 
             // Por defecto, los nuevos usuarios se registran con rol USER
-            val role = UserRole.USER
-            val permissions = when (role) {
-                UserRole.ADMIN -> Permissions.ADMIN_PERMISSIONS
-                UserRole.OPERATOR -> Permissions.OPERATOR_PERMISSIONS
-                UserRole.USER -> Permissions.USER_PERMISSIONS
-            }
-
+            val role = UserRole.OPERATOR
+            
             // Crear nuevo usuario
             val newUser = UserDto(
                 id = UUID.randomUUID().toString(),
                 email = email,
                 password = password,
                 username = email,
-                name = "$firstName $lastName",
+                firstName = firstName,
+                lastName = lastName,
                 token = UUID.randomUUID().toString(),
                 refreshToken = UUID.randomUUID().toString(),
                 photoUrl = null,
                 role = role.name,
-                permissions = permissions.toList(),
                 certifications = listOf(),
-                last_medical_check = null,
-                last_login = null,
-                is_active = true
+                lastMedicalCheck = null,
+                lastLogin = null,
+                isActive = true
             )
 
             val response = api.createUser(newUser)
@@ -152,28 +171,21 @@ class UserRepositoryImpl @Inject constructor(
         try {
             val user = getUserById(userId) ?: return@withContext Result.failure(Exception("User not found"))
             
-            // Asignar permisos según el nuevo rol
-            val newPermissions = when (newRole) {
-                UserRole.ADMIN -> Permissions.ADMIN_PERMISSIONS
-                UserRole.OPERATOR -> Permissions.OPERATOR_PERMISSIONS
-                UserRole.USER -> Permissions.USER_PERMISSIONS
-            }
-
             val updatedUserDto = UserDto(
                 id = user.id,
                 email = user.email,
                 password = "", // No incluimos el password en la actualización
                 username = user.username,
-                name = user.name,
+                firstName = user.firstName,
+                lastName = user.lastName,
                 token = user.token,
                 refreshToken = user.refreshToken,
                 photoUrl = user.photoUrl,
                 role = newRole.name,
-                permissions = newPermissions.toList(),
                 certifications = user.certifications.map { it.toDto() },
-                last_medical_check = user.lastMedicalCheck,
-                last_login = user.lastLogin,
-                is_active = true
+                lastMedicalCheck = user.lastMedicalCheck,
+                lastLogin = user.lastLogin,
+                isActive = true
             )
 
             val response = api.updateUser(userId, updatedUserDto)
@@ -204,16 +216,16 @@ class UserRepositoryImpl @Inject constructor(
                 email = user.email,
                 password = "", // No incluimos el password en la actualización
                 username = user.username,
-                name = user.name,
+                firstName = user.firstName,
+                lastName = user.lastName,
                 token = user.token,
                 refreshToken = user.refreshToken,
                 photoUrl = user.photoUrl,
                 role = user.role.name,
-                permissions = user.permissions,
                 certifications = user.certifications.map { it.toDto() },
-                last_medical_check = user.lastMedicalCheck,
-                last_login = user.lastLogin,
-                is_active = user.isActive
+                lastMedicalCheck = user.lastMedicalCheck,
+                lastLogin = user.lastLogin,
+                isActive = user.isActive
             )
 
             val response = api.updateUser(user.id, userDto)
@@ -274,11 +286,11 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getTourCompletionStatus(): Boolean {
-        return sharedPreferences.getBoolean(PREF_TOUR_COMPLETED, false)
+        return tourPreferences.hasTourCompleted()
     }
 
     override suspend fun setTourCompleted() {
-        sharedPreferences.edit().putBoolean(PREF_TOUR_COMPLETED, true).apply()
+        tourPreferences.setTourCompleted()
     }
 
     override suspend fun getAuthToken(): String? {

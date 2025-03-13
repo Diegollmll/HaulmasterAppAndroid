@@ -8,20 +8,22 @@ import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.user.Certification
 
 fun UserDto.toDomain(): User {
+    // Split the name into first and last name
+
     return User(
         id = id,
         token = token,
         refreshToken = refreshToken,
         email = email,
         username = username,
-        name = name,
+        firstName = firstName,
+        lastName = lastName,
         photoUrl = photoUrl,
         role = UserRole.fromString(role),
-        permissions = permissions,
         certifications = certifications.map { it.toDomain() },
-        lastMedicalCheck = last_medical_check,
-        lastLogin = last_login,
-        isActive = is_active
+        lastMedicalCheck = lastMedicalCheck,
+        lastLogin = lastLogin,
+        isActive = isActive
     )
 }
 
@@ -41,14 +43,14 @@ fun User.toDto(): UserDto {
         email = email,
         password = "", // No incluimos el password en la conversión a DTO
         username = username,
-        name = name,
+        firstName = firstName,
+        lastName = lastName,
         photoUrl = photoUrl,
         role = role.name,
-        permissions = permissions,
         certifications = certifications.map { it.toDto() },
-        last_medical_check = lastMedicalCheck,
-        last_login = lastLogin,
-        is_active = isActive
+        lastMedicalCheck = lastMedicalCheck,
+        lastLogin = lastLogin,
+        isActive = isActive
     )
 }
 

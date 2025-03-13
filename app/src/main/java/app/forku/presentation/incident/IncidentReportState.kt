@@ -34,7 +34,8 @@ data class IncidentReportState(
     val sessionId: String? = null,
     
     // People involved
-    val operatorId: String? = null,
+    val userId: String? = null,
+    val reporterName: String? = null,
     val othersInvolved: List<String> = emptyList(),
     val injuries: String = "",
     val injuryLocations: List<String> = emptyList(),
@@ -73,7 +74,11 @@ data class IncidentReportState(
     
     // Add to IncidentReportState
     val availableVehicles: List<Vehicle> = emptyList(),
-    val showVehicleSelector: Boolean = false
+    val showVehicleSelector: Boolean = false,
+
+    // Weather and location loading state
+    val weatherLoaded: Boolean = false,
+    val locationLoaded: Boolean = false
 )
 
 sealed class ValidationResult {
@@ -92,36 +97,48 @@ fun IncidentReportState.validate(): ValidationResult {
 }
 
 fun IncidentReportState.validateCollision(): ValidationResult {
+    val fields = typeSpecificFields as? IncidentTypeFields.CollisionFields
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
-        location.isBlank() -> ValidationResult.Error("Location is required")
         vehicleId == null -> ValidationResult.Error("Vehicle information is required")
-        operatorId == null -> ValidationResult.Error("Operator information is required")
+        userId == null -> ValidationResult.Error("Operator information is required")
+        fields?.collisionType == null -> ValidationResult.Error("Collision type is required")
+        fields.damageOccurrence == null -> ValidationResult.Error("Damage occurrence is required")
+        fields.immediateCause == null -> ValidationResult.Error("Immediate cause is required")
         else -> ValidationResult.Success
     }
 }
 
 fun IncidentReportState.validateNearMiss(): ValidationResult {
+    val fields = typeSpecificFields as? IncidentTypeFields.NearMissFields
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
-        location.isBlank() -> ValidationResult.Error("Location is required")
+        userId == null -> ValidationResult.Error("Operator information is required")
+        fields?.nearMissType == null -> ValidationResult.Error("Near miss type is required")
+        fields.immediateCause == null -> ValidationResult.Error("Immediate cause is required")
         else -> ValidationResult.Success
     }
 }
 
 fun IncidentReportState.validateHazard(): ValidationResult {
+    val fields = typeSpecificFields as? IncidentTypeFields.HazardFields
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
-        location.isBlank() -> ValidationResult.Error("Location is required")
+        userId == null -> ValidationResult.Error("Operator information is required")
+        fields?.hazardType == null -> ValidationResult.Error("Hazard type is required")
         else -> ValidationResult.Success
     }
 }
 
 fun IncidentReportState.validateVehicleFail(): ValidationResult {
+    val fields = typeSpecificFields as? IncidentTypeFields.VehicleFailFields
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
         vehicleId == null -> ValidationResult.Error("Vehicle information is required")
-        location.isBlank() -> ValidationResult.Error("Location is required")
+        userId == null -> ValidationResult.Error("Operator information is required")
+        fields?.failureType == null -> ValidationResult.Error("Failure type is required")
+        fields.damageOccurrence == null -> ValidationResult.Error("Damage occurrence is required")
+        fields.immediateCause == null -> ValidationResult.Error("Immediate cause is required")
         else -> ValidationResult.Success
     }
 }

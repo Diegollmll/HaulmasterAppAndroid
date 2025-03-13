@@ -6,10 +6,10 @@ data class User(
     val refreshToken: String,
     val email: String,
     val username: String,
-    val name: String,
+    val firstName: String,
+    val lastName: String,
     val photoUrl: String?,
     val role: UserRole,
-    val permissions: List<String>,
     val certifications: List<Certification>,
     val experienceLevel: String = "Rookie",
     val points: Int = 0,
@@ -20,4 +20,7 @@ data class User(
     val lastMedicalCheck: String? = null,
     val lastLogin: String? = null,
     val isActive: Boolean = true
-)
+) {
+    val fullName: String
+        get() = "$firstName $lastName"
+}

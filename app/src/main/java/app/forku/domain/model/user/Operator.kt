@@ -20,7 +20,6 @@ data class Operator(
     val id: String get() = user.id
     val username: String get() = user.username
     val role: UserRole get() = user.role
-    val permissions: List<String> get() = user.permissions
     val certifications: List<Certification> get() = user.certifications
 
     fun canOperateVehicle(vehicleType: VehicleType): Boolean {

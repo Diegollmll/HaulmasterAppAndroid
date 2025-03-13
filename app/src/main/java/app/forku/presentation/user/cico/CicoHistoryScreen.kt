@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import androidx.navigation.NavController
+import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +23,8 @@ import app.forku.presentation.common.components.BaseScreen
 fun CicoHistoryScreen(
     viewModel: CicoHistoryViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    navController: NavController
+    navController: NavController,
+    networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -49,7 +51,8 @@ fun CicoHistoryScreen(
                     }
                 }
             }
-        }
+        },
+        networkManager = networkManager
     )
 }
 

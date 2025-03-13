@@ -99,7 +99,7 @@ fun IncidentDetailsSection(
         FormFieldDivider()
 
         // Hidden Weather Conditions field - maintains state but not visible
-        if (false) {  // This ensures the composable is never rendered
+        if (true) {  // This ensures the composable is never rendered
             CustomOutlinedTextField(
                 value = state.weather,
                 onValueChange = { },
@@ -114,7 +114,7 @@ fun IncidentDetailsSection(
         }
 
         // Hidden Location field - maintains state but not visible
-        if (false) {  // This ensures the composable is never rendered
+        if (true) {  // This ensures the composable is never rendered
             CustomOutlinedTextField(
                 value = state.location,
                 onValueChange = { },
