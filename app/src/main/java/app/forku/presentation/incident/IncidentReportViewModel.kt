@@ -19,6 +19,7 @@ import javax.inject.Inject
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
+import app.forku.core.notification.NotificationService
 import app.forku.data.repository.notification.NotificationRepository
 import app.forku.domain.model.incident.toDisplayText
 import app.forku.domain.model.vehicle.Vehicle
@@ -47,7 +48,8 @@ class IncidentReportViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
     private val checklistRepository: ChecklistRepository,
     private val locationManager: LocationManager,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val notificationService: NotificationService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
@@ -271,8 +273,8 @@ class IncidentReportViewModel @Inject constructor(
                             )
 
                             result.onSuccess { incident ->
-                                // Show notification for the new incident
-                                notificationRepository.simulateIncidentNotification(
+                                // Send notification through the notification service
+                                notificationService.sendIncidentNotification(
                                     incidentId = incident.id ?: "unknown",
                                     title = "New ${incident.type.toDisplayText()} Reported",
                                     message = "Location: ${incident.location}"

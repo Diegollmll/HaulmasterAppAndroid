@@ -1,5 +1,6 @@
 package app.forku.presentation.vehicle.session
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -107,123 +108,111 @@ fun VehicleSessionListItem(
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(12.dp)
         ) {
             // Vehicle info section
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Vehicle Image
                 AsyncImage(
                     model = vehicleInfo.vehicle.photoModel,
                     contentDescription = "Vehicle image",
                     modifier = Modifier
                         .size(60.dp)
-                        .clip(RoundedCornerShape(8.dp)),
+                        .clip(RoundedCornerShape(4.dp)),
                     contentScale = ContentScale.Crop
                 )
                 
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Column(modifier = Modifier.weight(1f)) {
+                // Vehicle Info
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Vehicle Name
                     Text(
                         text = vehicleInfo.vehicle.codename,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
+                    
+//                    // Vehicle Type
+//                    Text(
+//                        text = vehicleInfo.vehicle.type.displayName,
+//                        color = Color.Gray,
+//                        fontSize = 12.sp,
+//                        maxLines = 1
+//                    )
+//
+                    // ID and Status Row
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "ID:${vehicleInfo.vehicle.id}",
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "•",
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = vehicleInfo.vehicle.type.displayName,
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "•",
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = vehicleInfo.vehicle.status.name,
-                            color = vehicleInfo.vehicle.status.toColor(),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+//                        // ID
+//                        Text(
+//                            text = "ID-${vehicleInfo.vehicle.id.take(3)}",
+//                            color = Color.Gray,
+//                            fontSize = 12.sp
+//                        )
+//
+                        // Status
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(vehicleInfo.vehicle.status.toColor(), CircleShape)
+                            )
+                            Text(
+                                text = vehicleInfo.vehicle.status.name,
+                                color = vehicleInfo.vehicle.status.toColor(),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
             
             // Session info if active
             vehicleInfo.activeSession?.let { session ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider(color = Color.LightGray, thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Progress section
+                    // Operator Image
+                    AsyncImage(
+                        model = session.operatorImage,
+                        contentDescription = "Operator photo",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    
                     Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "${(session.progress * 100).toInt()}%",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            LinearProgressIndicator(
-                                progress = session.progress,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = when {
-                                    session.progress > 0.7f -> Color(0xFF4CAF50)
-                                    session.progress > 0.3f -> Color(0xFFFFA726)
-                                    else -> Color(0xFFF44336)
-                                }
-                            )
-                        }
-                    }
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
-                    // Operator info
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        AsyncImage(
-                            model = session.operatorImage,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                        Text(
-                            text = "Operator",
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
                         Text(
                             text = session.operatorName,
                             fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "Active Session",
+                            color = Color.Gray,
+                            fontSize = 12.sp
                         )
                     }
                 }

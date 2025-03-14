@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -28,6 +31,7 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.dashboard.OperatorSessionInfo
+import app.forku.presentation.navigation.Screen
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -47,7 +51,7 @@ fun OperatorSessionListScreen(
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = "Active Operators",
+        topBarTitle = "Operators",
         showBottomBar = true,
         onRefresh = { viewModel.loadOperators(true) },
         showLoadingOnRefresh = false,
@@ -71,7 +75,12 @@ fun OperatorSessionListScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(state.operators) { operator ->
-                            OperatorSessionListItem(operator = operator)
+                            OperatorSessionListItem(
+                                operator = operator,
+                                onClick = {
+                                    navController.navigate(Screen.Profile.createRoute(operator.userId))
+                                }
+                            )
                         }
                     }
                 }
@@ -89,11 +98,15 @@ fun OperatorSessionListScreen(
 }
 
 @Composable
-private fun OperatorSessionListItem(operator: OperatorSessionInfo) {
+private fun OperatorSessionListItem(
+    operator: OperatorSessionInfo,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier
@@ -138,6 +151,12 @@ private fun OperatorSessionListItem(operator: OperatorSessionInfo) {
                     )
                 }
             }
+            
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "View profile",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 } 

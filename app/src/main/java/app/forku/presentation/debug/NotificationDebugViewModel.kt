@@ -1,27 +1,25 @@
 package app.forku.presentation.debug
 
 import androidx.lifecycle.ViewModel
-import app.forku.data.repository.notification.NotificationRepository
+import app.forku.core.notification.NotificationTestService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class NotificationDebugViewModel @Inject constructor(
-    private val notificationRepository: NotificationRepository
+    private val notificationTestService: NotificationTestService
 ) : ViewModel() {
 
-    val fcmToken = notificationRepository.fcmToken
-
-    fun testIncidentNotification() {
-        notificationRepository.simulateIncidentNotification()
+    fun simulateIncidentNotification() {
+        notificationTestService.simulateIncidentNotification()
     }
 
-    fun testSafetyAlert() {
-        notificationRepository.simulateSafetyAlert()
+    fun simulateSafetyAlert() {
+        notificationTestService.simulateSafetyAlert()
     }
 
-    fun testGeneralNotification() {
-        notificationRepository.simulateGeneralNotification()
+    fun simulateGeneralNotification() {
+        notificationTestService.simulateGeneralNotification()
     }
 
     // Custom notification test
@@ -32,9 +30,9 @@ class NotificationDebugViewModel @Inject constructor(
         message: String
     ) {
         when (type) {
-            "INCIDENT" -> notificationRepository.simulateIncidentNotification(id, title, message)
-            "SAFETY_ALERT" -> notificationRepository.simulateSafetyAlert(id, title, message)
-            else -> notificationRepository.simulateGeneralNotification(title, message)
+            "INCIDENT" -> notificationTestService.simulateIncidentNotification(id, title, message)
+            "SAFETY_ALERT" -> notificationTestService.simulateSafetyAlert(id, title, message)
+            else -> notificationTestService.simulateGeneralNotification(title, message)
         }
     }
 } 

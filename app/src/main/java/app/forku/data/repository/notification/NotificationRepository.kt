@@ -1,29 +1,26 @@
 package app.forku.data.repository.notification
 
 import app.forku.core.notification.NotificationManager
-import kotlinx.coroutines.flow.MutableStateFlow
+import app.forku.core.notification.NotificationType
+import app.forku.core.notification.PushNotificationService
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Central repository for handling all notification operations.
+ * This includes both push notifications (via PushNotificationService)
+ * and local notifications (via NotificationManager).
+ */
 @Singleton
 class NotificationRepository @Inject constructor(
-    private val notificationManager: NotificationManager
+    private val notificationManager: NotificationManager,
+    private val pushNotificationService: PushNotificationService
 ) {
-    private val _fcmToken = MutableStateFlow<String?>(null)
-    val fcmToken: StateFlow<String?> = _fcmToken
+    val deviceToken: StateFlow<String?> = pushNotificationService.deviceToken
 
-    suspend fun updateFCMToken() {
-        val token = notificationManager.getFCMToken()
-        _fcmToken.value = token
-    }
-
-    // Development/Testing methods to simulate notifications
-    fun simulateIncidentNotification(
-        incidentId: String = "test_incident_${System.currentTimeMillis()}",
-        title: String = "Test Incident",
-        message: String = "This is a test incident notification"
-    ) {
+    // Local Notifications
+    fun showIncidentNotification(incidentId: String, title: String, message: String) {
         notificationManager.showIncidentNotification(
             incidentId = incidentId,
             title = title,
@@ -31,11 +28,7 @@ class NotificationRepository @Inject constructor(
         )
     }
 
-    fun simulateSafetyAlert(
-        alertId: String = "test_alert_${System.currentTimeMillis()}",
-        title: String = "Test Alert",
-        message: String = "This is a test safety alert"
-    ) {
+    fun showSafetyAlert(alertId: String, title: String, message: String) {
         notificationManager.showSafetyAlert(
             alertId = alertId,
             title = title,
@@ -43,13 +36,57 @@ class NotificationRepository @Inject constructor(
         )
     }
 
-    fun simulateGeneralNotification(
-        title: String = "Test Notification",
-        message: String = "This is a test general notification"
-    ) {
+    fun showNotification(title: String, message: String) {
         notificationManager.showNotification(
             title = title,
             message = message
         )
+    }
+
+    // Push Notifications
+    suspend fun sendIncidentNotification(incidentId: String, title: String, message: String) {
+        pushNotificationService.sendPushNotification(
+            type = NotificationType.Incident,
+            data = mapOf(
+                "incidentId" to incidentId,
+                "title" to title,
+                "message" to message
+            )
+        )
+    }
+
+    suspend fun sendSafetyAlert(alertId: String, title: String, message: String) {
+        pushNotificationService.sendPushNotification(
+            type = NotificationType.Safety,
+            data = mapOf(
+                "alertId" to alertId,
+                "title" to title,
+                "message" to message
+            )
+        )
+    }
+
+    suspend fun sendNotification(title: String, message: String) {
+        pushNotificationService.sendPushNotification(
+            type = NotificationType.General,
+            data = mapOf(
+                "title" to title,
+                "message" to message
+            )
+        )
+    }
+
+    // Token Management
+    suspend fun updateDeviceToken() {
+        pushNotificationService.updateDeviceToken()
+    }
+
+    // Topic Management
+    suspend fun subscribeToTopic(topic: String) {
+        pushNotificationService.subscribeToTopic(topic)
+    }
+
+    suspend fun unsubscribeFromTopic(topic: String) {
+        pushNotificationService.unsubscribeFromTopic(topic)
     }
 } 

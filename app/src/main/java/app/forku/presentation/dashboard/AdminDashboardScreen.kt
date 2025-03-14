@@ -63,7 +63,7 @@ fun AdminDashboardScreen(
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                item { HeaderSection(userFirstName = currentUser?.firstName ?: "") }
+                item { HeaderSection(userFirstName = currentUser?.firstName ?: "", navController) }
                 
                 item { OperationStatusSection(dashboardState) }
                 
@@ -85,7 +85,10 @@ fun AdminDashboardScreen(
 }
 
 @Composable
-private fun HeaderSection(userFirstName: String) {
+private fun HeaderSection(
+    userFirstName: String,
+    navController: NavController
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,7 +108,9 @@ private fun HeaderSection(userFirstName: String) {
                 fontSize = 16.sp
             )
         }
-        IconButton(onClick = { /* Handle notifications */ }) {
+        IconButton(onClick = { 
+            navController.navigate(Screen.Notifications.route)
+        }) {
             Icon(
                 imageVector = Icons.Default.Notifications,
                 contentDescription = "Notifications",

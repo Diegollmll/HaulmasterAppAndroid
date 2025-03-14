@@ -9,5 +9,7 @@ data class ProfileState(
     val currentSession: VehicleSession? = null,
     val activeVehicle: Vehicle? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val totalSessions: Int = 0,
+    val totalIncidents: Int = 0
 ) 

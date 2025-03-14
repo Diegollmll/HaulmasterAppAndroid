@@ -24,7 +24,8 @@ fun ProfileSections(
     onQualificationsClick: () -> Unit,
     onIncidentReportsClick: () -> Unit,
     onTrainingRecordClick: () -> Unit,
-    onCicoHistoryClick: () -> Unit
+    onCicoHistoryClick: () -> Unit,
+    isCurrentUser: Boolean = true
 ) {
     Column(
         modifier = Modifier
@@ -32,7 +33,7 @@ fun ProfileSections(
             .padding(16.dp)
     ) {
         Text(
-            text = "Profile",
+            text = if (isCurrentUser) "Profile" else "Operator Information",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(vertical = 8.dp)
         )
@@ -43,11 +44,9 @@ fun ProfileSections(
         )
 
         ProfileSection(
-            title = "Operator's CICO History",
+            title = if (isCurrentUser) "My CICO History" else "CICO History",
             onClick = onCicoHistoryClick
         )
-
-
     }
 }
 
@@ -59,29 +58,32 @@ private fun ProfileSection(
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = title)
-                subtitle?.let {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                if (subtitle != null) {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             Icon(
                 imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = "Navigate to $title"
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

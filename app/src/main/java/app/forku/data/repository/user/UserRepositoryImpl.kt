@@ -71,13 +71,24 @@ class UserRepositoryImpl @Inject constructor(
                 return@withContext Result.failure(Exception("Tu cuenta está desactivada. Contacta al administrador"))
             }
 
+            // Update lastLogin timestamp
+            val updatedUser = user.copy(
+                lastLogin = java.time.Instant.now().toString()
+            )
+
+            // Update user in API
+            val updateResponse = api.updateUser(updatedUser.id, updatedUser.toDto())
+            if (!updateResponse.isSuccessful) {
+                android.util.Log.e("appflow UserRepository", "Failed to update lastLogin timestamp")
+            }
+
             // Log successful login
-            android.util.Log.d("appflow UserRepository", "Successful login for user: ${user.email}")
+            android.util.Log.d("appflow UserRepository", "Successful login for user: ${updatedUser.email}")
 
             // Guardar usuario en AuthDataStore
-            authDataStore.setCurrentUser(user)
+            authDataStore.setCurrentUser(updatedUser)
             
-            Result.success(user)
+            Result.success(updatedUser)
         } catch (e: Exception) {
             android.util.Log.e("UserRepository", "Error during login", e)
             Result.failure(Exception("Error de conexión. Verifica tu internet e intenta de nuevo"))

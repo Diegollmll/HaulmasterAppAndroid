@@ -6,8 +6,12 @@ kotlinxSerialization = "1.6.0"
 ksp = "1.9.22-1.0.17"
 location = "21.0.1"
 
+# Google Play Services
+play-services-base = "18.3.0"
+play-services-auth = "21.0.0"
+
 # Firebase
-firebase-bom = "32.7.2"
+firebase = "32.7.2"
 google-services = "4.4.1"
 
 # Core Android libraries
@@ -132,12 +136,16 @@ androidx-compose-material-icons-core = { group = "androidx.compose.material", na
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose-material" }
 
 # Firebase
-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
-firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+firebase-functions = { group = "com.google.firebase", name = "firebase-functions-ktx" }
+
+# Google Play Services
+google-play-services-base = { group = "com.google.android.gms", name = "play-services-base", version.ref = "play-services-base" }
+google-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "play-services-auth" }
 
 
 [plugins]

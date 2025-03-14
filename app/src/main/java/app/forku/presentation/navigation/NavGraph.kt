@@ -34,8 +34,10 @@ import app.forku.presentation.dashboard.UnauthorizedScreen
 import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.user.login.LoginState
 import app.forku.domain.model.user.UserRole
+import app.forku.presentation.notification.NotificationScreen
 import app.forku.presentation.user.session.OperatorSessionListScreen
 import app.forku.presentation.vehicle.session.VehicleSessionListScreen
+
 
 sealed class Screen(val route: String) {
     data object Login : Screen("login")
@@ -44,18 +46,26 @@ sealed class Screen(val route: String) {
     data object QRScanner : Screen("qr_scanner")
     data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
     data object Checklist : Screen("checklist/{vehicleId}")
-    data object Profile : Screen("profile")
+    data object Profile : Screen("profile?operatorId={operatorId}") {
+        fun createRoute(operatorId: String? = null): String {
+            return if (operatorId != null) {
+                "profile?operatorId=$operatorId"
+            } else {
+                "profile"
+            }
+        }
+    }
     data object IncidentsHistory : Screen("incidents_history")
     data object OperatorsCICOHistory : Screen("operators_cico_history")
     data object Vehicles : Screen("vehicles")
     data object SafetyReporting : Screen("safety_reporting")
-    data object Notifications : Screen("notifications")
     data object PerformanceReport : Screen("performance_report")
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
     data object Tour : Screen("tour")
     data object AdminDashboard : Screen("admin_dashboard")
     data object VehicleSessionList : Screen("vehicle_session_list")
     data object OperatorSessionList : Screen("operator_session_list")
+    data object Notifications : Screen("notifications")
 }
 
 @Composable
@@ -230,13 +240,24 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.Profile.route) {
+        composable(
+            route = Screen.Profile.route,
+            arguments = listOf(
+                navArgument("operatorId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val operatorId = backStackEntry.arguments?.getString("operatorId")
             ProfileScreen(
                 navController = navController,
                 onNavigateBack = { navController.navigateUp() },
                 onNavigateToIncidents = { navController.navigate(Screen.IncidentsHistory.route) },
                 onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) },
-                networkManager = networkManager
+                networkManager = networkManager,
+                operatorId = operatorId
             )
         }
 
@@ -290,6 +311,13 @@ fun NavGraph(
 
         composable(Screen.OperatorSessionList.route) {
             OperatorSessionListScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.Notifications.route) {
+            NotificationScreen(
                 navController = navController,
                 networkManager = networkManager
             )

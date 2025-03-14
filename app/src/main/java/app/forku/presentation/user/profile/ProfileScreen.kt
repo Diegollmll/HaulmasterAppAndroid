@@ -48,6 +48,7 @@ import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,31 +58,38 @@ fun ProfileScreen(
     onNavigateToIncidents: () -> Unit,
     onNavigateToCicoHistory: () -> Unit,
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    operatorId: String? = null
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Load operator profile if operatorId is provided
+    LaunchedEffect(operatorId) {
+        if (operatorId != null) {
+            viewModel.loadOperatorProfile(operatorId)
+        }
+    }
+
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = "User Profile",
+        topBarTitle = if (operatorId != null) "Operator Profile" else "User Profile",
         content = { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp)
             ) {
-
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
                         .verticalScroll(rememberScrollState())
                 ) {
                     ProfileHeader(
                         state = state,
                         navController = navController,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        isCurrentUser = operatorId == null
                     )
                     StatsGrid(state)
                     ProfileSections(
@@ -89,7 +97,8 @@ fun ProfileScreen(
                         onQualificationsClick = { /* Navigate to qualifications */ },
                         onIncidentReportsClick = onNavigateToIncidents,
                         onTrainingRecordClick = { /* Navigate to training */ },
-                        onCicoHistoryClick = onNavigateToCicoHistory
+                        onCicoHistoryClick = onNavigateToCicoHistory,
+                        isCurrentUser = operatorId == null
                     )
                 }
             }
@@ -102,12 +111,13 @@ fun ProfileScreen(
 private fun ProfileHeader(
     state: ProfileState,
     navController: NavController,
-    viewModel: ProfileViewModel
+    viewModel: ProfileViewModel,
+    isCurrentUser: Boolean
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -119,7 +129,7 @@ private fun ProfileHeader(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
@@ -149,17 +159,21 @@ private fun ProfileHeader(
                                 Box(
                                     modifier = Modifier
                                         .size(8.dp)
-                                        .background(Color.Green, CircleShape)
+                                        .background(
+                                            if (state.user?.isActive == true && state.currentSession != null) Color.Green 
+                                            else Color.Gray,
+                                            CircleShape
+                                        )
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Online",
+                                    text = if (state.user?.isActive == true && state.currentSession != null) "Active" else "Inactive",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray
                                 )
                             }
                             Text(
-                                text = "Last Log: ${state.user?.lastLogin ?: "N/A"}",
+                                text = "Last Log: ${state.user?.lastLogin?.let { getRelativeTimeSpanString(it) } ?: "N/A"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.Gray
                             )
@@ -244,32 +258,30 @@ private fun ProfileHeader(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFFFA726)
                         ),
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Performance Report")
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row {
-                    Button(
-                        onClick = {
-                            viewModel.logout()
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        ),
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Text("Logout")
+                if (isCurrentUser) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row {
+                        Button(
+                            onClick = {
+                                viewModel.logout()
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Logout")
+                        }
                     }
                 }
             }

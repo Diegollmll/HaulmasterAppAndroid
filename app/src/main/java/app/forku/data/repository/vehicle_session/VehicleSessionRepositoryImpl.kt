@@ -162,6 +162,10 @@ class VehicleSessionRepositoryImpl @Inject constructor(
 
     override suspend fun getOperatorSessionHistory(): List<VehicleSession> {
         val userId = authDataStore.getCurrentUser()?.id ?: return emptyList()
+        return getSessionsByUserId(userId)
+    }
+
+    override suspend fun getSessionsByUserId(userId: String): List<VehicleSession> {
         return try {
             val response = api.getAllSessions()
             if (response.isSuccessful) {
