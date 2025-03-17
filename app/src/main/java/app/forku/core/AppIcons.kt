@@ -7,6 +7,7 @@ sealed class AppIcons {
         val forklift = R.drawable.forklift_24px
         val home = R.drawable.home_24px
         val addIncident = R.drawable.add_circle_24px
+
     }
 
 

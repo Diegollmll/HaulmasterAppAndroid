@@ -5,7 +5,7 @@ sealed class IncidentTypeFields {
     data class CollisionFields(
         val collisionType: CollisionType? = null,
         val commonCause: CommonCause? = null,
-        val damageOccurrence: DamageOccurrence? = null,
+        val damageOccurrence: Set<DamageOccurrence> = emptySet(),
         val environmentalImpact: String = "", // spills, emissions
         val injurySeverity: InjurySeverity = InjurySeverity.NONE,
         val injuryLocations: List<String> = emptyList(),
@@ -39,7 +39,7 @@ sealed class IncidentTypeFields {
         val contributingFactors: Set<VehicleFailContributingFactor>,
         val immediateActions: Set<VehicleFailImmediateAction>,
         val longTermSolutions: Set<VehicleFailLongTermSolution>,
-        val damageOccurrence: DamageOccurrence?,
+        val damageOccurrence: Set<DamageOccurrence> = emptySet(),
         val environmentalImpact: String,
         // Campos de carga
         val isLoadCarried: Boolean = false,

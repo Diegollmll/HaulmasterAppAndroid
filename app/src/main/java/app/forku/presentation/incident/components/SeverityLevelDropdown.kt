@@ -21,7 +21,7 @@ fun SeverityLevelDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = selected?.name?.replace("_", " ") ?: "",
+            value = selected?.toFriendlyString() ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Severity Level",
@@ -35,7 +35,7 @@ fun SeverityLevelDropdown(
         ) {
             IncidentSeverityLevel.values().forEach { severity ->
                 DropdownMenuItem(
-                    text = { Text(severity.name.replace("_", " ")) },
+                    text = { Text(severity.toFriendlyString()) },
                     onClick = {
                         onSelected(severity)
                         expanded = false

@@ -4,6 +4,7 @@ import app.forku.core.Constants
 import app.forku.data.api.GeneralApi
 import app.forku.data.api.WeatherApi
 import app.forku.data.api.interceptor.AuthInterceptor
+import app.forku.data.api.interceptor.RetryInterceptor
 import app.forku.domain.repository.weather.WeatherRepository
 import app.forku.data.repository.weather.WeatherRepositoryImpl
 import dagger.Module
@@ -33,6 +34,7 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(authInterceptor)
+            .addInterceptor(RetryInterceptor())
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

@@ -29,7 +29,9 @@ fun CustomOutlinedTextField(
     textColor: Color = MaterialTheme.colorScheme.onSurface,
     unfocusedTextColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
     disabledTextColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    isError: Boolean = false,
+    supportingText: @Composable (() -> Unit)? = null
 ) {
     OutlinedTextField(
         value = value,
@@ -42,17 +44,22 @@ fun CustomOutlinedTextField(
         maxLines = maxLines,
         shape = shape,
         trailingIcon = trailingIcon,
+        isError = isError,
+        supportingText = supportingText,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = focusedBorderColor,
-            unfocusedBorderColor = unfocusedBorderColor,
-            focusedLabelColor = focusedLabelColor,
-            unfocusedLabelColor = unfocusedLabelColor,
-            cursorColor = cursorColor,
+            focusedBorderColor = if (isError) MaterialTheme.colorScheme.error else focusedBorderColor,
+            unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error else unfocusedBorderColor,
+            focusedLabelColor = if (isError) MaterialTheme.colorScheme.error else focusedLabelColor,
+            unfocusedLabelColor = if (isError) MaterialTheme.colorScheme.error else unfocusedLabelColor,
+            cursorColor = if (isError) MaterialTheme.colorScheme.error else cursorColor,
             focusedTextColor = textColor,
             unfocusedTextColor = unfocusedTextColor,
             disabledTextColor = disabledTextColor,
             disabledBorderColor = Color.Transparent,
-            disabledLabelColor = unfocusedLabelColor.copy(alpha = 0.38f)
+            disabledLabelColor = unfocusedLabelColor.copy(alpha = 0.38f),
+            errorBorderColor = MaterialTheme.colorScheme.error,
+            errorLabelColor = MaterialTheme.colorScheme.error,
+            errorSupportingTextColor = MaterialTheme.colorScheme.error
         )
     )
 } 

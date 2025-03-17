@@ -8,9 +8,13 @@ import app.forku.domain.model.session.VehicleSession
 
 fun SessionDto.toDomain(): VehicleSession {
     val duration = if (endTime != null) {
-        val start = java.time.Instant.parse(startTime)
-        val end = java.time.Instant.parse(endTime)
-        java.time.Duration.between(start, end).toMinutes().toInt()
+        try {
+            val start = java.time.ZonedDateTime.parse(startTime).toInstant()
+            val end = java.time.ZonedDateTime.parse(endTime).toInstant()
+            java.time.Duration.between(start, end).toMinutes().toInt()
+        } catch (e: Exception) {
+            null
+        }
     } else null
 
     // Strict status mapping

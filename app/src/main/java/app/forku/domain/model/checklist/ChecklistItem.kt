@@ -5,7 +5,7 @@ import app.forku.domain.model.vehicle.VehicleType
 
 data class ChecklistItem(
     val id: String,
-    val category: CheckCategory,
+    val category: String,
     val subCategory: String,
     val energySource: List<EnergySource>,
     val vehicleType: List<VehicleType>,

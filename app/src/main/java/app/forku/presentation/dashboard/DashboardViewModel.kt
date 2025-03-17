@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.sync.Mutex
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -49,15 +50,15 @@ class DashboardViewModel @Inject constructor(
 
     private val _hasToken = MutableStateFlow(false)
     val hasToken: StateFlow<Boolean> = _hasToken.asStateFlow()
+
+    // Add mutex to prevent concurrent loadDashboard calls
+    private val loadDashboardMutex = Mutex()
     
     init {
         loadCurrentUser()
         loadTourCompletionStatus()
         checkLoginState()
         checkAuthToken()
-        viewModelScope.launch {
-            loadDashboard(showLoading = true)
-        }
     }
     
     private fun loadCurrentUser() {
@@ -101,63 +102,45 @@ class DashboardViewModel @Inject constructor(
     }
     
     private suspend fun loadDashboard(showLoading: Boolean = false) {
+        // Use mutex to prevent concurrent loadDashboard calls
+        if (!loadDashboardMutex.tryLock()) {
+            android.util.Log.d("DashboardViewModel", "Skipping loadDashboard - already in progress")
+            return
+        }
+        
         try {
             if (showLoading) {
+                android.util.Log.d("DashboardViewModel", "Setting loading state to true")
                 _state.update { it.copy(isLoading = true) }
             }
             
             val currentUser = userRepository.getCurrentUser()
                 ?: throw Exception("User not authenticated")
 
-            // Obtenemos la sesión actual
+            android.util.Log.d("DashboardViewModel", "Getting current session")
             val currentSession = sessionRepository.getCurrentSession()
 
-            // Obtenemos el vehículo de la sesión activa si existe
+            android.util.Log.d("DashboardViewModel", "Getting session vehicle")
             val sessionVehicle = currentSession?.let { 
                 getVehicleUseCase(it.vehicleId)
             }
             
-            // Obtenemos el último check
+            android.util.Log.d("DashboardViewModel", "Getting last pre-shift check")
             val lastPreShiftCheck = try {
                 getLastPreShiftCheckCurrentUserUseCase()
             } catch (e: Exception) {
+                android.util.Log.e("DashboardViewModel", "Error getting last pre-shift check", e)
                 null
             }
             
-            // Obtenemos el vehículo del último check si no hay sesión activa
+            android.util.Log.d("DashboardViewModel", "Getting check vehicle")
             val checkVehicle = if (currentSession == null) {
                 lastPreShiftCheck?.let { 
                     getVehicleUseCase(it.vehicleId)
                 }
             } else null
-            
-            // Log session vehicle details
-            android.util.Log.d("appflow DashboardViewModel", "Session Vehicle: $sessionVehicle")
-            sessionVehicle?.let {
-                android.util.Log.d("appflow DashboardViewModel", """
-                    Session Vehicle Properties:
-                    - ID: ${it.id}
-                    - Codename: ${it.codename}
-                    - Status: ${it.status}
-                    - Photo URL: ${it.photoModel}          
-                """.trimIndent())
-            }
 
-            // Log check vehicle details  
-            android.util.Log.d("appflow DashboardViewModel", "Check Vehicle: $checkVehicle")
-            checkVehicle?.let {
-                android.util.Log.d("appflow DashboardViewModel", """
-                    Check Vehicle Properties:
-                    - ID: ${it.id}
-                    - Codename: ${it.codename} 
-                    - Status: ${it.status}
-                    - Photo URL: ${it.photoModel}
-                """.trimIndent())
-            }
-
-
-
-
+            android.util.Log.d("DashboardViewModel", "Updating state with loaded data")
             _state.update {
                 it.copy(
                     isLoading = false,
@@ -169,18 +152,23 @@ class DashboardViewModel @Inject constructor(
                     error = null
                 )
             }
+            android.util.Log.d("DashboardViewModel", "State updated successfully")
         } catch (e: Exception) {
+            android.util.Log.e("DashboardViewModel", "Error loading dashboard", e)
             _state.update {
                 it.copy(
                     isLoading = false,
                     error = "Error al cargar dashboard: ${e.message}"
                 )
             }
+        } finally {
+            loadDashboardMutex.unlock()
         }
     }
 
     // Refresh silencioso (sin loading) cuando volvemos a la pantalla
     fun refresh() {
+        android.util.Log.d("DashboardViewModel", "Silent refresh called")
         viewModelScope.launch {
             loadDashboard(showLoading = false)
         }
@@ -188,8 +176,11 @@ class DashboardViewModel @Inject constructor(
 
     // Refresh con loading para pull-to-refresh o acciones explícitas del usuario
     fun refreshWithLoading() {
+        android.util.Log.d("DashboardViewModel", "refreshWithLoading called")
         viewModelScope.launch {
+            android.util.Log.d("DashboardViewModel", "Starting refresh with loading")
             loadDashboard(showLoading = true)
+            android.util.Log.d("DashboardViewModel", "Refresh with loading completed")
         }
     }
 

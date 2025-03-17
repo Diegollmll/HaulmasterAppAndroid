@@ -46,6 +46,26 @@ fun IncidentReportScreen(
     
     var showPhotoSourceDialog by remember { mutableStateOf(false) }
 
+    // Launcher for camera
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            viewModel.tempPhotoUri?.let { viewModel.addPhoto(it) }
+        }
+    }
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.createTempPhotoUri(context)?.let { uri ->
+                cameraLauncher.launch(uri)
+            }
+        }
+    }
+
     LaunchedEffect(navigateToDashboard) {
         if (navigateToDashboard) {
             navController.navigate(Screen.Dashboard.route) {
@@ -59,15 +79,6 @@ fun IncidentReportScreen(
         viewModel.setIncidentType(incidentType)
     }
     
-    // Launcher for camera
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success: Boolean ->
-        if (success) {
-            viewModel.tempPhotoUri?.let { viewModel.addPhoto(it) }
-        }
-    }
-
     // Gallery launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -95,8 +106,13 @@ fun IncidentReportScreen(
                 ForkuButton(
                     onClick = {
                         showPhotoSourceDialog = false
-                        viewModel.createTempPhotoUri(context)?.let { uri ->
-                            cameraLauncher.launch(uri)
+                        when (PackageManager.PERMISSION_GRANTED) {
+                            context.checkSelfPermission(Manifest.permission.CAMERA) -> {
+                                viewModel.createTempPhotoUri(context)?.let { uri ->
+                                    cameraLauncher.launch(uri)
+                                }
+                            }
+                            else -> cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         }
                     }
                 ) {
@@ -145,12 +161,17 @@ fun IncidentReportScreen(
     // Success Dialog
     if (state.showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.dismissSuccessDialog() },
-            title = { Text("Success") },
-            text = { Text("Incident report submitted successfully") },
+            onDismissRequest = { /* Prevent dismiss on outside click */ },
+            title = { Text("Incident Registered") },
+            text = { Text("The incident has been recorded and will be reviewed by the safety team") },
             confirmButton = {
                 ForkuButton(
-                    onClick = { viewModel.dismissSuccessDialog() }
+                    onClick = {
+                        viewModel.dismissSuccessDialog()
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Dashboard.route) { inclusive = true }
+                        }
+                    }
                 ) {
                     Text("OK")
                 }
@@ -162,7 +183,7 @@ fun IncidentReportScreen(
     state.error?.let { error ->
         AlertDialog(
             onDismissRequest = { viewModel.clearError() },
-            title = { Text("Error") },
+            title = { Text(if (error.contains("required")) "Missing Information" else "Error") },
             text = { Text(error) },
             confirmButton = {
                 ForkuButton(

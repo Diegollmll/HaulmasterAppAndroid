@@ -19,7 +19,8 @@ data class User(
     val incidentsReported: Int = 0,
     val lastMedicalCheck: String? = null,
     val lastLogin: String? = null,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val password: String
 ) {
     val fullName: String
         get() = "$firstName $lastName"

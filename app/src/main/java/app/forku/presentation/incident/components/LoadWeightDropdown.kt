@@ -20,7 +20,7 @@ fun LoadWeightDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = selected?.name?.replace("_", " ")?.replace("T", "t") ?: "",
+            value = selected?.toFriendlyString() ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Load Weight",
@@ -34,7 +34,7 @@ fun LoadWeightDropdown(
         ) {
             LoadWeight.values().forEach { weight ->
                 DropdownMenuItem(
-                    text = { Text(weight.name.replace("_", " ").replace("T", "t")) },
+                    text = { Text(weight.toFriendlyString()) },
                     onClick = {
                         onSelected(weight)
                         expanded = false

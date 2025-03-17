@@ -13,7 +13,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
             data = mapOf(
                 "collisionType" to (collisionType?.name ?: ""),
                 "commonCause" to (commonCause?.name ?: ""),
-                "damageOccurrence" to (damageOccurrence?.name ?: ""),
+                "damageOccurrence" to damageOccurrence.joinToString(",") { it.name },
                 "environmentalImpact" to environmentalImpact,
                 "injurySeverity" to injurySeverity.name,
                 "injuryLocations" to injuryLocations.joinToString(","),
@@ -53,103 +53,114 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "contributingFactors" to contributingFactors.joinToString(",") { it.name },
                 "immediateActions" to immediateActions.joinToString(",") { it.name },
                 "longTermSolutions" to longTermSolutions.joinToString(",") { it.name },
-                "damageOccurrence" to (damageOccurrence?.name ?: ""),
-                "environmentalImpact" to environmentalImpact
+                "damageOccurrence" to damageOccurrence.joinToString(",") { it.name },
+                "environmentalImpact" to environmentalImpact,
+                "isLoadCarried" to isLoadCarried.toString(),
+                "loadBeingCarried" to loadBeingCarried,
+                "loadWeight" to (loadWeight?.name ?: "")
             )
         )
     }
 }
 
-fun TypeSpecificFieldsDto.toDomain(type: String): IncidentTypeFields {
+fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
     return when (type) {
         "COLLISION" -> IncidentTypeFields.CollisionFields(
-            collisionType = data["collisionType"]?.let { CollisionType.valueOf(it) },
-            commonCause = data["commonCause"]?.let { CommonCause.valueOf(it) },
-            damageOccurrence = data["damageOccurrence"]?.let { DamageOccurrence.valueOf(it) },
+            collisionType = data["collisionType"]?.let { if (it.isNotEmpty()) CollisionType.valueOf(it) else null },
+            commonCause = data["commonCause"]?.let { if (it.isNotEmpty()) CommonCause.valueOf(it) else null },
+            damageOccurrence = data["damageOccurrence"]?.split(",")
+                ?.filter { it.isNotEmpty() }
+                ?.mapNotNull { runCatching { DamageOccurrence.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
             environmentalImpact = data["environmentalImpact"] ?: "",
             injurySeverity = data["injurySeverity"]?.let { InjurySeverity.valueOf(it) } ?: InjurySeverity.NONE,
             injuryLocations = data["injuryLocations"]?.split(",")?.filter { it.isNotEmpty() } ?: emptyList(),
-            immediateCause = data["immediateCause"]?.let { CollisionImmediateCause.valueOf(it) },
-            contributingFactors = data["contributingFactors"]
-                ?.split(",")
+            immediateCause = data["immediateCause"]?.let { if (it.isNotEmpty()) CollisionImmediateCause.valueOf(it) else null },
+            contributingFactors = data["contributingFactors"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { CollisionContributingFactor.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            immediateActions = data["immediateActions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { CollisionContributingFactor.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            immediateActions = data["immediateActions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { CollisionImmediateAction.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            longTermSolutions = data["longTermSolutions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { CollisionImmediateAction.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            longTermSolutions = data["longTermSolutions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { CollisionLongTermSolution.valueOf(it) }
-                ?.toSet() ?: emptySet()
+                ?.mapNotNull { runCatching { CollisionLongTermSolution.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet()
         )
         "NEAR_MISS" -> IncidentTypeFields.NearMissFields(
-            nearMissType = data["nearMissType"]?.let { NearMissType.valueOf(it) },
-            immediateCause = data["immediateCause"]?.let { NearMissImmediateCause.valueOf(it) },
-            contributingFactors = data["contributingFactors"]
-                ?.split(",")
+            nearMissType = data["nearMissType"]?.let { if (it.isNotEmpty()) NearMissType.valueOf(it) else null },
+            immediateCause = data["immediateCause"]?.let { if (it.isNotEmpty()) NearMissImmediateCause.valueOf(it) else null },
+            contributingFactors = data["contributingFactors"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { NearMissContributingFactor.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            immediateActions = data["immediateActions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { NearMissContributingFactor.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            immediateActions = data["immediateActions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { NearMissImmediateAction.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            longTermSolutions = data["longTermSolutions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { NearMissImmediateAction.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            longTermSolutions = data["longTermSolutions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { NearMissLongTermSolution.valueOf(it) }
-                ?.toSet() ?: emptySet()
+                ?.mapNotNull { runCatching { NearMissLongTermSolution.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet()
         )
         "HAZARD" -> IncidentTypeFields.HazardFields(
-            hazardType = data["hazardType"]?.let { HazardType.valueOf(it) },
-            potentialConsequences = data["potentialConsequences"]
-                ?.split(",")
+            hazardType = data["hazardType"]?.let { if (it.isNotEmpty()) HazardType.valueOf(it) else null },
+            potentialConsequences = data["potentialConsequences"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { HazardConsequence.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            correctiveActions = data["correctiveActions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { HazardConsequence.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            correctiveActions = data["correctiveActions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { HazardCorrectiveAction.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            preventiveMeasures = data["preventiveMeasures"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { HazardCorrectiveAction.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            preventiveMeasures = data["preventiveMeasures"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { HazardPreventiveMeasure.valueOf(it) }
-                ?.toSet() ?: emptySet()
+                ?.mapNotNull { runCatching { HazardPreventiveMeasure.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet()
         )
         "VEHICLE_FAIL" -> IncidentTypeFields.VehicleFailFields(
-            failureType = data["failureType"]?.let { VehicleFailType.valueOf(it) },
+            failureType = data["failureType"]?.let { if (it.isNotEmpty()) VehicleFailType.valueOf(it) else null },
             systemAffected = data["systemAffected"] ?: "",
             maintenanceHistory = data["maintenanceHistory"] ?: "",
             operationalImpact = data["operationalImpact"] ?: "",
-            immediateCause = data["immediateCause"]?.let { VehicleFailImmediateCause.valueOf(it) },
-            contributingFactors = data["contributingFactors"]
-                ?.split(",")
+            immediateCause = data["immediateCause"]?.let { if (it.isNotEmpty()) VehicleFailImmediateCause.valueOf(it) else null },
+            contributingFactors = data["contributingFactors"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { VehicleFailContributingFactor.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            immediateActions = data["immediateActions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { VehicleFailContributingFactor.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            immediateActions = data["immediateActions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { VehicleFailImmediateAction.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            longTermSolutions = data["longTermSolutions"]
-                ?.split(",")
+                ?.mapNotNull { runCatching { VehicleFailImmediateAction.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            longTermSolutions = data["longTermSolutions"]?.split(",")
                 ?.filter { it.isNotEmpty() }
-                ?.map { VehicleFailLongTermSolution.valueOf(it) }
-                ?.toSet() ?: emptySet(),
-            damageOccurrence = data["damageOccurrence"]?.let { DamageOccurrence.valueOf(it) },
+                ?.mapNotNull { runCatching { VehicleFailLongTermSolution.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
+            damageOccurrence = data["damageOccurrence"]?.split(",")
+                ?.filter { it.isNotEmpty() }
+                ?.mapNotNull { runCatching { DamageOccurrence.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
             environmentalImpact = data["environmentalImpact"] ?: "",
-            isLoadCarried = isLoadCarried,
-            loadBeingCarried = loadBeingCarried,
-            loadWeight = loadWeight?.let { LoadWeight.valueOf(it) }
+            isLoadCarried = data["isLoadCarried"]?.toBoolean() ?: false,
+            loadBeingCarried = data["loadBeingCarried"] ?: "",
+            loadWeight = data["loadWeight"]?.let { if (it.isNotEmpty()) LoadWeight.valueOf(it) else null }
         )
-        else -> throw IllegalArgumentException("Unknown incident type: $type")
+        else -> throw IllegalArgumentException("Unknown type: $type")
     }
 } 

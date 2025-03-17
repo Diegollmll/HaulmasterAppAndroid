@@ -35,7 +35,8 @@ import app.forku.domain.model.checklist.getPreShiftStatusColor
 import app.forku.domain.model.checklist.getPreShiftStatusText
 import app.forku.presentation.common.utils.formatDateTime
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
-
+import app.forku.presentation.common.components.UserDateTimer
+import app.forku.presentation.common.utils.parseDateTime
 
 @Composable
 fun VehicleProfileSummary(
@@ -70,6 +71,13 @@ fun VehicleProfileSummary(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
+                    )
+                    
+                    Text(
+                        text = vehicle?.type?.displayName ?: "Unknown type",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
 
@@ -198,41 +206,83 @@ fun VehicleDetailsSection(
                 Column(
                     modifier = Modifier.padding(vertical = 0.dp)
                 ) {
-                    activeOperator?.role?.let {
-                        OperatorProfile(
-                            name = activeOperator?.fullName ?: "No operator assigned",
-                            imageUrl = activeOperator.photoUrl,
-                            modifier = Modifier.padding(0.dp, 8.dp),
-                            role = it.name
-                        )
+                    when {
+                        activeOperator?.role != null -> {
+                            OperatorProfile(
+                                name = activeOperator.fullName,
+                                imageUrl = activeOperator.photoUrl,
+                                modifier = Modifier.padding(0.dp, 8.dp),
+                                role = activeOperator.role.name
+                            )
+                            
+                            // Add session duration timer when there is an active operator
+                            if (status == VehicleStatus.IN_USE && viewModel.state.value.activeSession != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Current session:",
+                                        color = Color.Gray,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Start,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val sessionStartTime = remember(viewModel.state.value.activeSession?.startTime) {
+                                        viewModel.state.value.activeSession?.startTime?.let {
+                                            try {
+                                                parseDateTime(it).toLocalDateTime()
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("VehicleProfileSummary", "Error parsing date: $it", e)
+                                                null
+                                            }
+                                        }
+                                    }
+                                    UserDateTimer(
+                                        sessionStartTime = sessionStartTime,
+                                        fontSize = 16
+                                    )
+                                }
+                            }
+                        }
+                        viewModel.state.value.lastOperator != null -> {
+                            val lastOperator = viewModel.state.value.lastOperator!!
+                            OperatorProfile(
+                                name = lastOperator.fullName,
+                                imageUrl = lastOperator.photoUrl,
+                                modifier = Modifier.padding(0.dp, 8.dp),
+                                role = "Last ${lastOperator.role.name}"
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = "No operator history",
+                                color = Color.Gray,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
                     }
                 }
             }
 
-//            Text(
-//                text = "Vehicle",
-//                color = Color.Gray,
-//                fontSize = 12.sp
-//            )
-//            Text(
-//                text = "${vehicle?. type?.displayName}",
-//                color = Color.Gray,
-//                fontSize = 12.sp
-//            )
-            //&& lastCheck.value?.lastCheckDateTime != null
             if (showPreShiftCheckDetails) {
                 Row {
                     Column {
                         Text(
-                            text = "Pre-Shift Check ",
+                            text = "Last Check ",
                             color = Color.Gray,
                             fontSize = 12.sp
                         )
                     }
-
                     Spacer(modifier = Modifier.width(3.dp))
-                }
-                Row {
                     Column {
                         Text(
                             text = getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
@@ -241,15 +291,17 @@ fun VehicleDetailsSection(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                }
 
-                Text(
-                    text = lastCheck?.value?.lastCheckDateTime?.let { 
-                        getRelativeTimeSpanString(it) 
-                    } ?: "No checks found.",
-                    color = Color.Gray,
-                    fontSize = 12.sp
-                )
+                }
+                Row {
+                    Text(
+                        text = lastCheck?.value?.lastCheckDateTime?.let {
+                            getRelativeTimeSpanString(it)
+                        } ?: "No checks found.",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
             }
         }
     }
@@ -268,7 +320,7 @@ fun VehicleDetailsSection(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(16.dp)
             ) {
 
                 // ID and Next Service, Model, Type, and Class Row
@@ -276,30 +328,16 @@ fun VehicleDetailsSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-
-                    Column {
-                        Text(
-                            text = "Type",
-                            color = Color.Gray,
-                            fontSize = 11.sp
-                        )
-                        Text(
-                            text = vehicle?.type?.displayName ?: "Unknown",
-                            color = Color.Black,
-                            fontSize = 12.sp
-                        )
-                    }
-
                     Column {
                         Text(
                             text = "Model",
                             color = Color.Gray,
-                            fontSize = 11.sp
+                            fontSize = 13.sp
                         )
                         Text(
                             text = vehicle?.model ?: "Unknown",
                             color = Color.Black,
-                            fontSize = 12.sp
+                            fontSize = 14.sp
                         )
                     }
 
@@ -307,27 +345,25 @@ fun VehicleDetailsSection(
                         Text(
                             text = "Energy",
                             color = Color.Gray,
-                            fontSize = 11.sp
+                            fontSize = 13.sp
                         )
                         Text(
                             text = vehicle?.energyType ?: "Unknown",
                             color = Color.Black,
-                            fontSize = 12.sp
+                            fontSize = 14.sp
                         )
                     }
-
-
 
                     Column {
                         Text(
                             text = "Next Service",
                             color = Color.Gray,
-                            fontSize = 11.sp
+                            fontSize = 13.sp
                         )
                         Text(
                             text = "${vehicle?.nextService ?: "Unknown"} hrs",
                             color = Color.Black,
-                            fontSize = 12.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }

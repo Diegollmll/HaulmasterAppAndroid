@@ -6,11 +6,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.dp
@@ -19,12 +15,11 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import app.forku.presentation.navigation.Screen
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.core.AppIcons
@@ -32,6 +27,8 @@ import app.forku.presentation.common.viewmodel.BottomSheetViewModel
 import app.forku.presentation.incident.components.IncidentTypeSelector
 import app.forku.presentation.dashboard.DashboardState
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import app.forku.domain.model.user.UserRole
 
 @Composable
 fun ForkUBottomBar(
@@ -43,6 +40,7 @@ fun ForkUBottomBar(
     dashboardState: DashboardState
 ) {
     val showBottomSheet by viewModel.showBottomSheet.collectAsState()
+    val userRole = dashboardState.user?.role ?: UserRole.OPERATOR
 
     Column {
         if (showBottomSheet) {
@@ -67,33 +65,57 @@ fun ForkUBottomBar(
             containerColor = Color(0xFF1B1F23),
             tonalElevation = 0.dp
         ) {
-            val navItems = listOf(
-                BottomNavItem("Home", painterResource(id = AppIcons.General.home), Screen.Dashboard.route),
-                // BottomNavItem(
-                //     title = "Checklist",
-                //     icon = Icons.Default.CheckCircle,
-                //     route = currentVehicleId?.let { 
-                //         currentCheckId?.let { checkId ->
-                //             "checklist/$currentVehicleId?checkId=$checkId"
-                //         }
-                //     } ?: Screen.Checklist.route,
-                //     enabled = currentVehicleId != null && currentCheckId != null && 
-                //               dashboardState.currentSession != null
-                // ),
-                BottomNavItem("Report", painterResource(id = AppIcons.General.addIncident), Screen.SafetyReporting.route),
-                // BottomNavItem("Alerts", Icons.Default.Notifications, Screen.Notifications.route),
-
-                //Icon(, "Cuenta")
+            val navItems = mutableListOf(
                 BottomNavItem(
+                    "Home", 
+                    painterResource(id = AppIcons.General.home), 
+                    route = if (userRole == UserRole.ADMIN) Screen.AdminDashboard.route else Screen.Dashboard.route
+                )
+            )
+
+            if (userRole == UserRole.ADMIN) {
+                navItems.add(BottomNavItem(
+                    title = "Checklist",
+                    icon = rememberVectorPainter(Icons.Default.CheckCircle),
+                    route = Screen.AllChecklist.route
+                ))
+            }
+
+            navItems.add(BottomNavItem(
+                "Report",
+                painterResource(id = AppIcons.General.addIncident),
+                Screen.SafetyReporting.route
+            ))
+
+            if (userRole == UserRole.ADMIN) {
+                navItems.add(
+                    BottomNavItem(
+                        "Profile",
+                        rememberVectorPainter(Icons.Outlined.AccountCircle),
+                        Screen.Profile.route
+                    )
+                )
+            }
+
+            if (userRole == UserRole.ADMIN) {
+                navItems.add(BottomNavItem(
+                    title = "Vehicles",
+                    icon = painterResource(id = AppIcons.General.forklift),
+                    route = currentVehicleId?.let {
+                        Screen.VehiclesList.route
+                    } ?: Screen.VehiclesList.route
+                ))
+            } else if (userRole == UserRole.OPERATOR) {
+                navItems.add(BottomNavItem(
                     title = "Vehicle",
                     icon = painterResource(id = AppIcons.General.forklift),
-                    route = currentVehicleId?.let { 
-                        Screen.VehicleProfile.route.replace("{vehicleId}", it) 
-                    } ?: Screen.Vehicles.route,
+                    route = currentVehicleId?.let {
+                        Screen.VehicleProfile.route.replace("{vehicleId}", it)
+                    } ?: Screen.VehiclesList.route,
                     enabled = currentVehicleId != null
-                )
+                ))
+            }
 
-            )
 
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -105,9 +127,6 @@ fun ForkUBottomBar(
                             !item.enabled -> { /* Do nothing */ }
                             item.route == Screen.SafetyReporting.route -> {
                                 viewModel.showBottomSheet()
-                            }
-                            item.route == Screen.Notifications.route -> {
-                                // Do nothing for now
                             }
                             else -> {
                                 navController.navigate(item.route) {
@@ -124,7 +143,7 @@ fun ForkUBottomBar(
                             modifier = Modifier.size(24.dp)
                         )
                     },
-                    label = { Text(item.title, fontSize = 12.sp) },
+                    label = { Text(item.title, fontSize = 10.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFFFFBF00),
                         selectedTextColor = Color(0xFFFFBF00),
@@ -137,7 +156,6 @@ fun ForkUBottomBar(
         }
     }
 }
-
 private data class BottomNavItem(
     val title: String,
     val icon: Painter,

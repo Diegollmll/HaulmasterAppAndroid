@@ -44,14 +44,32 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
         return try {
-            val checks = getAllChecks()
-            checks.filter { 
-                it.vehicleId == vehicleId 
-            }.maxByOrNull { 
-                it.lastCheckDateTime 
+            var attempts = 0
+            val maxAttempts = 3
+            var delay = 1000L
+            
+            while (attempts < maxAttempts) {
+                try {
+                    val checks = getAllChecks()
+                    return checks.filter { 
+                        it.vehicleId == vehicleId 
+                    }.maxByOrNull { 
+                        it.lastCheckDateTime 
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("ChecklistRepository", "Error getting last pre-shift check, attempt ${attempts + 1}/$maxAttempts", e)
+                    if (attempts >= maxAttempts - 1) {
+                        android.util.Log.e("ChecklistRepository", "Max attempts reached, giving up", e)
+                        return null
+                    }
+                    attempts++
+                    kotlinx.coroutines.delay(delay)
+                    delay *= 2
+                }
             }
+            null
         } catch (e: Exception) {
-            android.util.Log.e("ChecklistRepository", "Error getting last pre-shift check", e)
+            android.util.Log.e("ChecklistRepository", "Fatal error getting last pre-shift check", e)
             null
         }
     }
@@ -63,7 +81,9 @@ class ChecklistRepositoryImpl @Inject constructor(
         status: String
     ): PreShiftCheck {
         val userId = authDataStore.getCurrentUser()?.id ?: throw Exception("User not logged in")
-        val currentDateTime = Instant.now().toString()
+        val currentDateTime = java.time.Instant.now()
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
 
         // Create or update the check
         return if (checkId == null) {
@@ -99,12 +119,37 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun getAllChecks(): List<PreShiftCheck> {
         return try {
-            val response = api.getAllChecks()
-            if (response.isSuccessful) {
-                response.body()?.toDomain() ?: emptyList()
-            } else {
-                emptyList()
+            // Add exponential backoff retry logic
+            var attempts = 0
+            val maxAttempts = 3
+            var delay = 1000L // Start with 1 second delay
+            
+            while (attempts < maxAttempts) {
+                try {
+                    val response = api.getAllChecks()
+                    when (response.code()) {
+                        200 -> return response.body()?.toDomain() ?: emptyList()
+                        429 -> {
+                            // Rate limited - wait and retry
+                            android.util.Log.w("ChecklistRepository", "Rate limited, attempt ${attempts + 1}/$maxAttempts, waiting ${delay}ms")
+                            kotlinx.coroutines.delay(delay)
+                            delay *= 2 // Exponential backoff
+                            attempts++
+                        }
+                        else -> {
+                            android.util.Log.e("ChecklistRepository", "Error getting all checks: ${response.code()}")
+                            return emptyList()
+                        }
+                    }
+                } catch (e: java.io.IOException) {
+                    android.util.Log.e("ChecklistRepository", "Network error getting all checks", e)
+                    if (attempts >= maxAttempts - 1) throw e
+                    attempts++
+                    kotlinx.coroutines.delay(delay)
+                    delay *= 2
+                }
             }
+            emptyList()
         } catch (e: Exception) {
             android.util.Log.e("ChecklistRepository", "Error getting all checks", e)
             emptyList()

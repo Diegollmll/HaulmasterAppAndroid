@@ -68,7 +68,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             // Update vehicle status first
             vehicleStatusRepository.updateVehicleStatus(vehicleId, VehicleStatus.IN_USE)
             
-            val currentDateTime = java.time.Instant.now().toString()
+            val currentDateTime = java.time.Instant.now()
+                .atZone(java.time.ZoneId.systemDefault())
+                .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
             
             // Create session
             val response = api.createSession(
@@ -105,7 +107,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         try {
             // Update vehicle status back to AVAILABLE
             vehicleStatusRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.AVAILABLE)
-            val currentDateTime = java.time.Instant.now().toString()
+            val currentDateTime = java.time.Instant.now()
+                .atZone(java.time.ZoneId.systemDefault())
+                .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
             
             // Get the current session and update its fields
             val sessionResponse = api.getSessionById(sessionId)
@@ -176,6 +180,27 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    override suspend fun getLastCompletedSessionForVehicle(vehicleId: String): VehicleSession? {
+        return try {
+            val response = api.getAllSessions()
+            if (response.isSuccessful) {
+                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                sessions
+                    .filter { 
+                        it.vehicleId == vehicleId && 
+                        it.status == SessionStatus.INACTIVE &&
+                        it.endTime != null 
+                    }
+                    .maxByOrNull { it.endTime!! }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VehicleSession", "Error getting last completed session: ${e.message}")
+            null
         }
     }
 } 

@@ -15,6 +15,11 @@ import app.forku.core.network.NetworkConnectivityManager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Icon
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
 
 @Composable
 fun NetworkStatusBar(
@@ -22,6 +27,7 @@ fun NetworkStatusBar(
     modifier: Modifier = Modifier
 ) {
     val isConnected by networkManager.isConnected.collectAsState()
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     
     AnimatedVisibility(
         visible = !isConnected,
@@ -32,7 +38,7 @@ fun NetworkStatusBar(
             modifier = modifier
                 .fillMaxWidth()
                 .background(Color(0xFFB71C1C))
-                .padding(top = 32.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
+                .padding(top = statusBarHeight + 8.dp, bottom = 12.dp, start = 16.dp, end = 16.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -41,11 +47,11 @@ fun NetworkStatusBar(
             ) {
                 Icon(
                     imageVector = Icons.Default.WifiOff,
-                    contentDescription = "No hay conexión",
+                    contentDescription = "No internet connection",
                     tint = Color.White
                 )
                 Text(
-                    text = "No hay conexión a Internet",
+                    text = "No internet connection",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Medium

@@ -24,6 +24,7 @@ import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
+import androidx.compose.ui.Alignment
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,7 +76,7 @@ fun VehicleProfileScreen(
                 },
                 actions = {
 
-                    if (state.vehicle != null && state.vehicle?.status != VehicleStatus.IN_USE && !state.hasActiveSession) {
+                    if (state.vehicle != null && state.vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession) {
                         Box {
                             IconButton(
                                 onClick = { showMenu = true }
@@ -168,26 +169,35 @@ fun VehicleProfileContent(
     state: VehicleProfileState,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.fillMaxSize()) {
-        Column(
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Box(
             modifier = Modifier
+                .widthIn(max = 800.dp)
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            state.vehicle?.let { vehicle ->
-                val status = vehicle.status
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                state.vehicle?.let { vehicle ->
+                    val status = vehicle.status
 
-                VehicleProfileSummary(
-                    vehicle = vehicle,
-                    status = status,
-                    activeOperator = state.activeOperator,
-                    showOperatorDetails = true,
-                    showPreShiftCheckDetails = true
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                VehicleDetailsSection(vehicle = vehicle)
+                    VehicleProfileSummary(
+                        vehicle = vehicle,
+                        status = status,
+                        activeOperator = state.activeOperator,
+                        showOperatorDetails = true,
+                        showPreShiftCheckDetails = true
+                    )
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    VehicleDetailsSection(vehicle = vehicle)
+                }
             }
         }
     }

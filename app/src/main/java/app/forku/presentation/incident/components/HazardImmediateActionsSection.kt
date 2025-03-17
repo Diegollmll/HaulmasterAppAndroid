@@ -58,7 +58,7 @@ fun HazardImmediateActionsSection(
                 )
                 
                 Text(
-                    text = action.name.replace("_", " "),
+                    text = action.toFriendlyString(),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(start = 8.dp)
                 )

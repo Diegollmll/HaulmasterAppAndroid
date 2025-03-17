@@ -22,7 +22,7 @@ import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import app.forku.presentation.checklist.ChecklistViewModel
 import app.forku.presentation.incident.IncidentReportScreen
 import app.forku.presentation.incident.IncidentReportViewModel
-import app.forku.presentation.incident.list.IncidentHistoryScreen
+import app.forku.presentation.incident.list.IncidentListScreen
 import app.forku.presentation.user.profile.ProfileScreen
 import app.forku.presentation.vehicle.manual.PerformanceReportScreen
 
@@ -30,43 +30,15 @@ import app.forku.presentation.incident.detail.IncidentDetailScreen
 import app.forku.presentation.tour.TourScreen
 import app.forku.presentation.user.register.RegisterScreen
 import app.forku.presentation.dashboard.AdminDashboardScreen
-import app.forku.presentation.dashboard.UnauthorizedScreen
 import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.user.login.LoginState
 import app.forku.domain.model.user.UserRole
+import app.forku.presentation.checklist.AllChecklistScreen
 import app.forku.presentation.notification.NotificationScreen
-import app.forku.presentation.user.session.OperatorSessionListScreen
-import app.forku.presentation.vehicle.session.VehicleSessionListScreen
+import app.forku.presentation.user.operator.OperatorsListScreen
+import app.forku.presentation.checklist.CheckDetailScreen
+import app.forku.presentation.safety.SafetyAlertsScreen
 
-
-sealed class Screen(val route: String) {
-    data object Login : Screen("login")
-    data object Register : Screen("register")
-    data object Dashboard : Screen("dashboard")
-    data object QRScanner : Screen("qr_scanner")
-    data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
-    data object Checklist : Screen("checklist/{vehicleId}")
-    data object Profile : Screen("profile?operatorId={operatorId}") {
-        fun createRoute(operatorId: String? = null): String {
-            return if (operatorId != null) {
-                "profile?operatorId=$operatorId"
-            } else {
-                "profile"
-            }
-        }
-    }
-    data object IncidentsHistory : Screen("incidents_history")
-    data object OperatorsCICOHistory : Screen("operators_cico_history")
-    data object Vehicles : Screen("vehicles")
-    data object SafetyReporting : Screen("safety_reporting")
-    data object PerformanceReport : Screen("performance_report")
-    data object IncidentDetail : Screen("incident_detail/{incidentId}")
-    data object Tour : Screen("tour")
-    data object AdminDashboard : Screen("admin_dashboard")
-    data object VehicleSessionList : Screen("vehicle_session_list")
-    data object OperatorSessionList : Screen("operator_session_list")
-    data object Notifications : Screen("notifications")
-}
 
 @Composable
 fun NavGraph(
@@ -188,7 +160,7 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.Vehicles.route) {
+        composable(Screen.VehiclesList.route) {
             VehicleListScreen(
                 navController = navController,
                 onVehicleClick = { vehicleId ->
@@ -254,7 +226,7 @@ fun NavGraph(
             ProfileScreen(
                 navController = navController,
                 onNavigateBack = { navController.navigateUp() },
-                onNavigateToIncidents = { navController.navigate(Screen.IncidentsHistory.route) },
+                onNavigateToIncidents = { navController.navigate(Screen.IncidentList.route) },
                 onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) },
                 networkManager = networkManager,
                 operatorId = operatorId
@@ -269,8 +241,8 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.IncidentsHistory.route) {
-            IncidentHistoryScreen(
+        composable(Screen.IncidentList.route) {
+            IncidentListScreen(
                 onNavigateBack = { navController.navigateUp() },
                 onNavigateToReport = {
                     //navController.navigate(Screen.IncidentReport.route)
@@ -299,18 +271,9 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.VehicleSessionList.route) {
-            VehicleSessionListScreen(
-                navController = navController,
-                onVehicleClick = { vehicleId ->
-                    navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
-                },
-                networkManager = networkManager
-            )
-        }
 
-        composable(Screen.OperatorSessionList.route) {
-            OperatorSessionListScreen(
+        composable(Screen.OperatorsList.route) {
+            OperatorsListScreen(
                 navController = navController,
                 networkManager = networkManager
             )
@@ -318,6 +281,34 @@ fun NavGraph(
 
         composable(Screen.Notifications.route) {
             NotificationScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.AllChecklist.route) {
+            AllChecklistScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(
+            route = Screen.CheckDetail.route,
+            arguments = listOf(
+                navArgument("checkId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val checkId = backStackEntry.arguments?.getString("checkId") ?: return@composable
+            CheckDetailScreen(
+                checkId = checkId,
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.SafetyAlerts.route) {
+            SafetyAlertsScreen(
                 navController = navController,
                 networkManager = networkManager
             )

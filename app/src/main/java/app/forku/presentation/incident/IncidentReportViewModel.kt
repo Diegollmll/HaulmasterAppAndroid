@@ -19,14 +19,13 @@ import javax.inject.Inject
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
-import app.forku.core.notification.NotificationService
-import app.forku.data.repository.notification.NotificationRepository
 import app.forku.domain.model.incident.toDisplayText
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.notification.NotificationRepository
 
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,7 +48,6 @@ class IncidentReportViewModel @Inject constructor(
     private val checklistRepository: ChecklistRepository,
     private val locationManager: LocationManager,
     private val notificationRepository: NotificationRepository,
-    private val notificationService: NotificationService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
@@ -103,7 +101,7 @@ class IncidentReportViewModel @Inject constructor(
                 
                 if (locationStateValue.latitude != null && locationStateValue.longitude != null) {
                     if (!state.value.weatherLoaded) {
-                        fetchWeather(locationStateValue.latitude, locationStateValue.longitude)
+                        retryFetchWeather(locationStateValue.latitude, locationStateValue.longitude)
                     }
                 }
 
@@ -207,6 +205,7 @@ class IncidentReportViewModel @Inject constructor(
                                 null
                             }
                         },
+                        checkId = lastCheck?.id,
                         preshiftCheckStatus = lastCheck?.status ?: "No preshift check recorded"
                     )
                 }
@@ -240,6 +239,7 @@ class IncidentReportViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 isSubmitting = true
+                _state.update { it.copy(attemptedSubmit = true) }
                 
                 when (val validationResult = state.value.validate()) {
                     is ValidationResult.Success -> {
@@ -273,18 +273,12 @@ class IncidentReportViewModel @Inject constructor(
                             )
 
                             result.onSuccess { incident ->
-                                // Send notification through the notification service
-                                notificationService.sendIncidentNotification(
-                                    incidentId = incident.id ?: "unknown",
-                                    title = "New ${incident.type.toDisplayText()} Reported",
-                                    message = "Location: ${incident.location}"
-                                )
+                                // Create a notification here
                                 
                                 _state.update { it.copy(
                                     isLoading = false,
                                     showSuccessDialog = true
                                 ) }
-                                _navigateToDashboard.value = true
                             }.onFailure { error ->
                                 _state.update { it.copy(
                                     isLoading = false,
@@ -317,6 +311,7 @@ class IncidentReportViewModel @Inject constructor(
 
     fun dismissSuccessDialog() {
         _state.update { it.copy(showSuccessDialog = false) }
+        _navigateToDashboard.value = true
     }
 
     fun updateState(newState: IncidentReportState) {
@@ -335,6 +330,10 @@ class IncidentReportViewModel @Inject constructor(
     fun onLocationPermissionGranted() {
         viewModelScope.launch {
             try {
+                _state.update { it.copy(
+                    locationLoaded = false,
+                    weatherLoaded = false
+                )}
                 locationManager.startLocationUpdates()
                 // Esperar un momento para que la ubicación se actualice
                 delay(1000)
@@ -358,16 +357,39 @@ class IncidentReportViewModel @Inject constructor(
         )}
     }
 
-    private fun fetchWeather(latitude: Double, longitude: Double) {
+    private fun retryFetchWeather(latitude: Double, longitude: Double, retryCount: Int = 0) {
+        if (retryCount >= 3) {
+            _state.update { it.copy(
+                weather = "Weather information unavailable",
+                weatherLoaded = true
+            )}
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val weather = weatherRepository.getCurrentWeather(latitude, longitude)
-                _state.update { it.copy(
-                    weather = weather,
-                    weatherLoaded = true
-                )}
+                if (weather.isNotBlank()) {
+                    _state.update { it.copy(
+                        weather = weather,
+                        weatherLoaded = true
+                    )}
+                } else {
+                    delay(1000) // Wait 1 second before retry
+                    retryFetchWeather(latitude, longitude, retryCount + 1)
+                }
             } catch (e: Exception) {
-                _state.update { it.copy(error = "Error fetching weather: ${e.message}") }
+                android.util.Log.e("Weather", "Error fetching weather (attempt ${retryCount + 1})", e)
+                if (retryCount < 2) {
+                    delay(1000) // Wait 1 second before retry
+                    retryFetchWeather(latitude, longitude, retryCount + 1)
+                } else {
+                    _state.update { it.copy(
+                        weather = "Weather information unavailable",
+                        weatherLoaded = true,
+                        error = null // Don't show error to user, just set default weather
+                    )}
+                }
             }
         }
     }

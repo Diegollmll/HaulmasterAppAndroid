@@ -31,7 +31,7 @@ fun InjurySeverityDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = selected.name.replace("_", " "),
+            value = selected.toFriendlyString(),
             onValueChange = {},
             readOnly = true,
             label = "Injuries Reported",
@@ -45,7 +45,7 @@ fun InjurySeverityDropdown(
         ) {
             InjurySeverity.values().forEach { severity ->
                 DropdownMenuItem(
-                    text = { Text(severity.name.replace("_", " ")) },
+                    text = { Text(severity.toFriendlyString()) },
                     onClick = {
                         onSelected(severity)
                         expanded = false
@@ -70,7 +70,7 @@ fun InjuryLocationsDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = if (selected.isEmpty()) "" else selected.joinToString(", ") { it.name.replace("_", " ") },
+            value = if (selected.isEmpty()) "" else selected.joinToString(", ") { it.toFriendlyString() },
             onValueChange = {},
             readOnly = true,
             label = "Injury Locations",
@@ -93,7 +93,7 @@ fun InjuryLocationsDropdown(
                                 onCheckedChange = null
                             )
                             Text(
-                                text = location.name.replace("_", " "),
+                                text = location.toFriendlyString(),
                                 modifier = Modifier.padding(start = 8.dp)
                             )
                         }

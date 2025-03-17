@@ -23,7 +23,8 @@ fun UserDto.toDomain(): User {
         certifications = certifications.map { it.toDomain() },
         lastMedicalCheck = lastMedicalCheck,
         lastLogin = lastLogin,
-        isActive = isActive
+        isActive = isActive,
+        password = password
     )
 }
 
@@ -41,7 +42,7 @@ fun User.toDto(): UserDto {
         token = token,
         refreshToken = refreshToken,
         email = email,
-        password = "", // No incluimos el password en la conversión a DTO
+        password = password,
         username = username,
         firstName = firstName,
         lastName = lastName,

@@ -55,7 +55,7 @@ fun ChecklistScreen(
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        showBottomBar = true,
+        showBottomBar = false,
         viewModel = viewModel,
         topBarTitle = "Pre-Shift Check",
         networkManager = networkManager,
@@ -105,7 +105,7 @@ fun ChecklistScreen(
                                 groupedItems?.forEach { (category, items) ->
                                     // Keep CategoryHeader
                                     CategoryHeader(
-                                        categoryName = category.name,
+                                        categoryName = category,
                                         modifier = Modifier.padding(bottom = 1.dp)
                                     )
 

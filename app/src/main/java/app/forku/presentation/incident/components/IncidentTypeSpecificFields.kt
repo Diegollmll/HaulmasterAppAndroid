@@ -116,7 +116,7 @@ fun VehicleFailSpecificField(
                         contributingFactors = emptySet(),
                         immediateActions = emptySet(),
                         longTermSolutions = emptySet(),
-                        damageOccurrence = null,
+                        damageOccurrence = emptySet(),
                         environmentalImpact = "",
                         isLoadCarried = state.isLoadCarried,
                         loadBeingCarried = state.loadBeingCarried,
@@ -149,7 +149,7 @@ fun NearMissTypeDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = selected?.name?.replace("_", " ") ?: "",
+            value = selected?.toFriendlyString() ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Near Miss Type",
@@ -163,7 +163,7 @@ fun NearMissTypeDropdown(
         ) {
             NearMissType.values().forEach { type ->
                 DropdownMenuItem(
-                    text = { Text(type.name.replace("_", " ")) },
+                    text = { Text(type.toFriendlyString()) },
                     onClick = {
                         onSelected(type)
                         expanded = false

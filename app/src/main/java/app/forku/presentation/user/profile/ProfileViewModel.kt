@@ -7,6 +7,7 @@ import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.incident.IncidentRepository
+import app.forku.domain.model.session.SessionStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +29,32 @@ class ProfileViewModel @Inject constructor(
         loadCurrentUserProfile()
     }
 
+    private fun loadCurrentUserProfile() {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true) }
+                val user = userRepository.getCurrentUser()
+                user?.let { updateProfileState(it) }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message, isLoading = false) }
+            }
+        }
+    }
+
+    fun loadOperatorProfile(operatorId: String) {
+        viewModelScope.launch {
+            try {
+                val operator = userRepository.getUserById(operatorId)
+                if (operator != null) {
+                    android.util.Log.d("ProfileViewModel", "Loaded operator with photoUrl: ${operator.photoUrl}")
+                    updateProfileState(operator)
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             try {
@@ -42,50 +69,38 @@ class ProfileViewModel @Inject constructor(
         loadCurrentUserProfile()
     }
 
-    private fun loadCurrentUserProfile() {
-        viewModelScope.launch {
-            try {
-                val currentUser = userRepository.getCurrentUser()
-                if (currentUser != null) {
-                    updateProfileState(currentUser)
-                }
-            } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
-            }
-        }
-    }
-
-    fun loadOperatorProfile(operatorId: String) {
-        viewModelScope.launch {
-            try {
-                val operator = userRepository.getUserById(operatorId)
-                if (operator != null) {
-                    updateProfileState(operator)
-                }
-            } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
-            }
-        }
-    }
-
     private suspend fun updateProfileState(user: User) {
         try {
-            // Get user's sessions
-            val sessions = sessionRepository.getSessionsByUserId(user.id)
+            // Get total sessions
+            val totalSessions = sessionRepository.getSessionsByUserId(user.id).size
             
-            // Get user's incidents
-            val incidentsResult = incidentRepository.getIncidentsByUserId(user.id)
-            val incidents = incidentsResult.getOrDefault(emptyList())
+            // Get total incidents
+            val totalIncidents = incidentRepository.getIncidentsByUserId(user.id).getOrDefault(emptyList()).size
             
-            _state.update { it.copy(
-                user = user,
-                totalSessions = sessions.size,
-                totalIncidents = incidents.size,
-                isLoading = false,
-                error = null
-            ) }
+            // Get active vehicle session if any
+            val activeSession = sessionRepository.getSessionsByUserId(user.id)
+                .find { it.status == SessionStatus.ACTIVE }
+            
+            val activeVehicle = activeSession?.let { session ->
+                vehicleRepository.getVehicle(session.vehicleId)
+            }
+            
+            // Update user with current active status based on vehicle session
+            val updatedUser = user.copy(isActive = activeSession != null)
+            
+            _state.update { currentState ->
+                currentState.copy(
+                    user = updatedUser,
+                    currentSession = activeSession,
+                    activeVehicle = activeVehicle,
+                    totalSessions = totalSessions,
+                    totalIncidents = totalIncidents,
+                    isLoading = false,
+                    error = null
+                )
+            }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.message, isLoading = false) }
         }
     }
 } 

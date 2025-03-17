@@ -20,7 +20,7 @@ fun VehicleFailTypeDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = selected?.name?.replace("_", " ") ?: "",
+            value = selected?.toFriendlyString() ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Type of Failure",
@@ -34,7 +34,7 @@ fun VehicleFailTypeDropdown(
         ) {
             VehicleFailType.values().forEach { type ->
                 DropdownMenuItem(
-                    text = { Text(type.name.replace("_", " ")) },
+                    text = { Text(type.toFriendlyString()) },
                     onClick = {
                         onSelected(type)
                         expanded = false

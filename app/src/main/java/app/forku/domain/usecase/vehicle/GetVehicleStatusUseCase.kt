@@ -3,7 +3,6 @@ package app.forku.domain.usecase.vehicle
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.session.SessionStatus
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import javax.inject.Inject
 import app.forku.domain.repository.vehicle.VehicleStatusRepository

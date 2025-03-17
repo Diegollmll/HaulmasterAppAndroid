@@ -18,42 +18,45 @@ import kotlin.math.absoluteValue
 fun UserDateTimer(
     modifier: Modifier = Modifier,
     initialDateTime: LocalDateTime = LocalDateTime.now(),
-    sessionStartTime: LocalDateTime? = null
+    sessionStartTime: LocalDateTime? = null,
+    fontSize: Int = 34
 ) {
     var dateTime by remember { mutableStateOf(initialDateTime) }
-    var elapsedTime by remember { mutableStateOf("00:00:00") }
+    var elapsedTime by remember(sessionStartTime) { mutableStateOf("00:00:00") }
     
     LaunchedEffect(sessionStartTime) {
-        // Only start the timer if there's a session start time
         if (sessionStartTime != null) {
             while(true) {
-                delay(1000)
-                dateTime = LocalDateTime.now()
-                
-                // Calculate duration from session start to current time
-                val duration = java.time.Duration.between(sessionStartTime, dateTime)
-                val hours = duration.toHours().absoluteValue
-                val minutes = duration.toMinutes().absoluteValue % 60
-                val seconds = duration.seconds.absoluteValue % 60
-                elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                try {
+                    val now = LocalDateTime.now()
+                    val duration = java.time.Duration.between(sessionStartTime, now)
+                    val hours = duration.toHours().absoluteValue
+                    val minutes = duration.toMinutes().absoluteValue % 60
+                    val seconds = duration.seconds.absoluteValue % 60
+                    
+                    elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                    delay(1000)
+                } catch (e: Exception) {
+                    android.util.Log.e("UserDateTimer", "Error calculating duration", e)
+                    delay(1000)
+                }
             }
         } else {
-            // Reset timer when session ends
             elapsedTime = "00:00:00"
         }
     }
 
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.Start
+        modifier = modifier.height(IntrinsicSize.Min),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = elapsedTime,
-            style = MaterialTheme.typography.headlineLarge.copy(
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            modifier = Modifier.padding(top = 4.dp)
+            fontSize = fontSize.sp,
+            fontWeight = FontWeight.Bold,
+            lineHeight = fontSize.sp,
+            modifier = Modifier.height(IntrinsicSize.Min)
         )
     }
 } 

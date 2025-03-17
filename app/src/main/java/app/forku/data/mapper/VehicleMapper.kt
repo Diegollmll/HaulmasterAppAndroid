@@ -68,7 +68,7 @@ fun Vehicle.toDto(): VehicleDto {
 fun VehicleType.toDto(): VehicleTypeDto {
     return VehicleTypeDto(
         id = id,
-        name = name,
+        name = displayName,
         requiresCertification = requiresCertification
     )
 } 

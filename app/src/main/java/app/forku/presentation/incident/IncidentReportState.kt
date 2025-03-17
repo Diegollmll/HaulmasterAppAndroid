@@ -44,6 +44,7 @@ data class IncidentReportState(
     val vehicleId: String? = null,
     val vehicleType: VehicleType? = null,
     val vehicleName: String = "",
+    val checkId: String? = null,
     val isLoadCarried: Boolean = false,
     val loadBeingCarried: String = "",
     val loadWeight: LoadWeight? = null,
@@ -60,6 +61,7 @@ data class IncidentReportState(
     val isSubmitted: Boolean = false,
     val error: String? = null,
     val showSuccessDialog: Boolean = false,
+    val attemptedSubmit: Boolean = false,
     
     // Location permission state
     val hasLocationPermission: Boolean = false,

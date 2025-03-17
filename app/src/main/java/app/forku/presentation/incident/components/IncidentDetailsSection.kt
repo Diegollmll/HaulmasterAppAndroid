@@ -75,6 +75,22 @@ fun IncidentDetailsSection(
 
         FormFieldDivider()
 
+        // Hidden Location field - maintains state but not visible
+        if (true) {  // This ensures the composable is never rendered
+            CustomOutlinedTextField(
+                value = state.location,
+                onValueChange = { },
+                label = "Location",
+                readOnly = true,
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 0.dp)
+            )
+            FormFieldDivider()
+        }
+
+
         CustomOutlinedTextField(
             value = buildString {
                 append(dateFormatter.format(Date(state.date)))
@@ -98,35 +114,18 @@ fun IncidentDetailsSection(
 
         FormFieldDivider()
 
-        // Hidden Weather Conditions field - maintains state but not visible
-        if (true) {  // This ensures the composable is never rendered
-            CustomOutlinedTextField(
-                value = state.weather,
-                onValueChange = { },
-                label = "Weather Conditions",
-                readOnly = true,
-                enabled = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 0.dp)
-            )
-            FormFieldDivider()
-        }
-
-        // Hidden Location field - maintains state but not visible
-        if (true) {  // This ensures the composable is never rendered
-            CustomOutlinedTextField(
-                value = state.location,
-                onValueChange = { },
-                label = "Location",
-                readOnly = true,
-                enabled = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 0.dp)
-            )
-            FormFieldDivider()
-        }
+        // Weather Conditions field
+        CustomOutlinedTextField(
+            value = state.weather,
+            onValueChange = { },
+            label = "Weather Conditions",
+            readOnly = true,
+            enabled = false,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 0.dp)
+        )
+        FormFieldDivider()
 
         // Add Severity Level Dropdown
         SeverityLevelDropdown(

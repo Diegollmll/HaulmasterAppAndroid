@@ -32,12 +32,15 @@ fun IncidentDescriptionSection(
         CustomOutlinedTextField(
             value = state.description,
             onValueChange = { onValueChange(state.copy(description = it)) },
-            label = "Narrative Description",
+            label = "Narrative Description *",
+            minLines = 3,
+            isError = state.attemptedSubmit && state.description.isBlank(),
+            supportingText = if (state.attemptedSubmit && state.description.isBlank()) {
+                { Text("Please provide a description of the incident") }
+            } else null,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp)
-                .padding(vertical = 8.dp),
-            minLines = 4
+                .padding(vertical = 8.dp)
         )
 
         FormFieldDivider()

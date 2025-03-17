@@ -20,9 +20,9 @@ fun CommonCausesDropdown(
     var expanded by remember { mutableStateOf(false) }
     
     val currentCause = when (val fields = state.typeSpecificFields) {
-        is IncidentTypeFields.CollisionFields -> fields.commonCause?.name
+        is IncidentTypeFields.CollisionFields -> fields.commonCause?.toFriendlyString()
         else -> null
-    }?.replace("_", " ")
+    }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -44,7 +44,7 @@ fun CommonCausesDropdown(
         ) {
             CommonCause.values().forEach { cause ->
                 DropdownMenuItem(
-                    text = { Text(cause.name.replace("_", " ")) },
+                    text = { Text(cause.toFriendlyString()) },
                     onClick = {
                         val newFields = when (val fields = state.typeSpecificFields) {
                             is IncidentTypeFields.CollisionFields ->

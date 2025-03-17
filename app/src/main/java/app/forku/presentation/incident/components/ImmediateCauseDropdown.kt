@@ -48,7 +48,33 @@ fun ImmediateCauseDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = currentCause ?: "",
+            value = when (val fields = state.typeSpecificFields) {
+                is IncidentTypeFields.CollisionFields -> fields.immediateCause?.let { cause ->
+                    when (cause) {
+                        CollisionImmediateCause.OPERATOR_ERROR -> "Operator Error"
+                        CollisionImmediateCause.MECHANICAL_FAILURE -> "Mechanical Failure"
+                        CollisionImmediateCause.OTHER -> "Other Cause"
+                    }
+                }
+                is IncidentTypeFields.NearMissFields -> fields.immediateCause?.let { cause ->
+                    when (cause) {
+                        NearMissImmediateCause.OPERATOR_ERROR -> "Operator Error"
+                        NearMissImmediateCause.ENVIRONMENTAL_FACTOR -> "Environmental Factor"
+                        NearMissImmediateCause.EQUIPMENT_ISSUE -> "Equipment Issue"
+                        NearMissImmediateCause.OTHER -> "Other Cause"
+                    }
+                }
+                is IncidentTypeFields.VehicleFailFields -> fields.immediateCause?.let { cause ->
+                    when (cause) {
+                        VehicleFailImmediateCause.WEAR_AND_TEAR -> "Wear and Tear"
+                        VehicleFailImmediateCause.LACK_OF_MAINTENANCE -> "Lack of Maintenance"
+                        VehicleFailImmediateCause.OPERATOR_MISUSE -> "Operator Misuse"
+                        VehicleFailImmediateCause.ENVIRONMENTAL_FACTORS -> "Environmental Factors"
+                        VehicleFailImmediateCause.OTHER -> "Other Cause"
+                    }
+                }
+                else -> null
+            } ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Immediate Cause",
@@ -62,7 +88,29 @@ fun ImmediateCauseDropdown(
         ) {
             causes.forEach { cause ->
                 DropdownMenuItem(
-                    text = { Text(cause.name.replace("_", " ")) },
+                    text = { 
+                        Text(when (cause) {
+                            is CollisionImmediateCause -> when (cause) {
+                                CollisionImmediateCause.OPERATOR_ERROR -> "Operator Error"
+                                CollisionImmediateCause.MECHANICAL_FAILURE -> "Mechanical Failure"
+                                CollisionImmediateCause.OTHER -> "Other Cause"
+                            }
+                            is NearMissImmediateCause -> when (cause) {
+                                NearMissImmediateCause.OPERATOR_ERROR -> "Operator Error"
+                                NearMissImmediateCause.ENVIRONMENTAL_FACTOR -> "Environmental Factor"
+                                NearMissImmediateCause.EQUIPMENT_ISSUE -> "Equipment Issue"
+                                NearMissImmediateCause.OTHER -> "Other Cause"
+                            }
+                            is VehicleFailImmediateCause -> when (cause) {
+                                VehicleFailImmediateCause.WEAR_AND_TEAR -> "Wear and Tear"
+                                VehicleFailImmediateCause.LACK_OF_MAINTENANCE -> "Lack of Maintenance"
+                                VehicleFailImmediateCause.OPERATOR_MISUSE -> "Operator Misuse"
+                                VehicleFailImmediateCause.ENVIRONMENTAL_FACTORS -> "Environmental Factors"
+                                VehicleFailImmediateCause.OTHER -> "Other Cause"
+                            }
+                            else -> cause.toString()
+                        })
+                    },
                     onClick = {
                         val newFields = when (val fields = state.typeSpecificFields) {
                             is IncidentTypeFields.CollisionFields ->

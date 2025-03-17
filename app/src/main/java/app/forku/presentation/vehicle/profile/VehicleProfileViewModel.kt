@@ -21,12 +21,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import app.forku.domain.repository.session.SessionRepository
-import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.user.UserRepository
+import app.forku.domain.usecase.vehicle.GetVehicleActiveSessionUseCase
 import app.forku.presentation.vehicle.components.QrCodeGenerator
 import java.io.File
 import java.io.FileOutputStream
@@ -82,6 +82,13 @@ class VehicleProfileViewModel @Inject constructor(
                 val operator = activeSession?.userId?.let { userId ->
                     userRepository.getUserById(userId)
                 }
+
+                // If no active operator, get the last session's operator
+                val lastOperator = if (operator == null) {
+                    sessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
+                        userRepository.getUserById(userId)
+                    }
+                } else null
                 
                 _state.update { 
                     it.copy(
@@ -90,6 +97,7 @@ class VehicleProfileViewModel @Inject constructor(
                         hasActiveSession = currentSession != null,
                         hasActivePreShiftCheck = lastPreShiftCheck?.status == CheckStatus.IN_PROGRESS.toString(),
                         activeOperator = operator,
+                        lastOperator = lastOperator,
                         isLoading = false,
                         error = null
                     )

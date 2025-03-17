@@ -41,4 +41,8 @@ interface UserRepository {
     suspend fun setTourCompleted()
 
     suspend fun getAuthToken(): String?
+
+    suspend fun updatePresence(isOnline: Boolean)
+    
+    suspend fun getLastActiveTime(userId: String): Long?
 } 

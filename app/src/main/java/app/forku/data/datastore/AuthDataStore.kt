@@ -33,14 +33,29 @@ class AuthDataStore @Inject constructor(
         val ROLE = stringPreferencesKey("role")
         val USER_KEY = stringPreferencesKey("user")
         val TOKEN_KEY = stringPreferencesKey("token")
+        val PASSWORD = stringPreferencesKey("password")
+        val LAST_ACTIVE = stringPreferencesKey("last_active")
+        val IS_ONLINE = booleanPreferencesKey("is_online")
     }
 
     @Volatile
     private var cachedToken: String? = null
+    private var lastActiveTime: Long = 0
 
     fun getToken(): String? {
         android.util.Log.d("AuthDataStore", "Getting cached token: $cachedToken")
         return cachedToken
+    }
+
+    suspend fun updatePresence(isOnline: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_ONLINE] = isOnline
+            if (isOnline) {
+                val now = System.currentTimeMillis()
+                preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
+                lastActiveTime = now
+            }
+        }
     }
 
     suspend fun setToken(token: String?) {
@@ -75,6 +90,11 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.PHOTO_URL] = user.photoUrl ?: ""
             preferences[PreferencesKeys.ROLE] = user.role.name
             preferences[PreferencesKeys.TOKEN_KEY] = user.token
+            preferences[PreferencesKeys.PASSWORD] = user.password
+            preferences[PreferencesKeys.IS_ONLINE] = true
+            val now = System.currentTimeMillis()
+            preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
+            lastActiveTime = now
         }
         cachedToken = user.token
         android.util.Log.d("AuthDataStore", "User data stored successfully")
@@ -95,6 +115,8 @@ class AuthDataStore @Inject constructor(
                 - FIRST_NAME: ${preferences[PreferencesKeys.FIRST_NAME]}
                 - LAST_NAME: ${preferences[PreferencesKeys.LAST_NAME]}
                 - ROLE: ${preferences[PreferencesKeys.ROLE]}
+                - IS_ONLINE: ${preferences[PreferencesKeys.IS_ONLINE]}
+                - LAST_ACTIVE: ${preferences[PreferencesKeys.LAST_ACTIVE]}
             """.trimIndent())
             
             val userId = preferences[PreferencesKeys.USER_ID]
@@ -134,6 +156,10 @@ class AuthDataStore @Inject constructor(
                 android.util.Log.e("AuthDataStore", "No role found for user $userId")
                 return null
             }
+            val password = preferences[PreferencesKeys.PASSWORD] ?: ""
+
+            val isOnline = preferences[PreferencesKeys.IS_ONLINE] ?: false
+            val lastActive = preferences[PreferencesKeys.LAST_ACTIVE]?.toLongOrNull() ?: 0L
 
             User(
                 id = userId,
@@ -145,7 +171,10 @@ class AuthDataStore @Inject constructor(
                 lastName = "$lastName",
                 photoUrl = photoUrl?.takeIf { it.isNotEmpty() },
                 role = role,
-                certifications = emptyList()
+                certifications = emptyList(),
+                password = password,
+                isActive = isOnline,
+                lastLogin = lastActive.toString()
             ).also {
                 android.util.Log.d("AuthDataStore", """
                     User retrieved successfully:
@@ -153,6 +182,8 @@ class AuthDataStore @Inject constructor(
                     - Name: ${it.fullName}
                     - Token: ${it.token.take(10)}...
                     - Role: ${it.role}
+                    - Online: $isOnline
+                    - Last Active: ${java.time.Instant.ofEpochMilli(lastActive)}
                 """.trimIndent())
             }
         } catch (e: Exception) {
@@ -163,10 +194,12 @@ class AuthDataStore @Inject constructor(
 
     suspend fun clearAuth() {
         android.util.Log.d("AuthDataStore", "Clearing all auth data")
+        updatePresence(false)
         context.dataStore.edit { preferences ->
             preferences.clear()
         }
         cachedToken = null
+        lastActiveTime = 0
     }
 
     suspend fun initializeToken() {

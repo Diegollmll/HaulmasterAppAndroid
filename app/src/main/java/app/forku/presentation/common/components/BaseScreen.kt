@@ -23,6 +23,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.material3.surfaceColorAtElevation
+import app.forku.domain.model.user.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,9 +43,8 @@ fun BaseScreen(
     networkManager: NetworkConnectivityManager,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    // Lifecycle observer for refresh
     val lifecycleOwner = LocalLifecycleOwner.current
-    val backgroundColor = BackgroundGray
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -57,94 +57,84 @@ fun BaseScreen(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = backgroundColor
-    ) {
+    GradientBackground {
         Column(modifier = Modifier.fillMaxSize()) {
             // Network Status Bar at the very top
             NetworkStatusBar(networkManager = networkManager)
             
-            // Header section
-            if (showTopBar) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    // Back button with additional top padding - only show if showBackButton is true
-                    if (showBackButton) {
-                        Box(
+            Scaffold(
+                modifier = modifier.weight(1f),
+                topBar = {
+                    if (showTopBar) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 24.dp)
+                                .padding(horizontal = 16.dp)
                         ) {
-                            // Custom back button implementation
-                            Row(
-                                modifier = Modifier
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                        enabled = true,
-                                        onClickLabel = "Back",
-                                        role = androidx.compose.ui.semantics.Role.Button,
-                                        onClick = { navController.navigateUp() }
+                            // Back button with additional top padding
+                            if (showBackButton) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 46.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null,
+                                                onClick = { navController.navigateUp() }
+                                            )
+                                            .padding(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.ArrowBack,
+                                            contentDescription = "Back",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            "Back",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // Title with spacing
+                            if (topBarTitle?.isNotEmpty() == true) {
+                                Spacer(modifier = Modifier.height(if (showBackButton) 8.dp else 24.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = topBarTitle,
+                                        style = MaterialTheme.typography.titleMedium
                                     )
-                                    .padding(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.ArrowBack,
-                                    contentDescription = "Back",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    "Back",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+                                }
                             }
                         }
                     }
-                    
-                    // Title with spacing - adjust padding based on whether back button is shown
-                    if (topBarTitle?.isNotEmpty() == true) {
-                        Spacer(modifier = Modifier.height(if (showBackButton) 8.dp else 24.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = topBarTitle,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
+                },
+                bottomBar = {
+                    if (showBottomBar) {
+                        ForkUBottomBar(
+                            navController = navController,
+                            currentVehicleId = currentVehicleId,
+                            currentCheckId = currentCheckId,
+                            dashboardState = dashboardState ?: DashboardState()
+                        )
                     }
                 }
-            }
-
-            // Content
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            ) {
-                content(PaddingValues(horizontal = 16.dp))
-            }
-
-            // Bottom Bar
-            if (showBottomBar) {
-                ForkUBottomBar(
-                    navController = navController,
-                    currentVehicleId = currentVehicleId,
-                    currentCheckId = currentCheckId,
-                    dashboardState = dashboardState ?: DashboardState()
-                )
+            ) { paddingValues ->
+                content(paddingValues)
             }
         }
     }
-} 
+}

@@ -10,9 +10,20 @@ enum class CheckStatus {
     COMPLETED_FAIL,
     EXPIRED,
     OVERDUE,
-    NOT_STARTED
-}
+    NOT_STARTED;
 
+    fun toFriendlyString(): String {
+        return when (this) {
+            PENDING -> "Pending"
+            IN_PROGRESS -> "In Progress"
+            COMPLETED_PASS -> "Pass"
+            COMPLETED_FAIL -> "Fail"
+            EXPIRED -> "Expired"
+            OVERDUE -> "Overdue"
+            NOT_STARTED -> "Not Started"
+        }
+    }
+}
 
 @Composable
 fun getPreShiftStatusColor(status: String): Color {
@@ -29,13 +40,9 @@ fun getPreShiftStatusColor(status: String): Color {
 
 @Composable
 fun getPreShiftStatusText(status: String): String {
-    return when (status.uppercase()) {
-        "PENDING" -> "Pending"
-        "IN_PROGRESS" -> "In Progress"
-        "COMPLETED_PASS" -> "PASS"
-        "COMPLETED_FAIL" -> "FAIL"
-        "EXPIRED" -> "Expired"
-        "OVERDUE" -> "Overdue"
-        else -> status
+    return try {
+        CheckStatus.valueOf(status.uppercase()).toFriendlyString()
+    } catch (e: IllegalArgumentException) {
+        status
     }
 }

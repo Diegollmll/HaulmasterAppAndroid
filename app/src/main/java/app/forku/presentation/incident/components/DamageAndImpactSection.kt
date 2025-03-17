@@ -26,50 +26,49 @@ fun DamageAndImpactSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Damage Occurrence Dropdown
-        var expanded by remember { mutableStateOf(false) }
-        val currentDamage = when (val fields = state.typeSpecificFields) {
+        // Damage Occurrence Checkboxes
+        Text(
+            text = "Damage Occurrence *",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        val currentDamages = when (val fields = state.typeSpecificFields) {
             is IncidentTypeFields.CollisionFields -> fields.damageOccurrence
             is IncidentTypeFields.VehicleFailFields -> fields.damageOccurrence
-            else -> null
+            else -> emptySet()
         }
 
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            CustomOutlinedTextField(
-                value = currentDamage?.name?.replace("_", " ") ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = "Damage Occurrence *",
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+        DamageOccurrence.values().forEach { damage ->
+            Row(
                 modifier = Modifier
-                    .menuAnchor()
                     .fillMaxWidth()
-            )
-
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                DamageOccurrence.values().forEach { damage ->
-                    DropdownMenuItem(
-                        text = { Text(damage.name.replace("_", " ")) },
-                        onClick = {
-                            val newFields = when (val fields = state.typeSpecificFields) {
-                                is IncidentTypeFields.CollisionFields ->
-                                    fields.copy(damageOccurrence = damage)
-                                is IncidentTypeFields.VehicleFailFields ->
-                                    fields.copy(damageOccurrence = damage)
-                                else -> fields
-                            }
-                            onValueChange(state.copy(typeSpecificFields = newFields))
-                            expanded = false
+                Checkbox(
+                    checked = damage in currentDamages,
+                    onCheckedChange = { checked ->
+                        val newDamages = if (checked) {
+                            currentDamages + damage
+                        } else {
+                            currentDamages - damage
                         }
-                    )
-                }
+                        
+                        val newFields = when (val fields = state.typeSpecificFields) {
+                            is IncidentTypeFields.CollisionFields ->
+                                fields.copy(damageOccurrence = newDamages)
+                            is IncidentTypeFields.VehicleFailFields ->
+                                fields.copy(damageOccurrence = newDamages)
+                            else -> fields
+                        }
+                        onValueChange(state.copy(typeSpecificFields = newFields))
+                    }
+                )
+                Text(
+                    text = damage.toFriendlyString(),
+                    modifier = Modifier.padding(start = 8.dp)
+                )
             }
         }
 
@@ -94,7 +93,7 @@ fun DamageAndImpactSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
@@ -129,7 +128,7 @@ fun DamageAndImpactSection(
                     }
                 )
                 Text(
-                    text = impact.name.replace("_", " "),
+                    text = impact.toFriendlyString(),
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }

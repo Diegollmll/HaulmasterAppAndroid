@@ -11,13 +11,13 @@ import app.forku.domain.usecase.incident.ReportIncidentUseCase
 
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.user.UserRepository
-import app.forku.domain.usecase.session.GetVehicleActiveSessionUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 
 import app.forku.domain.usecase.user.LoginUseCase
+import app.forku.domain.usecase.vehicle.GetVehicleActiveSessionUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -81,9 +81,10 @@ object UseCaseModule {
     @Singleton
     fun provideGetVehicleActiveSessionUseCase(
         sessionRepository: SessionRepository,
-        userRepository: UserRepository
+        userRepository: UserRepository,
+        vehicleRepository: VehicleRepository
     ): GetVehicleActiveSessionUseCase {
-        return GetVehicleActiveSessionUseCase(sessionRepository, userRepository)
+        return GetVehicleActiveSessionUseCase(sessionRepository, userRepository, vehicleRepository)
     }
 
     @Provides

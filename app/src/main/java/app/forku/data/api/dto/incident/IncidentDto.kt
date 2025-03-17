@@ -24,6 +24,7 @@ data class IncidentDto(
     val vehicleId: String?,
     val vehicleType: String?,
     val vehicleName: String,
+    val checkId: String?,
     val isLoadCarried: Boolean,
     val loadBeingCarried: String,
     val loadWeight: String?,

@@ -10,9 +10,6 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.security.ProviderInstaller
 import com.google.android.gms.security.ProviderInstaller.ProviderInstallListener
 import com.google.firebase.FirebaseApp
-import com.google.firebase.ktx.Firebase
-import com.google.firebase.functions.ktx.functions
-import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -80,53 +77,6 @@ class ForkUApplication : Application(), ProviderInstallListener {
         }
     }
 
-    private fun initializeFCM() {
-        try {
-            FirebaseMessaging.getInstance().token
-                .addOnCompleteListener { task ->
-                    if (!task.isSuccessful) {
-                        Log.w("FCM", "Fetching FCM registration token failed", task.exception)
-                        showError("Failed to initialize notifications")
-                        return@addOnCompleteListener
-                    }
-                    val token = task.result
-                    Log.d("FCM", "FCM Token: $token")
-                }
-        } catch (e: Exception) {
-            Log.e("FCM", "Error initializing FCM", e)
-            showError("Failed to initialize notifications: ${e.message}")
-        }
-    }
-
-    private fun checkGooglePlayServices(context: Context): Boolean {
-        val googleApiAvailability = GoogleApiAvailability.getInstance()
-        val resultCode = googleApiAvailability.isGooglePlayServicesAvailable(context)
-        
-        if (resultCode != ConnectionResult.SUCCESS) {
-            Log.e("GooglePlayServices", "Google Play Services not available. Error code: $resultCode")
-            
-            if (googleApiAvailability.isUserResolvableError(resultCode)) {
-                val errorString = googleApiAvailability.getErrorString(resultCode)
-                Log.w("GooglePlayServices", "User resolvable error: $errorString")
-                showError(errorString)
-            }
-            
-            // Additional error information
-            when (resultCode) {
-                ConnectionResult.SERVICE_MISSING -> Log.e("GooglePlayServices", "Google Play Services is missing")
-                ConnectionResult.SERVICE_UPDATING -> Log.e("GooglePlayServices", "Google Play Services is updating")
-                ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED -> Log.e("GooglePlayServices", "Google Play Services update required")
-                ConnectionResult.SERVICE_DISABLED -> Log.e("GooglePlayServices", "Google Play Services is disabled")
-                ConnectionResult.SERVICE_INVALID -> Log.e("GooglePlayServices", "Google Play Services version is not genuine")
-            }
-            return false
-        }
-        return true
-    }
-
-    private fun showPlayServicesError() {
-        showError("Google Play Services is required but not available")
-    }
 
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()

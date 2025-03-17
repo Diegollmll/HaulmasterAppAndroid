@@ -27,7 +27,10 @@ fun HazardTypeDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = currentType ?: "",
+            value = when (val fields = state.typeSpecificFields) {
+                is IncidentTypeFields.HazardFields -> fields.hazardType?.toFriendlyString()
+                else -> null
+            } ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Hazard Type",
@@ -41,7 +44,7 @@ fun HazardTypeDropdown(
         ) {
             HazardType.values().forEach { type ->
                 DropdownMenuItem(
-                    text = { Text(type.name.replace("_", " ")) },
+                    text = { Text(type.toFriendlyString()) },
                     onClick = {
                         val newFields = when (val fields = state.typeSpecificFields) {
                             is IncidentTypeFields.HazardFields ->

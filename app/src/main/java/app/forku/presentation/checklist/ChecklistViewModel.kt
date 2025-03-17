@@ -129,7 +129,7 @@ class ChecklistViewModel @Inject constructor(
         rules.requiredCategories.forEach { categoryName ->
             val categoryQuestions = allItems
                 .filter { 
-                    it.category.name == categoryName && 
+                    it.category == categoryName &&
                     !selectedQuestions.contains(it) 
                 }
                 .shuffled()

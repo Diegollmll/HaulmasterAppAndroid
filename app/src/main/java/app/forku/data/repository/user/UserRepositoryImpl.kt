@@ -26,9 +26,11 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserById(id: String): User? {
         return try {
             val response = api.getUser(id)
+            android.util.Log.d("UserRepository", "API response for user $id: ${response.body()}")
             if (!response.isSuccessful) return null
             response.body()?.toDomain()
         } catch (e: Exception) {
+            android.util.Log.e("UserRepository", "Error getting user by id", e)
             null
         }
     }
@@ -73,7 +75,9 @@ class UserRepositoryImpl @Inject constructor(
 
             // Update lastLogin timestamp
             val updatedUser = user.copy(
-                lastLogin = java.time.Instant.now().toString()
+                lastLogin = java.time.Instant.now()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
             )
 
             // Update user in API
@@ -85,13 +89,13 @@ class UserRepositoryImpl @Inject constructor(
             // Log successful login
             android.util.Log.d("appflow UserRepository", "Successful login for user: ${updatedUser.email}")
 
-            // Guardar usuario en AuthDataStore
+            // Guardar usuario en AuthDataStore y actualizar presencia
             authDataStore.setCurrentUser(updatedUser)
+            updatePresence(true)
             
             Result.success(updatedUser)
         } catch (e: Exception) {
-            android.util.Log.e("UserRepository", "Error during login", e)
-            Result.failure(Exception("Error de conexión. Verifica tu internet e intenta de nuevo"))
+            Result.failure(e)
         }
     }
 
@@ -175,6 +179,7 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun logout() {
+        updatePresence(false)
         authDataStore.clearAuth()
     }
 
@@ -306,5 +311,14 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getAuthToken(): String? {
         return authDataStore.getCurrentUser()?.token
+    }
+
+    override suspend fun updatePresence(isOnline: Boolean) {
+        authDataStore.updatePresence(isOnline)
+    }
+
+    override suspend fun getLastActiveTime(userId: String): Long? {
+        val user = getUserById(userId)
+        return user?.lastLogin?.toLongOrNull()
     }
 } 

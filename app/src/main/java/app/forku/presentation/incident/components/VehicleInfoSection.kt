@@ -9,10 +9,13 @@ import app.forku.presentation.incident.IncidentReportState
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.Alignment
 import app.forku.domain.model.checklist.CheckStatus
+import app.forku.domain.model.checklist.getPreShiftStatusColor
+import app.forku.domain.model.checklist.getPreShiftStatusText
 import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.common.components.CustomOutlinedTextField
 import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.common.utils.getRelativeTimeSpanFromDateTime
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 
 @Composable
@@ -46,7 +49,7 @@ fun VehicleInfoSection(
         // Vehicle Type (Auto-filled)
         if(true) {
             CustomOutlinedTextField(
-                value = state.vehicleType?.name?.replace("_", " ") ?: "",
+                value = state.vehicleType?.displayName ?: "",
                 onValueChange = { /* Read-only */ },
                 label = "Vehicle Type",
                 enabled = false,
@@ -90,12 +93,27 @@ fun VehicleInfoSection(
         CustomOutlinedTextField(
             value = state.lastPreshiftCheck?.let { getRelativeTimeSpanFromDateTime(it) } ?: "No preshift check recorded",
             onValueChange = { /* Read-only */ },
-            label = "Last Preshift Check",
+            label = "Last Check",
             enabled = false,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp, bottom = 0.dp)
         )
+
+        // Check ID field
+        if (state.checkId != null) {
+            FormFieldDivider()
+            
+            CustomOutlinedTextField(
+                value = state.checkId,
+                onValueChange = { /* Read-only */ },
+                label = "Check ID",
+                enabled = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+        }
 
         // Preshift Check Status
         Row(
@@ -104,11 +122,11 @@ fun VehicleInfoSection(
                 .padding(horizontal = 16.dp, vertical = 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Text(
-                text = state.preshiftCheckStatus,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(start = 0.dp, top = 0.dp)
+                text = getPreShiftStatusText(state.preshiftCheckStatus),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(start = 0.dp, top = 0.dp),
+                color = getPreShiftStatusColor(state.preshiftCheckStatus)
             )
         }
 

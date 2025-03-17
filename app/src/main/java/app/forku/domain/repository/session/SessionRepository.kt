@@ -9,4 +9,5 @@ interface SessionRepository {
     suspend fun getActiveSessionForVehicle(vehicleId: String): VehicleSession?
     suspend fun getOperatorSessionHistory(): List<VehicleSession>
     suspend fun getSessionsByUserId(userId: String): List<VehicleSession>
+    suspend fun getLastCompletedSessionForVehicle(vehicleId: String): VehicleSession?
 } 

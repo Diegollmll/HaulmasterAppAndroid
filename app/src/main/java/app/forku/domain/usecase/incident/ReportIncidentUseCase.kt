@@ -52,7 +52,9 @@ class ReportIncidentUseCase @Inject constructor(
                 id = null,
                 type = type,
                 description = description,
-                timestamp = java.time.Instant.now().toString(),
+                timestamp = java.time.Instant.now()
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME),
                 userId = currentUser.id,
                 vehicleId = vehicleId,
                 sessionId = sessionId,

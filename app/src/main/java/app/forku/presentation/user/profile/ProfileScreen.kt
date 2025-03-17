@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,17 +39,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.user.profile.components.ProfileSections
 import app.forku.presentation.user.profile.components.StatsGrid
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import app.forku.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,15 +147,25 @@ private fun ProfileHeader(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            AsyncImage(
-                                model = state.user?.photoUrl,
-                                contentDescription = "Profile picture",
+                            Box(
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(CircleShape)
-                                    .border(1.dp, Color.LightGray, CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
+                                    .border(1.dp, Color.LightGray, CircleShape)
+                            ) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(state.user?.photoUrl?.takeIf { it.isNotEmpty() }
+                                            ?: "https://ui-avatars.com/api/?name=${state.user?.firstName?.first() ?: "U"}+${state.user?.lastName?.first() ?: "U"}&background=random")
+                                        .crossfade(true)
+                                        .placeholder(R.drawable.ic_profile_placeholder)
+                                        .error(R.drawable.ic_profile_placeholder)
+                                        .build(),
+                                    contentDescription = "Profile picture",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center,
@@ -160,21 +175,27 @@ private fun ProfileHeader(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .background(
-                                            if (state.user?.isActive == true && state.currentSession != null) Color.Green 
+                                            if (state.user?.isActive == true) Color.Green 
                                             else Color.Gray,
                                             CircleShape
                                         )
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = if (state.user?.isActive == true && state.currentSession != null) "Active" else "Inactive",
+                                    text = if (state.user?.isActive == true) "Active" else "Inactive",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color.Gray
                                 )
                             }
+
                             Text(
-                                text = "Last Log: ${state.user?.lastLogin?.let { getRelativeTimeSpanString(it) } ?: "N/A"}",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "Last log:",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 8.sp),
+                                color = Color.LightGray
+                            )
+                            Text(
+                                text = state.user?.lastLogin?.let { getRelativeTimeSpanString(it) } ?: "N/A",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
                                 color = Color.Gray
                             )
                         }

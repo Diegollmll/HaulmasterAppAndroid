@@ -1,51 +1,40 @@
 package app.forku.presentation.dashboard
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.presentation.navigation.Screen
-import app.forku.domain.model.vehicle.VehicleStatus
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material.icons.filled.Menu
 import app.forku.presentation.common.components.BaseScreen
+import app.forku.core.network.NetworkConnectivityManager
+import app.forku.presentation.dashboard.components.SessionCard
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.filled.ClearAll
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Report
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.sp
-import app.forku.core.network.NetworkConnectivityManager
-import app.forku.domain.model.vehicle.toColor
-import app.forku.presentation.dashboard.components.SessionCard
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.clickable
-
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import app.forku.presentation.common.components.DashboardHeader
+import app.forku.presentation.common.components.WaitlistBanner
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -57,14 +46,9 @@ fun DashboardScreen(
 ) {
     val dashboardState by viewModel.state.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+    val isConnected by networkManager.isConnected.collectAsState()
     
-    // Add loading state observation
     var isCheckoutLoading by remember { mutableStateOf(false) }
-
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = dashboardState.isLoading,
-        onRefresh = { viewModel.refreshWithLoading() }
-    )
 
     // Handle loading state during checkout
     LaunchedEffect(dashboardState.currentSession) {
@@ -80,63 +64,94 @@ fun DashboardScreen(
         }
     }
 
-    // Effect to refresh dashboard when screen becomes active
-    LaunchedEffect(Unit) {
-        viewModel.refresh()
+    // Initial load - only trigger on user change
+    LaunchedEffect(currentUser?.id) {
+        if (currentUser != null) {
+            viewModel.refresh()
+        }
     }
+
+    // Handle network connectivity changes with debounce
+    LaunchedEffect(isConnected) {
+        if (isConnected) {
+            // Add delay to prevent rapid refreshes
+            kotlinx.coroutines.delay(1000)
+            viewModel.refresh()
+        }
+    }
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = dashboardState.isLoading,
+        onRefresh = { viewModel.refreshWithLoading() }
+    )
 
     BaseScreen(
         navController = navController,
         showBottomBar = true,
+        showTopBar = false,
         showBackButton = false,
         currentVehicleId = dashboardState.currentSession?.vehicleId,
         currentCheckId = dashboardState.lastPreShiftCheck?.id,
         dashboardState = dashboardState,
-        networkManager = networkManager
+        networkManager = networkManager,
+        onRefresh = null  // Explicitly set to null to prevent auto-refresh on resume
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pullRefresh(pullRefreshState)
+                .pullRefresh(pullRefreshState),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Column(
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(top = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .widthIn(max = 800.dp)
+                    .fillMaxWidth()
             ) {
-                SessionCard(
-                    vehicle = dashboardState.displayVehicle,
-                    lastCheck = dashboardState.lastPreShiftCheck,
-                    user = currentUser,
-                    currentSession = dashboardState.currentSession,
-                    onCheckClick = { checkId ->
-                        dashboardState.displayVehicle?.id?.let { vehicleId ->
-                            onNavigate("checklist/$vehicleId?checkId=$checkId")
-                        }
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        DashboardHeader(
+                            userName = currentUser?.firstName ?: "",
+                            onNotificationClick = { navController.navigate(Screen.Notifications.route) }
+                        )
                     }
-                )
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                DashboardNavigationButtons(
-                    onNavigateToProfile = { onNavigate(Screen.Profile.route) },
-                    onNavigateToIncidents = { onNavigate(Screen.IncidentsHistory.route) },
-                    onNavigateToVehicles = { onNavigate(Screen.Vehicles.route) },
-                    onNavigateToActivity = { onNavigate(Screen.OperatorsCICOHistory.route) },
-                    onNavigateToManual = { onNavigate(Screen.PerformanceReport.route) },
-                    onCheckOut = {
-                        if (dashboardState.currentSession != null) {
-                            isCheckoutLoading = true
-                            viewModel.endCurrentSession()
-                        } else {
-                            onNavigate(Screen.QRScanner.route)
-                        }
-                    },
-                    showCheckOut = dashboardState.currentSession != null,
-                    isCheckoutLoading = isCheckoutLoading
-                )
+
+                    item {
+                        SessionCard(
+                            vehicle = dashboardState.displayVehicle,
+                            lastCheck = dashboardState.lastPreShiftCheck,
+                            user = currentUser,
+                            currentSession = dashboardState.currentSession,
+                            onCheckClick = { checkId ->
+                                dashboardState.displayVehicle?.id?.let { vehicleId ->
+                                    onNavigate("checklist/$vehicleId?checkId=$checkId")
+                                }
+                            }
+                        )
+                    }
+
+                    // Show navigation buttons
+                    item {
+                        DashboardNavigationButtons(
+                            navController = navController,
+                            hasActiveSession = dashboardState.currentSession != null,
+                            viewModel = viewModel,
+                            isCheckoutLoading = isCheckoutLoading,
+                            onCheckoutLoadingChange = { isCheckoutLoading = it }
+                        )
+                    }
+                    
+                    item {
+                        WaitlistBanner()
+                    }
+                    
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                }
             }
 
             PullRefreshIndicator(
@@ -150,87 +165,208 @@ fun DashboardScreen(
 
 @Composable
 private fun DashboardNavigationButtons(
-    onNavigateToProfile: () -> Unit,
-    onNavigateToIncidents: () -> Unit,
-    onNavigateToVehicles: () -> Unit,
-    onNavigateToActivity: () -> Unit,
-    onNavigateToManual: () -> Unit,
-    onCheckOut: () -> Unit,
-    showCheckOut: Boolean,
-    isCheckoutLoading: Boolean
+    navController: NavController,
+    hasActiveSession: Boolean,
+    viewModel: DashboardViewModel,
+    isCheckoutLoading: Boolean,
+    onCheckoutLoadingChange: (Boolean) -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(true) }
+
+    // Keep expanded if there's an active session
+    LaunchedEffect(hasActiveSession) {
+        if (hasActiveSession) {
+            isExpanded = true
+        }
+    }
+
+    val offsetAnimation by animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .padding(24.dp)
+            .padding(0.dp)
     ) {
-        // Center Check In/Out Button
+        val circleSize by animateFloatAsState(
+            targetValue = if (isExpanded) 560f else 100f,
+            animationSpec = spring(
+                dampingRatio = 0.8f,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "circleSize"
+        )
+
+        // Decorative outer circle with gradient border and size animation
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
+                .size(circleSize.dp)
+                .border(
+                    width = 3.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                    shape = CircleShape
+                )
+                .padding(3.dp)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f),
+                    shape = CircleShape
+                ),
+        ){
+            // All navigation buttons with animated positioning
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (0 * offsetAnimation).dp)
+            ) {
+                NavigationButton(
+                    icon = Icons.Default.Person,
+                    text = "Profile",
+                    onClick = {
+                        isExpanded = false
+                        navController.navigate(Screen.Profile.route)
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alpha(offsetAnimation),
+                    backgroundColor = Color.Transparent,
+                    showBorder = false,
+                    elevation = 0.dp,
+                    iconSize = 64.dp,
+                    textSize = if (isExpanded) 14.sp else 10.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .offset(x = (-0 * offsetAnimation).dp)
+            ) {
+                NavigationButton(
+                    icon = Icons.Default.ClearAll,
+                    text = "Vehicles",
+                    onClick = {
+                        isExpanded = false
+                        navController.navigate(Screen.VehiclesList.route)
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alpha(offsetAnimation),
+                    backgroundColor = Color.Transparent,
+                    showBorder = false,
+                    elevation = 0.dp,
+                    iconSize = 64.dp,
+                    textSize = if (isExpanded) 14.sp else 10.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = (-0 * offsetAnimation).dp)
+            ) {
+                NavigationButton(
+                    icon = Icons.Default.History,
+                    text = "CICO",
+                    onClick = {
+                        isExpanded = false
+                        navController.navigate(Screen.OperatorsCICOHistory.route)
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alpha(offsetAnimation),
+                    backgroundColor = Color.Transparent,
+                    showBorder = false,
+                    elevation = 0.dp,
+                    iconSize = 64.dp,
+                    textSize = if (isExpanded) 14.sp else 10.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset(x = (0 * offsetAnimation).dp)
+            ) {
+                NavigationButton(
+                    icon = Icons.Default.Report,
+                    text = "Incidents",
+                    onClick = {
+                        isExpanded = false
+                        navController.navigate(Screen.IncidentList.route)
+                    },
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.alpha(offsetAnimation),
+                    backgroundColor = Color.Transparent,
+                    showBorder = false,
+                    elevation = 0.dp,
+                    iconSize = 64.dp,
+                    textSize = if (isExpanded) 14.sp else 10.sp
+                )
+            }
+
+
+        }
+
+
+        // Center button (QR Scanner or Add)
+        Surface(
+            modifier = Modifier
+                .align(Alignment.Center)
                 .size(120.dp)
+                .clickable { 
+                    if (hasActiveSession) {
+                        onCheckoutLoadingChange(true)
+                        viewModel.endCurrentSession()
+                    } else {
+                        navController.navigate(Screen.QRScanner.route)
+                    }
+                },
+            shape = CircleShape,
+            color = if (!isExpanded && !hasActiveSession) 
+                Color.White.copy(alpha = 0.9f)
+            else 
+                MaterialTheme.colorScheme.surface,
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = if (!isExpanded && !hasActiveSession) 0.5f else 0.3f)
+            ),
+            shadowElevation = if (!isExpanded && !hasActiveSession) 0.dp else 4.dp
         ) {
-            NavigationButton(
-                icon = if (showCheckOut) Icons.Default.Close else Icons.Default.QrCodeScanner,
-                text = if (showCheckOut) "Check Out" else "Check In",
-                onClick = onCheckOut,
-                isCenter = true
-            )
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                val iconAlpha by animateFloatAsState(
+                    targetValue = if (!isExpanded && !hasActiveSession) 0.6f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    label = "iconAlpha"
+                )
+                
+                Icon(
+                    imageVector = if (hasActiveSession) Icons.Default.Close else Icons.Default.QrCodeScanner,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha.coerceIn(0f, 1f)),
+                    modifier = Modifier.size(28.dp)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = if (hasActiveSession) "Check Out" else "Check In",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha.coerceIn(0f, 1f))
+                )
+            }
         }
-
-        // Outer buttons with adjusted padding
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(bottom = 16.dp)
-        ) {
-            NavigationButton(
-                icon = Icons.Default.Person,
-                text = "Profile",
-                onClick = onNavigateToProfile
-            )
-        }
-
-        // Right - Goals
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(start = 8.dp)
-        ) {
-            NavigationButton(
-                icon = Icons.Default.ClearAll,
-                text = "Vehicles",
-                onClick = onNavigateToVehicles
-            )
-        }
-
-        // Bottom - History
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(top = 8.dp)
-        ) {
-            NavigationButton(
-                icon = Icons.Default.History,
-                text = "CICO",
-                onClick = onNavigateToActivity
-            )
-        }
-
-        // Left - Awareness
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(end = 8.dp)
-        ) {
-            NavigationButton(
-                icon = Icons.Default.Report,
-                text = "Incidents",
-                onClick = onNavigateToIncidents
-            )
-        }
-
     }
 }
 
@@ -240,11 +376,36 @@ private fun NavigationButton(
     text: String,
     onClick: () -> Unit,
     isCenter: Boolean = false,
-    modifier: Modifier = Modifier
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier,
+    showBorder: Boolean = true,
+    borderWidth: Dp = 1.dp,
+    borderColor: Color? = null,
+    backgroundColor: Color? = null,
+    elevation: Dp? = null,
+    contentColor: Color? = null,
+    buttonSize: Dp = 120.dp,
+    iconSize: Dp = 32.dp,
+    textSize: TextUnit = if (isCenter) 12.sp else 10.sp
 ) {
-    val buttonSize = if (isCenter) 120.dp else 90.dp
-    val iconSize = if (isCenter) 32.dp else 24.dp
     val interactionSource = remember { MutableInteractionSource() }
+    
+    val finalBorderColor = borderColor ?: if (isCenter) 
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+    else 
+        tint.copy(alpha = 0.2f)
+
+    val finalBackgroundColor = backgroundColor ?: if (isCenter) 
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f)
+    else 
+        MaterialTheme.colorScheme.surface
+
+    val finalContentColor = contentColor ?: if (isCenter) 
+        MaterialTheme.colorScheme.primary
+    else 
+        tint
+
+    val finalElevation = elevation ?: if (isCenter) 6.dp else 2.dp
     
     Surface(
         modifier = modifier
@@ -255,28 +416,33 @@ private fun NavigationButton(
                 onClick = onClick
             ),
         shape = CircleShape,
-        color = Color.White,
-        border = BorderStroke(
-            width = if (isCenter) 3.dp else 0.dp,
-            color = if (isCenter) VehicleStatus.AVAILABLE.toColor().copy(alpha = 0.1f) else Color.Gray.copy(alpha = 0.3f)
-        )
+        color = finalBackgroundColor,
+        border = if (showBorder) BorderStroke(
+            width = borderWidth,
+            color = finalBorderColor
+        ) else null,
+        shadowElevation = finalElevation
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .padding(0.dp)
+                .padding(if (isCenter) 8.dp else 4.dp)
                 .fillMaxWidth()
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(iconSize)
+                modifier = Modifier.size(iconSize),
+                tint = finalContentColor
             )
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = textSize
+                ),
+                color = finalContentColor,
                 maxLines = 1
             )
         }

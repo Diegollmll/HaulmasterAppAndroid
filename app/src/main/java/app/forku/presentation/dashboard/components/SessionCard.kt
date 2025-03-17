@@ -23,8 +23,10 @@ import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.vehicle.toColor
 import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.presentation.common.utils.formatDateTime
+import app.forku.presentation.common.utils.parseDateTime
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
+import app.forku.domain.model.checklist.getPreShiftStatusColor
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 
@@ -49,10 +51,9 @@ fun SessionCard(
             startDateTime = remember(currentSession?.startTime) {
                 currentSession?.startTime?.let {
                     try {
-                        // Parseamos la fecha UTC y la convertimos a LocalDateTime
-                        val instant = java.time.Instant.parse(it)
-                        instant.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                        parseDateTime(it).toLocalDateTime()
                     } catch (e: Exception) {
+                        android.util.Log.e("SessionCard", "Error parsing date: $it", e)
                         null
                     }
                 }
@@ -78,35 +79,28 @@ private fun SessionContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
-        
-        Text(
-            text = if (isActive) "Active Session" else "Welcome ${user?.firstName ?: ""}!",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        
+
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left Column - User/Vehicle Info
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp)
-            ) {
-                user?.let {
-                    if (vehicle != null) {
+            user?.let {
+                if (vehicle != null) {
+                    // Left Column - User/Vehicle Info
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp)
+                    ) {
                         OverlappingImages(
                             mainImageUrl = vehicle.photoModel,
                             overlayImageUrl = user.photoUrl,
                             mainTint = MaterialTheme.colorScheme.onSurface,
-                            mainSize = 90,
-                            overlaySize = 45
+                            mainSize = 120,
+                            overlaySize = 60
                         )
                     }
                 }
@@ -115,76 +109,105 @@ private fun SessionContent(
             // Right Column - Vehicle Details and Timer
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 3.dp),
+                    .weight(1f),
                 horizontalAlignment = Alignment.Start
             ) {
                 vehicle?.let {
-                    Text(
-                        text = "${it.codename}",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    VehicleStatusIndicator(status = status)
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
 
-                    UserDateTimer(
-                        modifier = Modifier.fillMaxWidth(),
-                        sessionStartTime = startDateTime
-                    )
+                        Row(modifier = Modifier.padding(top = 4.dp)) {
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = "${it.codename}",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row {
+                            VehicleStatusIndicator(status = status)
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            UserDateTimer(
+                                modifier = Modifier.fillMaxWidth(),
+                                sessionStartTime = startDateTime
+                            )
+                        }
+
                 }
-            }
-        }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 3.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(0.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                if (lastCheck != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 3.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                enabled = lastCheck.status == CheckStatus.IN_PROGRESS.toString() && onCheckClick != null,
-                                onClick = { lastCheck.id?.let { onCheckClick(it) } }
-                            )
-                            .padding(8.dp),
+                            .weight(1f)
+                            .padding(0.dp),
+                        horizontalAlignment = Alignment.Start
                     ) {
+                        if (lastCheck != null) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(
+                                        enabled = true,
+                                        onClick = {
+                                            if (lastCheck.status == CheckStatus.IN_PROGRESS.toString()) lastCheck.id?.let {
+                                                onCheckClick(
+                                                    it
+                                                )
+                                            }
+                                        }
+                                    )
+                                    .padding(8.dp),
+                            ) {
+                                Row {
+                                    Text(
+                                        text = "Last Check",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                    Spacer(modifier = modifier.padding(3.dp))
 
-                        Text(
-                            text = "Check: ${lastCheck.lastCheckDateTime?.let { getRelativeTimeSpanString(it) }}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 11.sp
-                            )
-                        )
-                        Text(
-                            text = lastCheck.status,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 10.sp
-                            )
-                        )
+                                    Text(
+                                        text = CheckStatus.valueOf(lastCheck.status).toFriendlyString(),
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 13.sp
+                                        ),
+                                        color = getPreShiftStatusColor(lastCheck.status)
+                                    )
 
+                                }
+
+                                Row {
+                                    Text(
+                                        text = "${lastCheck.lastCheckDateTime?.let { getRelativeTimeSpanString(it) }}",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 13.sp
+                                        )
+                                    )
+                                }
+
+                            }
+
+                        } else {
+                            Text(
+                                text = "Press Check In to get started!",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
-
-                } else {
-                    Text(
-                        text = "Press Check In to get started!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
                 }
+
             }
         }
+
+
 
     }
 }

@@ -159,6 +159,9 @@ dependencies {
     // Location
     implementation(libs.androidx.location)
 
+    // SwipeRefresh
+    implementation(libs.accompanist.swiperefresh)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -183,6 +186,4 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.messaging)
-    implementation(libs.firebase.functions)
 }

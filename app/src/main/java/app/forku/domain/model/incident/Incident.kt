@@ -15,6 +15,7 @@ data class Incident(
     val vehicleId: String?,
     val vehicleType: VehicleType?,
     val vehicleName: String,
+    val checkId: String? = null, // ID of the associated preshift check
     // Nuevos campos consolidados de carga
     val isLoadCarried: Boolean = false,
     val loadBeingCarried: String = "",

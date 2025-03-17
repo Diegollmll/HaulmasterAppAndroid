@@ -59,7 +59,7 @@ fun HazardPreventiveMeasuresSection(
                 )
                 
                 Text(
-                    text = measure.name.replace("_", " "),
+                    text = measure.toFriendlyString(),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(start = 8.dp)
                 )

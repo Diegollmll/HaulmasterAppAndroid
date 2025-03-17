@@ -24,10 +24,13 @@ import app.forku.domain.service.VehicleValidationService
 import app.forku.data.service.VehicleValidationServiceImpl
 import app.forku.domain.service.VehicleStatusDeterminer
 import app.forku.data.service.VehicleStatusDeterminerImpl
+import app.forku.data.repository.notification.NotificationRepositoryImpl
+import app.forku.domain.repository.notification.NotificationRepository
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
+import dagger.Binds
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -150,4 +153,14 @@ object RepositoryModule {
     ): VehicleStatusChecker {
         return vehicleStatusRepository
     }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryBindingsModule {
+    @Binds
+    @Singleton
+    abstract fun bindNotificationRepository(
+        notificationRepositoryImpl: NotificationRepositoryImpl
+    ): NotificationRepository
 }

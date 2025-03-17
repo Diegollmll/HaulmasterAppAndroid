@@ -9,6 +9,7 @@ import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.InjuryLocation
+import app.forku.domain.model.incident.InjurySeverity
 import app.forku.presentation.common.components.CustomOutlinedTextField
 import app.forku.presentation.common.components.FormFieldDivider
 
@@ -29,7 +30,9 @@ fun CollisionPeopleFields(
             onSelected = { severity ->
                 onValueChange(state.copy(
                     typeSpecificFields = collisionFields.copy(
-                        injurySeverity = severity
+                        injurySeverity = severity,
+                        // Clear injury locations if no injury is selected
+                        injuryLocations = if (severity == InjurySeverity.NONE) emptyList() else collisionFields.injuryLocations
                     )
                 ))
             },
@@ -38,23 +41,26 @@ fun CollisionPeopleFields(
                 .padding(vertical = 8.dp)
         )
 
-        FormFieldDivider()
+        // Only show injury locations if there are injuries
+        if (collisionFields.injurySeverity != InjurySeverity.NONE) {
+            FormFieldDivider()
 
-        InjuryLocationsDropdown(
-            selected = collisionFields.injuryLocations.mapNotNull { 
-                try { InjuryLocation.valueOf(it) } catch (e: Exception) { null }
-            }.toSet(),
-            onSelectionChanged = { locations ->
-                onValueChange(state.copy(
-                    typeSpecificFields = collisionFields.copy(
-                        injuryLocations = locations.map { it.name }
-                    )
-                ))
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        )
+            InjuryLocationsDropdown(
+                selected = collisionFields.injuryLocations.mapNotNull { 
+                    try { InjuryLocation.valueOf(it) } catch (e: Exception) { null }
+                }.toSet(),
+                onSelectionChanged = { locations ->
+                    onValueChange(state.copy(
+                        typeSpecificFields = collisionFields.copy(
+                            injuryLocations = locations.map { it.name }
+                        )
+                    ))
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
+        }
     }
 }
 
@@ -85,11 +91,15 @@ fun BasicPeopleFields(
                 enabled = false,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 0.dp)
             )
-
+            Text(
+                text = state.reporterName ?: "Unknown",
+                modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 0.dp)
+            )
             FormFieldDivider()
-
         }
 
 

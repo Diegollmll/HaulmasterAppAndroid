@@ -55,7 +55,7 @@ fun HazardConsequencesSection(
                 )
                 
                 Text(
-                    text = consequence.name.replace("_", " "),
+                    text = consequence.toFriendlyString(),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(start = 8.dp)
                 )

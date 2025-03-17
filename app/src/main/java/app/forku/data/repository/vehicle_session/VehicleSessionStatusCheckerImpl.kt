@@ -14,7 +14,14 @@ class VehicleSessionStatusCheckerImpl @Inject constructor(
         return try {
             val response = api.getAllSessions()
             if (response.isSuccessful) {
-                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                val sessions = response.body()?.mapNotNull { 
+                    try {
+                        it.toDomain()
+                    } catch (e: Exception) {
+                        android.util.Log.e("SessionMapper", "Error parsing session: ${e.message}")
+                        null
+                    }
+                } ?: emptyList()
                 sessions.find { 
                     it.vehicleId == vehicleId && 
                     it.status == SessionStatus.ACTIVE 
@@ -23,6 +30,7 @@ class VehicleSessionStatusCheckerImpl @Inject constructor(
                 null
             }
         } catch (e: Exception) {
+            android.util.Log.e("SessionChecker", "Error checking session status: ${e.message}")
             null
         }
     }

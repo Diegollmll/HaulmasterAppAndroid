@@ -18,7 +18,7 @@ fun ChecklistItemDto.toDomain(): ChecklistItem {
         expectedAnswer = Answer.valueOf(expectedAnswer),
         rotationGroup = rotationGroup,
         userAnswer = userAnswer?.let { Answer.valueOf(it.toString()) },
-        category = CheckCategory.fromString(category ?: ""),
+        category = category ?: "",
         subCategory = subCategory ?: "",
         energySource = (energySource ?: emptyList()).map { EnergySource.valueOf(it) },
         vehicleType = (vehicleType ?: emptyList()).map { VehicleType.valueOf(it) },
@@ -110,7 +110,7 @@ fun List<PreShiftCheckDto>?.toDomain(): List<PreShiftCheck> {
 fun ChecklistItem.toDto(): ChecklistItemDto {
     return ChecklistItemDto(
         id = id,
-        category = category.name,
+        category = category,
         subCategory = subCategory,
         energySource = energySource.map { it.name },
         vehicleType = vehicleType.map { it.name },
@@ -144,7 +144,7 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
                         null
                     }
                 },
-                category = CheckCategory.fromString(it.category),
+                category = it.category ?: "",
                 subCategory = it.subCategory ?: "",
                 energySource = it.energySource?.map { source -> 
                     EnergySource.valueOf(source.uppercase())

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.toColor
+import app.forku.domain.model.vehicle.toDisplayString
 
 
 @Composable
@@ -32,7 +33,7 @@ fun VehicleStatusIndicator(status: VehicleStatus) {
                 )
         )
         Text(
-            text = status.name,
+            text = status.toDisplayString(),
             style = MaterialTheme.typography.bodySmall,
             color = status.toColor()
         )

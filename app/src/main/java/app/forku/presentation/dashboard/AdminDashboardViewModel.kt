@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.checklist.Answer
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.session.VehicleSessionInfo
 import app.forku.domain.model.user.User
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
@@ -22,35 +23,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
+import app.forku.presentation.common.utils.parseDateTime
+import java.time.OffsetDateTime
 
-data class VehicleSessionInfo(
-    val vehicleId: String,
-    val vehicleType: String,
-    val progress: Float,
-    val operatorName: String,
-    val operatorImage: String?,
-    val sessionStartTime: String,
-    val vehicleImage: String?,
-    val codename: String
-)
 
-data class OperatorSessionInfo(
-    val name: String,
-    val image: String?,
-    val isActive: Boolean,
-    val userId: String,
-    val sessionStartTime: String
-)
-
-data class AdminDashboardState(
-    val operatingVehiclesCount: Int = 0,
-    val totalIncidentsCount: Int = 0,
-    val safetyAlertsCount: Int = 0,
-    val activeVehicleSessions: List<VehicleSessionInfo> = emptyList(),
-    val activeOperators: List<OperatorSessionInfo> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
 
 @HiltViewModel
 class AdminDashboardViewModel @Inject constructor(
@@ -91,24 +67,31 @@ class AdminDashboardViewModel @Inject constructor(
             val vehicle = vehicleRepository.getVehicle(session.vehicleId)
             android.util.Log.d("AdminDashboard", "Found vehicle: $vehicle")
             val operator = userRepository.getUserById(session.userId)
-            android.util.Log.d("AdminDashboard", "Found operator: $operator")
+            android.util.Log.d("AdminDashboard", "Found operator: $operator with photoUrl: ${operator?.photoUrl}")
             
             // Calculate session progress (assuming 8-hour shifts)
-            val startTime = java.time.OffsetDateTime.parse(session.startTime)
-            val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC)
+            val startTime = parseDateTime(session.startTime)
+            val now = OffsetDateTime.now()
             val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
+
             val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
+
+            // Default avatar URL for when photoUrl is empty
+            val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"
             
             // Create session info even if operator is null
             VehicleSessionInfo(
+                vehicle = vehicle,
                 vehicleId = vehicle.id,
                 vehicleType = vehicle.type.displayName,
                 progress = progress,
                 operatorName = operator?.let { "${it.firstName.first()}. ${it.lastName}" } ?: "Unknown",
-                operatorImage = operator?.photoUrl,
+                operatorImage = operator?.photoUrl?.takeIf { it.isNotEmpty() } ?: defaultAvatarUrl,
                 sessionStartTime = session.startTime,
                 vehicleImage = vehicle.photoModel,
-                codename = vehicle.codename
+                codename = vehicle.codename,
+                session = session,
+                operator = operator
             )
         } catch (e: Exception) {
             android.util.Log.e("AdminDashboard", "Error getting vehicle session info", e)
@@ -120,12 +103,16 @@ class AdminDashboardViewModel @Inject constructor(
         return try {
             val operator = userRepository.getUserById(session.userId)
             operator?.let {
+                // Default avatar URL for when photoUrl is empty
+                val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${it.firstName.first()}+${it.lastName.first()}&background=random"
+                
                 OperatorSessionInfo(
                     name = "${it.firstName.first()}. ${it.lastName}",
-                    image = it.photoUrl,
-                    isActive = true, // Since this is from active sessions
+                    image = it.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
+                    isActive = true, // This operator has an active session since we're getting info from a session
                     userId = it.id,
-                    sessionStartTime = session.startTime
+                    sessionStartTime = session.startTime,
+                    role = it.role
                 )
             }
         } catch (e: Exception) {
@@ -138,86 +125,126 @@ class AdminDashboardViewModel @Inject constructor(
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
-                // Launch parallel coroutines for independent operations
-                val vehiclesDeferred = async(Dispatchers.IO) {
+                // Get all vehicles with error handling
+                val vehicles = try {
                     vehicleRepository.getVehicles()
+                } catch (e: Exception) {
+                    android.util.Log.e("AdminDashboard", "Error getting vehicles", e)
+                    emptyList()
                 }
-                val incidentsDeferred = async(Dispatchers.IO) {
-                    incidentRepository.getIncidents().getOrNull() ?: emptyList()
-                }
-                val checksDeferred = async(Dispatchers.IO) {
-                    checklistRepository.getAllChecks()
-                }
-
-                // Wait for all operations to complete
-                val vehicles = vehiclesDeferred.await()
-                android.util.Log.d("AdminDashboard", "Fetched vehicles: ${vehicles.map { "${it.id}:${it.status}" }}")
                 
-                val incidents = incidentsDeferred.await()
-                val checks = checksDeferred.await()
-
-                // Process results
-                val operatingCount = vehicles.count { it.status == VehicleStatus.IN_USE }
-                android.util.Log.d("AdminDashboard", "Operating vehicles count: $operatingCount")
-
-                val incidentsCount = incidents.size
-                val safetyAlertsCount = checks.count { check ->
-                    check.status == CheckStatus.COMPLETED_PASS.toString() && 
-                    check.items.any { item -> 
-                        !item.isCritical && item.userAnswer == Answer.FAIL
-                    }
-                }
-
-                // Get active sessions in parallel
+                // Get active sessions with rate limiting protection
                 val activeSessions = coroutineScope {
                     vehicles.map { vehicle ->
-                        android.util.Log.d("AdminDashboard", "Checking sessions for vehicle ${vehicle.id} with status ${vehicle.status}")
-                        async(Dispatchers.IO) {
-                            val session = sessionRepository.getActiveSessionForVehicle(vehicle.id)
-                            android.util.Log.d("AdminDashboard", "Vehicle ${vehicle.id} active session: $session")
-                            session
+                        async {
+                            try {
+                                delay(100) // Add small delay between requests to prevent rate limiting
+                                val session = sessionRepository.getActiveSessionForVehicle(vehicle.id)
+                                session?.let { 
+                                    val operator = userRepository.getUserById(it.userId)
+                                    val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"
+                                    
+                                    // Calculate session progress
+                                    val startTime = parseDateTime(it.startTime)
+                                    val now = OffsetDateTime.now()
+                                    val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
+                                    val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
+                                    
+                                    VehicleSessionInfo(
+                                        session = it,
+                                        sessionStartTime = it.startTime,
+                                        operator = operator,
+                                        operatorName = operator?.let { user -> "${user.firstName.first()}. ${user.lastName}" } ?: "Unknown",
+                                        operatorImage = operator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
+                                        vehicle = vehicle,
+                                        vehicleId = vehicle.id,
+                                        vehicleType = vehicle.type.displayName,
+                                        progress = progress,
+                                        vehicleImage = vehicle.photoModel,
+                                        codename = vehicle.codename
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("AdminDashboard", "Error getting session info for vehicle ${vehicle.id}", e)
+                                null
+                            }
                         }
-                    }.mapNotNull { it.await() }
+                    }.awaitAll().filterNotNull()
                 }
-                
-                android.util.Log.d("AdminDashboard", "Found active sessions: ${activeSessions.map { it.vehicleId }}")
 
-                // Process sessions in parallel
-                val (vehicleSessions, activeOperators) = coroutineScope {
-                    val vehicleSessionsDeferred = async {
-                        val sessions = activeSessions.mapNotNull { session ->
-                            val info = getVehicleSessionInfo(session)
-                            android.util.Log.d("AdminDashboard", "Processed session ${session.vehicleId} into info: $info")
-                            info
-                        }.sortedByDescending { it.sessionStartTime }
-                        android.util.Log.d("AdminDashboard", "Final vehicle sessions list: ${sessions.map { it.vehicleId }}")
-                        sessions
-                    }
-
-                    val activeOperatorsDeferred = async {
-                        activeSessions.mapNotNull { session ->
-                            getOperatorSessionInfo(session)
-                        }.distinctBy { it.userId }
-                        .sortedByDescending { it.sessionStartTime }
-                    }
-
-                    Pair(vehicleSessionsDeferred.await(), activeOperatorsDeferred.await())
+                // Get last preshift checks with error handling
+                val lastChecks = coroutineScope {
+                    activeSessions.map { session ->
+                        async {
+                            try {
+                                delay(100) // Add small delay between requests
+                                val lastCheck = checklistRepository.getLastPreShiftCheck(session.vehicle.id)
+                                session.vehicle.id to lastCheck
+                            } catch (e: Exception) {
+                                android.util.Log.e("AdminDashboard", "Error getting last check for vehicle ${session.vehicle.id}", e)
+                                session.vehicle.id to null
+                            }
+                        }
+                    }.awaitAll().toMap()
                 }
+
+                // Get active operators with error handling
+                val activeOperators = activeSessions.mapNotNull { session ->
+                    try {
+                        session.operator?.let { operator ->
+                            val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator.firstName.first()}+${operator.lastName.first()}&background=random"
+                            OperatorSessionInfo(
+                                name = "${operator.firstName.first()}. ${operator.lastName}",
+                                image = operator.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
+                                isActive = true, // They have an active session
+                                userId = operator.id,
+                                sessionStartTime = session.sessionStartTime ?: "",
+                                role = operator.role
+                            )
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("AdminDashboard", "Error creating operator info for session ${session.session.id}", e)
+                        null
+                    }
+                }
+
+                // Get total incidents with error handling
+                val incidents = try {
+                    incidentRepository.getIncidents().getOrDefault(emptyList())
+                } catch (e: Exception) {
+                    android.util.Log.e("AdminDashboard", "Error getting incidents", e)
+                    emptyList()
+                }
+
+                // Get all checks with error handling
+                val allChecks = try {
+                    checklistRepository.getAllChecks()
+                } catch (e: Exception) {
+                    android.util.Log.e("AdminDashboard", "Error getting all checks", e)
+                    emptyList()
+                }
+
+                val safetyAlertsCount = allChecks.flatMap { check -> 
+                    check.items.filter { item -> 
+                        !item.isCritical && item.userAnswer == Answer.FAIL
+                    }
+                }.size
 
                 _state.value = _state.value.copy(
-                    operatingVehiclesCount = operatingCount,
-                    totalIncidentsCount = incidentsCount,
+                    operatingVehiclesCount = activeSessions.size,
+                    totalIncidentsCount = incidents.size,
                     safetyAlertsCount = safetyAlertsCount,
-                    activeVehicleSessions = vehicleSessions,
+                    activeVehicleSessions = activeSessions,
                     activeOperators = activeOperators,
+                    lastPreShiftChecks = lastChecks,
                     isLoading = false,
                     error = null
                 )
             } catch (e: Exception) {
-                android.util.Log.e("AdminDashboard", "Error loading dashboard data", e)
+                android.util.Log.e("AdminDashboard", "Error in loadDashboardData", e)
                 _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = "Error loading dashboard data: ${e.message}"
+                    error = "Failed to load dashboard data. Please try again.",
+                    isLoading = false
                 )
             }
         }

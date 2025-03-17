@@ -40,7 +40,10 @@ fun CollisionTypeDropdown(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = currentType ?: "",
+            value = when (val fields = state.typeSpecificFields) {
+                is IncidentTypeFields.CollisionFields -> fields.collisionType?.toFriendlyString()
+                else -> null
+            } ?: "",
             onValueChange = {},
             readOnly = true,
             label = "Collision Type",
@@ -54,7 +57,7 @@ fun CollisionTypeDropdown(
         ) {
             CollisionType.values().forEach { type ->
                 DropdownMenuItem(
-                    text = { Text(type.name.replace("_", " ")) },
+                    text = { Text(type.toFriendlyString()) },
                     onClick = {
                         val newFields = when (val fields = state.typeSpecificFields) {
                             is IncidentTypeFields.CollisionFields ->
