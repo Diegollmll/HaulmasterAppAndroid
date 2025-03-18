@@ -16,6 +16,7 @@ import javax.inject.Inject
 data class PreShiftCheckState(
     val id: String,
     val vehicleId: String,
+    val vehicleCodename: String,
     val operatorName: String,
     val status: String,
     val lastCheckDateTime: String
@@ -50,9 +51,11 @@ class AllChecklistViewModel @Inject constructor(
                 val checkStates = checks.mapNotNull { check ->
                     try {
                         val operator = userRepository.getUserById(check.userId)
+                        val vehicle = vehicleRepository.getVehicle(check.vehicleId)
                         PreShiftCheckState(
                             id = check.id,
                             vehicleId = check.vehicleId,
+                            vehicleCodename = vehicle.codename,
                             operatorName = operator?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown",
                             status = check.status,
                             lastCheckDateTime = check.lastCheckDateTime

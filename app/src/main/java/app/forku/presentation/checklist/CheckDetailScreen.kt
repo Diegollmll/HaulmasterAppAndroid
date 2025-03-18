@@ -81,7 +81,7 @@ fun CheckDetailScreen(
 
                                     Divider()
 
-                                    InfoRow("Vehicle", check.vehicleId)
+                                    InfoRow("Vehicle", check.vehicleCodename)
                                     InfoRow("Operator", check.operatorName)
                                     InfoRow("Date", check.lastCheckDateTime)
 

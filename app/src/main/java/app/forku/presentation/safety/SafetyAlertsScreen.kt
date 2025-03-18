@@ -20,6 +20,7 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.checklist.PreShiftCheck
 import java.time.format.DateTimeFormatter
 import java.time.OffsetDateTime
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 @Composable
 fun SafetyAlertsScreen(
@@ -112,7 +113,7 @@ private fun SafetyAlertItem(alert: SafetyAlert) {
                     )
                 }
                 Text(
-                    text = alert.date,
+                    text = getRelativeTimeSpanString(alert.date),
                     fontSize = 12.sp,
                     color = Color.Gray
                 )

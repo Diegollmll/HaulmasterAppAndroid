@@ -25,6 +25,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 @Composable
 fun AllChecklistScreen(
@@ -112,7 +113,7 @@ private fun CheckCard(
             ) {
                 Column {
                     Text(
-                        text = "Vehicle: ${check.vehicleId}",
+                        text = "Vehicle: ${check.vehicleCodename}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     )
@@ -128,7 +129,7 @@ private fun CheckCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Last updated: ${formatDateTime(check.lastCheckDateTime)}",
+                text = "Last updated: ${getRelativeTimeSpanString(check.lastCheckDateTime)}",
                 color = Color.Gray,
                 fontSize = 12.sp
             )

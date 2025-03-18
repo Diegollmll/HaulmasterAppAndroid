@@ -20,11 +20,40 @@ fun formatDateTime(dateTimeString: String): String {
 
 fun getRelativeTimeSpanString(dateTimeStr: String): String {
     return try {
-        val dateTime = parseToLocalDateTime(dateTimeStr)
-        getRelativeTimeSpanFromDateTime(dateTime)
+        // First clean the string by removing the timezone in brackets
+        val cleanDateStr = dateTimeStr.substringBefore('[')
+        val dateTime = OffsetDateTime.parse(cleanDateStr)
+        val localDateTime = dateTime.toLocalDateTime()
+        
+        val now = LocalDateTime.now()
+        val minutes = ChronoUnit.MINUTES.between(localDateTime, now)
+        val hours = ChronoUnit.HOURS.between(localDateTime, now)
+        val days = ChronoUnit.DAYS.between(localDateTime.toLocalDate(), now.toLocalDate())
+        
+        return when {
+            minutes < 1 -> "Just now"
+            minutes == 1L -> "1 minute ago"
+            minutes < 60 -> "$minutes minutes ago"
+            hours == 1L -> "1 hour ago"
+            hours < 24 -> "$hours hours ago"
+            days == 0L -> "Today at ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            days == 1L -> "Yesterday at ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            days == -1L -> "Tomorrow at ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
+            days < -1L -> "In ${(-days).toInt()} days"
+            days < 7L -> "${days.toInt()} days ago"
+            days < 30L -> "${(days / 7).toInt()} weeks ago"
+            days < 365L -> "${(days / 30).toInt()} months ago"
+            else -> localDateTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+        }
     } catch (e: Exception) {
         android.util.Log.e("DateTimeUtils", "Error parsing datetime: $dateTimeStr", e)
-        dateTimeStr // Return original string if parsing fails
+        try {
+            // Fallback to simple format if parsing fails
+            val formatter = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
+            parseToLocalDateTime(dateTimeStr).format(formatter)
+        } catch (e: Exception) {
+            dateTimeStr // Return original string if all parsing fails
+        }
     }
 }
 
