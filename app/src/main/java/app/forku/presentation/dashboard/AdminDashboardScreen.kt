@@ -278,7 +278,10 @@ private fun VehicleSessionSection(
                             userRole = UserRole.OPERATOR,
                             sessionInfo = vehicleSessionInfo,
                             showStatus = false,
-                            lastPreShiftCheck = state.lastPreShiftChecks[vehicleSessionInfo.vehicle.id]
+                            lastPreShiftCheck = state.lastPreShiftChecks[vehicleSessionInfo.vehicle.id],
+                            onClick = {
+                                navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleSessionInfo.vehicle.id))
+                            }
                         )
                     }
                 }
@@ -355,7 +358,10 @@ private fun OperatorsInSessionSection(
                         OperatorItem(
                             name = operator.name,
                             image = operator.image ?: "",
-                            isActive = operator.isActive
+                            isActive = operator.isActive,
+                            onClick = {
+                                navController.navigate(Screen.Profile.createRoute(operator.userId))
+                            }
                         )
                     }
                 }
@@ -371,42 +377,3 @@ private fun OperatorsInSessionSection(
         }
     }
 }
-
-@Composable
-private fun OperatorItem(
-    name: String,
-    image: String,
-    isActive: Boolean
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.width(100.dp)
-    ) {
-        Box {
-            AsyncImage(
-                model = image,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-            if (isActive) {
-                Box(
-                    modifier = Modifier
-                        .size(16.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .align(Alignment.BottomEnd)
-                )
-            }
-        }
-        Text(
-            text = name,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1
-        )
-    }
-} 

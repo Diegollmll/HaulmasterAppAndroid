@@ -25,7 +25,13 @@ import app.forku.presentation.vehicle.profile.components.VehicleProfileSummary
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import androidx.compose.ui.Alignment
-
+import app.forku.presentation.common.components.OptionsDropdownMenu
+import app.forku.presentation.common.components.DropdownMenuOption
+import app.forku.domain.model.user.UserRole
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,10 +42,11 @@ fun VehicleProfileScreen(
     onPreShiftCheck: (String) -> Unit,
     onScanQrCode: () -> Unit,
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    userRole: UserRole  // Removed default ADMIN value to force proper injection
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var showMenu by remember { mutableStateOf(false) }
+    var showStatusDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.checkId) {
         state.checkId?.let { checkId ->
@@ -65,6 +72,37 @@ fun VehicleProfileScreen(
 //        }
     }
 
+    // Status selection dialog
+    if (showStatusDialog && userRole == UserRole.ADMIN) {  // Only show dialog for admin users
+        AlertDialog(
+            onDismissRequest = { showStatusDialog = false },
+            title = { Text("Change Vehicle Status") },
+            text = {
+                Column {
+                    VehicleStatus.values().forEach { status ->
+                        Button(
+                            onClick = {
+                                viewModel.updateVehicleStatus(status)
+                                showStatusDialog = false
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(status.name)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                Button(onClick = { showStatusDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,57 +113,59 @@ fun VehicleProfileScreen(
                     }
                 },
                 actions = {
+                    if (state.vehicle != null) {
+                        val vehicle = state.vehicle // Store vehicle in local variable
+                        val isVehicleOutOfService = vehicle?.status == VehicleStatus.OUT_OF_SERVICE
+                        val shouldShowMenu = userRole == UserRole.ADMIN || !isVehicleOutOfService
 
-                    if (state.vehicle != null && state.vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession) {
-                        Box {
-                            IconButton(
-                                onClick = { showMenu = true }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = "More Options",
-                                    tint = Color(0xFFFFA726)
-                                )
-                            }
-                            
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Show QR Code") },
-                                    onClick = {
-                                        showMenu = false
-                                        viewModel.toggleQrCode()
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = "Show QR"
-                                        )
+                        if (shouldShowMenu) {
+                            val options = buildList {
+                                if (userRole == UserRole.ADMIN) {
+                                    // Admin-only options
+                                    add(DropdownMenuOption(
+                                        text = "Show QR Code",
+                                        onClick = { viewModel.toggleQrCode() },
+                                        leadingIcon = Icons.Default.Info,
+                                        enabled = true,
+                                        adminOnly = true
+                                    ))
+
+                                    if (state.hasActiveSession) {
+                                        add(DropdownMenuOption(
+                                            text = "End Vehicle Session",
+                                            onClick = { viewModel.endVehicleSession() },
+                                            leadingIcon = Icons.Default.Stop,
+                                            enabled = true,
+                                            adminOnly = true,
+                                            iconTint = Color.Red
+                                        ))
                                     }
-                                )
+
+                                    add(DropdownMenuOption(
+                                        text = "Change Vehicle Status",
+                                        onClick = { showStatusDialog = true },
+                                        leadingIcon = Icons.Default.Edit,
+                                        enabled = true,
+                                        adminOnly = true
+                                    ))
+                                }
                                 
-                                DropdownMenuItem(
-                                    text = { Text( if (state.hasActivePreShiftCheck) "Continue Pre-Shift Check"
-                                    else "Start Pre-Shift Check") },
-                                    onClick = {
-                                        showMenu = false
-
-                                        onPreShiftCheck(state.vehicle?.id ?: "")
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = Icons.Default.CheckCircle,
-                                            contentDescription = "Pre-Shift Check"
-                                        )
-                                    }
-                                )
+                                // Options available to all users
+                                add(DropdownMenuOption(
+                                    text = if (state.hasActivePreShiftCheck) "Continue Pre-Shift Check" else "Start Pre-Shift Check",
+                                    onClick = { onPreShiftCheck(vehicle?.id ?: "") },
+                                    leadingIcon = Icons.Default.CheckCircle,
+                                    enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession
+                                ))
                             }
+
+                            OptionsDropdownMenu(
+                                options = options,
+                                isAdmin = userRole == UserRole.ADMIN,
+                                isEnabled = true
+                            )
                         }
                     }
-
-
                 }
             )
         }
@@ -149,7 +189,7 @@ fun VehicleProfileScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        if (state.showQrCode) {
+                        if (state.showQrCode && userRole == UserRole.ADMIN) {
                             VehicleQrCodeModal(
                                 vehicleId = vehicle.id,
                                 onDismiss = viewModel::toggleQrCode,

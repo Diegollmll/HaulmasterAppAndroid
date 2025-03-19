@@ -20,11 +20,11 @@ fun VehicleQrCodeModal(
 ) {
     AppModal(
         onDismiss = onDismiss,
-        onConfirm = onDismiss,
+        onConfirm = onShare,
         title = "Vehicle QR Code",
         message = "Scan this QR code to access vehicle information",
-        confirmText = "Accept",
-        dismissText = "Cancel",
+        confirmText = "Share",
+        dismissText = "Close",
         content = {
             Column(
                 modifier = modifier,
@@ -34,21 +34,6 @@ fun VehicleQrCodeModal(
                     vehicleId = vehicleId,
                     modifier = Modifier.size(256.dp)
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onShare,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share QR Code",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Share QR Code")
-                }
             }
         }
     )

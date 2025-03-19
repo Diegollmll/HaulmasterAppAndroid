@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
+import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 
 @Composable
@@ -33,7 +34,7 @@ fun CheckDetailScreen(
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        showBottomBar = true,
+        showBottomBar = false,
         topBarTitle = "Check Details",
         networkManager = networkManager
     ) { padding ->
@@ -83,8 +84,11 @@ fun CheckDetailScreen(
 
                                     InfoRow("Vehicle", check.vehicleCodename)
                                     InfoRow("Operator", check.operatorName)
-                                    InfoRow("Date", check.lastCheckDateTime)
-
+                                    InfoRow(
+                                        label = "Date",
+                                        value = getRelativeTimeSpanString(check.lastCheckDateTime),
+                                        valueColor = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }
@@ -106,7 +110,8 @@ fun CheckDetailScreen(
 @Composable
 private fun InfoRow(
     label: String,
-    value: String
+    value: String,
+    valueColor: Color = Color.Unspecified
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -120,7 +125,8 @@ private fun InfoRow(
         Text(
             text = value,
             fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = valueColor
         )
     }
 } 

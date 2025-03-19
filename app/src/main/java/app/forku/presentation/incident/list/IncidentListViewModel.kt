@@ -3,6 +3,8 @@ package app.forku.presentation.incident.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.repository.incident.IncidentRepository
+import app.forku.domain.repository.user.UserRepository
+import app.forku.domain.model.user.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class IncidentListViewModel @Inject constructor(
-    private val incidentRepository: IncidentRepository
+    private val incidentRepository: IncidentRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(IncidentHistoryState())
     val state = _state.asStateFlow()
@@ -25,8 +28,27 @@ class IncidentListViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                android.util.Log.d("Incidents", "Fetching operator incidents")
-                incidentRepository.getOperatorIncidents()
+                val currentUser = userRepository.getCurrentUser()
+                if (currentUser == null) {
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "User not authenticated"
+                        )
+                    }
+                    return@launch
+                }
+
+                val isAdmin = currentUser.role == UserRole.ADMIN
+                android.util.Log.d("Incidents", "Loading incidents for ${if (isAdmin) "admin" else "operator"}")
+
+                val incidentsResult = if (isAdmin) {
+                    incidentRepository.getIncidents()
+                } else {
+                    incidentRepository.getOperatorIncidents()
+                }
+
+                incidentsResult
                     .onSuccess { incidents ->
                         android.util.Log.d("Incidents", "Received ${incidents.size} incidents")
                         _state.update { 

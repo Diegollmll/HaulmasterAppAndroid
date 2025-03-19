@@ -39,7 +39,7 @@ class OperatorsListViewModel @Inject constructor(
             val operator = userRepository.getUserById(userId)
             operator?.let {
                 OperatorSessionInfo(
-                    name = "${it.firstName}. ${it.lastName}",
+                    name = "${it.firstName} ${it.lastName}",
                     image = it.photoUrl,
                     isActive = activeSession,
                     userId = it.id,

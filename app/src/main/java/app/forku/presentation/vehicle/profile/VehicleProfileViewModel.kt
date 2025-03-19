@@ -13,12 +13,16 @@ import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.vehicle.VehicleStatus
+import app.forku.domain.model.user.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import app.forku.domain.repository.session.SessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
@@ -30,6 +34,8 @@ import app.forku.domain.usecase.vehicle.GetVehicleActiveSessionUseCase
 import app.forku.presentation.vehicle.components.QrCodeGenerator
 import java.io.File
 import java.io.FileOutputStream
+import retrofit2.HttpException
+import java.net.SocketTimeoutException
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -52,41 +58,82 @@ class VehicleProfileViewModel @Inject constructor(
         loadVehicle(showLoading = true)
     }
 
+    private suspend fun <T> retryOnFailure(
+        maxAttempts: Int = 3,
+        initialDelay: Long = 1000,
+        maxDelay: Long = 5000,
+        factor: Double = 2.0,
+        block: suspend () -> T
+    ): T {
+        var currentDelay = initialDelay
+        repeat(maxAttempts) { attempt ->
+            try {
+                return block()
+            } catch (e: Exception) {
+                if (attempt == maxAttempts - 1) throw e
+                
+                when (e) {
+                    is HttpException -> {
+                        if (e.code() == 429) { // Too Many Requests
+                            delay(currentDelay)
+                            currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
+                        } else throw e
+                    }
+                    is SocketTimeoutException -> {
+                        delay(currentDelay)
+                        currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
+                    }
+                    else -> throw e
+                }
+            }
+        }
+        throw IllegalStateException("Should never reach here")
+    }
+
     fun loadVehicle(showLoading: Boolean = false) {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = showLoading) }
                 
-                // Get any active session for the user (regardless of vehicle)
-                val currentSession = sessionRepository.getCurrentSession()
-                
-                // Get vehicle details
-                val vehicle = vehicleRepository.getVehicle(vehicleId)
+                // Get vehicle details with retry
+                val vehicle = retryOnFailure {
+                    vehicleRepository.getVehicle(vehicleId)
+                }
                 
                 if (vehicle == null) {
-                    android.util.Log.e("appflow VehicleProfile", "Vehicle not found for ID: $vehicleId")
                     throw Exception("Error al cargar vehiculo")
                 }
                 
-                android.util.Log.d("appflow VehicleProfile", "Vehicle loaded successfully: ${vehicle.id}")
+                // Get active session with retry
+                val activeSession = retryOnFailure {
+                    sessionRepository.getActiveSessionForVehicle(vehicleId)
+                }
                 
-                // Get active session for this vehicle
-                val activeSession = sessionRepository.getActiveSessionForVehicle(vehicleId)
-                android.util.Log.d("appflow VehicleProfile", "Active session: ${activeSession?.id}")
+                // Get current session with retry
+                val currentSession = retryOnFailure {
+                    sessionRepository.getCurrentSession()
+                }
                 
-                // Get last pre-shift check
-                val lastPreShiftCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
-                android.util.Log.d("appflow VehicleProfile", "Last pre-shift check: ${lastPreShiftCheck?.id}")
+                // Get last pre-shift check with retry
+                val lastPreShiftCheck = retryOnFailure {
+                    checklistRepository.getLastPreShiftCheck(vehicleId)
+                }
                 
                 // Fetch operator details if there's an active session
                 val operator = activeSession?.userId?.let { userId ->
-                    userRepository.getUserById(userId)
+                    retryOnFailure {
+                        userRepository.getUserById(userId)
+                    }
                 }
 
                 // If no active operator, get the last session's operator
                 val lastOperator = if (operator == null) {
-                    sessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
-                        userRepository.getUserById(userId)
+                    withTimeoutOrNull(5000) { // Add timeout to prevent hanging
+                        sessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
+                            retryOnFailure {
+                                userRepository.getUserById(userId)
+                            }
+                        }
                     }
                 } else null
                 
@@ -103,10 +150,17 @@ class VehicleProfileViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                android.util.Log.e("appflow VehicleProfile", "Error loading vehicle", e)
+                android.util.Log.e("VehicleProfile", "Error loading vehicle", e)
                 _state.update {
                     it.copy(
-                        error = "Error: ${e.message}",
+                        error = when (e) {
+                            is HttpException -> when (e.code()) {
+                                429 -> "Too many requests. Please try again later."
+                                else -> "Network error: ${e.message()}"
+                            }
+                            is SocketTimeoutException -> "Connection timeout. Please check your internet connection."
+                            else -> "Error: ${e.message}"
+                        },
                         isLoading = false
                     )
                 }
@@ -123,7 +177,16 @@ class VehicleProfileViewModel @Inject constructor(
     }
 
     fun toggleQrCode() {
-        _state.update { it.copy(showQrCode = !it.showQrCode) }
+        viewModelScope.launch {
+            try {
+                val currentUser = userRepository.getCurrentUser()
+                if (currentUser?.role == UserRole.ADMIN) {
+                    _state.update { it.copy(showQrCode = !it.showQrCode) }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Error toggling QR code: ${e.message}") }
+            }
+        }
     }
 
     fun shareQrCode() {
@@ -242,5 +305,62 @@ class VehicleProfileViewModel @Inject constructor(
 
     suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
         return checklistRepository.getLastPreShiftCheck(vehicleId)
+    }
+
+    fun endVehicleSession() {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true) }
+                
+                val vehicleId = state.value.vehicle?.id ?: return@launch
+                val activeSession = sessionRepository.getActiveSessionForVehicle(vehicleId)
+                
+                if (activeSession != null) {
+                    sessionRepository.endSession(activeSession.id)
+                    loadVehicle(showLoading = false)
+                }
+                
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = "Error ending session: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun updateVehicleStatus(newStatus: VehicleStatus) {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true) }
+                
+                val currentUser = userRepository.getCurrentUser()
+                if (currentUser?.role != UserRole.ADMIN) {
+                    _state.update { 
+                        it.copy(
+                            error = "Only administrators can change vehicle status",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                val vehicleId = state.value.vehicle?.id ?: return@launch
+                vehicleRepository.updateVehicleStatus(vehicleId, newStatus)
+                loadVehicle(showLoading = false)
+                
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = "Error updating vehicle status: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
     }
 }

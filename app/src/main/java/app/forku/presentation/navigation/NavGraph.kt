@@ -176,6 +176,9 @@ fun NavGraph(
         ) { entry ->
             val vehicleId = entry.arguments?.getString("vehicleId") ?: return@composable
             val viewModel: VehicleProfileViewModel = hiltViewModel()
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
             VehicleProfileScreen(
                 viewModel = viewModel,
                 onComplete = { navController.popBackStack() },
@@ -187,7 +190,8 @@ fun NavGraph(
                     navController.navigate(Screen.QRScanner.route)
                 },
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                userRole = currentUser?.role ?: UserRole.OPERATOR
             )
         }
 
