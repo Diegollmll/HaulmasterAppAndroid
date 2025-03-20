@@ -29,6 +29,7 @@ import android.content.pm.PackageManager
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.ForkuButton
 import app.forku.presentation.common.components.LocationPermissionHandler
+import app.forku.domain.model.user.UserRole
 
 
 @Composable
@@ -42,6 +43,7 @@ fun IncidentReportScreen(
     val state by viewModel.state.collectAsState()
     val locationState by viewModel.locationState.collectAsState()
     val navigateToDashboard by viewModel.navigateToDashboard.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
     
     var showPhotoSourceDialog by remember { mutableStateOf(false) }
@@ -67,9 +69,9 @@ fun IncidentReportScreen(
     }
 
     LaunchedEffect(navigateToDashboard) {
-        if (navigateToDashboard) {
-            navController.navigate(Screen.Dashboard.route) {
-                popUpTo(Screen.Dashboard.route) { inclusive = true }
+        navigateToDashboard?.let { route ->
+            navController.navigate(route) {
+                popUpTo(route) { inclusive = true }
             }
             viewModel.resetNavigation()
         }
@@ -168,8 +170,12 @@ fun IncidentReportScreen(
                 ForkuButton(
                     onClick = {
                         viewModel.dismissSuccessDialog()
-                        navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Dashboard.route) { inclusive = true }
+                        val route = when (currentUser?.role) {
+                            UserRole.ADMIN -> Screen.AdminDashboard.route
+                            else -> Screen.Dashboard.route
+                        }
+                        navController.navigate(route) {
+                            popUpTo(route) { inclusive = true }
                         }
                     }
                 ) {

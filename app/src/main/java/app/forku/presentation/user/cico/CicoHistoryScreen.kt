@@ -29,6 +29,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.DisposableEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,10 +38,18 @@ fun CicoHistoryScreen(
     onNavigateBack: () -> Unit,
     navController: NavController,
     networkManager: NetworkConnectivityManager,
-    operatorId: String? = null
+    operatorId: String? = null,
+    source: String? = null
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    
+    // Clean up state when leaving the screen
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearState()
+        }
+    }
     
     // Calculate if we should load more items
     val shouldLoadMore by remember {
@@ -60,23 +69,34 @@ fun CicoHistoryScreen(
     // Load initial data with operatorId
     LaunchedEffect(operatorId) {
         android.util.Log.d("appflow", "CicoHistoryScreen LaunchedEffect operatorId: $operatorId")
-        if(operatorId != null) {
-            viewModel.setSelectedOperator(operatorId)
-            viewModel.setDropdownExpanded(false)
-        }
+        viewModel.setSelectedOperator(operatorId)
+        viewModel.setDropdownExpanded(false)
+    }
+
+    // Determine screen title based on source and operatorId
+    val screenTitle = when {
+        source == "profile" -> "My CICO History"
+        source == "operator_profile" -> "Operator CICO History"
+        operatorId != null -> "Operator CICO History"
+        else -> "CICO History"
     }
 
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = if (operatorId != null) "Operator CICO History" else "CICO History",
+        topBarTitle = screenTitle,
         content = { padding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                if (state.isAdmin) {
+                // Show operator filter if:
+                // 1. User is admin AND
+                // 2. Either:
+                //    - We're not viewing from own profile (source != "profile")
+                //    - We're viewing from another operator's profile (source == "operator_profile")
+                if (state.isAdmin && (source != "profile" || source == "operator_profile")) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

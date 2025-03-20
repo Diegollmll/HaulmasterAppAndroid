@@ -246,16 +246,23 @@ fun NavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("source") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
             val operatorId = backStackEntry.arguments?.getString("operatorId")
-            android.util.Log.e("appflow", "NavGraph composable(route = Screen.OperatorsCICOHistory.route operatorId: $operatorId")
+            val source = backStackEntry.arguments?.getString("source")
+            android.util.Log.e("appflow", "NavGraph composable(route = Screen.OperatorsCICOHistory.route operatorId: $operatorId, source: $source")
             CicoHistoryScreen(
                 onNavigateBack = { navController.navigateUp() },
                 navController = navController,
                 networkManager = networkManager,
-                operatorId = operatorId
+                operatorId = operatorId,
+                source = source
             )
         }
 

@@ -67,18 +67,20 @@ class IncidentListViewModel @Inject constructor(
                         _state.update { 
                             it.copy(
                                 isLoading = false,
-                                incidents = incidents.map { incident ->
-                                    android.util.Log.d("Incidents", "Mapping incident: ${incident.id}")
-                                    IncidentItem(
-                                        id = incident.id ?: "",
-                                        type = incident.type.toDisplayText(),
-                                        description = incident.description,
-                                        date = incident.timestamp,
-                                        status = incident.status.toString(),
-                                        vehicleName = incident.vehicleName,
-                                        creatorName = getUserName(incident.userId)
-                                    )
-                                }
+                                incidents = incidents
+                                    .map { incident ->
+                                        android.util.Log.d("Incidents", "Mapping incident: ${incident.id}")
+                                        IncidentItem(
+                                            id = incident.id ?: "",
+                                            type = incident.type.toDisplayText(),
+                                            description = incident.description,
+                                            date = incident.timestamp,
+                                            status = incident.status.toString(),
+                                            vehicleName = incident.vehicleName,
+                                            creatorName = getUserName(incident.userId)
+                                        )
+                                    }
+                                    .sortedByDescending { incident -> incident.date }
                             )
                         }
                     }

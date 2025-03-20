@@ -73,16 +73,11 @@ interface GeneralApi {
 
     // Global session endpoints
     @GET("sessions")
-    suspend fun getAllSessions(
-        @Query("page") page: Int? = null,
-        @Query("limit") limit: Int? = null
-    ): Response<List<SessionDto>>
+    suspend fun getAllSessions(): Response<List<SessionDto>>
 
     @GET("users/{userId}/sessions")
     suspend fun getUserSessions(
-        @Path("userId") userId: String,
-        @Query("page") page: Int? = null,
-        @Query("limit") limit: Int? = null
+        @Path("userId") userId: String
     ): Response<List<SessionDto>>
 
     @GET("sessions/{sessionId}")

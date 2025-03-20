@@ -54,6 +54,12 @@ import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 import app.forku.R
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import app.forku.domain.model.user.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -100,12 +106,32 @@ fun ProfileScreen(
                         state = state,
                         onQualificationsClick = { /* Navigate to qualifications */ },
                         onIncidentReportsClick = {
-                            // Navigate to incidents list with the appropriate user ID
-                            val userId = operatorId ?: state.user?.id
-                            navController.navigate(Screen.IncidentList.createRoute(userId = userId, source = "profile"))
+                            // For admins viewing their own profile or operators, navigate to filtered incidents
+                            if (state.user?.role == UserRole.ADMIN && operatorId == null) {
+                                // Admin viewing their own profile - show all incidents
+                                navController.navigate(Screen.IncidentList.route)
+                            } else {
+                                // Viewing specific operator's incidents or operator viewing their own incidents
+                                val userId = operatorId ?: state.user?.id
+                                navController.navigate(Screen.IncidentList.createRoute(userId = userId, source = "profile"))
+                            }
                         },
                         onTrainingRecordClick = { /* Navigate to training */ },
-                        onCicoHistoryClick = onNavigateToCicoHistory,
+                        onCicoHistoryClick = {
+                            // Get the user ID for navigation
+                            val userId = when {
+                                // If we're viewing another operator's profile, use their ID
+                                operatorId != null -> operatorId
+                                // If we're in our own profile (admin or operator), use our ID
+                                else -> state.user?.id
+                            }
+                            
+                            // Navigate to CICO History with the appropriate source
+                            navController.navigate(Screen.OperatorsCICOHistory.createRoute(
+                                operatorId = userId,
+                                source = if (operatorId == null) "profile" else "operator_profile"
+                            ))
+                        },
                         isCurrentUser = operatorId == null
                     )
                 }
@@ -122,6 +148,42 @@ private fun ProfileHeader(
     viewModel: ProfileViewModel,
     isCurrentUser: Boolean
 ) {
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Logout confirmation dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Confirm Logout") },
+            text = { Text("Are you sure you want to logout?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Yes, Logout")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showLogoutDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -293,12 +355,7 @@ private fun ProfileHeader(
                     
                     Row {
                         Button(
-                            onClick = {
-                                viewModel.logout()
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            },
+                            onClick = { showLogoutDialog = true },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
                             ),

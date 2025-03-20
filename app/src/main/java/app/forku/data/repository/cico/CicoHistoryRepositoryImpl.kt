@@ -19,14 +19,15 @@ class CicoHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getSessionsHistory(page: Int): List<VehicleSession> {
         return try {
-            val response = api.getAllSessions(
-                page = page,
-                limit = PAGE_SIZE
-            )
+            val response = api.getAllSessions()
             
             if (response.isSuccessful && response.body() != null) {
-                response.body()!!.map { it.toDomain() }
+                val allSessions = response.body()!!.map { it.toDomain() }
+                    .sortedByDescending { it.startTime }
+                // Handle pagination on client side if server doesn't support it
+                allSessions.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
             } else {
+                android.util.Log.e("CicoHistory", "Error getting all sessions: ${response.code()}")
                 emptyList()
             }
         } catch (e: Exception) {
@@ -37,16 +38,31 @@ class CicoHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getOperatorSessionsHistory(operatorId: String, page: Int): List<VehicleSession> {
         return try {
-            val response = api.getUserSessions(
-                userId = operatorId,
-                page = page,
-                limit = PAGE_SIZE
-            )
+            // First try with the specific endpoint
+            val response = api.getUserSessions(userId = operatorId)
             
             if (response.isSuccessful) {
-                response.body()?.map { it.toDomain() } ?: emptyList()
+                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                // Sort by start time descending and handle pagination on client side
+                sessions.sortedByDescending { it.startTime }
+                    .drop((page - 1) * PAGE_SIZE)
+                    .take(PAGE_SIZE)
             } else {
-                emptyList()
+                // Fallback to getting all sessions and filtering
+                android.util.Log.d("CicoHistory", "Specific endpoint failed, falling back to filtering all sessions")
+                val allSessionsResponse = api.getAllSessions()
+                
+                if (allSessionsResponse.isSuccessful) {
+                    val allSessions = allSessionsResponse.body()?.map { it.toDomain() } ?: emptyList()
+                    val operatorSessions = allSessions
+                        .filter { it.userId == operatorId }
+                        .sortedByDescending { it.startTime }
+                    // Handle pagination on client side
+                    operatorSessions.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
+                } else {
+                    android.util.Log.e("CicoHistory", "Error getting operator sessions: ${allSessionsResponse.code()}")
+                    emptyList()
+                }
             }
         } catch (e: Exception) {
             android.util.Log.e("CicoHistory", "Error getting operator sessions", e)
@@ -56,6 +72,7 @@ class CicoHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getCurrentUserSessionsHistory(page: Int): List<VehicleSession> {
         val userId = authDataStore.getCurrentUser()?.id ?: return emptyList()
+        android.util.Log.d("CicoHistory", "Getting current user ($userId) sessions history, page: $page")
         return getOperatorSessionsHistory(userId, page)
     }
 } 

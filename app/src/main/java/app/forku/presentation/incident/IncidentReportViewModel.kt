@@ -19,6 +19,7 @@ import javax.inject.Inject
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
@@ -34,6 +35,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import app.forku.domain.repository.user.UserRepository
+import app.forku.presentation.navigation.Screen
 
 
 @HiltViewModel
@@ -52,6 +54,12 @@ class IncidentReportViewModel @Inject constructor(
     private val _state = MutableStateFlow(IncidentReportState())
     val state = _state.asStateFlow()
 
+    private val _currentUser = MutableStateFlow<app.forku.domain.model.user.User?>(null)
+    val currentUser = _currentUser.asStateFlow()
+
+    private val _navigateToDashboard = MutableStateFlow<String?>(null)
+    val navigateToDashboard = _navigateToDashboard.asStateFlow()
+
     val locationState = locationManager.locationState.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
@@ -60,9 +68,6 @@ class IncidentReportViewModel @Inject constructor(
 
     var tempPhotoUri: Uri? = null
         private set
-
-    private val _navigateToDashboard = MutableStateFlow(false)
-    val navigateToDashboard = _navigateToDashboard.asStateFlow()
 
     private var isSubmitting = false
 
@@ -125,31 +130,32 @@ class IncidentReportViewModel @Inject constructor(
                 _state.update { it.copy(availableVehicles = vehicles) }
 
                 // Get current user first
-                var currentUser = userRepository.getCurrentUser()
-                android.util.Log.d("IncidentReport", "Initial current user fetch: $currentUser")
+                var user = userRepository.getCurrentUser()
+                android.util.Log.d("IncidentReport", "Initial current user fetch: $user")
                 
                 // If no user found, try to refresh
-                if (currentUser == null) {
+                if (user == null) {
                     android.util.Log.d("IncidentReport", "No user found, attempting to refresh")
                     val refreshResult = userRepository.refreshCurrentUser()
-                    currentUser = refreshResult.getOrNull()
-                    android.util.Log.d("IncidentReport", "After refresh, current user: $currentUser")
+                    user = refreshResult.getOrNull()
+                    android.util.Log.d("IncidentReport", "After refresh, current user: $user")
                 }
                 
                 // Set user information regardless of session
-                currentUser?.let { user ->
+                user?.let { currentUser ->
                     android.util.Log.d("IncidentReport", """
                         Setting user info:
-                        - ID: ${user.id}
-                        - Name: ${user.fullName}
-                        - Token: ${user.token.take(10)}...
-                        - Role: ${user.role}
+                        - ID: ${currentUser.id}
+                        - Name: ${currentUser.fullName}
+                        - Token: ${currentUser.token.take(10)}...
+                        - Role: ${currentUser.role}
                     """.trimIndent())
                     
+                    _currentUser.value = currentUser
                     _state.update { currentState ->
                         currentState.copy(
-                            userId = user.id,
-                            reporterName = user.fullName
+                            userId = currentUser.id,
+                            reporterName = currentUser.fullName
                         )
                     }
                 } ?: run {
@@ -310,7 +316,11 @@ class IncidentReportViewModel @Inject constructor(
 
     fun dismissSuccessDialog() {
         _state.update { it.copy(showSuccessDialog = false) }
-        _navigateToDashboard.value = true
+        val route = when (_currentUser.value?.role) {
+            UserRole.ADMIN -> Screen.AdminDashboard.route
+            else -> Screen.Dashboard.route
+        }
+        _navigateToDashboard.value = route
     }
 
     fun updateState(newState: IncidentReportState) {
@@ -426,7 +436,7 @@ class IncidentReportViewModel @Inject constructor(
     }
 
     fun resetNavigation() {
-        _navigateToDashboard.value = false
+        _navigateToDashboard.value = null
     }
 
     fun updateField(fieldName: String, value: String) {

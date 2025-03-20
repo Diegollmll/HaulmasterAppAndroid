@@ -29,7 +29,8 @@ class CicoHistoryViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
     init {
-        //android.util.Log.d("appflow", "CicoHistoryViewModel init called")
+        android.util.Log.d("appflow", "CicoHistoryViewModel init called: state.value.selectedOperatorId ${state.value.selectedOperatorId}")
+
         //loadCicoHistory()
     }
 
@@ -117,7 +118,14 @@ class CicoHistoryViewModel @Inject constructor(
             try {
                 val currentUser = userRepository.getCurrentUser()
                 val isAdmin = currentUser?.role == UserRole.ADMIN
-                android.util.Log.d("CICO", "Loading history - isAdmin: $isAdmin, operatorId: $operatorId, page: $page")
+                android.util.Log.d("CICO", """
+                    Loading history with:
+                    - isAdmin: $isAdmin
+                    - operatorId: $operatorId
+                    - currentUser.id: ${currentUser?.id}
+                    - selectedOperatorId: ${_state.value.selectedOperatorId}
+                    - page: $page
+                """.trimIndent())
 
                 if (!append) {
                     _state.update { it.copy(
@@ -130,8 +138,29 @@ class CicoHistoryViewModel @Inject constructor(
 
                 // Get paginated sessions from API
                 val sessions = try {
-                    android.util.Log.d("CICO", "Fetching sessions page: $page")
-                    cicoHistoryRepository.getSessionsHistory(page)
+                    android.util.Log.d("CICO", "Determining which API to call...")
+                    
+                    // If viewing from profile (source == "profile"), always use getCurrentUserSessionsHistory
+                    if (operatorId == currentUser?.id) {
+                        android.util.Log.d("CICO", "Loading current user sessions (from profile)")
+                        cicoHistoryRepository.getCurrentUserSessionsHistory(page)
+                    }
+                    // If admin viewing all operators
+                    else if (isAdmin && operatorId == null && _state.value.selectedOperatorId == null) {
+                        android.util.Log.d("CICO", "Loading all sessions (admin view)")
+                        cicoHistoryRepository.getSessionsHistory(page)
+                    }
+                    // If viewing specific operator
+                    else if (operatorId != null || _state.value.selectedOperatorId != null) {
+                        val targetUserId = operatorId ?: _state.value.selectedOperatorId
+                        android.util.Log.d("CICO", "Loading sessions for specific operator: $targetUserId")
+                        cicoHistoryRepository.getOperatorSessionsHistory(targetUserId!!, page)
+                    }
+                    // Default case: load current user's sessions
+                    else {
+                        android.util.Log.d("CICO", "Loading current user sessions (default case)")
+                        cicoHistoryRepository.getCurrentUserSessionsHistory(page)
+                    }
                 } catch (e: Exception) {
                     android.util.Log.e("CICO", "Error loading sessions", e)
                     emptyList()
@@ -139,19 +168,8 @@ class CicoHistoryViewModel @Inject constructor(
 
                 android.util.Log.d("CICO", "Fetched ${sessions.size} sessions")
 
-                // Filter sessions based on operatorId or current user
-                val filteredSessions = sessions.filter { session ->
-                    if (operatorId != null) {
-                        session.userId == operatorId
-                    } else if (!isAdmin) {
-                        session.userId == currentUser?.id
-                    } else {
-                        true // Admin sees all sessions when no operator selected
-                    }
-                }
-
                 // Process sessions with vehicle and operator details
-                val processedSessions = filteredSessions.mapNotNull { session ->
+                val processedSessions = sessions.mapNotNull { session ->
                     try {
                         val vehicle = vehicleRepository.getVehicle(session.vehicleId)
                         val operatorResult = loadOperatorWithRetry(session.userId)
@@ -218,6 +236,12 @@ class CicoHistoryViewModel @Inject constructor(
 
     fun setDropdownExpanded(expanded: Boolean) {
         _state.update { it.copy(dropdownExpanded = expanded) }
+    }
+
+    fun clearState() {
+        _state.update { 
+            CicoHistoryState() // Reset to initial state
+        }
     }
 }
 

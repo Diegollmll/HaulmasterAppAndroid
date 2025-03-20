@@ -36,15 +36,21 @@ sealed class Screen(val route: String) {
             }
         }
     }
-    data object OperatorsCICOHistory : Screen("operators_cico_history?operatorId={operatorId}") {
-        fun createRoute(operatorId: String? = null): String {
-            android.util.Log.e("appflow", "OperatorsCICOHistory createRoute operatorId: $operatorId")
-            return if (operatorId != null) {
-                android.util.Log.e("appflow", "OperatorsCICOHistory createRoute operatorId != null")
-                "operators_cico_history?operatorId=$operatorId"
-            } else {
-                android.util.Log.e("appflow", "OperatorsCICOHistory operatorId null")
-                "operators_cico_history"
+    data object OperatorsCICOHistory : Screen("operators_cico_history?operatorId={operatorId}&source={source}") {
+        fun createRoute(operatorId: String? = null, source: String? = null): String {
+            android.util.Log.e("appflow", "OperatorsCICOHistory createRoute operatorId: $operatorId, source: $source")
+            return buildString {
+                append("operators_cico_history")
+                if (operatorId != null || source != null) {
+                    append("?")
+                    if (operatorId != null) {
+                        append("operatorId=$operatorId")
+                        if (source != null) append("&")
+                    }
+                    if (source != null) {
+                        append("source=$source")
+                    }
+                }
             }
         }
     }
