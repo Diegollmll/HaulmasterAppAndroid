@@ -7,7 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.usecase.incident.ReportIncidentUseCase
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.weather.WeatherRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,7 +19,6 @@ import javax.inject.Inject
 import android.net.Uri
 import app.forku.core.location.LocationManager
 import app.forku.core.location.LocationState
-import app.forku.domain.model.incident.toDisplayText
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.repository.vehicle.VehicleRepository
 import java.time.LocalDateTime
@@ -40,7 +39,7 @@ import app.forku.domain.repository.user.UserRepository
 @HiltViewModel
 class IncidentReportViewModel @Inject constructor(
     private val reportIncidentUseCase: ReportIncidentUseCase,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val weatherRepository: WeatherRepository,
     @ApplicationContext private val context: Context,
     private val userRepository: UserRepository,
@@ -159,7 +158,7 @@ class IncidentReportViewModel @Inject constructor(
                 }
 
                 // Then try to get current session
-                val session = sessionRepository.getCurrentSession()
+                val session = vehicleSessionRepository.getCurrentSession()
                 android.util.Log.d("IncidentReport", "Current session: $session")
                 
                 session?.vehicleId?.let { vehicleId ->

@@ -3,10 +3,9 @@ package app.forku.presentation.scanner
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +18,7 @@ import javax.inject.Inject
 class QRScannerViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
     private val checklistRepository: ChecklistRepository,
-    private val sessionRepository: SessionRepository
+    private val vehicleSessionRepository: VehicleSessionRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(QRScannerState())
     val state = _state.asStateFlow()
@@ -42,7 +41,7 @@ class QRScannerViewModel @Inject constructor(
                 
                 // Check if vehicle can start check and user has no active session
                 val canStartCheck = checklistRepository.canStartCheck(vehicle.id)
-                val currentSession = sessionRepository.getCurrentSession()
+                val currentSession = vehicleSessionRepository.getCurrentSession()
                 
                 val shouldNavigateToChecklist = canStartCheck && currentSession == null
                 

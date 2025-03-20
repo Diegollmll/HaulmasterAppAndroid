@@ -147,7 +147,7 @@ private fun OperationStatusSection(
                     count = state.totalIncidentsCount.toString(),
                     label = "Incidents",
                     iconTint = Color(0xFFFFA726),
-                    onClick = { navController.navigate(Screen.IncidentList.route) }
+                    onClick = { navController.navigate(Screen.IncidentList.createRoute()) }
                 )
                 StatusItem(
                     icon = Icons.Default.Security,

@@ -3,7 +3,6 @@ package app.forku.presentation.vehicle.profile
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -12,7 +11,6 @@ import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
-import app.forku.domain.model.session.SessionStatus
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.user.UserRole
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,7 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.model.vehicle.getErrorMessage
@@ -42,7 +40,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val getVehicleUseCase: GetVehicleUseCase,
     private val getVehicleActiveSessionUseCase: GetVehicleActiveSessionUseCase,
     private val vehicleRepository: VehicleRepository,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val checklistRepository: ChecklistRepository,
     private val userRepository: UserRepository,
@@ -106,12 +104,12 @@ class VehicleProfileViewModel @Inject constructor(
                 
                 // Get active session with retry
                 val activeSession = retryOnFailure {
-                    sessionRepository.getActiveSessionForVehicle(vehicleId)
+                    vehicleSessionRepository.getActiveSessionForVehicle(vehicleId)
                 }
                 
                 // Get current session with retry
                 val currentSession = retryOnFailure {
-                    sessionRepository.getCurrentSession()
+                    vehicleSessionRepository.getCurrentSession()
                 }
                 
                 // Get last pre-shift check with retry
@@ -129,7 +127,7 @@ class VehicleProfileViewModel @Inject constructor(
                 // If no active operator, get the last session's operator
                 val lastOperator = if (operator == null) {
                     withTimeoutOrNull(5000) { // Add timeout to prevent hanging
-                        sessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
+                        vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
                             retryOnFailure {
                                 userRepository.getUserById(userId)
                             }
@@ -247,7 +245,7 @@ class VehicleProfileViewModel @Inject constructor(
                 val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
                 
                 if (lastCheck?.status == CheckStatus.COMPLETED_PASS.toString()) {
-                    val session = sessionRepository.startSession(
+                    val session = vehicleSessionRepository.startSession(
                         vehicleId = vehicleId,
                         checkId = lastCheck.id
                     )
@@ -313,10 +311,10 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val vehicleId = state.value.vehicle?.id ?: return@launch
-                val activeSession = sessionRepository.getActiveSessionForVehicle(vehicleId)
+                val activeSession = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId)
                 
                 if (activeSession != null) {
-                    sessionRepository.endSession(activeSession.id)
+                    vehicleSessionRepository.endSession(activeSession.id)
                     loadVehicle(showLoading = false)
                 }
                 

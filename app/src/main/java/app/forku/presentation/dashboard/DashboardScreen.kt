@@ -297,7 +297,7 @@ private fun DashboardNavigationButtons(
                     text = "Incidents",
                     onClick = {
                         isExpanded = false
-                        navController.navigate(Screen.IncidentList.route)
+                        navController.navigate(Screen.IncidentList.createRoute())
                     },
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.alpha(offsetAnimation),

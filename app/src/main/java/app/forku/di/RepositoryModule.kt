@@ -13,19 +13,21 @@ import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import app.forku.data.repository.vehicle.VehicleStatusRepositoryImpl
 import app.forku.data.repository.vehicle_session.VehicleSessionRepositoryImpl
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.vehicle.VehicleStatusUpdater
 import app.forku.data.repository.vehicle.VehicleStatusUpdaterImpl
 import app.forku.domain.repository.session.SessionStatusChecker
 import app.forku.data.repository.vehicle_session.VehicleSessionStatusCheckerImpl
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
 import app.forku.data.repository.checklist.ChecklistStatusNotifierImpl
+import app.forku.data.repository.cico.CicoHistoryRepositoryImpl
 import app.forku.domain.service.VehicleValidationService
 import app.forku.data.service.VehicleValidationServiceImpl
 import app.forku.domain.service.VehicleStatusDeterminer
 import app.forku.data.service.VehicleStatusDeterminerImpl
 import app.forku.data.repository.notification.NotificationRepositoryImpl
 import app.forku.domain.repository.notification.NotificationRepository
+import app.forku.domain.repository.cico.CicoHistoryRepository
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -118,7 +120,7 @@ object RepositoryModule {
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
         checklistRepository: ChecklistRepository
-    ): SessionRepository {
+    ): VehicleSessionRepository {
         return VehicleSessionRepositoryImpl(api, authDataStore, vehicleStatusRepository, checklistRepository)
     }
 
@@ -163,4 +165,9 @@ abstract class RepositoryBindingsModule {
     abstract fun bindNotificationRepository(
         notificationRepositoryImpl: NotificationRepositoryImpl
     ): NotificationRepository
+
+    @Binds
+    abstract fun bindCicoHistoryRepository(
+        repository: CicoHistoryRepositoryImpl
+    ): CicoHistoryRepository
 }

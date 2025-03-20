@@ -3,15 +3,12 @@ package app.forku.presentation.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.checklist.Answer
-import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.session.VehicleSessionInfo
 import app.forku.domain.model.user.User
-import app.forku.domain.model.vehicle.Vehicle
-import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.incident.IncidentRepository
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +31,7 @@ class AdminDashboardViewModel @Inject constructor(
     private val incidentRepository: IncidentRepository,
     private val checklistRepository: ChecklistRepository,
     private val userRepository: UserRepository,
-    private val sessionRepository: SessionRepository
+    private val vehicleSessionRepository: VehicleSessionRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AdminDashboardState())
@@ -139,7 +136,7 @@ class AdminDashboardViewModel @Inject constructor(
                         async {
                             try {
                                 delay(100) // Add small delay between requests to prevent rate limiting
-                                val session = sessionRepository.getActiveSessionForVehicle(vehicle.id)
+                                val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id)
                                 session?.let { 
                                     val operator = userRepository.getUserById(it.userId)
                                     val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"

@@ -227,32 +227,63 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val operatorId = backStackEntry.arguments?.getString("operatorId")
+            android.util.Log.e("appflow", "NavGraph composable(route = Screen.Profile.route, operatorId: $operatorId")
             ProfileScreen(
                 navController = navController,
                 onNavigateBack = { navController.navigateUp() },
-                onNavigateToIncidents = { navController.navigate(Screen.IncidentList.route) },
-                onNavigateToCicoHistory = { navController.navigate(Screen.OperatorsCICOHistory.route) },
+                onNavigateToCicoHistory = { 
+                    navController.navigate(Screen.OperatorsCICOHistory.createRoute(operatorId))
+                },
                 networkManager = networkManager,
                 operatorId = operatorId
             )
         }
 
-        composable(Screen.OperatorsCICOHistory.route) {
+        composable(
+            route = Screen.OperatorsCICOHistory.route,
+            arguments = listOf(
+                navArgument("operatorId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val operatorId = backStackEntry.arguments?.getString("operatorId")
+            android.util.Log.e("appflow", "NavGraph composable(route = Screen.OperatorsCICOHistory.route operatorId: $operatorId")
             CicoHistoryScreen(
                 onNavigateBack = { navController.navigateUp() },
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                operatorId = operatorId
             )
         }
 
-        composable(Screen.IncidentList.route) {
+        composable(
+            route = Screen.IncidentList.route,
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("source") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            val source = backStackEntry.arguments?.getString("source")
+            
             IncidentListScreen(
                 onNavigateBack = { navController.navigateUp() },
-                onNavigateToReport = {
-                    //navController.navigate(Screen.IncidentReport.route)
-                },
+                onNavigateToReport = { /* Handle report navigation */ },
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                userId = userId,
+                source = source
             )
         }
 

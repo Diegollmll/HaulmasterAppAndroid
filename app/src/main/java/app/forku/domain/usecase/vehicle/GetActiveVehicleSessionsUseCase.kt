@@ -1,14 +1,14 @@
 package app.forku.domain.usecase.vehicle
 
 import app.forku.domain.model.session.VehicleSessionInfo
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.model.user.UserRole
 import javax.inject.Inject
 
 class GetActiveVehicleSessionsUseCase @Inject constructor(
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository
 ) {
@@ -16,7 +16,7 @@ class GetActiveVehicleSessionsUseCase @Inject constructor(
         val sessionMap = mutableMapOf<String, VehicleSessionInfo>()
         
         // Get all active sessions
-        val activeSessions = sessionRepository.getOperatorSessionHistory()
+        val activeSessions = vehicleSessionRepository.getOperatorSessionHistory()
             .filter { it.endTime == null }  // Only active sessions
             
         for (session in activeSessions) {

@@ -1,7 +1,7 @@
 package app.forku.domain.usecase.vehicle
 
 import app.forku.domain.model.session.VehicleSessionInfo
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.vehicle.VehicleRepository
@@ -10,12 +10,12 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 class GetVehicleActiveSessionUseCase @Inject constructor(
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository
 ) {
     suspend operator fun invoke(vehicleId: String): VehicleSessionInfo? {
-        val session = sessionRepository.getActiveSessionForVehicle(vehicleId) ?: return null
+        val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId) ?: return null
         val operator = userRepository.getUserById(session.userId)
         val vehicle = vehicleRepository.getVehicle(vehicleId)
         

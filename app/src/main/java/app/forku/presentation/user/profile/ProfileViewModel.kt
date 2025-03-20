@@ -3,7 +3,7 @@ package app.forku.presentation.user.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.user.User
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.incident.IncidentRepository
@@ -18,7 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val vehicleRepository: VehicleRepository,
     private val incidentRepository: IncidentRepository
 ) : ViewModel() {
@@ -72,13 +72,13 @@ class ProfileViewModel @Inject constructor(
     private suspend fun updateProfileState(user: User) {
         try {
             // Get total sessions
-            val totalSessions = sessionRepository.getSessionsByUserId(user.id).size
+            val totalSessions = vehicleSessionRepository.getSessionsByUserId(user.id).size
             
             // Get total incidents
             val totalIncidents = incidentRepository.getIncidentsByUserId(user.id).getOrDefault(emptyList()).size
             
             // Get active vehicle session if any
-            val activeSession = sessionRepository.getSessionsByUserId(user.id)
+            val activeSession = vehicleSessionRepository.getSessionsByUserId(user.id)
                 .find { it.status == SessionStatus.ACTIVE }
             
             val activeVehicle = activeSession?.let { session ->

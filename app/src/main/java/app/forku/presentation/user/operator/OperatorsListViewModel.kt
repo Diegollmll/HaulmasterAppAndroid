@@ -2,7 +2,7 @@ package app.forku.presentation.user.operator
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.presentation.dashboard.OperatorSessionInfo
@@ -18,7 +18,7 @@ import kotlinx.coroutines.delay
 
 @HiltViewModel
 class OperatorsListViewModel @Inject constructor(
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository
 ) : ViewModel() {
@@ -91,7 +91,7 @@ class OperatorsListViewModel @Inject constructor(
                         async {
                             try {
                                 delay(100) // Add small delay between requests to prevent rate limiting
-                                sessionRepository.getActiveSessionForVehicle(vehicle.id)
+                                vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id)
                             } catch (e: Exception) {
                                 android.util.Log.e("OperatorsList", "Error getting session for vehicle ${vehicle.id}", e)
                                 null

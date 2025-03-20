@@ -1,15 +1,14 @@
 package app.forku.presentation.incident.list
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,6 +22,8 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import app.forku.presentation.common.components.IncidentCard
+import app.forku.domain.model.incident.IncidentStatus
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -31,19 +32,28 @@ fun IncidentListScreen(
     onNavigateBack: () -> Unit,
     onNavigateToReport: () -> Unit,
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    userId: String? = null,
+    source: String? = null
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    LaunchedEffect(userId, source) {
+        viewModel.loadIncidents(userId, source)
+    }
+
     val pullRefreshState = rememberPullRefreshState(
         refreshing = state.isLoading,
-        onRefresh = { viewModel.loadIncidents() }
+        onRefresh = { viewModel.loadIncidents(userId, source) }
     )
 
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = "Incident Reports",
+        topBarTitle = when {
+            userId != null -> "User Incidents"
+            else -> "Incidents List"
+        },
         content = { padding ->
             Box(
                 modifier = Modifier
@@ -53,7 +63,7 @@ fun IncidentListScreen(
                 when {
                     state.error != null -> ErrorScreen(
                         message = state.error ?: "Unknown error occurred",
-                        onRetry = { viewModel.loadIncidents() }
+                        onRetry = { viewModel.loadIncidents(userId, source) }
                     )
                     else -> {
                         LazyColumn(
@@ -65,8 +75,16 @@ fun IncidentListScreen(
                                 items = state.incidents,
                                 key = { it.id }
                             ) { incident ->
-                                IncidentHistoryItem(
-                                    incident = incident,
+                                IncidentCard(
+                                    type = incident.type,
+                                    date = getRelativeTimeSpanString(incident.date),
+                                    description = incident.description,
+                                    status = try {
+                                        IncidentStatus.valueOf(incident.status)
+                                    } catch (e: IllegalArgumentException) {
+                                        null
+                                    },
+                                    creatorName = incident.creatorName,
                                     onClick = {
                                         navController.navigate(
                                             Screen.IncidentDetail.route.replace(
@@ -90,48 +108,4 @@ fun IncidentListScreen(
         },
         networkManager = networkManager
     )
-}
-
-@Composable
-private fun IncidentHistoryItem(
-    incident: IncidentItem,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.small
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = incident.type,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = getRelativeTimeSpanString(incident.date),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = incident.description,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
 } 

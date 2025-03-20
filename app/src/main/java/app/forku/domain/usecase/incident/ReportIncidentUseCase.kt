@@ -3,7 +3,7 @@ package app.forku.domain.usecase.incident
 import app.forku.domain.model.incident.Incident
 import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.repository.incident.IncidentRepository
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import javax.inject.Inject
 import android.net.Uri
@@ -17,7 +17,7 @@ import app.forku.domain.model.incident.LoadWeight
 class ReportIncidentUseCase @Inject constructor(
     private val incidentRepository: IncidentRepository,
     private val userRepository: UserRepository,
-    private val sessionRepository: SessionRepository
+    private val vehicleSessionRepository: VehicleSessionRepository
 ) {
     suspend operator fun invoke(
         type: IncidentType,

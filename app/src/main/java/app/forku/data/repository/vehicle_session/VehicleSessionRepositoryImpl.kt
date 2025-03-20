@@ -10,7 +10,7 @@ import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import javax.inject.Inject
@@ -20,7 +20,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     private val authDataStore: AuthDataStore,
     private val vehicleStatusRepository: VehicleStatusRepository,
     private val checklistRepository: ChecklistRepository
-) : SessionRepository {
+) : VehicleSessionRepository {
     override suspend fun getCurrentSession(): VehicleSession? {
         val userId = authDataStore.getCurrentUser()?.id ?: return null
         return try {
@@ -201,6 +201,20 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             android.util.Log.e("VehicleSession", "Error getting last completed session: ${e.message}")
             null
+        }
+    }
+
+    override suspend fun getSessions(): List<VehicleSession> {
+        return try {
+            val response = api.getAllSessions()
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!.map { it.toDomain() }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VehicleSessionRepo", "Error getting all sessions", e)
+            emptyList()
         }
     }
 } 

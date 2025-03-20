@@ -6,7 +6,7 @@ import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.usecase.vehicle.GetVehiclesUseCase
 import app.forku.domain.usecase.checklist.SubmitChecklistUseCase
 import app.forku.domain.repository.incident.IncidentRepository
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.usecase.incident.ReportIncidentUseCase
 
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
@@ -56,9 +56,9 @@ object UseCaseModule {
     fun provideReportIncidentUseCase(
         repository: IncidentRepository,
         userRepository: UserRepository,
-        sessionRepository: SessionRepository
+        vehicleSessionRepository: VehicleSessionRepository
     ): ReportIncidentUseCase {
-        return ReportIncidentUseCase(repository, userRepository, sessionRepository)
+        return ReportIncidentUseCase(repository, userRepository, vehicleSessionRepository)
     }
 
     @Provides
@@ -80,11 +80,11 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideGetVehicleActiveSessionUseCase(
-        sessionRepository: SessionRepository,
+        vehicleSessionRepository: VehicleSessionRepository,
         userRepository: UserRepository,
         vehicleRepository: VehicleRepository
     ): GetVehicleActiveSessionUseCase {
-        return GetVehicleActiveSessionUseCase(sessionRepository, userRepository, vehicleRepository)
+        return GetVehicleActiveSessionUseCase(vehicleSessionRepository, userRepository, vehicleRepository)
     }
 
     @Provides

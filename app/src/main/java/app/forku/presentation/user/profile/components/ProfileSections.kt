@@ -35,7 +35,7 @@ fun ProfileSections(
         Text(
             text = if (isCurrentUser) "Profile" else "Operator Information",
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(8.dp)
         )
 
         ProfileSection(
@@ -63,7 +63,7 @@ private fun ProfileSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {

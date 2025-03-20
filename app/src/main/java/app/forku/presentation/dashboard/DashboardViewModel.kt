@@ -2,15 +2,13 @@ package app.forku.presentation.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.repository.vehicle.VehicleRepository
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckCurrentUserUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleUseCase
-import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.user.User
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import app.forku.presentation.user.login.LoginState
@@ -27,7 +25,7 @@ import kotlinx.coroutines.sync.Mutex
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val checklistRepository: ChecklistRepository,
     private val userRepository: UserRepository,
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
@@ -118,7 +116,7 @@ class DashboardViewModel @Inject constructor(
                 ?: throw Exception("User not authenticated")
 
             android.util.Log.d("DashboardViewModel", "Getting current session")
-            val currentSession = sessionRepository.getCurrentSession()
+            val currentSession = vehicleSessionRepository.getCurrentSession()
 
             android.util.Log.d("DashboardViewModel", "Getting session vehicle")
             val sessionVehicle = currentSession?.let { 
@@ -195,7 +193,7 @@ class DashboardViewModel @Inject constructor(
                 
                 if (currentSession != null) {
                     android.util.Log.d("appflow DashboardViewModel", "Ending session with ID: ${currentSession.id}")
-                    sessionRepository.endSession(currentSession.id)
+                    vehicleSessionRepository.endSession(currentSession.id)
                     
                     // Actualizar el estado después de finalizar la sesión
                     _state.update { 

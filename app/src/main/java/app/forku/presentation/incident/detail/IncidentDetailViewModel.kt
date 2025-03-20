@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 
 
 import app.forku.domain.model.incident.Incident
+import app.forku.domain.model.incident.toDisplayText
 import app.forku.domain.repository.incident.IncidentRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,7 +60,7 @@ class IncidentDetailViewModel @Inject constructor(
 
     private fun Incident.toIncidentDetail() = IncidentDetail(
         id = id ?: "",
-        type = type.name,
+        type = type.toDisplayText(),
         description = description,
         date = date,
         location = location,

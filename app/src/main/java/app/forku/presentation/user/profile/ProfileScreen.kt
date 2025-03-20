@@ -60,11 +60,10 @@ import app.forku.R
 fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
-    onNavigateToIncidents: () -> Unit,
-    onNavigateToCicoHistory: () -> Unit,
     navController: NavController,
     networkManager: NetworkConnectivityManager,
-    operatorId: String? = null
+    operatorId: String? = null,
+    onNavigateToCicoHistory: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -100,7 +99,11 @@ fun ProfileScreen(
                     ProfileSections(
                         state = state,
                         onQualificationsClick = { /* Navigate to qualifications */ },
-                        onIncidentReportsClick = onNavigateToIncidents,
+                        onIncidentReportsClick = {
+                            // Navigate to incidents list with the appropriate user ID
+                            val userId = operatorId ?: state.user?.id
+                            navController.navigate(Screen.IncidentList.createRoute(userId = userId, source = "profile"))
+                        },
                         onTrainingRecordClick = { /* Navigate to training */ },
                         onCicoHistoryClick = onNavigateToCicoHistory,
                         isCurrentUser = operatorId == null

@@ -3,16 +3,13 @@ package app.forku.presentation.vehicle.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.session.VehicleSessionInfo
-import app.forku.domain.model.user.UserRole
-import app.forku.domain.usecase.vehicle.GetVehiclesUseCase
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -24,7 +21,7 @@ import java.time.format.DateTimeFormatter
 @HiltViewModel
 class VehicleListViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository,
     private val checklistRepository: ChecklistRepository
 ) : ViewModel() {
@@ -65,7 +62,7 @@ class VehicleListViewModel @Inject constructor(
                 val activeSessions = vehicles.map { vehicle ->
                     async {
                         try {
-                            val session = sessionRepository.getActiveSessionForVehicle(vehicle.id)
+                            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id)
                             if (session != null) {
                                 val operator = try {
                                     // Add delay between requests to avoid rate limiting
@@ -99,7 +96,7 @@ class VehicleListViewModel @Inject constructor(
                                 )
                             } else {
                                 // If no active session, get the last completed session
-                                val lastSession = sessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
+                                val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
                                 if (lastSession != null) {
                                     val lastOperator = try {
                                         // Add delay between requests to avoid rate limiting

@@ -2,12 +2,12 @@ package app.forku.domain.usecase.session
 
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.user.UserRole
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import javax.inject.Inject
 
 class StartVehicleSessionUseCase @Inject constructor(
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository
 ) {
     suspend operator fun invoke(vehicleId: String, checkId: String): Result<VehicleSession> {
@@ -20,7 +20,7 @@ class StartVehicleSessionUseCase @Inject constructor(
 
         // Continuar con la lógica de inicio de sesión
         return try {
-            val session = sessionRepository.startSession(vehicleId, checkId)
+            val session = vehicleSessionRepository.startSession(vehicleId, checkId)
             Result.success(session)
         } catch (e: Exception) {
             Result.failure(e)

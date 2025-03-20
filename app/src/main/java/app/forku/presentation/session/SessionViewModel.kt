@@ -2,7 +2,7 @@ package app.forku.presentation.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.session.StartVehicleSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SessionViewModel @Inject constructor(
     private val startVehicleSessionUseCase: StartVehicleSessionUseCase,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(SessionState())
@@ -65,7 +65,7 @@ class SessionViewModel @Inject constructor(
                 
                 val currentSession = state.value.session
                 if (currentSession != null) {
-                    val endedSession = sessionRepository.endSession(currentSession.id)
+                    val endedSession = vehicleSessionRepository.endSession(currentSession.id)
                     _state.update { 
                         it.copy(
                             session = endedSession,
@@ -90,7 +90,7 @@ class SessionViewModel @Inject constructor(
     private fun loadCurrentSession() {
         viewModelScope.launch {
             try {
-                val session = sessionRepository.getCurrentSession()
+                val session = vehicleSessionRepository.getCurrentSession()
                 _state.update { 
                     it.copy(
                         session = session,

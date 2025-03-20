@@ -42,13 +42,13 @@ fun ChecklistQuestionItem(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Pass",
+                text = "Yes",
                 fontSize = 16.sp,
                 color = if (question.userAnswer == Answer.PASS) 
                     Color(0xFF007AFF) else Color.Gray,
                 modifier = Modifier
                     .clickable { onResponseChanged(question.id, true) }
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 7.dp)
             )
             
             Divider(
@@ -59,13 +59,13 @@ fun ChecklistQuestionItem(
             )
             
             Text(
-                text = "Fail",
+                text = "No",
                 fontSize = 16.sp,
                 color = if (question.userAnswer == Answer.FAIL) 
                     Color(0xFF007AFF) else Color.Gray,
                 modifier = Modifier
                     .clickable { onResponseChanged(question.id, false) }
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 7.dp)
             )
         }
     }

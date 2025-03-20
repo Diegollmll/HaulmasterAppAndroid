@@ -2,6 +2,7 @@ package app.forku.presentation.incident.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.forku.domain.model.incident.toDisplayText
 import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.model.user.UserRole
@@ -21,10 +22,10 @@ class IncidentListViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
     init {
-        loadIncidents()
+        // Remove automatic loading here as we'll load based on parameters
     }
 
-    fun loadIncidents() {
+    fun loadIncidents(userId: String? = null, source: String? = null) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
@@ -40,12 +41,24 @@ class IncidentListViewModel @Inject constructor(
                 }
 
                 val isAdmin = currentUser.role == UserRole.ADMIN
-                android.util.Log.d("Incidents", "Loading incidents for ${if (isAdmin) "admin" else "operator"}")
-
-                val incidentsResult = if (isAdmin) {
-                    incidentRepository.getIncidents()
-                } else {
-                    incidentRepository.getOperatorIncidents()
+                
+                // Determine which incidents to load based on source and parameters
+                val incidentsResult = when {
+                    // From dashboard and user is admin -> show all incidents
+                    source == null && isAdmin -> {
+                        android.util.Log.d("Incidents", "Admin loading all incidents from dashboard")
+                        incidentRepository.getIncidents()
+                    }
+                    // From profile with specific userId -> show that user's incidents
+                    source == "profile" && userId != null -> {
+                        android.util.Log.d("Incidents", "Loading incidents for user: $userId")
+                        incidentRepository.getIncidentsByUserId(userId)
+                    }
+                    // From profile without userId or any other case -> show current user's incidents
+                    else -> {
+                        android.util.Log.d("Incidents", "Loading incidents for current user")
+                        incidentRepository.getOperatorIncidents()
+                    }
                 }
 
                 incidentsResult
@@ -58,11 +71,12 @@ class IncidentListViewModel @Inject constructor(
                                     android.util.Log.d("Incidents", "Mapping incident: ${incident.id}")
                                     IncidentItem(
                                         id = incident.id ?: "",
-                                        type = incident.type.toString(),
+                                        type = incident.type.toDisplayText(),
                                         description = incident.description,
                                         date = incident.timestamp,
                                         status = incident.status.toString(),
-                                        vehicleName = incident.vehicleName
+                                        vehicleName = incident.vehicleName,
+                                        creatorName = getUserName(incident.userId)
                                     )
                                 }
                             )
@@ -88,6 +102,14 @@ class IncidentListViewModel @Inject constructor(
             }
         }
     }
+
+    private suspend fun getUserName(userId: String): String {
+        return try {
+            userRepository.getUserById(userId)?.fullName ?: "Unknown"
+        } catch (e: Exception) {
+            "Unknown"
+        }
+    }
 }
 
 data class IncidentHistoryState(
@@ -102,5 +124,6 @@ data class IncidentItem(
     val description: String,
     val date: String,
     val status: String,
-    val vehicleName: String
+    val vehicleName: String,
+    val creatorName: String = "Unknown"
 ) 

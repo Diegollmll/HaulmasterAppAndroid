@@ -20,17 +20,22 @@ fun formatDateTime(dateTimeString: String): String {
 
 fun getRelativeTimeSpanString(dateTimeStr: String): String {
     return try {
-        // First clean the string by removing the timezone in brackets
-        val cleanDateStr = dateTimeStr.substringBefore('[')
-        val dateTime = OffsetDateTime.parse(cleanDateStr)
-        val localDateTime = dateTime.toLocalDateTime()
+        val localDateTime = try {
+            // Try parsing as Unix timestamp (milliseconds)
+            val timestamp = dateTimeStr.toLong()
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault())
+        } catch (e: NumberFormatException) {
+            // If not a timestamp, try parsing as formatted datetime string
+            val cleanDateStr = dateTimeStr.substringBefore('[')
+            OffsetDateTime.parse(cleanDateStr).toLocalDateTime()
+        }
         
         val now = LocalDateTime.now()
         val minutes = ChronoUnit.MINUTES.between(localDateTime, now)
         val hours = ChronoUnit.HOURS.between(localDateTime, now)
         val days = ChronoUnit.DAYS.between(localDateTime.toLocalDate(), now.toLocalDate())
         
-        return when {
+        when {
             minutes < 1 -> "Just now"
             minutes == 1L -> "1 minute ago"
             minutes < 60 -> "$minutes minutes ago"
@@ -47,13 +52,7 @@ fun getRelativeTimeSpanString(dateTimeStr: String): String {
         }
     } catch (e: Exception) {
         android.util.Log.e("DateTimeUtils", "Error parsing datetime: $dateTimeStr", e)
-        try {
-            // Fallback to simple format if parsing fails
-            val formatter = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
-            parseToLocalDateTime(dateTimeStr).format(formatter)
-        } catch (e: Exception) {
-            dateTimeStr // Return original string if all parsing fails
-        }
+        dateTimeStr // Return original string if parsing fails
     }
 }
 

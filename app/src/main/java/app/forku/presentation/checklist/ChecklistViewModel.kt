@@ -12,7 +12,7 @@ import app.forku.domain.usecase.checklist.SubmitChecklistUseCase
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.vehicle.VehicleStatus
-import app.forku.domain.repository.session.SessionRepository
+import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.user.UserRepository
@@ -32,7 +32,7 @@ class ChecklistViewModel @Inject constructor(
     private val validateChecklistUseCase: ValidateChecklistUseCase,
     private val userRepository: UserRepository,
     private val checklistRepository: ChecklistRepository,
-    private val sessionRepository: SessionRepository,
+    private val vehicleSessionRepository: VehicleSessionRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -47,7 +47,7 @@ class ChecklistViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             // Prevent creating new checks if there's an active session
-            val currentSession = sessionRepository.getCurrentSession()
+            val currentSession = vehicleSessionRepository.getCurrentSession()
             if (currentSession != null) {
                 // Get the last completed check for this vehicle
                 val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString())
@@ -272,7 +272,7 @@ class ChecklistViewModel @Inject constructor(
                 // If checklist passed, start the session
                 if (validation.canStartSession) {
                     try {
-                        sessionRepository.startSession(
+                        vehicleSessionRepository.startSession(
                             vehicleId = vehicleId.toString(),
                             checkId = updatedCheck.id
                         )
