@@ -12,6 +12,7 @@ import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.model.user.User
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import app.forku.presentation.user.login.LoginState
+import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.delay
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -31,7 +33,8 @@ class DashboardViewModel @Inject constructor(
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val getVehicleUseCase: GetVehicleUseCase,
     private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase,
-    private val getLastPreShiftCheckUseCase: GetLastPreShiftCheckByVehicleUseCase
+    private val getLastPreShiftCheckUseCase: GetLastPreShiftCheckByVehicleUseCase,
+    private val submitFeedbackUseCase: SubmitFeedbackUseCase
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DashboardState())
@@ -231,6 +234,24 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             userRepository.setTourCompleted()
             _tourCompleted.value = true
+        }
+    }
+
+    fun submitFeedback(rating: Int, feedback: String) {
+        viewModelScope.launch {
+            try {
+                submitFeedbackUseCase(rating, feedback)
+                    .onSuccess {
+                        _state.update { it.copy(feedbackSubmitted = true) }
+                        delay(3000)
+                        _state.update { it.copy(feedbackSubmitted = false) }
+                    }
+                    .onFailure { e ->
+                        _state.update { it.copy(error = "Failed to submit feedback: ${e.message}") }
+                    }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = "Failed to submit feedback: ${e.message}") }
+            }
         }
     }
 } 

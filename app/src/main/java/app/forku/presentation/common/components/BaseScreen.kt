@@ -41,6 +41,7 @@ fun BaseScreen(
     onRefresh: (() -> Unit)? = null,
     showLoadingOnRefresh: Boolean = false,
     networkManager: NetworkConnectivityManager,
+    topBarActions: @Composable (() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     // Lifecycle observer for refresh
@@ -71,8 +72,8 @@ fun BaseScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                         ) {
-                            // Back button with additional top padding
-                            if (showBackButton) {
+                            // Back button and actions row
+                            if (showBackButton || topBarActions != null) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -80,26 +81,43 @@ fun BaseScreen(
                                 ) {
                                     Row(
                                         modifier = Modifier
-                                            .clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null,
-                                                onClick = { navController.navigateUp() }
-                                            )
+                                            .fillMaxWidth()
                                             .padding(8.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            Icons.Default.ArrowBack,
-                                            contentDescription = "Back",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            "Back",
-                                            color = MaterialTheme.colorScheme.primary,
-                                            style = MaterialTheme.typography.bodyLarge
-                                        )
+                                        if (showBackButton) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null,
+                                                        onClick = { navController.navigateUp() }
+                                                    ),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.ArrowBack,
+                                                    contentDescription = "Back",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    "Back",
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    style = MaterialTheme.typography.bodyLarge
+                                                )
+                                            }
+                                        }
+                                        
+                                        if (topBarActions != null) {
+                                            Box(
+                                                modifier = Modifier.align(Alignment.CenterVertically)
+                                            ) {
+                                                topBarActions()
+                                            }
+                                        }
                                     }
                                 }
                             }

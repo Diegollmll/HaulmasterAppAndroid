@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -60,6 +61,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import app.forku.domain.model.user.UserRole
+import app.forku.presentation.common.components.OptionsDropdownMenu
+import app.forku.presentation.common.components.DropdownMenuOption
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,12 +75,47 @@ fun ProfileScreen(
     onNavigateToCicoHistory: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     // Load operator profile if operatorId is provided
     LaunchedEffect(operatorId) {
         if (operatorId != null) {
             viewModel.loadOperatorProfile(operatorId)
         }
+    }
+
+    // Logout confirmation dialog
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Confirm Logout") },
+            text = { Text("Are you sure you want to logout?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Yes, Logout")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showLogoutDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     BaseScreen(
@@ -137,7 +175,22 @@ fun ProfileScreen(
                 }
             }
         },
-        networkManager = networkManager
+        networkManager = networkManager,
+        topBarActions = if (operatorId == null) {
+            {
+                OptionsDropdownMenu(
+                    options = listOf(
+                        DropdownMenuOption(
+                            text = "Logout",
+                            onClick = { showLogoutDialog = true },
+                            leadingIcon = Icons.Default.ExitToApp,
+                            iconTint = MaterialTheme.colorScheme.error
+                        )
+                    ),
+                    isEnabled = true
+                )
+            }
+        } else null
     )
 }
 
@@ -148,42 +201,6 @@ private fun ProfileHeader(
     viewModel: ProfileViewModel,
     isCurrentUser: Boolean
 ) {
-    var showLogoutDialog by remember { mutableStateOf(false) }
-
-    // Logout confirmation dialog
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Confirm Logout") },
-            text = { Text("Are you sure you want to logout?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.logout()
-                        navController.navigate(Screen.Login.route) {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Yes, Logout")
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = { showLogoutDialog = false },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary
-                    )
-                ) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -347,22 +364,6 @@ private fun ProfileHeader(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Performance Report")
-                    }
-                }
-                
-                if (isCurrentUser) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Row {
-                        Button(
-                            onClick = { showLogoutDialog = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Logout")
-                        }
                     }
                 }
             }

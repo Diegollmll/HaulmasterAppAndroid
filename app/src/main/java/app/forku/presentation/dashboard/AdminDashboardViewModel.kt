@@ -21,6 +21,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 import app.forku.presentation.common.utils.parseDateTime
+import kotlinx.coroutines.flow.update
 import java.time.OffsetDateTime
 
 
@@ -263,6 +264,33 @@ class AdminDashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
             loadDashboardData()
+        }
+    }
+
+    fun submitFeedback(rating: Int, feedback: String) {
+        viewModelScope.launch {
+            try {
+                // TODO: Implement API call to submit feedback
+                // For now, just log it
+                android.util.Log.d("Feedback", "Submitting feedback - Rating: $rating, Feedback: $feedback")
+                android.util.Log.d("Feedback", "User: ${currentUser.value?.id}")
+                
+                // You could show a success message in the UI
+                _state.update { it.copy(
+                    feedbackSubmitted = true
+                )}
+                
+                // Reset the feedback submitted state after a delay
+                delay(3000)
+                _state.update { it.copy(
+                    feedbackSubmitted = false
+                )}
+            } catch (e: Exception) {
+                android.util.Log.e("Feedback", "Error submitting feedback", e)
+                _state.update { it.copy(
+                    error = "Failed to submit feedback: ${e.message}"
+                )}
+            }
         }
     }
 } 

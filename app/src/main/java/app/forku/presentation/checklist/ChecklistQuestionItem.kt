@@ -1,5 +1,6 @@
 package app.forku.presentation.checklist
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,33 +41,58 @@ fun ChecklistQuestionItem(
         Row(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 8.dp)
         ) {
-            Text(
-                text = "Yes",
-                fontSize = 16.sp,
+            Surface(
+                shape = MaterialTheme.shapes.small,
                 color = if (question.userAnswer == Answer.PASS) 
-                    Color(0xFF007AFF) else Color.Gray,
-                modifier = Modifier
-                    .clickable { onResponseChanged(question.id, true) }
-                    .padding(horizontal = 16.dp, vertical = 7.dp)
-            )
+                    Color(0xFF4CAF50).copy(alpha = 0.2f) 
+                else MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (question.userAnswer == Answer.PASS) 
+                        Color(0xFF4CAF50) 
+                    else Color.LightGray
+                ),
+                modifier = Modifier.padding(end = 8.dp)
+            ) {
+                Text(
+                    text = "Yes",
+                    fontSize = 16.sp,
+                    color = if (question.userAnswer == Answer.PASS) 
+                        Color(0xFF4CAF50)
+                    else Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clickable { onResponseChanged(question.id, true) }
+                        .padding(horizontal = 18.dp, vertical = 13.dp)
+                )
+            }
             
-            Divider(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(24.dp),
-                color = Color.LightGray
-            )
-            
-            Text(
-                text = "No",
-                fontSize = 16.sp,
+            Surface(
+                shape = MaterialTheme.shapes.small,
                 color = if (question.userAnswer == Answer.FAIL) 
-                    Color(0xFF007AFF) else Color.Gray,
-                modifier = Modifier
-                    .clickable { onResponseChanged(question.id, false) }
-                    .padding(horizontal = 16.dp, vertical = 7.dp)
-            )
+                    Color(0xFFFF5252).copy(alpha = 0.2f)
+                else MaterialTheme.colorScheme.surface,
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (question.userAnswer == Answer.FAIL) 
+                        Color(0xFFFF5252)
+                    else Color.LightGray
+                )
+            ) {
+                Text(
+                    text = "No",
+                    fontSize = 16.sp,
+                    color = if (question.userAnswer == Answer.FAIL) 
+                        Color(0xFFFF5252)
+                    else Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clickable { onResponseChanged(question.id, false) }
+                        .padding(horizontal = 18.dp, vertical = 13.dp)
+                )
+            }
         }
     }
     

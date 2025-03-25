@@ -12,5 +12,6 @@ data class AdminDashboardState(
     val activeOperators: List<OperatorSessionInfo> = emptyList(),
     val lastPreShiftChecks: Map<String, PreShiftCheck?> = emptyMap(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val feedbackSubmitted: Boolean = false
 )

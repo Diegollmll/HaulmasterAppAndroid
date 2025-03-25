@@ -26,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.AppModal
+import app.forku.presentation.navigation.Screen
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +38,21 @@ fun ChecklistScreen(
     networkManager: NetworkConnectivityManager
 ) {
     var showConfirmationDialog = remember { mutableStateOf(false) }
+    val state by viewModel.state.collectAsState()
+    
+    // Handle back button press
+    BackHandler {
+        // Check if we should navigate to a specific dashboard
+        when (state?.message) {
+            "admin_dashboard" -> navController.navigate(Screen.AdminDashboard.route) {
+                popUpTo(Screen.AdminDashboard.route) { inclusive = true }
+            }
+            "dashboard" -> navController.navigate(Screen.Dashboard.route) {
+                popUpTo(Screen.Dashboard.route) { inclusive = true }
+            }
+            else -> onBackPressed()
+        }
+    }
     
     if (showConfirmationDialog.value) {
         AppModal(
@@ -50,8 +66,6 @@ fun ChecklistScreen(
         )
     }
 
-    val state by viewModel.state.collectAsState()
-    
     BaseScreen(
         navController = navController,
         showTopBar = true,
@@ -151,10 +165,19 @@ fun ChecklistScreen(
         }
     )
 
-    // Handle back navigation
+    // Handle navigation from viewModel
     LaunchedEffect(viewModel.navigateBack.collectAsState().value) {
         if (viewModel.navigateBack.value) {
-            onBackPressed()
+            // Check state message for navigation route
+            when (state?.message) {
+                "admin_dashboard" -> navController.navigate(Screen.AdminDashboard.route) {
+                    popUpTo(Screen.AdminDashboard.route) { inclusive = true }
+                }
+                "dashboard" -> navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(Screen.Dashboard.route) { inclusive = true }
+                }
+                else -> onBackPressed()
+            }
             viewModel.resetNavigation()
         }
     }

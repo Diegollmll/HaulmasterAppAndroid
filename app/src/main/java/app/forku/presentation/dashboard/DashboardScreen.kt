@@ -34,7 +34,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import app.forku.presentation.common.components.DashboardHeader
-import app.forku.presentation.common.components.WaitlistBanner
+import app.forku.presentation.common.components.FeedbackBanner
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -147,7 +148,22 @@ fun DashboardScreen(
                     }
                     
                     item {
-                        WaitlistBanner()
+                        FeedbackBanner(
+                            onFeedbackSubmitted = { rating, feedback ->
+                                viewModel.submitFeedback(rating, feedback)
+                            }
+                        )
+                        
+                        // Show success message when feedback is submitted
+                        if (dashboardState.feedbackSubmitted) {
+                            Snackbar(
+                                modifier = Modifier.padding(16.dp),
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ) {
+                                Text("Thank you for your feedback!")
+                            }
+                        }
                     }
                     
                     item { Spacer(modifier = Modifier.height(16.dp)) }

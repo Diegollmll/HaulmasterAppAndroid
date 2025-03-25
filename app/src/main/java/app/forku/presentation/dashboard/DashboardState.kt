@@ -16,7 +16,8 @@ data class DashboardState(
     val showQrScanner: Boolean = false,
     val currentSession: VehicleSession? = null,
     val displayVehicle: Vehicle? = null,
-    val navigationTarget: String? = null
+    val navigationTarget: String? = null,
+    val feedbackSubmitted: Boolean = false
 )
 //{
 //    val displayVehicle: Vehicle?

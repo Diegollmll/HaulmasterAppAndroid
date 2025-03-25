@@ -11,6 +11,7 @@ import app.forku.domain.usecase.vehicle.GetVehicleUseCase
 import app.forku.domain.usecase.checklist.SubmitChecklistUseCase
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 import app.forku.domain.model.checklist.CheckStatus
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
@@ -260,7 +261,6 @@ class ChecklistViewModel @Inject constructor(
                 android.util.Log.e("appflow", "Checklist validation.isBlocked: ${validation.isBlocked}")
                 android.util.Log.e("appflow", "Checklist validation.canStartSession: ${validation.canStartSession}")
 
-
                 // Determine final status based on validation and completion
                 val updatedCheck = submitChecklistUseCase(
                     vehicleId = vehicleId.toString(),
@@ -286,6 +286,10 @@ class ChecklistViewModel @Inject constructor(
                     }
                 }
 
+                // Get current user to determine navigation
+                val currentUser = userRepository.getCurrentUser()
+                val isAdmin = currentUser?.role == UserRole.ADMIN
+
                 _state.update { 
                     it?.copy(
                         isSubmitting = false,
@@ -293,6 +297,8 @@ class ChecklistViewModel @Inject constructor(
                         checkItems = updatedCheck.items,
                         checkStatus = updatedCheck.status,
                         isSubmitted = true,
+                        // Set navigation route based on user role
+                        message = if (isAdmin) "admin_dashboard" else "dashboard"
                     )
                 }
 
