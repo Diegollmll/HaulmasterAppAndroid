@@ -64,6 +64,19 @@ sealed class Screen(val route: String) {
     data object Notifications : Screen("notifications")
     data object AllChecklist : Screen("all_checklist")
     data object SafetyAlerts : Screen("safety_alerts")
+    data object CertificationsList : Screen("certifications?userId={userId}") {
+        fun createRoute(userId: String? = null): String =
+            "certifications" + (userId?.let { "?userId=$it" } ?: "")
+    }
+    data object CertificationDetail : Screen("certification/{certificationId}") {
+        fun createRoute(certificationId: String): String =
+            "certification/$certificationId"
+    }
+    data object CertificationEdit : Screen("certification/{certificationId}/edit") {
+        fun createRoute(certificationId: String): String =
+            "certification/$certificationId/edit"
+    }
+    data object CertificationCreate : Screen("certification/create")
 
     companion object {
         fun Profile.withOperatorId(operatorId: String?) = 

@@ -45,4 +45,6 @@ interface UserRepository {
     suspend fun updatePresence(isOnline: Boolean)
     
     suspend fun getLastActiveTime(userId: String): Long?
+
+    suspend fun getCurrentUserId(): String?
 } 

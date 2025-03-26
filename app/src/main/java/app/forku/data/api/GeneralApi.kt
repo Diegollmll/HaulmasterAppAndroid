@@ -12,6 +12,8 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface GeneralApi {
+
+
     // Users
     @GET("users")
     suspend fun getUsers(): Response<List<UserDto>>
@@ -28,6 +30,8 @@ interface GeneralApi {
         @Body user: UserDto
     ): Response<UserDto>
 
+
+
     // Vehicles
     @GET("vehicles")
     suspend fun getVehicles(): Response<List<VehicleDto>>
@@ -41,6 +45,8 @@ interface GeneralApi {
         @Body vehicle: VehicleDto
     ): Response<VehicleDto>
 
+
+
     // Incidents
     @POST("incidents")
     suspend fun reportIncident(@Body incident: IncidentDto): Response<IncidentDto>
@@ -51,9 +57,14 @@ interface GeneralApi {
     @GET("incidents/{id}")
     suspend fun getIncidentById(@Path("id") id: String): Response<IncidentDto>
 
+
+
     //PreShiftCheck Questionary
     @GET("checklist_questionary")
     suspend fun getChecklistQuestionary(): Response<ChecklistResponseDto>
+
+
+
 
     // Global checks endpoints
     @GET("checks")
@@ -70,6 +81,10 @@ interface GeneralApi {
         @Path("checkId") checkId: String,
         @Body check: PreShiftCheckDto
     ): Response<PreShiftCheckDto>
+
+
+
+
 
     // Global session endpoints
     @GET("sessions")
@@ -91,6 +106,10 @@ interface GeneralApi {
         @Path("sessionId") sessionId: String,
         @Body session: SessionDto
     ): Response<SessionDto>
+
+
+
+
 
     /* Notifications */
     @GET("notifications")

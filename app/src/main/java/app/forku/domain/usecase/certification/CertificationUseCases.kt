@@ -1,0 +1,33 @@
+package app.forku.domain.usecase.certification
+
+import app.forku.domain.model.certification.Certification
+import app.forku.domain.repository.certification.CertificationRepository
+import javax.inject.Inject
+
+class GetUserCertificationsUseCase @Inject constructor(
+    private val repository: CertificationRepository
+) {
+    suspend operator fun invoke(userId: String? = null): List<Certification> =
+        repository.getCertifications(userId)
+}
+
+class GetCertificationByIdUseCase @Inject constructor(
+    private val repository: CertificationRepository
+) {
+    suspend operator fun invoke(id: String): Certification? =
+        repository.getCertificationById(id)
+}
+
+class UpdateCertificationUseCase @Inject constructor(
+    private val repository: CertificationRepository
+) {
+    suspend operator fun invoke(certification: Certification): Result<Certification> =
+        repository.updateCertification(certification)
+}
+
+class DeleteCertificationUseCase @Inject constructor(
+    private val repository: CertificationRepository
+) {
+    suspend operator fun invoke(id: String): Result<Boolean> =
+        repository.deleteCertification(id)
+} 

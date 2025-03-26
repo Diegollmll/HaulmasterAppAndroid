@@ -187,7 +187,13 @@ class CicoHistoryViewModel @Inject constructor(
                             operatorName = "${operator.firstName} ${operator.lastName}",
                             date = getRelativeTimeSpanString(session.startTime),
                             checkInTime = getRelativeTimeSpanString(session.startTime),
-                            checkOutTime = session.endTime?.let { getRelativeTimeSpanString(it) }
+                            checkOutTime = session.endTime?.let { getRelativeTimeSpanString(it) },
+                            duration = session.durationMinutes?.let { minutes ->
+                                when {
+                                    minutes < 60 -> "$minutes min"
+                                    else -> "${minutes / 60}h ${minutes % 60}m"
+                                }
+                            }
                         )
                     } catch (e: Exception) {
                         android.util.Log.e("CICO", "Error loading details for session ${session.id}", e)
@@ -272,5 +278,6 @@ data class CicoEntry(
     val operatorName: String,
     val date: String,
     val checkInTime: String,
-    val checkOutTime: String?
+    val checkOutTime: String?,
+    val duration: String?
 ) 

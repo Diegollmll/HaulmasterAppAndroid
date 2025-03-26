@@ -18,20 +18,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,7 +53,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.OptionsDropdownMenu
 import app.forku.presentation.common.components.DropdownMenuOption
@@ -142,7 +135,20 @@ fun ProfileScreen(
                     StatsGrid(state)
                     ProfileSections(
                         state = state,
-                        onQualificationsClick = { /* Navigate to qualifications */ },
+                        onCertificationsClick = {
+                            // Get the user ID for navigation
+                            val userId = when {
+                                // If we're viewing another operator's profile, use their ID
+                                operatorId != null -> operatorId
+                                // If we're in our own profile, use our ID
+                                else -> state.user?.id
+                            }
+                            
+                            // Navigate to Certifications with the appropriate user ID
+                            userId?.let {
+                                navController.navigate(Screen.CertificationsList.createRoute(userId = it))
+                            }
+                        },
                         onIncidentReportsClick = {
                             // For admins viewing their own profile or operators, navigate to filtered incidents
                             if (state.user?.role == UserRole.ADMIN && operatorId == null) {

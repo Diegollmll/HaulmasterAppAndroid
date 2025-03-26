@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 @Composable
 fun ProfileSections(
     state: ProfileState,
-    onQualificationsClick: () -> Unit,
+    onCertificationsClick: () -> Unit,
     onIncidentReportsClick: () -> Unit,
     onTrainingRecordClick: () -> Unit,
     onCicoHistoryClick: () -> Unit,
@@ -36,6 +36,11 @@ fun ProfileSections(
             text = if (isCurrentUser) "Profile" else "Operator Information",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(8.dp)
+        )
+
+        ProfileSection(
+            "Certifications",
+            onClick = onCertificationsClick
         )
 
         ProfileSection(

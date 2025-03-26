@@ -33,11 +33,16 @@ import app.forku.presentation.dashboard.AdminDashboardScreen
 import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.user.login.LoginState
 import app.forku.domain.model.user.UserRole
+import app.forku.presentation.certification.list.CertificationsScreen
+import app.forku.presentation.certification.detail.CertificationDetailScreen
+import app.forku.presentation.certification.edit.CertificationEditScreen
+import app.forku.presentation.certification.create.CertificationCreateScreen
 import app.forku.presentation.checklist.AllChecklistScreen
 import app.forku.presentation.notification.NotificationScreen
 import app.forku.presentation.user.operator.OperatorsListScreen
 import app.forku.presentation.checklist.CheckDetailScreen
 import app.forku.presentation.safety.SafetyAlertsScreen
+
 
 
 @Composable
@@ -351,6 +356,66 @@ fun NavGraph(
 
         composable(Screen.SafetyAlerts.route) {
             SafetyAlertsScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        // Certifications routes
+        composable(
+            route = Screen.CertificationsList.route,
+            arguments = listOf(
+                navArgument("userId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId")
+            CertificationsScreen(
+                navController = navController,
+                networkManager = networkManager,
+                userId = userId
+            )
+        }
+
+        composable(
+            route = Screen.CertificationDetail.route,
+            arguments = listOf(
+                navArgument("certificationId") { 
+                    type = NavType.StringType 
+                }
+            )
+        ) { backStackEntry ->
+            val certificationId = backStackEntry.arguments?.getString("certificationId") 
+                ?: return@composable
+            CertificationDetailScreen(
+                certificationId = certificationId,
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(
+            route = Screen.CertificationEdit.route,
+            arguments = listOf(
+                navArgument("certificationId") { 
+                    type = NavType.StringType 
+                }
+            )
+        ) { backStackEntry ->
+            val certificationId = backStackEntry.arguments?.getString("certificationId") 
+                ?: return@composable
+            CertificationEditScreen(
+                certificationId = certificationId,
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.CertificationCreate.route) {
+            CertificationCreateScreen(
                 navController = navController,
                 networkManager = networkManager
             )

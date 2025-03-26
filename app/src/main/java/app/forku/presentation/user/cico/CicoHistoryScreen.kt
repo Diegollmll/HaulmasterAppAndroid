@@ -211,7 +211,7 @@ private fun CicoHistoryItem(entry: CicoEntry, showOperator: Boolean = false) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = entry.date,
+                    text = entry.duration?.let { "Duration: $it" } ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

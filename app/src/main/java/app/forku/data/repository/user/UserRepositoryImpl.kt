@@ -321,4 +321,8 @@ class UserRepositoryImpl @Inject constructor(
         val user = getUserById(userId)
         return user?.lastLogin?.toLongOrNull()
     }
+
+    override suspend fun getCurrentUserId(): String? {
+        return authDataStore.getCurrentUser()?.id
+    }
 } 

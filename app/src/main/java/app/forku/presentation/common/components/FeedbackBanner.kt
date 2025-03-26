@@ -54,7 +54,7 @@ fun FeedbackBanner(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "We’re always looking to improve. Give us feedback!",
+                text = "We’re always looking to improve. \nGive us feedback!",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center
