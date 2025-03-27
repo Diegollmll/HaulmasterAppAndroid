@@ -1,7 +1,7 @@
 package app.forku.data.service
 
 import app.forku.data.api.GeneralApi
-import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
@@ -21,7 +21,7 @@ class VehicleValidationServiceImpl @Inject constructor(
     override suspend fun getVehicleStatus(vehicleId: String): VehicleStatus {
         // First check if there's an active session
         val activeSession = sessionStatusChecker.getActiveSessionForVehicle(vehicleId)
-        if (activeSession?.status == SessionStatus.ACTIVE) {
+        if (activeSession?.status == VehicleSessionStatus.OPERATING) {
             return VehicleStatus.IN_USE
         }
         

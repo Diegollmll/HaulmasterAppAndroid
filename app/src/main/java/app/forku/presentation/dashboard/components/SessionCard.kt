@@ -28,7 +28,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.sp
 import app.forku.domain.model.checklist.getPreShiftStatusColor
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
-
+import app.forku.domain.model.user.UserRole
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.presentation.session.SessionViewModel
 
 @Composable
 fun SessionCard(
@@ -36,8 +40,20 @@ fun SessionCard(
     lastCheck: PreShiftCheck?,
     user: User?,
     currentSession: VehicleSession?,
-    onCheckClick: ((String) -> Unit)? = null
+    onCheckClick: ((String) -> Unit)? = null,
+    currentUserRole: UserRole = UserRole.OPERATOR,
+    onEndSession: ((String) -> Unit)? = null,
+    sessionViewModel: SessionViewModel = hiltViewModel()
 ) {
+    val canEndSession = sessionViewModel.canEndSession.collectAsState().value
+
+    // Check if can end session when session or user changes
+    LaunchedEffect(currentSession, user) {
+        currentSession?.userId?.let { userId ->
+            sessionViewModel.checkCanEndSession(userId)
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -60,7 +76,10 @@ fun SessionCard(
             },
             lastCheck = lastCheck,
             isActive = currentSession != null,
-            onCheckClick = { checkId -> onCheckClick?.invoke(checkId) }
+            onCheckClick = { checkId -> onCheckClick?.invoke(checkId) },
+            currentUserRole = currentUserRole,
+            canEndSession = canEndSession,
+            onEndSession = { currentSession?.id?.let { onEndSession?.invoke(it) } }
         )
     }
 }
@@ -74,6 +93,9 @@ private fun SessionContent(
     lastCheck: PreShiftCheck?,
     isActive: Boolean = false,
     onCheckClick: (String) -> Unit,
+    currentUserRole: UserRole = UserRole.OPERATOR,
+    canEndSession: Boolean = false,
+    onEndSession: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -207,7 +229,19 @@ private fun SessionContent(
             }
         }
 
-
+        // Add Admin End Session Button
+        if (isActive && currentUserRole == UserRole.ADMIN && canEndSession) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onEndSession,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("End Session (Admin)")
+            }
+        }
 
     }
 }

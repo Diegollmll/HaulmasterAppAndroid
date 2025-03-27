@@ -2,8 +2,9 @@ package app.forku.data.mapper
 
 
 import app.forku.data.api.dto.session.SessionDto
-import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.session.VehicleSessionClosedMethod
 
 
 fun SessionDto.toDomain(): VehicleSession {
@@ -18,9 +19,18 @@ fun SessionDto.toDomain(): VehicleSession {
     } else null
 
     // Strict status mapping
-    val sessionStatus = when (status.uppercase()) {
-        "ACTIVE" -> SessionStatus.ACTIVE
-        else -> SessionStatus.INACTIVE
+    val vehicleSessionStatus = when (status.uppercase()) {
+        "OPERATING" -> VehicleSessionStatus.OPERATING
+        else -> VehicleSessionStatus.NOT_OPERATING
+    }
+
+    // Map close method
+    val closeMethod = when (this.closeMethod?.uppercase()) {
+        "USER_CLOSED" -> VehicleSessionClosedMethod.USER_CLOSED
+        "ADMIN_CLOSED" -> VehicleSessionClosedMethod.ADMIN_CLOSED
+        "TIMEOUT_CLOSED" -> VehicleSessionClosedMethod.TIMEOUT_CLOSED
+        "GEOFENCE_CLOSED" -> VehicleSessionClosedMethod.GEOFENCE_CLOSED
+        else -> VehicleSessionClosedMethod.USER_CLOSED // Default value
     }
 
     return VehicleSession(
@@ -29,10 +39,11 @@ fun SessionDto.toDomain(): VehicleSession {
         userId = userId,
         startTime = startTime,
         endTime = endTime,
-        status = sessionStatus,
+        status = vehicleSessionStatus,
         startLocation = startLocation,
         endLocation = endLocation,
         durationMinutes = duration,
-        timestamp = timestamp
+        timestamp = timestamp,
+        closeMethod = closeMethod
     )
 } 

@@ -118,6 +118,29 @@ class DashboardViewModel @Inject constructor(
             val currentUser = userRepository.getCurrentUser()
                 ?: throw Exception("User not authenticated")
 
+            // Load all vehicles
+            val vehicles = vehicleRepository.getVehicles()
+            
+            // Load only active sessions (where endTime is null)
+            val activeSessions = vehicleSessionRepository.getSessions()
+                .filter { session -> 
+                    session.endTime == null && 
+                    // Ensure the vehicle exists for this session
+                    vehicles.any { vehicle -> vehicle.id == session.vehicleId }
+                }
+                .distinctBy { it.vehicleId } // Ensure only one active session per vehicle
+            
+            // Load all users involved in active sessions
+            val userIds = activeSessions.map { it.userId }.distinct()
+            val users = userIds.mapNotNull { userId ->
+                userRepository.getUserById(userId)
+            }
+            
+            // Load latest checks for each vehicle
+            val checks = vehicles.mapNotNull { vehicle ->
+                getLastPreShiftCheckUseCase(vehicle.id)
+            }
+
             android.util.Log.d("DashboardViewModel", "Getting current session")
             val currentSession = vehicleSessionRepository.getCurrentSession()
 
@@ -144,22 +167,23 @@ class DashboardViewModel @Inject constructor(
             android.util.Log.d("DashboardViewModel", "Updating state with loaded data")
             _state.update {
                 it.copy(
-                    isLoading = false,
-                    user = currentUser,
-                    isAuthenticated = true,
-                    lastPreShiftCheck = lastPreShiftCheck,
                     currentSession = currentSession,
                     displayVehicle = sessionVehicle ?: checkVehicle,
-                    error = null
+                    lastPreShiftCheck = lastPreShiftCheck,
+                    isLoading = false,
+                    error = null,
+                    vehicles = vehicles,
+                    activeSessions = activeSessions,
+                    users = users,
+                    checks = checks
                 )
             }
-            android.util.Log.d("DashboardViewModel", "State updated successfully")
         } catch (e: Exception) {
-            android.util.Log.e("DashboardViewModel", "Error loading dashboard", e)
+            android.util.Log.e("DashboardViewModel", "Error in loadDashboard", e)
             _state.update {
                 it.copy(
-                    isLoading = false,
-                    error = "Error al cargar dashboard: ${e.message}"
+                    error = e.message,
+                    isLoading = false
                 )
             }
         } finally {

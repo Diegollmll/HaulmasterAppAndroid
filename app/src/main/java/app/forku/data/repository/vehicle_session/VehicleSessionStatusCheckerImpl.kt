@@ -2,7 +2,7 @@ package app.forku.data.repository.vehicle_session
 
 import app.forku.data.api.GeneralApi
 import app.forku.data.mapper.toDomain
-import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.repository.session.SessionStatusChecker
 import javax.inject.Inject
@@ -24,7 +24,7 @@ class VehicleSessionStatusCheckerImpl @Inject constructor(
                 } ?: emptyList()
                 sessions.find { 
                     it.vehicleId == vehicleId && 
-                    it.status == SessionStatus.ACTIVE 
+                    it.status == VehicleSessionStatus.OPERATING
                 }
             } else {
                 null

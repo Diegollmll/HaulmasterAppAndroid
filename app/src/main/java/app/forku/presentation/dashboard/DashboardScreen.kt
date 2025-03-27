@@ -35,7 +35,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
-
+import androidx.compose.foundation.lazy.items
+import app.forku.domain.model.user.User
+import app.forku.domain.model.user.UserRole
+import app.forku.presentation.session.SessionViewModel
+import app.forku.domain.model.vehicle.Vehicle
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -43,11 +47,13 @@ fun DashboardScreen(
     navController: NavController,
     onNavigate: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    sessionViewModel: SessionViewModel = hiltViewModel()
 ) {
     val dashboardState by viewModel.state.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
     val isConnected by networkManager.isConnected.collectAsState()
+    val sessionState = sessionViewModel.state.collectAsState().value
     
     var isCheckoutLoading by remember { mutableStateOf(false) }
 
@@ -86,6 +92,10 @@ fun DashboardScreen(
         onRefresh = { viewModel.refreshWithLoading() }
     )
 
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     BaseScreen(
         navController = navController,
         showBottomBar = true,
@@ -122,17 +132,13 @@ fun DashboardScreen(
                         )
                     }
 
+                    // Show current user's session
                     item {
-                        SessionCard(
-                            vehicle = dashboardState.displayVehicle,
-                            lastCheck = dashboardState.lastPreShiftCheck,
-                            user = currentUser,
-                            currentSession = dashboardState.currentSession,
-                            onCheckClick = { checkId ->
-                                dashboardState.displayVehicle?.id?.let { vehicleId ->
-                                    onNavigate("checklist/$vehicleId?checkId=$checkId")
-                                }
-                            }
+                        CurrentUserSession(
+                            dashboardState = dashboardState,
+                            currentUser = currentUser,
+                            onNavigate = onNavigate,
+                            sessionViewModel = sessionViewModel
                         )
                     }
 
@@ -176,6 +182,48 @@ fun DashboardScreen(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
+    }
+}
+
+@Composable
+private fun CurrentUserSession(
+    dashboardState: DashboardState,
+    currentUser: User?,
+    onNavigate: (String) -> Unit,
+    sessionViewModel: SessionViewModel
+) {
+    // Get current user's session
+    val userSession = remember(dashboardState.activeSessions, currentUser?.id) {
+        dashboardState.activeSessions.find { session ->
+            session.userId == currentUser?.id
+        }
+    }
+
+    // Get the vehicle for the user's session
+    val sessionVehicle = remember(userSession, dashboardState.vehicles) {
+        userSession?.let { session ->
+            dashboardState.vehicles.find { it.id == session.vehicleId }
+        }
+    }
+
+    // Show only the current user's session if it exists
+    if (sessionVehicle != null && userSession != null) {
+        SessionCard(
+            vehicle = sessionVehicle,
+            lastCheck = dashboardState.checks.find { it.vehicleId == sessionVehicle.id },
+            user = currentUser,
+            currentSession = userSession,
+            onCheckClick = { checkId ->
+                onNavigate(Screen.CheckDetail.createRoute(checkId))
+            },
+            currentUserRole = currentUser?.role ?: UserRole.OPERATOR,
+            onEndSession = { sessionId ->
+                sessionViewModel.endSession(
+                    sessionId = sessionId,
+                    isAdminClosure = true
+                )
+            }
+        )
     }
 }
 

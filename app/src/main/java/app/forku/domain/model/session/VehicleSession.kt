@@ -6,14 +6,23 @@ data class VehicleSession(
     val userId: String,
     val startTime: String,
     val endTime: String?,
-    val status: SessionStatus,
+    val status: VehicleSessionStatus,
     val startLocation: String?,
     val endLocation: String?,
     val durationMinutes: Int?,
-    val timestamp: String
+    val timestamp: String,
+    val closeMethod: VehicleSessionClosedMethod,
+    val closedBy: String? = null
 )
 
-enum class SessionStatus {
-    ACTIVE,
-    INACTIVE
-} 
+enum class VehicleSessionStatus {
+    OPERATING, // A current online session
+    NOT_OPERATING
+}
+
+enum class VehicleSessionClosedMethod {
+    USER_CLOSED,      // When the operator ends their own session
+    ADMIN_CLOSED,     // When an admin ends someone else's session
+    TIMEOUT_CLOSED,   // When session times out due to inactivity
+    GEOFENCE_CLOSED   // When session ends due to geofence violation
+}

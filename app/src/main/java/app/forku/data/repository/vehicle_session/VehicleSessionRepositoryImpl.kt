@@ -5,8 +5,10 @@ import app.forku.data.datastore.AuthDataStore
 import app.forku.data.api.dto.session.StartSessionRequestDto
 import app.forku.data.mapper.toDomain
 import app.forku.domain.model.checklist.CheckStatus
-import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.session.VehicleSessionClosedMethod
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
@@ -29,7 +31,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
                 sessions.find { 
                     it.userId == userId && 
-                    it.status == SessionStatus.ACTIVE 
+                    it.status == VehicleSessionStatus.OPERATING
                 }
             } else {
                 null
@@ -80,7 +82,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                     userId = currentUser.id,
                     startTime = currentDateTime,
                     timestamp = currentDateTime,
-                    status = SessionStatus.ACTIVE.toString()
+                    status = VehicleSessionStatus.OPERATING.toString()
                 )
             )
 
@@ -100,28 +102,45 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun endSession(sessionId: String): VehicleSession {
-        val currentSession = getCurrentSession() 
-            ?: throw Exception("No active session found")
+    override suspend fun endSession(sessionId: String, closeMethod: VehicleSessionClosedMethod): VehicleSession {
+        val sessionResponse = api.getSessionById(sessionId)
+        if (!sessionResponse.isSuccessful) {
+            throw Exception("Failed to get session details")
+        }
+            
+        val existingSession = sessionResponse.body() ?: throw Exception("Session not found")
+            
+        // Determine who closed the session
+        val currentUser = authDataStore.getCurrentUser()
+        val closedBy = when (closeMethod) {
+            VehicleSessionClosedMethod.USER_CLOSED -> currentUser?.id
+            VehicleSessionClosedMethod.ADMIN_CLOSED -> currentUser?.id
+            VehicleSessionClosedMethod.TIMEOUT_CLOSED -> "SYSTEM"
+            VehicleSessionClosedMethod.GEOFENCE_CLOSED -> "SYSTEM"
+        }
+
+        // Verify permissions
+        if (closeMethod == VehicleSessionClosedMethod.ADMIN_CLOSED && currentUser?.role != UserRole.ADMIN) {
+            throw Exception("Only administrators can perform administrative session closure")
+        }
+
+        if (closeMethod == VehicleSessionClosedMethod.USER_CLOSED && currentUser?.id != existingSession.userId) {
+            throw Exception("Users can only close their own sessions")
+        }
             
         try {
             // Update vehicle status back to AVAILABLE
-            vehicleStatusRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.AVAILABLE)
+            vehicleStatusRepository.updateVehicleStatus(existingSession.vehicleId, VehicleStatus.AVAILABLE)
             val currentDateTime = java.time.Instant.now()
                 .atZone(java.time.ZoneId.systemDefault())
                 .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
             
-            // Get the current session and update its fields
-            val sessionResponse = api.getSessionById(sessionId)
-            if (!sessionResponse.isSuccessful) {
-                throw Exception("Failed to get session details")
-            }
-            
-            val existingSession = sessionResponse.body() ?: throw Exception("Session not found")
             val updatedSession = existingSession.copy(
                 endTime = currentDateTime,
                 timestamp = currentDateTime,
-                status = SessionStatus.INACTIVE.toString()
+                status = VehicleSessionStatus.NOT_OPERATING.toString(),
+                closeMethod = closeMethod.name,
+                closedBy = closedBy
             )
             
             val response = api.updateSession(
@@ -131,7 +150,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session update fails
-                vehicleStatusRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.IN_USE)
+                vehicleStatusRepository.updateVehicleStatus(existingSession.vehicleId, VehicleStatus.IN_USE)
                 throw Exception("Failed to end session: ${response.code()}")
             }
             
@@ -139,29 +158,39 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 ?: throw Exception("Empty response when ending session")
         } catch (e: Exception) {
             // Ensure vehicle status is restored on any error
-            vehicleStatusRepository.updateVehicleStatus(currentSession.vehicleId, VehicleStatus.IN_USE)
+            vehicleStatusRepository.updateVehicleStatus(existingSession.vehicleId, VehicleStatus.IN_USE)
             throw e
         }
     }
 
     override suspend fun getActiveSessionForVehicle(vehicleId: String): VehicleSession? {
         android.util.Log.d("VehicleSession", "Fetching active session for vehicle: $vehicleId")
-        val response = api.getAllSessions()
-        if (response.isSuccessful) {
-            android.util.Log.d("VehicleSession", "API response successful. Status code: ${response.code()}")
-            val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
-            android.util.Log.d("VehicleSession", "Total sessions fetched: ${sessions.size}")
-            
-            val activeSession = sessions.find { 
-                it.vehicleId == vehicleId && 
-                it.status == SessionStatus.ACTIVE 
+        return try {
+            val response = api.getAllSessions()
+            if (response.isSuccessful) {
+                android.util.Log.d("VehicleSession", "API response successful. Status code: ${response.code()}")
+                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                android.util.Log.d("VehicleSession", "Total sessions fetched: ${sessions.size}")
+                
+                val activeSession = sessions.find { session ->
+                    session.vehicleId == vehicleId && 
+                    session.status == VehicleSessionStatus.OPERATING
+                }
+                
+                android.util.Log.d("VehicleSession", "Found active session: $activeSession")
+                activeSession?.let {
+                    android.util.Log.d("VehicleSession", "Session details - Status: ${it.status}, EndTime: ${it.endTime}")
+                }
+                
+                activeSession
+            } else {
+                android.util.Log.w("VehicleSession", "Failed to fetch sessions. Status code: ${response.code()}")
+                null
             }
-            
-            android.util.Log.d("VehicleSession", "Active session for vehicle $vehicleId: $activeSession")
-            return activeSession
+        } catch (e: Exception) {
+            android.util.Log.e("VehicleSession", "Error getting active session: ${e.message}", e)
+            null
         }
-        android.util.Log.w("VehicleSession", "Failed to fetch sessions. Status code: ${response.code()}")
-        return null
     }
 
     override suspend fun getOperatorSessionHistory(): List<VehicleSession> {
@@ -191,7 +220,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 sessions
                     .filter { 
                         it.vehicleId == vehicleId && 
-                        it.status == SessionStatus.INACTIVE &&
+                        it.status == VehicleSessionStatus.NOT_OPERATING &&
                         it.endTime != null 
                     }
                     .maxByOrNull { it.endTime!! }

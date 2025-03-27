@@ -130,14 +130,15 @@ fun VehicleProfileScreen(
                                         adminOnly = true
                                     ))
 
-                                    if (state.hasActiveSession) {
+                                    // Add End Session option if there's an active session
+                                    if (state.activeSession != null) {
                                         add(DropdownMenuOption(
-                                            text = "End Vehicle Session",
+                                            text = "End Vehicle Session (Admin)",
                                             onClick = { viewModel.endVehicleSession() },
                                             leadingIcon = Icons.Default.Stop,
                                             enabled = true,
                                             adminOnly = true,
-                                            iconTint = Color.Red
+                                            iconTint = MaterialTheme.colorScheme.error
                                         ))
                                     }
 
@@ -149,7 +150,7 @@ fun VehicleProfileScreen(
                                         adminOnly = true
                                     ))
                                 }
-                                
+
                                 // Options available to all users
                                 add(DropdownMenuOption(
                                     text = if (state.hasActivePreShiftCheck) "Continue Pre-Shift Check" else "Start Pre-Shift Check",

@@ -6,7 +6,6 @@ import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.user.User
 
-
 data class DashboardState(
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -17,7 +16,11 @@ data class DashboardState(
     val currentSession: VehicleSession? = null,
     val displayVehicle: Vehicle? = null,
     val navigationTarget: String? = null,
-    val feedbackSubmitted: Boolean = false
+    val feedbackSubmitted: Boolean = false,
+    val vehicles: List<Vehicle> = emptyList(),
+    val activeSessions: List<VehicleSession> = emptyList(),
+    val users: List<User> = emptyList(),
+    val checks: List<PreShiftCheck> = emptyList()
 )
 //{
 //    val displayVehicle: Vehicle?

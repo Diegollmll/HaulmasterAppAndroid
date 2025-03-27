@@ -4,5 +4,7 @@ data class EndSessionRequestDto(
     val timestamp: String,
     val endTime: String,
     val status: String,
-    val notes: String?
+    val notes: String?,
+    val closeMethod: String,
+    val closedBy: String? = null
 )

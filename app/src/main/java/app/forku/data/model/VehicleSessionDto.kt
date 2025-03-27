@@ -12,5 +12,9 @@ data class VehicleSessionDto(
     @SerializedName("start_time")
     val startTime: String,
     @SerializedName("end_time")
-    val endTime: String?
+    val endTime: String?,
+    @SerializedName("close_method")
+    val closeMethod: String? = null,
+    @SerializedName("closed_by")
+    val closedBy: String? = null
 ) 

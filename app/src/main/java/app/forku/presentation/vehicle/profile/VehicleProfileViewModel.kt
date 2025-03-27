@@ -34,6 +34,7 @@ import java.io.File
 import java.io.FileOutputStream
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
+import app.forku.domain.model.session.VehicleSessionClosedMethod
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -107,11 +108,6 @@ class VehicleProfileViewModel @Inject constructor(
                     vehicleSessionRepository.getActiveSessionForVehicle(vehicleId)
                 }
                 
-                // Get current session with retry
-                val currentSession = retryOnFailure {
-                    vehicleSessionRepository.getCurrentSession()
-                }
-                
                 // Get last pre-shift check with retry
                 val lastPreShiftCheck = retryOnFailure {
                     checklistRepository.getLastPreShiftCheck(vehicleId)
@@ -139,7 +135,7 @@ class VehicleProfileViewModel @Inject constructor(
                     it.copy(
                         vehicle = vehicle,
                         activeSession = activeSession,
-                        hasActiveSession = currentSession != null,
+                        hasActiveSession = activeSession != null,
                         hasActivePreShiftCheck = lastPreShiftCheck?.status == CheckStatus.IN_PROGRESS.toString(),
                         activeOperator = operator,
                         lastOperator = lastOperator,
@@ -310,13 +306,33 @@ class VehicleProfileViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
-                val vehicleId = state.value.vehicle?.id ?: return@launch
-                val activeSession = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId)
-                
-                if (activeSession != null) {
-                    vehicleSessionRepository.endSession(activeSession.id)
-                    loadVehicle(showLoading = false)
+                val currentUser = userRepository.getCurrentUser()
+                if (currentUser?.role != UserRole.ADMIN) {
+                    _state.update { 
+                        it.copy(
+                            error = "Only administrators can end sessions",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
                 }
+                
+                val session = state.value.activeSession ?: run {
+                    _state.update { 
+                        it.copy(
+                            error = "No active session to end",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                vehicleSessionRepository.endSession(
+                    sessionId = session.id,
+                    closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED
+                )
+                
+                loadVehicle(showLoading = false)
                 
                 _state.update { it.copy(isLoading = false) }
             } catch (e: Exception) {

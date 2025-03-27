@@ -2,6 +2,8 @@ package app.forku.presentation.session
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.forku.domain.model.session.VehicleSessionClosedMethod
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.session.StartVehicleSessionUseCase
@@ -20,6 +22,9 @@ class SessionViewModel @Inject constructor(
 ) : ViewModel() {
     private val _state = MutableStateFlow(SessionState())
     val state = _state.asStateFlow()
+
+    private val _canEndSession = MutableStateFlow<Boolean>(false)
+    val canEndSession = _canEndSession.asStateFlow()
 
     init {
         loadCurrentSession()
@@ -58,14 +63,23 @@ class SessionViewModel @Inject constructor(
         }
     }
 
-    fun endSession() {
+    fun endSession(sessionId: String? = null, isAdminClosure: Boolean = false) {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
                 
-                val currentSession = state.value.session
-                if (currentSession != null) {
-                    val endedSession = vehicleSessionRepository.endSession(currentSession.id)
+                val targetSessionId = sessionId ?: state.value.session?.id
+                if (targetSessionId != null) {
+                    val closeMethod = if (isAdminClosure) {
+                        VehicleSessionClosedMethod.ADMIN_CLOSED
+                    } else {
+                        VehicleSessionClosedMethod.USER_CLOSED
+                    }
+                    
+                    val endedSession = vehicleSessionRepository.endSession(
+                        sessionId = targetSessionId,
+                        closeMethod = closeMethod
+                    )
                     _state.update { 
                         it.copy(
                             session = endedSession,
@@ -74,16 +88,26 @@ class SessionViewModel @Inject constructor(
                         )
                     }
                 } else {
-                    throw Exception("No hay sesión activa para finalizar")
+                    throw Exception("No active session to end")
                 }
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
-                        error = "Error al finalizar sesión: ${e.message}",
+                        error = "Error ending session: ${e.message}",
                         isLoading = false
                     )
                 }
             }
+        }
+    }
+
+    fun checkCanEndSession(sessionUserId: String) {
+        viewModelScope.launch {
+            val currentUser = userRepository.getCurrentUser()
+            _canEndSession.value = currentUser?.let { user ->
+                // User can end their own session or admin can end any session
+                user.id == sessionUserId || user.role == UserRole.ADMIN
+            } ?: false
         }
     }
 
@@ -109,5 +133,6 @@ class SessionViewModel @Inject constructor(
 
     fun resetState() {
         _state.update { SessionState() }
+        _canEndSession.value = false
     }
 } 

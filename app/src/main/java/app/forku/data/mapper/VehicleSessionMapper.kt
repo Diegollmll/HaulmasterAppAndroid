@@ -2,7 +2,8 @@ package app.forku.data.mapper
 
 import app.forku.data.model.VehicleSessionDto
 import app.forku.domain.model.session.VehicleSession
-import app.forku.domain.model.session.SessionStatus
+import app.forku.domain.model.session.VehicleSessionStatus
+import app.forku.domain.model.session.VehicleSessionClosedMethod
 
 fun VehicleSessionDto.toVehicleSession(): VehicleSession {
     return VehicleSession(
@@ -11,11 +12,19 @@ fun VehicleSessionDto.toVehicleSession(): VehicleSession {
         userId = operatorId,
         startTime = startTime,
         endTime = endTime,
-        status = if (endTime == null) SessionStatus.ACTIVE else SessionStatus.INACTIVE,
+        status = if (endTime == null) VehicleSessionStatus.OPERATING else VehicleSessionStatus.NOT_OPERATING,
         startLocation = null,
         endLocation = null,
         durationMinutes = null,
-        timestamp = startTime
+        timestamp = startTime,
+        closeMethod = closeMethod?.let { 
+            try {
+                VehicleSessionClosedMethod.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                VehicleSessionClosedMethod.USER_CLOSED
+            }
+        } ?: VehicleSessionClosedMethod.USER_CLOSED,
+        closedBy = closedBy
     )
 }
 
@@ -25,6 +34,8 @@ fun VehicleSession.toVehicleSessionDto(): VehicleSessionDto {
         vehicleId = vehicleId,
         operatorId = userId,
         startTime = startTime,
-        endTime = endTime
+        endTime = endTime,
+        closeMethod = closeMethod.name,
+        closedBy = closedBy
     )
 } 

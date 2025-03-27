@@ -278,17 +278,18 @@ private fun ProfileHeader(
                                     color = Color.Gray
                                 )
                             }
-
-                            Text(
-                                text = "Last log:",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 8.sp),
-                                color = Color.LightGray
-                            )
-                            Text(
-                                text = state.user?.lastLogin?.let { getRelativeTimeSpanString(it) } ?: "N/A",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
-                                color = Color.Gray
-                            )
+                            Row {
+                                Text(
+                                    text = "Last log:",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 8.sp),
+                                    color = Color.LightGray
+                                )
+                                Text(
+                                    text = state.user?.lastLogin?.let { getRelativeTimeSpanString(it) } ?: "N/A",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
+                                    color = Color.Gray
+                                )
+                            }
                         }
                     }
 
@@ -317,11 +318,25 @@ private fun ProfileHeader(
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "${state.user?.totalHours  ?: 0}hrs",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "%.1f".format(state.user?.totalHours ?: 0f),
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+
+                                    Spacer(Modifier.width(1.dp))
+
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "hrs",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.Gray
+                                    )
+                                }
                                 Text(
                                     textAlign = TextAlign.Center,
                                     text = "Total Time",
