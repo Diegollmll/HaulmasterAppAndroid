@@ -43,8 +43,8 @@ fun StatsGrid(state: ProfileState) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         StatCard(
-            title = "Tasks Completed",
-            value = "${state.user?.tasksCompleted ?: 0}",
+            title = "Sessions Completed",
+            value = "${state.user?.sessionsCompleted ?: 0}",
             modifier = Modifier.weight(1f)
         )
         StatCard(

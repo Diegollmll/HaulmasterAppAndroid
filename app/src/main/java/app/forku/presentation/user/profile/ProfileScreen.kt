@@ -53,6 +53,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.OptionsDropdownMenu
 import app.forku.presentation.common.components.DropdownMenuOption
@@ -132,7 +133,9 @@ fun ProfileScreen(
                         viewModel = viewModel,
                         isCurrentUser = operatorId == null
                     )
-                    StatsGrid(state)
+
+                    //StatsGrid(state)
+
                     ProfileSections(
                         state = state,
                         onCertificationsClick = {
@@ -304,74 +307,81 @@ private fun ProfileHeader(
                             text = state.user?.fullName ?: "",
                             style = MaterialTheme.typography.titleLarge
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Level",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = state.user?.experienceLevel ?: "Rookie",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
-                                    text = "Points",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
+                                    textAlign = TextAlign.Center,
+                                    text = "${state.user?.totalHours  ?: 0}hrs",
+                                    style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "${state.user?.points ?: 0}pts",
-                                    style = MaterialTheme.typography.titleMedium
+                                    textAlign = TextAlign.Center,
+                                    text = "Total Time",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
                                 )
                             }
-                            Column {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
-                                    text = "Hours",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
+                                    textAlign = TextAlign.Center,
+                                    text = "${state.user?.sessionsCompleted ?: 0}",
+                                    style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "${state.user?.totalHours ?: 0}h",
-                                    style = MaterialTheme.typography.titleMedium
+                                    textAlign = TextAlign.Center,
+                                    text = "Sessions",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
                                 )
                             }
-                            Column {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text(
-                                    text = "Distance",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
+                                    textAlign = TextAlign.Center,
+                                    text = "${state.user?.incidentsReported ?: 0}",
+                                    style = MaterialTheme.typography.titleMedium
                                 )
                                 Text(
-                                    text = "${state.user?.totalDistance ?: 0}km",
-                                    style = MaterialTheme.typography.titleMedium
+                                    textAlign = TextAlign.Center,
+                                    text = "Incidents R.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            Button(
+                                onClick = {
+                                    navController.navigate(Screen.PerformanceReport.route)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFFFA726)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Performance Report")
+                            }
+                        }
+
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row {
-                    Button(
-                        onClick = {
-                            navController.navigate(Screen.PerformanceReport.route)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFFA726)
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Performance Report")
-                    }
-                }
+
             }
         }
     }

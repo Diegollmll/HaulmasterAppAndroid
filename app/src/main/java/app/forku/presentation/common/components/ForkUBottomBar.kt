@@ -99,7 +99,7 @@ fun ForkUBottomBar(
 
             if (userRole == UserRole.ADMIN) {
                 navItems.add(BottomNavItem(
-                    title = "Vehicles",
+                    title = "Fleet",
                     icon = painterResource(id = AppIcons.General.forklift),
                     route = currentVehicleId?.let {
                         Screen.VehiclesList.route
@@ -107,7 +107,7 @@ fun ForkUBottomBar(
                 ))
             } else if (userRole == UserRole.OPERATOR) {
                 navItems.add(BottomNavItem(
-                    title = "Vehicle",
+                    title = "My Vehicle",
                     icon = painterResource(id = AppIcons.General.forklift),
                     route = currentVehicleId?.let {
                         Screen.VehicleProfile.route.replace("{vehicleId}", it)

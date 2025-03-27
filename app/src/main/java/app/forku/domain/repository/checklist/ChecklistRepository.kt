@@ -16,7 +16,7 @@ interface ChecklistRepository {
     ): PreShiftCheck
     
     // New methods for global checks endpoint
-    suspend fun getAllChecks(): List<PreShiftCheck>
+    suspend fun getAllChecks(page: Int = 1): List<PreShiftCheck>
     suspend fun getCheckById(checkId: String): PreShiftCheck?
     suspend fun createGlobalCheck(check: PreShiftCheck): PreShiftCheck
     suspend fun updateGlobalCheck(checkId: String, check: PreShiftCheck): PreShiftCheck

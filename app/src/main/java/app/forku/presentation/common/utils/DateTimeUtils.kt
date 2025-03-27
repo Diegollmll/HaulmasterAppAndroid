@@ -126,4 +126,15 @@ fun getRelativeTimeSpanFromDateTime(dateTime: LocalDateTime): String {
         days < 7L -> "${days.toInt()} days ago"
         else -> dateTime.format(DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm"))
     }
+}
+
+fun formatReadableDate(dateTimeStr: String): String {
+    return try {
+        val dateTime = parseToLocalDateTime(dateTimeStr)
+        val formatter = DateTimeFormatter.ofPattern("EEE dd MMM yyyy")
+        dateTime.format(formatter)
+    } catch (e: Exception) {
+        android.util.Log.e("DateTimeUtils", "Error formatting readable date: $dateTimeStr", e)
+        dateTimeStr // Return original string if parsing fails
+    }
 } 

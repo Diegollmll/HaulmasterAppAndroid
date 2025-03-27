@@ -129,7 +129,8 @@ class CicoHistoryViewModel @Inject constructor(
 
                 if (!append) {
                     _state.update { it.copy(
-                        isAdmin = isAdmin
+                        isAdmin = isAdmin,
+                        currentUserId = currentUser?.id
                     ) }
                     if (isAdmin) {
                         loadOperators()
@@ -186,8 +187,8 @@ class CicoHistoryViewModel @Inject constructor(
                             vehicleName = vehicle.codename,
                             operatorName = "${operator.firstName} ${operator.lastName}",
                             date = getRelativeTimeSpanString(session.startTime),
-                            checkInTime = getRelativeTimeSpanString(session.startTime),
-                            checkOutTime = session.endTime?.let { getRelativeTimeSpanString(it) },
+                            checkInTime = session.startTime,
+                            checkOutTime = session.endTime,
                             duration = session.durationMinutes?.let { minutes ->
                                 when {
                                     minutes < 60 -> "$minutes min"
@@ -263,7 +264,8 @@ data class CicoHistoryState(
     val currentPage: Int = 1,
     val itemsPerPage: Int = 10,
     val hasMoreItems: Boolean = false,
-    val isLoadingMore: Boolean = false
+    val isLoadingMore: Boolean = false,
+    val currentUserId: String? = null
 )
 
 data class Operator(

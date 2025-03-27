@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -34,6 +35,22 @@ fun AllChecklistScreen(
     networkManager: NetworkConnectivityManager
 ) {
     val state by viewModel.state.collectAsState()
+    val listState = rememberLazyListState()
+    
+    // Calculate if we should load more items
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            lastVisibleItem >= listState.layoutInfo.totalItemsCount - 2
+        }
+    }
+    
+    // Trigger load more when we're close to the end
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore && !state.isLoading && !state.isLoadingMore && state.hasMoreItems) {
+            viewModel.loadNextPage()
+        }
+    }
 
     BaseScreen(
         navController = navController,
@@ -59,18 +76,30 @@ fun AllChecklistScreen(
                     color = Color.Gray
                 )
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(state.checks) { check ->
-                        CheckCard(
-                            check = check,
-                            onClick = {
-                                navController.navigate(Screen.CheckDetail.createRoute(check.id))
-                            }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(state.checks) { check ->
+                            CheckCard(
+                                check = check,
+                                onClick = {
+                                    navController.navigate(Screen.CheckDetail.createRoute(check.id))
+                                }
+                            )
+                        }
+                    }
+                    
+                    // Show loading indicator at bottom while loading more
+                    if (state.isLoadingMore) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
                         )
                     }
                 }

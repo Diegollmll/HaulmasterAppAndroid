@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -24,8 +25,12 @@ data class PreShiftCheckState(
 
 data class AllChecklistState(
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val error: String? = null,
-    val checks: List<PreShiftCheckState> = emptyList()
+    val checks: List<PreShiftCheckState> = emptyList(),
+    val currentPage: Int = 1,
+    val itemsPerPage: Int = 10,
+    val hasMoreItems: Boolean = true
 )
 
 @HiltViewModel
@@ -36,18 +41,35 @@ class AllChecklistViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AllChecklistState())
-    val state: StateFlow<AllChecklistState> = _state.asStateFlow()
+    val state = _state.asStateFlow()
 
     init {
         loadChecks()
     }
 
-    fun loadChecks() {
+    fun loadNextPage() {
+        if (_state.value.isLoadingMore || !_state.value.hasMoreItems) return
+        
         viewModelScope.launch {
-            try {
-                _state.value = _state.value.copy(isLoading = true)
+            _state.update { it.copy(isLoadingMore = true) }
+            loadChecks(
+                page = _state.value.currentPage + 1,
+                append = true
+            )
+        }
+    }
 
-                val checks = checklistRepository.getAllChecks()
+    fun loadChecks(
+        page: Int = 1,
+        append: Boolean = false
+    ) {
+        viewModelScope.launch {
+            if (!append) {
+                _state.update { it.copy(isLoading = true, error = null) }
+            }
+            
+            try {
+                val checks = checklistRepository.getAllChecks(page)
                 val checkStates = checks.mapNotNull { check ->
                     try {
                         val operator = userRepository.getUserById(check.userId)
@@ -63,18 +85,32 @@ class AllChecklistViewModel @Inject constructor(
                     } catch (e: Exception) {
                         null
                     }
-                }.sortedByDescending { it.lastCheckDateTime }
-
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    checks = checkStates,
-                    error = null
-                )
+                }
+                
+                _state.update { currentState ->
+                    val updatedChecks = if (append) {
+                        currentState.checks + checkStates
+                    } else {
+                        checkStates
+                    }
+                    
+                    currentState.copy(
+                        isLoading = false,
+                        isLoadingMore = false,
+                        error = null,
+                        checks = updatedChecks,
+                        currentPage = if (checkStates.isNotEmpty()) page else currentState.currentPage,
+                        hasMoreItems = checkStates.size >= currentState.itemsPerPage
+                    )
+                }
             } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = "Error loading checks: ${e.message}"
-                )
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        isLoadingMore = false,
+                        error = "Failed to load checks: ${e.message}"
+                    )
+                }
             }
         }
     }

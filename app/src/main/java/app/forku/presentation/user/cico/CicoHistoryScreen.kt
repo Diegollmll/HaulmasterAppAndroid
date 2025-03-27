@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.DisposableEffect
+import app.forku.presentation.common.utils.formatReadableDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -168,8 +169,10 @@ fun CicoHistoryScreen(
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 items(state.filteredHistory) { entry ->
-                                    //CicoHistoryItem(entry, state.isAdmin)
-                                    CicoHistoryItem(entry, true)
+                                    CicoHistoryItem(
+                                        entry = entry,
+                                        showOperator = state.isAdmin && state.currentUserId != entry.operatorId
+                                    )
                                 }
                             }
                             
@@ -191,7 +194,10 @@ fun CicoHistoryScreen(
 }
 
 @Composable
-private fun CicoHistoryItem(entry: CicoEntry, showOperator: Boolean = false) {
+private fun CicoHistoryItem(
+    entry: CicoEntry,
+    showOperator: Boolean = false
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -232,17 +238,21 @@ private fun CicoHistoryItem(entry: CicoEntry, showOperator: Boolean = false) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Check In: ${entry.checkInTime}",
-                    style = MaterialTheme.typography.bodyMedium
+                    text = if (entry.checkOutTime != null) 
+                        "Date: ${formatReadableDate(entry.checkOutTime)}" 
+                    else 
+                        "Date: ${formatReadableDate(entry.checkInTime)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Check Out: ${entry.checkOutTime ?: "In Progress"}",
+                    text = "Status: ${if (entry.checkOutTime == null) "In Progress" else "Completed"}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (entry.checkOutTime == null) 
                         MaterialTheme.colorScheme.primary 
                     else 
-                        MaterialTheme.typography.bodyMedium.color
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

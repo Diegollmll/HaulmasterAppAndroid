@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 
@@ -94,10 +95,12 @@ private fun FeedbackDialog(
                     text = "How could we improve?",
                     style = MaterialTheme.typography.titleLarge
                 )
+                //Spacer(Modifier.width(3.dp))
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
             }
+
         },
         text = {
             Column(
@@ -128,7 +131,7 @@ private fun FeedbackDialog(
                                 1.dp,
                                 if (selectedRating == feedbackEmoji.rating)
                                     MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outline
+                                else Color.Transparent
                             )
                         ) {
                             Box(
@@ -166,7 +169,7 @@ private fun FeedbackDialog(
                         onCheckedChange = { contactEnabled = it }
                     )
                     Text(
-                        text = "I'm happy for Wise to contact me to discuss my feedback.",
+                        text = "I'm happy for Collective Action to contact me to discuss my feedback.",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(start = 8.dp)
                     )

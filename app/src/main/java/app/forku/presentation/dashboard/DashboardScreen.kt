@@ -266,7 +266,7 @@ private fun DashboardNavigationButtons(
             ) {
                 NavigationButton(
                     icon = Icons.Default.ClearAll,
-                    text = "Vehicles",
+                    text = "Fleet",
                     onClick = {
                         isExpanded = false
                         navController.navigate(Screen.VehiclesList.route)

@@ -24,6 +24,10 @@ class ChecklistRepositoryImpl @Inject constructor(
     private val checklistStatusNotifier: ChecklistStatusNotifier
 ) : ChecklistRepository {
 
+    companion object {
+        private const val PAGE_SIZE = 10
+    }
+
     override suspend fun getChecklistItems(vehicleId: String): List<Checklist> {
         try {
             val response = api.getChecklistQuestionary()
@@ -117,41 +121,23 @@ class ChecklistRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getAllChecks(): List<PreShiftCheck> {
+    override suspend fun getAllChecks(page: Int): List<PreShiftCheck> {
         return try {
-            // Add exponential backoff retry logic
-            var attempts = 0
-            val maxAttempts = 3
-            var delay = 1000L // Start with 1 second delay
+            val response = api.getAllChecks()
             
-            while (attempts < maxAttempts) {
-                try {
-                    val response = api.getAllChecks()
-                    when (response.code()) {
-                        200 -> return response.body()?.toDomain() ?: emptyList()
-                        429 -> {
-                            // Rate limited - wait and retry
-                            android.util.Log.w("ChecklistRepository", "Rate limited, attempt ${attempts + 1}/$maxAttempts, waiting ${delay}ms")
-                            kotlinx.coroutines.delay(delay)
-                            delay *= 2 // Exponential backoff
-                            attempts++
-                        }
-                        else -> {
-                            android.util.Log.e("ChecklistRepository", "Error getting all checks: ${response.code()}")
-                            return emptyList()
-                        }
-                    }
-                } catch (e: java.io.IOException) {
-                    android.util.Log.e("ChecklistRepository", "Network error getting all checks", e)
-                    if (attempts >= maxAttempts - 1) throw e
-                    attempts++
-                    kotlinx.coroutines.delay(delay)
-                    delay *= 2
-                }
+            if (response.isSuccessful && response.body() != null) {
+                val allChecks = response.body()!!
+                    .mapNotNull { it?.toDomain() }
+                    .sortedByDescending { it.lastCheckDateTime }
+                
+                // Handle pagination on client side
+                allChecks.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
+            } else {
+                android.util.Log.e("Checklist", "Error getting all checks: ${response.code()}")
+                emptyList()
             }
-            emptyList()
         } catch (e: Exception) {
-            android.util.Log.e("ChecklistRepository", "Error getting all checks", e)
+            android.util.Log.e("Checklist", "Error getting all checks", e)
             emptyList()
         }
     }
