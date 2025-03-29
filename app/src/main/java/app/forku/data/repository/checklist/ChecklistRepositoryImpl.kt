@@ -47,35 +47,37 @@ class ChecklistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
-        return try {
-            var attempts = 0
-            val maxAttempts = 3
-            var delay = 1000L
-            
-            while (attempts < maxAttempts) {
-                try {
-                    val checks = getAllChecks()
-                    return checks.filter { 
-                        it.vehicleId == vehicleId 
-                    }.maxByOrNull { 
-                        it.lastCheckDateTime 
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("ChecklistRepository", "Error getting last pre-shift check, attempt ${attempts + 1}/$maxAttempts", e)
-                    if (attempts >= maxAttempts - 1) {
-                        android.util.Log.e("ChecklistRepository", "Max attempts reached, giving up", e)
-                        return null
-                    }
-                    attempts++
+        var attempts = 0
+        val maxAttempts = 3
+        var delay = 1000L
+        
+        while (attempts < maxAttempts) {
+            try {
+                val response = api.getAllChecks()
+                
+                if (response.isSuccessful && response.body() != null) {
+                    return response.body()!!
+                        .mapNotNull { it?.toDomain() }
+                        .filter { it.vehicleId == vehicleId }
+                        .maxByOrNull { it.startDateTime }
+                } else if (response.code() == 429) {
+                    android.util.Log.w("Checklist", "Rate limit hit, attempt ${attempts + 1}/$maxAttempts, waiting ${delay}ms")
                     kotlinx.coroutines.delay(delay)
-                    delay *= 2
+                    delay = (delay * 1.5).toLong().coerceAtMost(5000)
+                    attempts++
+                    continue
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("ChecklistRepository", "Error getting last pre-shift check, attempt ${attempts + 1}/$maxAttempts", e)
+                if (attempts >= maxAttempts - 1) {
+                    return null
+                }
+                kotlinx.coroutines.delay(delay)
+                delay = (delay * 1.5).toLong().coerceAtMost(5000)
+                attempts++
             }
-            null
-        } catch (e: Exception) {
-            android.util.Log.e("ChecklistRepository", "Fatal error getting last pre-shift check", e)
-            null
         }
+        return null
     }
 
     override suspend fun submitPreShiftCheck(
@@ -98,8 +100,8 @@ class ChecklistRepositoryImpl @Inject constructor(
                 items = checkItems,
                 status = status,
                 userId = userId,
-                lastCheckDateTime = currentDateTime,
                 startDateTime = currentDateTime,
+                lastCheckDateTime = currentDateTime,
                 endDateTime = null
             )
             createGlobalCheck(newCheck).also {
@@ -122,24 +124,42 @@ class ChecklistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAllChecks(page: Int): List<PreShiftCheck> {
-        return try {
-            val response = api.getAllChecks()
-            
-            if (response.isSuccessful && response.body() != null) {
-                val allChecks = response.body()!!
-                    .mapNotNull { it?.toDomain() }
-                    .sortedByDescending { it.lastCheckDateTime }
+        var attempts = 0
+        val maxAttempts = 3
+        var delay = 1000L
+
+        while (attempts < maxAttempts) {
+            try {
+                val response = api.getAllChecks()
                 
-                // Handle pagination on client side
-                allChecks.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
-            } else {
-                android.util.Log.e("Checklist", "Error getting all checks: ${response.code()}")
-                emptyList()
+                if (response.isSuccessful && response.body() != null) {
+                    val allChecks = response.body()!!
+                        .mapNotNull { it?.toDomain() }
+                        .sortedByDescending { it.lastCheckDateTime }
+                    
+                    // Handle pagination on client side
+                    return allChecks.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
+                } else if (response.code() == 429) {
+                    android.util.Log.w("Checklist", "Rate limit hit, attempt ${attempts + 1}/$maxAttempts, waiting ${delay}ms")
+                    kotlinx.coroutines.delay(delay)
+                    delay = (delay * 1.5).toLong().coerceAtMost(5000)
+                    attempts++
+                    continue
+                } else {
+                    android.util.Log.e("Checklist", "Error getting all checks: ${response.code()}")
+                    return emptyList()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("Checklist", "Error getting all checks on attempt ${attempts + 1}/$maxAttempts", e)
+                if (attempts >= maxAttempts - 1) {
+                    return emptyList()
+                }
+                kotlinx.coroutines.delay(delay)
+                delay = (delay * 1.5).toLong().coerceAtMost(5000)
+                attempts++
             }
-        } catch (e: Exception) {
-            android.util.Log.e("Checklist", "Error getting all checks", e)
-            emptyList()
         }
+        return emptyList()
     }
 
     override suspend fun getCheckById(checkId: String): PreShiftCheck? {

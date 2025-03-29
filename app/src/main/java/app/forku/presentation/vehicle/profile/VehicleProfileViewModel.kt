@@ -35,6 +35,7 @@ import java.io.FileOutputStream
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import app.forku.domain.model.session.VehicleSessionClosedMethod
+import app.forku.domain.model.vehicle.toDisplayString
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -327,11 +328,20 @@ class VehicleProfileViewModel @Inject constructor(
                     return@launch
                 }
                 
+                // End the session
                 vehicleSessionRepository.endSession(
                     sessionId = session.id,
-                    closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED
+                    closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED,
+                    adminId = currentUser.id,
+                    notes = "Session ended by administrator"
                 )
+
+                // Update vehicle status to AVAILABLE
+                state.value.vehicle?.id?.let { vehicleId ->
+                    vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE)
+                }
                 
+                // Reload vehicle state to reflect all changes
                 loadVehicle(showLoading = false)
                 
                 _state.update { it.copy(isLoading = false) }
@@ -363,7 +373,28 @@ class VehicleProfileViewModel @Inject constructor(
                 }
                 
                 val vehicleId = state.value.vehicle?.id ?: return@launch
+                val currentStatus = state.value.vehicle?.status
+
+                // Don't proceed if trying to set the same status
+                if (currentStatus == newStatus) {
+                    _state.update { it.copy(isLoading = false) }
+                    return@launch
+                }
+
+                // If there's an active session and we're changing status, end it first
+                state.value.activeSession?.let { session ->
+                    vehicleSessionRepository.endSession(
+                        sessionId = session.id,
+                        closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED,
+                        adminId = currentUser.id,
+                        notes = "Session ended due to vehicle status change from ${currentStatus?.toDisplayString()} to ${newStatus.toDisplayString()}"
+                    )
+                }
+
+                // Update vehicle status
                 vehicleRepository.updateVehicleStatus(vehicleId, newStatus)
+                
+                // Reload vehicle state to reflect changes
                 loadVehicle(showLoading = false)
                 
                 _state.update { it.copy(isLoading = false) }

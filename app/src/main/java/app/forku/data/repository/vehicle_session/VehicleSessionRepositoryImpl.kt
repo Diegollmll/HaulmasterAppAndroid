@@ -102,7 +102,12 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun endSession(sessionId: String, closeMethod: VehicleSessionClosedMethod): VehicleSession {
+    override suspend fun endSession(
+        sessionId: String, 
+        closeMethod: VehicleSessionClosedMethod,
+        adminId: String?,
+        notes: String?
+    ): VehicleSession {
         val sessionResponse = api.getSessionById(sessionId)
         if (!sessionResponse.isSuccessful) {
             throw Exception("Failed to get session details")
@@ -114,7 +119,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         val currentUser = authDataStore.getCurrentUser()
         val closedBy = when (closeMethod) {
             VehicleSessionClosedMethod.USER_CLOSED -> currentUser?.id
-            VehicleSessionClosedMethod.ADMIN_CLOSED -> currentUser?.id
+            VehicleSessionClosedMethod.ADMIN_CLOSED -> adminId ?: currentUser?.id
             VehicleSessionClosedMethod.TIMEOUT_CLOSED -> "SYSTEM"
             VehicleSessionClosedMethod.GEOFENCE_CLOSED -> "SYSTEM"
         }
@@ -140,7 +145,8 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 timestamp = currentDateTime,
                 status = VehicleSessionStatus.NOT_OPERATING.toString(),
                 closeMethod = closeMethod.name,
-                closedBy = closedBy
+                closedBy = closedBy,
+                notes = notes
             )
             
             val response = api.updateSession(

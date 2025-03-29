@@ -1,7 +1,7 @@
 # ForkU Android Project Context
 
 ## Project Overview
-ForkU is an Android application built with modern Android development practices and Clean Architecture principles. The app appears to be focused on vehicle management, incident tracking, and user authentication systems.
+ForkU is an Android application built with modern Android development practices and Clean Architecture principles. The app appears to be focused on vehicle management, incident tracking, user authentication systems, and certification management.
 
 ## Tech Stack & Architecture
 
@@ -17,6 +17,7 @@ ForkU is an Android application built with modern Android development practices 
 - **Image Loading**: Coil 2.5.0
 - **QR Functionality**: CameraX 1.3.1 + MLKit Barcode 17.2.0
 - **Build System**: Gradle with Version Catalog
+- **JSON Parsing**: Gson
 
 ### Dependency Management
 - Uses Gradle Version Catalog (`libs.versions.toml`) for centralized dependency management
@@ -47,6 +48,9 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ```
 
+When promt:
+- Check the Codebase as much as possible to keep context
+
 When adding new dependencies:
 - Always add them to `libs.versions.toml` first
 - Follow the existing versioning pattern
@@ -54,6 +58,7 @@ When adding new dependencies:
 - Use version references when possible
 - Consider creating bundles for related dependencies
 - Ensure version compatibility with existing dependencies
+
 
 ### Project Structure
 ```
@@ -90,29 +95,46 @@ app/src/main/java/app/forku/
 ## Key Features
 
 ### 1. Authentication System
-- Login/Register functionality
-- Session management
+- Login/Register functionality with email/password
+- Session management with DataStore
 - User role management
+- Tour/Onboarding preferences
 
 ### 2. Vehicle Management
-- Vehicle tracking
+- Vehicle tracking and status monitoring
 - Vehicle information management
+- Vehicle status validation
+- Vehicle session management
+- Real-time status updates
 
 ### 3. Incident Tracking
-- Incident reporting
-- Incident management
+- Incident reporting with multiple types
+- Incident management with severity levels
+- Support for different vehicle types
+- Load weight tracking
+- Incident status tracking
 
 ### 4. Checklist System
-- Task checklists
-- Checklist management
+- Pre-shift checklist management
+- Checklist validation
+- Checklist status notifications
+- Vehicle status determination based on checks
 
-### 5. QR Scanner
+### 5. Certification Management
+- User certification tracking
+- Certification creation and updates
+- Certification deletion
+- Certification status monitoring
+
+### 6. QR Scanner
 - QR code scanning functionality
 - Scanner integration
+- Vehicle validation through QR
 
-### 6. Tour/Onboarding
+### 7. Tour/Onboarding
 - User onboarding flow
 - Feature introduction
+- Tour preferences management
 
 ## Architecture Components
 
@@ -121,18 +143,30 @@ app/src/main/java/app/forku/
 - Composable UI components
 - Screen-based navigation
 - Shared UI components
+- State handling with StateFlow
+- Event-driven architecture
 
 ### 2. Domain Layer
 - Business logic encapsulation
 - Use case pattern implementation
 - Clean Architecture principles
 - Repository interfaces
+- Domain models
+- Validation logic
 
 ### 3. Data Layer
 - Repository implementations
 - Data source abstractions
 - DTO mappings
 - Local/Remote data handling
+- API integration
+- DataStore preferences
+
+### 4. Service Layer
+- Vehicle validation service
+- Status determination service
+- Session management service
+- Checklist validation service
 
 ## Common Patterns
 
@@ -140,33 +174,54 @@ app/src/main/java/app/forku/
 - UI state handling in ViewModels
 - Event handling patterns
 - State preservation
+- MutableStateFlow for reactive updates
+- State restoration
 
 ### 2. Navigation
 - Compose Navigation
 - Deep linking support
 - Screen route management
+- Navigation state preservation
 
 ### 3. Error Handling
 - Repository error management
 - UI error presentation
 - Network error handling
+- Graceful degradation
+- Error state management
 
 ### 4. Data Storage
 - DataStore for preferences
 - Room Database for structured data
 - Caching strategies
+- Concurrent access handling
+- Data synchronization
+
+### 5. Dependency Injection
+- Hilt modules for feature-specific DI
+- Singleton components
+- Repository bindings
+- Use case providers
+- Service implementations
 
 ## Important Notes
 - The project follows Material Design principles
 - Uses modern Android development practices
 - Implements clean architecture patterns
 - Focuses on maintainable and testable code
+- Implements concurrent access patterns
+- Uses coroutines for asynchronous operations
+- Implements proper error handling and recovery
 
 ## Recent Changes/Focus Areas
 - User authentication improvements
 - Tour screen animations
 - Login/Register flow enhancements
 - Error handling in repositories
+- Vehicle status management
+- Certification system implementation
+- Checklist validation system
+- Session management improvements
 
 ---
 *Note: This context file should be updated as the project evolves.* 

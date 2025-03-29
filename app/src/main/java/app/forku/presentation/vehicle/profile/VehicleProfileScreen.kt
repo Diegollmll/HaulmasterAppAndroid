@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import app.forku.domain.model.vehicle.toDisplayString
+import app.forku.domain.model.vehicle.getDescription
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,12 +66,6 @@ fun VehicleProfileScreen(
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.hasActivePreShiftCheck: ${state.hasActivePreShiftCheck}")
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.hasActiveSession: ${state.hasActiveSession}")
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle?.status?.name: ${state.vehicle?.status?.name}")
-//        if (!state.hasActivePreShiftCheck && !state.hasActiveSession) {
-//            //viewModel.startSessionFromCheck()
-////            val lastCheck = checklistRepository.getLastPreShiftCheck(state.vehicle?.id ?: return@LaunchedEffect)
-////            if (lastCheck?.status == PreShiftStatus.COMPLETED_PASS.toString()) {
-////            }
-//        }
     }
 
     // Status selection dialog
@@ -80,16 +76,51 @@ fun VehicleProfileScreen(
             text = {
                 Column {
                     VehicleStatus.values().forEach { status ->
-                        Button(
-                            onClick = {
-                                viewModel.updateVehicleStatus(status)
-                                showStatusDialog = false
-                            },
+                        val isCurrentStatus = status == state.vehicle?.status
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                         ) {
-                            Text(status.name)
+                            Button(
+                                onClick = {
+                                    if (!isCurrentStatus) {
+                                        viewModel.updateVehicleStatus(status)
+                                        showStatusDialog = false
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = !isCurrentStatus,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isCurrentStatus) 
+                                        MaterialTheme.colorScheme.surfaceVariant 
+                                    else 
+                                        MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(status.toDisplayString())
+                                    if (isCurrentStatus) {
+                                        Text(
+                                            "(Current status)",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                            if (isCurrentStatus) {
+                                Text(
+                                    text = status.getDescription(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
                         }
                     }
                 }

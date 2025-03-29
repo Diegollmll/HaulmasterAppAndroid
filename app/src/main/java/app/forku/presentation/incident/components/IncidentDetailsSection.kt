@@ -70,7 +70,8 @@ fun IncidentDetailsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 0.dp),
-            minLines = 1
+            minLines = 1,
+            preventLineBreaks = true
         )
 
         FormFieldDivider()

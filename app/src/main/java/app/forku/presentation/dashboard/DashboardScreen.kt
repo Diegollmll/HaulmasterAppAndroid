@@ -224,6 +224,8 @@ private fun CurrentUserSession(
                 )
             }
         )
+    } else {
+        Text("Press Check In to get started!", modifier = Modifier.padding(16.dp))
     }
 }
 

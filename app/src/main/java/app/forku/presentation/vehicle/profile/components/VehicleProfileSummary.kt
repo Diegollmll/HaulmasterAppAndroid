@@ -295,7 +295,7 @@ fun VehicleDetailsSection(
                 }
                 Row {
                     Text(
-                        text = lastCheck?.value?.lastCheckDateTime?.let {
+                        text = lastCheck?.value?.startDateTime?.let {
                             getRelativeTimeSpanString(it)
                         } ?: "No checks found.",
                         color = Color.Gray,
@@ -312,10 +312,8 @@ fun VehicleDetailsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            border = BorderStroke(1.dp, Color(0xFFFFA726))
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier

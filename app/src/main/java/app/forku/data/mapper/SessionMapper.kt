@@ -44,6 +44,25 @@ fun SessionDto.toDomain(): VehicleSession {
         endLocation = endLocation,
         durationMinutes = duration,
         timestamp = timestamp,
-        closeMethod = closeMethod
+        closeMethod = closeMethod,
+        closedBy = closedBy,
+        notes = notes
+    )
+}
+
+fun VehicleSession.toDto(): SessionDto {
+    return SessionDto(
+        id = id,
+        vehicleId = vehicleId,
+        userId = userId,
+        startTime = startTime,
+        endTime = endTime,
+        status = status.name,
+        startLocation = startLocation,
+        endLocation = endLocation,
+        timestamp = timestamp,
+        closeMethod = closeMethod.name,
+        closedBy = closedBy,
+        notes = notes
     )
 } 

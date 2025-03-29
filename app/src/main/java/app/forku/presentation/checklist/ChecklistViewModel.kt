@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -45,6 +46,8 @@ class ChecklistViewModel @Inject constructor(
     private val _navigateBack = MutableStateFlow(false)
     val navigateBack = _navigateBack.asStateFlow()
 
+    private var timerJob: kotlinx.coroutines.Job? = null
+
     init {
         viewModelScope.launch {
             // Prevent creating new checks if there's an active session
@@ -60,7 +63,43 @@ class ChecklistViewModel @Inject constructor(
             } else {
                 loadChecklistData()
             }
+            startTimer()
         }
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000) // Update every second
+                _state.value?.let { currentState ->
+                    if (!currentState.isCompleted && currentState.startDateTime != null) {
+                        try {
+                            // Parse the date using ISO format and system default timezone
+                            val formatter = java.time.format.DateTimeFormatter.ISO_DATE_TIME
+                            val startInstant = java.time.LocalDateTime.parse(currentState.startDateTime, formatter)
+                                .atZone(java.time.ZoneId.systemDefault())
+                                .toInstant()
+                            
+                            val newElapsedTime = System.currentTimeMillis() - startInstant.toEpochMilli()
+                            
+                            android.util.Log.d("ChecklistViewModel", "Start time: ${currentState.startDateTime}")
+                            android.util.Log.d("ChecklistViewModel", "Current time: ${System.currentTimeMillis()}")
+                            android.util.Log.d("ChecklistViewModel", "Elapsed time: $newElapsedTime")
+                            
+                            _state.value = currentState.copy(elapsedTime = newElapsedTime)
+                        } catch (e: Exception) {
+                            android.util.Log.e("ChecklistViewModel", "Error calculating elapsed time: ${e.message}", e)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
     }
 
     fun loadChecklistData() {
@@ -91,6 +130,9 @@ class ChecklistViewModel @Inject constructor(
                 val vehicle = getVehicleUseCase(vehicleId.toString())
 
                 // 4. Establecer el estado inicial completo
+                val currentDateTime = java.time.LocalDateTime.now()
+                    .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+
                 _state.value = ChecklistState(
                     vehicle = vehicle,
                     vehicleId = vehicleId.toString(),
@@ -99,7 +141,8 @@ class ChecklistViewModel @Inject constructor(
                         lastCheck.items else selectedItems,
                     rotationRules = firstChecklist.rotationRules,
                     checkId = checkId,
-                    checkStatus = CheckStatus.IN_PROGRESS.toString()
+                    checkStatus = CheckStatus.IN_PROGRESS.toString(),
+                    startDateTime = lastCheck?.startDateTime ?: currentDateTime
                 )
 
             } catch (e: Exception) {
@@ -333,7 +376,8 @@ class ChecklistViewModel @Inject constructor(
                         checkStatus = it.status,
                         isCompleted = it.status != CheckStatus.IN_PROGRESS.toString(),
                         isSubmitted = it.status != CheckStatus.IN_PROGRESS.toString(),
-                        isReadOnly = it.status != CheckStatus.IN_PROGRESS.toString()
+                        isReadOnly = it.status != CheckStatus.IN_PROGRESS.toString(),
+                        startDateTime = it.startDateTime
                     )
                 }
             } catch (e: Exception) {

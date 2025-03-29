@@ -25,7 +25,9 @@ data class ChecklistState(
     val message: String? = null,
     val lastSavedAt: String? = null,
     val checkStatus: String,
-    val isReadOnly: Boolean = false
+    val isReadOnly: Boolean = false,
+    val startDateTime: String? = null,
+    val elapsedTime: Long = 0L
 ) {
     val isEmpty: Boolean
         get() = checkItems.isEmpty()
@@ -43,5 +45,22 @@ data class ChecklistState(
 
     val showSubmitButton: Boolean
         get() = !isReadOnly && checkStatus == CheckStatus.IN_PROGRESS.toString()
+        
+    val formattedElapsedTime: String
+        get() {
+            try {
+                val totalMinutes = elapsedTime / (1000 * 60)
+                if (totalMinutes < 60) {
+                    return String.format("%02d:%02d", totalMinutes, (elapsedTime / 1000) % 60)
+                } else {
+                    val hours = totalMinutes / 60
+                    val minutes = totalMinutes % 60
+                    val seconds = (elapsedTime / 1000) % 60
+                    return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                }
+            } catch (e: Exception) {
+                return "00:00:00"
+            }
+        }
 }
 

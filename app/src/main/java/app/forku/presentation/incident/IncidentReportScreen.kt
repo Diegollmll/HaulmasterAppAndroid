@@ -29,6 +29,7 @@ import android.content.pm.PackageManager
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.ForkuButton
 import app.forku.presentation.common.components.LocationPermissionHandler
+import app.forku.core.utils.hideKeyboardOnTapOutside
 import app.forku.domain.model.user.UserRole
 
 
@@ -142,6 +143,7 @@ fun IncidentReportScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .hideKeyboardOnTapOutside()
         ) {
             IncidentFormContent(
                 state = state,

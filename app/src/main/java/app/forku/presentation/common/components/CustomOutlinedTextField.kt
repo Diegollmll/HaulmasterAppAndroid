@@ -18,7 +18,7 @@ fun CustomOutlinedTextField(
     readOnly: Boolean = false,
     label: String? = null,
     minLines: Int = 1,
-    maxLines: Int = Int.MAX_VALUE,
+    maxLines: Int = 5,
     shape: Shape = OutlinedTextFieldDefaults.shape,
     unfocusedBorderColor: Color = if (readOnly || !enabled) Color.Transparent 
         else MaterialTheme.colorScheme.outline.copy(alpha = 0.00f),
@@ -31,11 +31,20 @@ fun CustomOutlinedTextField(
     disabledTextColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     trailingIcon: @Composable (() -> Unit)? = null,
     isError: Boolean = false,
-    supportingText: @Composable (() -> Unit)? = null
+    supportingText: @Composable (() -> Unit)? = null,
+    preventLineBreaks: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            // Filter out line breaks if preventLineBreaks is true
+            val filteredValue = if (preventLineBreaks) {
+                newValue.replace("\n", " ").replace("\r", " ")
+            } else {
+                newValue
+            }
+            onValueChange(filteredValue)
+        },
         modifier = modifier,
         enabled = enabled,
         readOnly = readOnly,

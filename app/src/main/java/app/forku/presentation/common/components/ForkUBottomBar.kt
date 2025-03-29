@@ -62,8 +62,8 @@ fun ForkUBottomBar(
 
         NavigationBar(
             modifier = modifier,
-            containerColor = Color(0xFF1B1F23),
-            tonalElevation = 0.dp
+            containerColor = Color.White,
+            tonalElevation = 8.dp
         ) {
             val navItems = mutableListOf(
                 BottomNavItem(
@@ -116,7 +116,6 @@ fun ForkUBottomBar(
                 ))
             }
 
-
             val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
             navItems.forEach { item ->
@@ -145,17 +144,18 @@ fun ForkUBottomBar(
                     },
                     label = { Text(item.title, fontSize = 10.sp) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFFFFBF00),
-                        selectedTextColor = Color(0xFFFFBF00),
-                        unselectedIconColor = Color.Gray,
-                        unselectedTextColor = Color.Gray,
-                        indicatorColor = Color(0xFF1B1F23)
+                        selectedIconColor = Color.Black.copy(alpha = 0.9f),
+                        selectedTextColor = Color.Black.copy(alpha = 0.9f),
+                        unselectedIconColor = Color(0xFF666666),
+                        unselectedTextColor = Color(0xFF666666),
+                        indicatorColor = Color.White
                     )
                 )
             }
         }
     }
 }
+
 private data class BottomNavItem(
     val title: String,
     val icon: Painter,

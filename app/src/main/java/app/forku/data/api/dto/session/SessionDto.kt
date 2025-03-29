@@ -13,5 +13,6 @@ data class SessionDto(
     val endLocation: String?,
     val timestamp: String,
     val closeMethod: String? = null,
-    val closedBy: String? = null
+    val closedBy: String? = null,
+    val notes: String? = null
 )

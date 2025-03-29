@@ -15,6 +15,8 @@ import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.DatePickerDialog
+import app.forku.core.utils.hideKeyboardOnTapOutside
+import app.forku.core.utils.keyboardAwareScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +28,7 @@ fun CertificationCreateScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showIssueDatePicker by remember { mutableStateOf(false) }
     var showExpiryDatePicker by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     if (showIssueDatePicker) {
         DatePickerDialog(
@@ -62,6 +65,7 @@ fun CertificationCreateScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .hideKeyboardOnTapOutside()
             ) {
                 when {
                     state.isLoading -> LoadingOverlay()
@@ -73,12 +77,13 @@ fun CertificationCreateScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(scrollState)
                                 .padding(16.dp)
+                                .keyboardAwareScroll(scrollState)
                         ) {
                             OutlinedTextField(
                                 value = state.name,
-                                onValueChange = { viewModel.updateName(it) },
+                                onValueChange = { viewModel.updateName(it.replace("\n", " ").replace("\r", " ")) },
                                 label = { Text("Name") },
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -87,7 +92,7 @@ fun CertificationCreateScreen(
 
                             OutlinedTextField(
                                 value = state.description,
-                                onValueChange = { viewModel.updateDescription(it) },
+                                onValueChange = { viewModel.updateDescription(it.replace("\n", " ").replace("\r", " ")) },
                                 label = { Text("Description") },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 3
@@ -97,7 +102,7 @@ fun CertificationCreateScreen(
 
                             OutlinedTextField(
                                 value = state.issuer,
-                                onValueChange = { viewModel.updateIssuer(it) },
+                                onValueChange = { viewModel.updateIssuer(it.replace("\n", " ").replace("\r", " ")) },
                                 label = { Text("Issuer") },
                                 modifier = Modifier.fillMaxWidth()
                             )

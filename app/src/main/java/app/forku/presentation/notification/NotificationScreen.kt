@@ -50,7 +50,7 @@ fun NotificationScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = "Notifications",
-        showBottomBar = true,
+        showBottomBar = false,
         onRefresh = { viewModel.loadNotifications(true) },
         showLoadingOnRefresh = false,
         networkManager = networkManager

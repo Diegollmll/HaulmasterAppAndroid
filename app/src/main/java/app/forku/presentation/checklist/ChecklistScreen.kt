@@ -27,6 +27,9 @@ import androidx.compose.runtime.remember
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.AppModal
 import app.forku.presentation.navigation.Screen
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,10 +42,56 @@ fun ChecklistScreen(
 ) {
     var showConfirmationDialog = remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     
+    // Remember the last answered question index and description states
+    val lastAnsweredIndex = remember { mutableStateOf(-1) }
+    val descriptionStates = remember { mutableMapOf<Int, Boolean>() }
+    
+    // Function to scroll to the next question with better calculation
+    fun scrollToNextQuestion(currentIndex: Int, totalQuestions: Int) {
+        scope.launch {
+            // Calculate a more accurate scroll position:
+            // - Vehicle summary: ~200dp
+            // - Timer display: ~50dp
+            // - Each category header: ~50dp
+            // - Each question: ~150dp (base height)
+            // - Description when visible: ~100dp extra
+            // - Padding and spacing: ~20dp per item
+            val baseOffset = 250 // Vehicle summary + timer
+            val questionBaseHeight = 150 // Base height per question
+            
+            // Calculate total height of expanded descriptions before current question
+            var descriptionsHeight = 0
+            for (i in 0..currentIndex) {
+                if (descriptionStates[i] == true) {
+                    descriptionsHeight += 100 // Height of description when visible
+                }
+            }
+            
+            val scrollPosition = baseOffset + (currentIndex + 1) * (questionBaseHeight + 20) + descriptionsHeight
+            
+            // Add extra offset for category headers (approximate)
+            val categoryHeaderOffset = ((currentIndex + 1) / 3) * 50 // Assuming ~3 questions per category
+            
+            val targetPosition = (scrollPosition + categoryHeaderOffset)
+                .coerceAtMost(scrollState.maxValue)
+            
+            // If it's the last question, scroll to show the submit button
+            if (currentIndex == totalQuestions - 1) {
+                scrollState.animateScrollTo(scrollState.maxValue)
+            } else {
+                // Add extra offset to show a bit of the next question
+                // If next question has description visible, add more offset
+                val nextQuestionDescriptionOffset = if (descriptionStates[currentIndex + 1] == true) 100 else 0
+                scrollState.animateScrollTo(targetPosition + 200 + nextQuestionDescriptionOffset)
+            }
+        }
+    }
+
     // Handle back button press
     BackHandler {
-        // Check if we should navigate to a specific dashboard
         when (state?.message) {
             "admin_dashboard" -> navController.navigate(Screen.AdminDashboard.route) {
                 popUpTo(Screen.AdminDashboard.route) { inclusive = true }
@@ -98,7 +147,7 @@ fun ChecklistScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(padding)
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(scrollState)
                         ) {
                             // Keep VehicleProfileSummary
                             currentState.vehicle?.let { vehicle ->
@@ -108,6 +157,31 @@ fun ChecklistScreen(
                                 )
                             }
 
+                            // Add Timer Display
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Time Elapsed:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = currentState.formattedElapsedTime,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Divider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant
+                            )
+
                             // Add padding to the questionnaire section
                             Column(
                                 modifier = Modifier
@@ -116,22 +190,43 @@ fun ChecklistScreen(
                             ) {
                                 // Group items by category
                                 val groupedItems = currentState.checkItems?.groupBy { it.category }
+                                var totalIndex = 0
+                                
                                 groupedItems?.forEach { (category, items) ->
-                                    // Keep CategoryHeader
                                     CategoryHeader(
                                         categoryName = category,
                                         modifier = Modifier.padding(bottom = 1.dp)
                                     )
 
                                     items.forEach { item ->
+                                        val currentIndex = totalIndex
+                                        
                                         ChecklistQuestionItem(
                                             question = item,
-                                            onResponseChanged = viewModel::updateItemResponse,
+                                            onResponseChanged = { itemId, answer ->
+                                                viewModel.updateItemResponse(itemId, answer)
+                                                // Always scroll after answering
+                                                lastAnsweredIndex.value = currentIndex
+                                                // Add a small delay to ensure the UI updates first
+                                                scope.launch {
+                                                    kotlinx.coroutines.delay(100)
+                                                    scrollToNextQuestion(currentIndex, currentState.checkItems?.size ?: 0)
+                                                }
+                                            },
+                                            onDescriptionToggled = { isVisible ->
+                                                descriptionStates[currentIndex] = isVisible
+                                                if (isVisible) {
+                                                    scope.launch {
+                                                        kotlinx.coroutines.delay(100)
+                                                        scrollToNextQuestion(currentIndex, currentState.checkItems?.size ?: 0)
+                                                    }
+                                                }
+                                            },
                                             modifier = Modifier.padding(bottom = 1.dp)
                                         )
+                                        totalIndex++
                                     }
                                 }
-
 
                                 // Only show submit button when all items are answered
                                 if (currentState.showSubmitButton && currentState.allAnswered) {

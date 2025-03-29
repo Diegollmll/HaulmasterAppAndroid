@@ -23,6 +23,7 @@ import app.forku.presentation.common.components.ExpandableCard
 import app.forku.presentation.common.components.ContentCard
 import androidx.compose.ui.graphics.Color
 import app.forku.presentation.common.components.ForkuButton
+import app.forku.core.utils.keyboardAwareScroll
 
 @Composable
 fun IncidentFormContent(
@@ -31,11 +32,14 @@ fun IncidentFormContent(
     onAddPhoto: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scrollState = rememberScrollState()
+    
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(horizontal = 16.dp)
+            .keyboardAwareScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.height(8.dp))
         
