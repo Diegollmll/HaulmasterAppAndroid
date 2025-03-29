@@ -84,7 +84,8 @@ class SessionViewModel @Inject constructor(
                         it.copy(
                             session = endedSession,
                             isLoading = false,
-                            error = null
+                            error = null,
+                            sessionEnded = true
                         )
                     }
                 } else {
@@ -134,5 +135,9 @@ class SessionViewModel @Inject constructor(
     fun resetState() {
         _state.update { SessionState() }
         _canEndSession.value = false
+    }
+
+    fun resetSessionEndedState() {
+        _state.update { it.copy(sessionEnded = false) }
     }
 } 

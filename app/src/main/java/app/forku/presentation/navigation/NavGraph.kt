@@ -136,9 +136,14 @@ fun NavGraph(
         }
 
         composable(
-            route = Screen.Checklist.route + "?fromScanner={fromScanner}",
+            route = Screen.Checklist.route + "?checkId={checkId}&fromScanner={fromScanner}",
             arguments = listOf(
                 navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("checkId") { 
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
                 navArgument("fromScanner") { 
                     type = NavType.BoolType
                     defaultValue = false 
@@ -146,6 +151,7 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+            val checkId = backStackEntry.arguments?.getString("checkId")
             val fromScanner = backStackEntry.arguments?.getBoolean("fromScanner") ?: false
             val viewModel: ChecklistViewModel = hiltViewModel()
             

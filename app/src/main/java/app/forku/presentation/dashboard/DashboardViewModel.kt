@@ -144,8 +144,20 @@ class DashboardViewModel @Inject constructor(
             android.util.Log.d("DashboardViewModel", "Getting current session")
             val currentSession = vehicleSessionRepository.getCurrentSession()
 
+            // Get last session for current user
+            val lastSession = try {
+                if (currentSession == null) {
+                    vehicleSessionRepository.getOperatorSessionHistory()
+                        .filter { it.userId == currentUser.id }
+                        .maxByOrNull { it.startTime }
+                } else null
+            } catch (e: Exception) {
+                android.util.Log.e("DashboardViewModel", "Error getting last session", e)
+                null
+            }
+
             android.util.Log.d("DashboardViewModel", "Getting session vehicle")
-            val sessionVehicle = currentSession?.let { 
+            val sessionVehicle = (currentSession ?: lastSession)?.let { 
                 getVehicleUseCase(it.vehicleId)
             }
             
@@ -168,6 +180,7 @@ class DashboardViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     currentSession = currentSession,
+                    lastSession = lastSession,
                     displayVehicle = sessionVehicle ?: checkVehicle,
                     lastPreShiftCheck = lastPreShiftCheck,
                     isLoading = false,
@@ -228,7 +241,11 @@ class DashboardViewModel @Inject constructor(
                             isLoading = false,
                             currentSession = null,
                             displayVehicle = null,
-                            error = null
+                            error = null,
+                            // Clear active sessions for this user
+                            activeSessions = it.activeSessions.filter { session -> 
+                                session.id != currentSession.id 
+                            }
                         )
                     }
                     

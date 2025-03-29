@@ -6,7 +6,14 @@ sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
     data object QRScanner : Screen("qr_scanner")
     data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
-    data object Checklist : Screen("checklist/{vehicleId}")
+    data object Checklist : Screen("checklist/{vehicleId}") {
+        fun createRoute(vehicleId: String, checkId: String? = null): String = buildString {
+            append("checklist/$vehicleId")
+            if (checkId != null) {
+                append("?checkId=$checkId")
+            }
+        }
+    }
     data object CheckDetail : Screen("check_detail/{checkId}") {
         fun createRoute(checkId: String): String = "check_detail/$checkId"
     }

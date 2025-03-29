@@ -40,6 +40,7 @@ import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.vehicle.Vehicle
+import app.forku.presentation.common.components.LoadingOverlay
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -106,7 +107,7 @@ fun DashboardScreen(
         dashboardState = dashboardState,
         networkManager = networkManager,
         onRefresh = null  // Explicitly set to null to prevent auto-refresh on resume
-    ) { padding ->
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -121,7 +122,7 @@ fun DashboardScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
+                        .padding(paddingValues)
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -181,6 +182,18 @@ fun DashboardScreen(
                 state = pullRefreshState,
                 modifier = Modifier.align(Alignment.TopCenter)
             )
+
+            // Show loading overlay when loading or checking out
+            if (dashboardState.isLoading || isCheckoutLoading || sessionState.isLoading) {
+                LoadingOverlay(
+                    modifier = Modifier.fillMaxSize(),
+                    message = when {
+                        isCheckoutLoading -> "Checking out..."
+                        sessionState.isLoading -> "Processing session..."
+                        else -> "Loading..."
+                    }
+                )
+            }
         }
     }
 }
@@ -192,11 +205,11 @@ private fun CurrentUserSession(
     onNavigate: (String) -> Unit,
     sessionViewModel: SessionViewModel
 ) {
-    // Get current user's session
-    val userSession = remember(dashboardState.activeSessions, currentUser?.id) {
+    // Get current user's session or last session
+    val userSession = remember(dashboardState.activeSessions, dashboardState.lastSession, currentUser?.id) {
         dashboardState.activeSessions.find { session ->
             session.userId == currentUser?.id
-        }
+        } ?: dashboardState.lastSession
     }
 
     // Get the vehicle for the user's session
@@ -206,21 +219,42 @@ private fun CurrentUserSession(
         }
     }
 
-    // Show only the current user's session if it exists
+    // Collect session state
+    val sessionState by sessionViewModel.state.collectAsState()
+
+    // Effect to refresh dashboard when session ends
+    LaunchedEffect(sessionState.sessionEnded) {
+        if (sessionState.sessionEnded) {
+            // Reset session ended state
+            sessionViewModel.resetSessionEndedState()
+            // Refresh dashboard with loading to ensure UI updates
+            (dashboardState as? DashboardViewModel)?.refreshWithLoading()
+        }
+    }
+
+    // Show SessionCard if user has a current or previous session
     if (sessionVehicle != null && userSession != null) {
         SessionCard(
             vehicle = sessionVehicle,
             lastCheck = dashboardState.checks.find { it.vehicleId == sessionVehicle.id },
             user = currentUser,
-            currentSession = userSession,
+            currentSession = if (userSession.endTime == null) userSession else null,
             onCheckClick = { checkId ->
-                onNavigate(Screen.CheckDetail.createRoute(checkId))
+                val check = dashboardState.checks.find { it.id == checkId }
+                if (check?.status == "IN_PROGRESS") {
+                    onNavigate(Screen.Checklist.createRoute(
+                        vehicleId = check.vehicleId,
+                        checkId = checkId
+                    ))
+                } else {
+                    onNavigate(Screen.CheckDetail.createRoute(checkId))
+                }
             },
             currentUserRole = currentUser?.role ?: UserRole.OPERATOR,
             onEndSession = { sessionId ->
                 sessionViewModel.endSession(
                     sessionId = sessionId,
-                    isAdminClosure = true
+                    isAdminClosure = currentUser?.role == UserRole.ADMIN
                 )
             }
         )

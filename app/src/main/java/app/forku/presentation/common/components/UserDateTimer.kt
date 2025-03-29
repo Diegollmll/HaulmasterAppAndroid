@@ -19,13 +19,14 @@ fun UserDateTimer(
     modifier: Modifier = Modifier,
     initialDateTime: LocalDateTime = LocalDateTime.now(),
     sessionStartTime: LocalDateTime? = null,
+    isSessionActive: Boolean = true,
     fontSize: Int = 34
 ) {
     var dateTime by remember { mutableStateOf(initialDateTime) }
-    var elapsedTime by remember(sessionStartTime) { mutableStateOf("00:00:00") }
+    var elapsedTime by remember(sessionStartTime, isSessionActive) { mutableStateOf("00:00:00") }
     
-    LaunchedEffect(sessionStartTime) {
-        if (sessionStartTime != null) {
+    LaunchedEffect(sessionStartTime, isSessionActive) {
+        if (sessionStartTime != null && isSessionActive) {
             while(true) {
                 try {
                     val now = LocalDateTime.now()
@@ -42,7 +43,21 @@ fun UserDateTimer(
                 }
             }
         } else {
-            elapsedTime = "00:00:00"
+            // If session is not active, calculate final duration
+            if (sessionStartTime != null) {
+                try {
+                    val now = LocalDateTime.now()
+                    val duration = java.time.Duration.between(sessionStartTime, now)
+                    val hours = duration.toHours().absoluteValue
+                    val minutes = duration.toMinutes().absoluteValue % 60
+                    val seconds = duration.seconds.absoluteValue % 60
+                    elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                } catch (e: Exception) {
+                    android.util.Log.e("UserDateTimer", "Error calculating final duration", e)
+                }
+            } else {
+                elapsedTime = "00:00:00"
+            }
         }
     }
 

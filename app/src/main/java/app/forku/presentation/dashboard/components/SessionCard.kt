@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.presentation.session.SessionViewModel
+import app.forku.domain.model.session.VehicleSessionStatus
 
 @Composable
 fun SessionCard(
@@ -64,6 +65,7 @@ fun SessionCard(
             vehicle = vehicle,
             status = if (currentSession != null) VehicleStatus.IN_USE else vehicle?.status ?: VehicleStatus.AVAILABLE,
             user = user,
+            currentSession = currentSession,
             startDateTime = remember(currentSession?.startTime) {
                 currentSession?.startTime?.let {
                     try {
@@ -89,6 +91,7 @@ private fun SessionContent(
     vehicle: Vehicle?,
     status: VehicleStatus,
     user: User?,
+    currentSession: VehicleSession?,
     startDateTime: LocalDateTime?,
     lastCheck: PreShiftCheck?,
     isActive: Boolean = false,
@@ -103,10 +106,8 @@ private fun SessionContent(
             .fillMaxWidth()
             .padding(8.dp)
     ) {
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             user?.let {
@@ -130,32 +131,30 @@ private fun SessionContent(
 
             // Right Column - Vehicle Details and Timer
             Column(
-                modifier = Modifier
-                    .weight(1f),
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start
             ) {
                 vehicle?.let {
+                    Row(modifier = Modifier.padding(top = 4.dp)) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = "${it.codename}",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row {
+                        VehicleStatusIndicator(status = status)
+                    }
 
-                        Row(modifier = Modifier.padding(top = 4.dp)) {
-                            Text(
-                                modifier = Modifier.weight(1f),
-                                text = "${it.codename}",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row {
-                            VehicleStatusIndicator(status = status)
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row {
-                            UserDateTimer(
-                                modifier = Modifier.fillMaxWidth(),
-                                sessionStartTime = startDateTime
-                            )
-                        }
-
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row {
+                        UserDateTimer(
+                            modifier = Modifier.fillMaxWidth(),
+                            sessionStartTime = startDateTime,
+                            isSessionActive = currentSession?.status == VehicleSessionStatus.OPERATING && currentSession.endTime == null
+                        )
+                    }
                 }
 
                 Row(
@@ -175,13 +174,9 @@ private fun SessionContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable(
-                                        enabled = true,
+                                        enabled = lastCheck.id != null,
                                         onClick = {
-                                            if (lastCheck.status == CheckStatus.IN_PROGRESS.toString()) lastCheck.id?.let {
-                                                onCheckClick(
-                                                    it
-                                                )
-                                            }
+                                            lastCheck.id?.let { onCheckClick(it) }
                                         }
                                     )
                                     .padding(8.dp),
@@ -202,7 +197,6 @@ private fun SessionContent(
                                         ),
                                         color = getPreShiftStatusColor(lastCheck.status)
                                     )
-
                                 }
 
                                 Row {
@@ -213,9 +207,7 @@ private fun SessionContent(
                                         )
                                     )
                                 }
-
                             }
-
                         } else {
                             Text(
                                 text = "Press Check In to get started!",

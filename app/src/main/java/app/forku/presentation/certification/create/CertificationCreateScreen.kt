@@ -65,6 +65,8 @@ fun CertificationCreateScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .imePadding()
+                    .navigationBarsPadding()
                     .hideKeyboardOnTapOutside()
             ) {
                 when {
@@ -134,11 +136,13 @@ fun CertificationCreateScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(100.dp))
 
                             Button(
                                 onClick = { viewModel.createCertification() },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
                                 enabled = !state.isLoading && state.isValid
                             ) {
                                 Text("Create Certification")
