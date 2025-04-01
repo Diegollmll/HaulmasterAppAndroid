@@ -216,7 +216,7 @@ class IncidentReportViewModel @Inject constructor(
                 }
                 hasLoadedChecks = true
             } catch (e: Exception) {
-                _state.update { it.copy(error = "Failed to load preshift check") }
+                _state.update { it.copy(error = "Failed to load preshift checklist") }
             }
         }
     }

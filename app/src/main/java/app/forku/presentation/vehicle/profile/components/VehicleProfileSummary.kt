@@ -277,7 +277,7 @@ fun VehicleDetailsSection(
                 Row {
                     Column {
                         Text(
-                            text = "Last Check ",
+                            text = "Checklist ",
                             color = Color.Gray,
                             fontSize = 12.sp
                         )

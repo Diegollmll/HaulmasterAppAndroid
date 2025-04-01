@@ -130,7 +130,7 @@ fun ChecklistScreen(
         showTopBar = true,
         showBottomBar = false,
         viewModel = viewModel,
-        topBarTitle = "Pre-Shift Check",
+        topBarTitle = "Pre-Shift Checklist",
         networkManager = networkManager,
         onRefresh = { viewModel.loadChecklistData() },
         content = { padding ->

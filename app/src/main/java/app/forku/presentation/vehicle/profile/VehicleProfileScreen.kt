@@ -184,7 +184,7 @@ fun VehicleProfileScreen(
 
                                 // Options available to all users
                                 add(DropdownMenuOption(
-                                    text = if (state.hasActivePreShiftCheck) "Continue Pre-Shift Check" else "Start Pre-Shift Check",
+                                    text = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist",
                                     onClick = { onPreShiftCheck(vehicle?.id ?: "") },
                                     leadingIcon = Icons.Default.CheckCircle,
                                     enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession

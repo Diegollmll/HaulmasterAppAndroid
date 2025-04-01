@@ -186,14 +186,14 @@ class ChecklistRepositoryImpl @Inject constructor(
     override suspend fun createGlobalCheck(check: PreShiftCheck): PreShiftCheck {
         val dto = check.toDto()
         val response = api.createGlobalCheck(dto)
-        if (!response.isSuccessful) throw Exception("Failed to save global check")
+        if (!response.isSuccessful) throw Exception("Failed to save global checklist")
         return response.body()?.toDomain() ?: throw Exception("Failed to save global check: Empty response")
     }
 
     override suspend fun updateGlobalCheck(checkId: String, check: PreShiftCheck): PreShiftCheck {
         val dto = check.toDto()
         val response = api.updateGlobalCheck(checkId, dto)
-        if (!response.isSuccessful) throw Exception("Failed to update global check")
+        if (!response.isSuccessful) throw Exception("Failed to update global checklist")
         return response.body()?.toDomain() ?: throw Exception("Failed to update global check: Empty response")
     }
 

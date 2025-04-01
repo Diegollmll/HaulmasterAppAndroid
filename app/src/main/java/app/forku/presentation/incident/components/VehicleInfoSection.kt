@@ -93,7 +93,7 @@ fun VehicleInfoSection(
         CustomOutlinedTextField(
             value = state.lastPreshiftCheck?.let { getRelativeTimeSpanFromDateTime(it) } ?: "No preshift check recorded",
             onValueChange = { /* Read-only */ },
-            label = "Last Check",
+            label = "Checklist",
             enabled = false,
             modifier = Modifier
                 .fillMaxWidth()

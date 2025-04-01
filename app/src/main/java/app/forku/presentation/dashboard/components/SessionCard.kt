@@ -183,7 +183,7 @@ private fun SessionContent(
                             ) {
                                 Row {
                                     Text(
-                                        text = "Last Check",
+                                        text = "Checklist",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontSize = 11.sp
                                         )

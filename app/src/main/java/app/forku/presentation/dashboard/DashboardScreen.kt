@@ -455,13 +455,13 @@ private fun DashboardNavigationButtons(
                     imageVector = if (hasActiveSession) Icons.Default.Close else Icons.Default.QrCodeScanner,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha.coerceIn(0f, 1f)),
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(36.dp)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (hasActiveSession) "Check Out" else "Check In",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp
+                        fontSize = 16.sp
                     ),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = iconAlpha.coerceIn(0f, 1f))
                 )

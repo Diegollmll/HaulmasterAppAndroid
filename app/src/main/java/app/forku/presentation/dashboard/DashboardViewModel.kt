@@ -161,11 +161,11 @@ class DashboardViewModel @Inject constructor(
                 getVehicleUseCase(it.vehicleId)
             }
             
-            android.util.Log.d("DashboardViewModel", "Getting last pre-shift check")
+            android.util.Log.d("DashboardViewModel", "Getting last pre-shift checklist")
             val lastPreShiftCheck = try {
                 getLastPreShiftCheckCurrentUserUseCase()
             } catch (e: Exception) {
-                android.util.Log.e("DashboardViewModel", "Error getting last pre-shift check", e)
+                android.util.Log.e("DashboardViewModel", "Error getting last pre-shift checklist", e)
                 null
             }
             

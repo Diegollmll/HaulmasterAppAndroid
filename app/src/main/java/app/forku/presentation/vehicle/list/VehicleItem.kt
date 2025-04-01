@@ -208,7 +208,7 @@ fun VehicleItem(
                         modifier = Modifier.padding(top = 1.dp)
                     ) {
                         Text(
-                            text = "Last Check: ",
+                            text = "Checklist: ",
                             style = TextStyle(
                                 fontSize = textConfigs.preshiftCheck.fontSize.sp,
                                 lineHeight = textConfigs.preshiftCheck.lineHeight.sp,
