@@ -158,7 +158,9 @@ private fun CheckCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Last updated: ${getRelativeTimeSpanString(check.lastCheckDateTime)}",
+                text = check.lastCheckDateTime?.let { 
+                    "Last updated: ${getRelativeTimeSpanString(it)}"
+                } ?: "No update time available",
                 color = Color.Gray,
                 fontSize = 12.sp
             )

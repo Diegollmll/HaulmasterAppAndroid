@@ -30,7 +30,8 @@ import app.forku.presentation.navigation.Screen
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-
+import app.forku.presentation.common.components.LocationPermissionHandler
+import app.forku.core.location.LocationManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +39,8 @@ fun ChecklistScreen(
     viewModel: ChecklistViewModel = hiltViewModel(),
     navController: NavController,
     onBackPressed: () -> Unit,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    locationManager: LocationManager
 ) {
     var showConfirmationDialog = remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
@@ -48,6 +50,14 @@ fun ChecklistScreen(
     // Remember the last answered question index and description states
     val lastAnsweredIndex = remember { mutableStateOf(-1) }
     val descriptionStates = remember { mutableMapOf<Int, Boolean>() }
+    
+    // Add LocationPermissionHandler
+    LocationPermissionHandler(
+        onPermissionsGranted = viewModel::onLocationPermissionGranted,
+        onPermissionsDenied = viewModel::onLocationPermissionDenied,
+        onLocationSettingsDenied = viewModel::onLocationSettingsDenied,
+        locationSettingsException = locationManager.locationState.collectAsState().value.locationSettingsException
+    )
     
     // Function to scroll to the next question with better calculation
     fun scrollToNextQuestion(currentIndex: Int, totalQuestions: Int) {

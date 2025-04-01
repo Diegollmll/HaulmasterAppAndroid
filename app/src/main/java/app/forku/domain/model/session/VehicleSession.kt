@@ -9,6 +9,8 @@ data class VehicleSession(
     val status: VehicleSessionStatus,
     val startLocation: String?,
     val endLocation: String?,
+    val startLocationCoordinates: String?,
+    val endLocationCoordinates: String?,
     val durationMinutes: Int?,
     val timestamp: String,
     val closeMethod: VehicleSessionClosedMethod,

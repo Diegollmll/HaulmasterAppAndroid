@@ -1,5 +1,6 @@
 package app.forku.di
 
+import app.forku.core.location.LocationManager
 import app.forku.domain.repository.vehicle.VehicleStatusChecker
 import app.forku.data.api.GeneralApi
 import app.forku.data.datastore.AuthDataStore
@@ -74,6 +75,24 @@ object RepositoryModule {
 
     @Provides
     @Singleton
+    fun provideChecklistRepository(
+        api: GeneralApi,
+        authDataStore: AuthDataStore,
+        validateChecklistUseCase: ValidateChecklistUseCase,
+        checklistStatusNotifier: ChecklistStatusNotifier,
+        locationManager: LocationManager
+    ): ChecklistRepository {
+        return ChecklistRepositoryImpl(
+            api = api,
+            authDataStore = authDataStore,
+            validateChecklistUseCase = validateChecklistUseCase,
+            checklistStatusNotifier = checklistStatusNotifier,
+            locationManager = locationManager
+        )
+    }
+
+    @Provides
+    @Singleton
     fun provideVehicleValidationService(
         api: GeneralApi,
         sessionStatusChecker: SessionStatusChecker,
@@ -81,26 +100,10 @@ object RepositoryModule {
         vehicleStatusDeterminer: VehicleStatusDeterminer
     ): VehicleValidationService {
         return VehicleValidationServiceImpl(
-            api, 
-            sessionStatusChecker, 
-            checklistRepository,
-            vehicleStatusDeterminer
-        )
-    }
-
-    @Provides
-    @Singleton
-    fun provideChecklistRepository(
-        api: GeneralApi,
-        authDataStore: AuthDataStore,
-        validateChecklistUseCase: ValidateChecklistUseCase,
-        checklistStatusNotifier: ChecklistStatusNotifier
-    ): ChecklistRepository {
-        return ChecklistRepositoryImpl(
-            api, 
-            authDataStore, 
-            validateChecklistUseCase,
-            checklistStatusNotifier
+            api = api,
+            sessionStatusChecker = sessionStatusChecker,
+            checklistRepository = checklistRepository,
+            vehicleStatusDeterminer = vehicleStatusDeterminer
         )
     }
 
@@ -119,9 +122,16 @@ object RepositoryModule {
         api: GeneralApi,
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
-        checklistRepository: ChecklistRepository
+        checklistRepository: ChecklistRepository,
+        locationManager: LocationManager
     ): VehicleSessionRepository {
-        return VehicleSessionRepositoryImpl(api, authDataStore, vehicleStatusRepository, checklistRepository)
+        return VehicleSessionRepositoryImpl(
+            api = api,
+            authDataStore = authDataStore,
+            vehicleStatusRepository = vehicleStatusRepository,
+            checklistRepository = checklistRepository,
+            locationManager = locationManager
+        )
     }
 
     @Provides
@@ -145,7 +155,12 @@ object RepositoryModule {
         validateChecklistUseCase: ValidateChecklistUseCase,
         vehicleStatusRepository: VehicleStatusRepository
     ): VehicleRepository {
-        return VehicleRepositoryImpl(api, authDataStore, validateChecklistUseCase, vehicleStatusRepository)
+        return VehicleRepositoryImpl(
+            api = api,
+            authDataStore = authDataStore,
+            validateChecklistUseCase = validateChecklistUseCase,
+            vehicleStatusRepository = vehicleStatusRepository
+        )
     }
 
     @Provides

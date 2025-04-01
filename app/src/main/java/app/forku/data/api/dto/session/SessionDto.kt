@@ -11,6 +11,8 @@ data class SessionDto(
     val status: String,
     val startLocation: String?,
     val endLocation: String?,
+    val startLocationCoordinates: String?,
+    val endLocationCoordinates: String?,
     val timestamp: String,
     val closeMethod: String? = null,
     val closedBy: String? = null,

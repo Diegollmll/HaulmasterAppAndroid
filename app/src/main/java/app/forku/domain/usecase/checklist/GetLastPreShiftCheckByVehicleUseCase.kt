@@ -11,6 +11,8 @@ class GetLastPreShiftCheckByVehicleUseCase @Inject constructor(
         val allChecks = checklistRepository.getAllChecks()
         return allChecks
             .filter { check -> check.vehicleId == vehicleId }
-            .maxByOrNull { it.lastCheckDateTime }
+            .maxByOrNull { check -> 
+                check.lastCheckDateTime ?: "" // Provide empty string as fallback for null values
+            }
     }
 } 

@@ -5,11 +5,13 @@ import java.time.LocalDateTime
 
 data class PreShiftCheck(
     val id: String,
-    val userId: String,
     val vehicleId: String,
-    val startDateTime: String,
-    val endDateTime: String?,
-    val lastCheckDateTime: String,
+    val userId: String,
+    val items: List<ChecklistItem>,
     val status: String,
-    val items: List<ChecklistItem> = emptyList()
+    val startDateTime: String,
+    val endDateTime: String? = null,
+    val lastCheckDateTime: String? = null,
+    val location: String? = null,
+    val locationCoordinates: String? = null
 ) 

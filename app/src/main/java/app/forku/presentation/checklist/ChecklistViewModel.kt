@@ -17,6 +17,7 @@ import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.usecase.vehicle.GetVehicleStatusUseCase
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.user.UserRepository
+import app.forku.core.location.LocationManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -35,6 +37,7 @@ class ChecklistViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val checklistRepository: ChecklistRepository,
     private val vehicleSessionRepository: VehicleSessionRepository,
+    private val locationManager: LocationManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -50,6 +53,19 @@ class ChecklistViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // Start location updates
+            locationManager.startLocationUpdates()
+            
+            // Observe location state
+            locationManager.locationState.collectLatest { locationState ->
+                locationState.error?.let { error ->
+                    _state.update { it?.copy(
+                        showErrorModal = true,
+                        errorModalMessage = "Error de ubicación: $error"
+                    )}
+                }
+            }
+
             // Prevent creating new checks if there's an active session
             val currentSession = vehicleSessionRepository.getCurrentSession()
             if (currentSession != null) {
@@ -65,6 +81,36 @@ class ChecklistViewModel @Inject constructor(
             }
             startTimer()
         }
+    }
+
+    // Add location permission handlers
+    fun onLocationPermissionGranted() {
+        viewModelScope.launch {
+            try {
+                locationManager.startLocationUpdates()
+                // Force a single location update
+                locationManager.requestSingleUpdate()
+            } catch (e: Exception) {
+                _state.update { it?.copy(
+                    showErrorModal = true,
+                    errorModalMessage = "Error al iniciar la ubicación: ${e.message}"
+                )}
+            }
+        }
+    }
+
+    fun onLocationPermissionDenied() {
+        _state.update { it?.copy(
+            showErrorModal = true,
+            errorModalMessage = "Se requiere el permiso de ubicación para completar el checklist"
+        )}
+    }
+
+    fun onLocationSettingsDenied() {
+        _state.update { it?.copy(
+            showErrorModal = true,
+            errorModalMessage = "Se requiere activar la ubicación para completar el checklist"
+        )}
     }
 
     private fun startTimer() {
@@ -299,17 +345,33 @@ class ChecklistViewModel @Inject constructor(
                     return@launch
                 }
 
-                android.util.Log.e("appflow", "Checklist validation.status: ${validation.status}")
-                android.util.Log.e("appflow", "Checklist validation.isComplete: ${validation.isComplete}")
-                android.util.Log.e("appflow", "Checklist validation.isBlocked: ${validation.isBlocked}")
-                android.util.Log.e("appflow", "Checklist validation.canStartSession: ${validation.canStartSession}")
+                // Get current location
+                val locationState = locationManager.locationState.value
+                
+                // Verify we have location before proceeding
+                if (locationState.location == null) {
+                    _state.update { 
+                        it?.copy(
+                            showErrorModal = true,
+                            errorModalMessage = "Se requiere la ubicación para enviar el checklist. Por favor verifica que la ubicación esté activada.",
+                            isSubmitting = false
+                        )
+                    }
+                    return@launch
+                }
+
+                val locationCoordinates = if (locationState.latitude != null && locationState.longitude != null) {
+                    "${locationState.latitude},${locationState.longitude}"
+                } else null
 
                 // Determine final status based on validation and completion
                 val updatedCheck = submitChecklistUseCase(
                     vehicleId = vehicleId.toString(),
                     items = currentItems,
                     checkId = state.value?.checkId ?: "",
-                    status = validation.status.name
+                    status = validation.status.name,
+                    location = locationState.location,
+                    locationCoordinates = locationCoordinates
                 )
 
                 // If checklist passed, start the session

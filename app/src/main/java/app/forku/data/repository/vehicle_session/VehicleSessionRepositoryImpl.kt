@@ -15,13 +15,15 @@ import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
+import app.forku.core.location.LocationManager
 import javax.inject.Inject
 
 class VehicleSessionRepositoryImpl @Inject constructor(
     private val api: GeneralApi,
     private val authDataStore: AuthDataStore,
     private val vehicleStatusRepository: VehicleStatusRepository,
-    private val checklistRepository: ChecklistRepository
+    private val checklistRepository: ChecklistRepository,
+    private val locationManager: LocationManager
 ) : VehicleSessionRepository {
     override suspend fun getCurrentSession(): VehicleSession? {
         val userId = authDataStore.getCurrentUser()?.id ?: return null
@@ -73,6 +75,12 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             val currentDateTime = java.time.Instant.now()
                 .atZone(java.time.ZoneId.systemDefault())
                 .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+
+            // Get current location
+            val locationState = locationManager.locationState.value
+            val locationCoordinates = if (locationState.latitude != null && locationState.longitude != null) {
+                "${locationState.latitude},${locationState.longitude}"
+            } else null
             
             // Create session
             val response = api.createSession(
@@ -82,7 +90,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                     userId = currentUser.id,
                     startTime = currentDateTime,
                     timestamp = currentDateTime,
-                    status = VehicleSessionStatus.OPERATING.toString()
+                    status = VehicleSessionStatus.OPERATING.toString(),
+                    startLocationCoordinates = locationCoordinates,
+                    startLocation = locationState.location
                 )
             )
 
@@ -139,6 +149,12 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             val currentDateTime = java.time.Instant.now()
                 .atZone(java.time.ZoneId.systemDefault())
                 .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+
+            // Get current location for end coordinates
+            val locationState = locationManager.locationState.value
+            val locationCoordinates = if (locationState.latitude != null && locationState.longitude != null) {
+                "${locationState.latitude},${locationState.longitude}"
+            } else null
             
             val updatedSession = existingSession.copy(
                 endTime = currentDateTime,
@@ -146,7 +162,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 status = VehicleSessionStatus.NOT_OPERATING.toString(),
                 closeMethod = closeMethod.name,
                 closedBy = closedBy,
-                notes = notes
+                notes = notes,
+                endLocationCoordinates = locationCoordinates,
+                endLocation = locationState.location
             )
             
             val response = api.updateSession(

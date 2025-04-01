@@ -1,4 +1,4 @@
-package app.forku.presentation.certification.create
+package app.forku.presentation.certification
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,8 +20,9 @@ import app.forku.core.utils.keyboardAwareScroll
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CertificationCreateScreen(
-    viewModel: CertificationCreateViewModel = hiltViewModel(),
+fun CertificationScreen(
+    viewModel: CertificationViewModel = hiltViewModel(),
+    certificationId: String? = null,
     navController: NavController,
     networkManager: NetworkConnectivityManager
 ) {
@@ -29,6 +30,18 @@ fun CertificationCreateScreen(
     var showIssueDatePicker by remember { mutableStateOf(false) }
     var showExpiryDatePicker by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(certificationId) {
+        if (certificationId != null) {
+            viewModel.loadCertification(certificationId)
+        }
+    }
+
+    LaunchedEffect(state.isCompleted) {
+        if (state.isCompleted) {
+            navController.popBackStack()
+        }
+    }
 
     if (showIssueDatePicker) {
         DatePickerDialog(
@@ -50,16 +63,10 @@ fun CertificationCreateScreen(
         )
     }
 
-    LaunchedEffect(state.isCreated) {
-        if (state.isCreated) {
-            navController.popBackStack()
-        }
-    }
-
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = "Create Certification",
+        topBarTitle = if (certificationId != null) "Edit Certification" else "Create Certification",
         content = { padding ->
             Box(
                 modifier = Modifier
@@ -131,21 +138,21 @@ fun CertificationCreateScreen(
 
                             OutlinedTextField(
                                 value = state.certificationCode ?: "",
-                                onValueChange = { viewModel.updateCertificationCode(it) },
+                                onValueChange = { viewModel.updateCertificationCode(it.replace("\n", " ").replace("\r", " ")) },
                                 label = { Text("Certification Code") },
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(100.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Button(
-                                onClick = { viewModel.createCertification() },
+                                onClick = { viewModel.saveCertification() },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 16.dp),
                                 enabled = !state.isLoading && state.isValid
                             ) {
-                                Text("Create Certification")
+                                Text(if (certificationId != null) "Save Changes" else "Create Certification")
                             }
                         }
                     }

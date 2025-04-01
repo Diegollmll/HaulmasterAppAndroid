@@ -20,6 +20,8 @@ class GetLastPreShiftCheckCurrentUserUseCase @Inject constructor(
         }
 
         // Get the most recent check, return null if none found
-        return userVehicleChecks.maxByOrNull { it.lastCheckDateTime }
+        return userVehicleChecks.maxByOrNull { check -> 
+            check.lastCheckDateTime ?: "" // Provide empty string as fallback for null values
+        }
     }
 } 

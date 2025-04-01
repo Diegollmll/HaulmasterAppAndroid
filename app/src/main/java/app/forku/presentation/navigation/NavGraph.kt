@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import app.forku.core.network.NetworkConnectivityManager
+import app.forku.core.location.LocationManager
 import app.forku.presentation.user.login.LoginScreen
 import app.forku.presentation.dashboard.DashboardScreen
 import app.forku.presentation.checklist.ChecklistScreen
@@ -33,10 +34,9 @@ import app.forku.presentation.dashboard.AdminDashboardScreen
 import app.forku.presentation.dashboard.DashboardViewModel
 import app.forku.presentation.user.login.LoginState
 import app.forku.domain.model.user.UserRole
+import app.forku.presentation.certification.CertificationScreen
 import app.forku.presentation.certification.list.CertificationsScreen
 import app.forku.presentation.certification.detail.CertificationDetailScreen
-import app.forku.presentation.certification.edit.CertificationEditScreen
-import app.forku.presentation.certification.create.CertificationCreateScreen
 import app.forku.presentation.checklist.AllChecklistScreen
 import app.forku.presentation.notification.NotificationScreen
 import app.forku.presentation.user.operator.OperatorsListScreen
@@ -49,7 +49,8 @@ import app.forku.presentation.safety.SafetyAlertsScreen
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Tour.route,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    locationManager: LocationManager
 ) {
     val viewModel = hiltViewModel<DashboardViewModel>()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -167,7 +168,8 @@ fun NavGraph(
                         navController.popBackStack()
                     }
                 },
-                networkManager = networkManager
+                networkManager = networkManager,
+                locationManager = locationManager
             )
         }
 
@@ -413,7 +415,7 @@ fun NavGraph(
         ) { backStackEntry ->
             val certificationId = backStackEntry.arguments?.getString("certificationId") 
                 ?: return@composable
-            CertificationEditScreen(
+            CertificationScreen(
                 certificationId = certificationId,
                 navController = navController,
                 networkManager = networkManager
@@ -421,7 +423,7 @@ fun NavGraph(
         }
 
         composable(Screen.CertificationCreate.route) {
-            CertificationCreateScreen(
+            CertificationScreen(
                 navController = navController,
                 networkManager = networkManager
             )

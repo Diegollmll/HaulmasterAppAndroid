@@ -57,7 +57,7 @@ class SafetyAlertsViewModel @Inject constructor(
                                 description = item.description,
                                 operatorId = check.userId,
                                 operatorName = "${operator?.firstName?.first() ?: ""}. ${operator?.lastName ?: "Unknown"}",
-                                date = parseDateTime(check.lastCheckDateTime)
+                                date = check.lastCheckDateTime?.let { parseDateTime(it) } ?: "Date not available"
                             )
                             alerts.add(alert)
                         }

@@ -12,7 +12,9 @@ interface ChecklistRepository {
         vehicleId: String,
         checkItems: List<ChecklistItem>,
         checkId: String?,
-        status: String = CheckStatus.IN_PROGRESS.toString()
+        status: String = CheckStatus.IN_PROGRESS.toString(),
+        location: String? = null,
+        locationCoordinates: String? = null
     ): PreShiftCheck
     
     // New methods for global checks endpoint

@@ -13,13 +13,17 @@ class SubmitChecklistUseCase @Inject constructor(
         vehicleId: String,
         items: List<ChecklistItem>,
         checkId: String? = null,
-        status: String = CheckStatus.IN_PROGRESS.toString()
+        status: String? = null,
+        location: String? = null,
+        locationCoordinates: String? = null
     ): PreShiftCheck {
         return checklistRepository.submitPreShiftCheck(
             vehicleId = vehicleId,
             checkItems = items,
             checkId = checkId,
-            status = status
+            status = status ?: CheckStatus.IN_PROGRESS.toString(),
+            location = location,
+            locationCoordinates = locationCoordinates
         )
     }
 } 

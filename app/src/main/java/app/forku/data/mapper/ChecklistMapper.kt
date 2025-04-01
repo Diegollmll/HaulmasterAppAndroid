@@ -64,13 +64,15 @@ fun Checklist.toRequestDto(): List<PerformChecklistItemRequestDto> {
 fun PreShiftCheck.toDto(): PreShiftCheckDto {
     return PreShiftCheckDto(
         id = id,
-        startDateTime = startDateTime,
-        endDateTime = endDateTime,
-        lastCheckDateTime = lastCheckDateTime,
-        status = status,
         userId = userId,
         vehicleId = vehicleId,
-        items = items.map { it.toDto() }
+        items = items.map { it.toDto() },
+        status = status ?: CheckStatus.IN_PROGRESS.toString(),
+        startDateTime = startDateTime ?: "",
+        endDateTime = endDateTime,
+        lastCheckDateTime = lastCheckDateTime ?: "",
+        location = location,
+        locationCoordinates = locationCoordinates
     )
 }
 
@@ -82,28 +84,17 @@ fun PreShiftCheckDto?.toDomain(): PreShiftCheck? {
             id = id ?: "",
             userId = userId ?: "",
             vehicleId = vehicleId ?: "",
-            status = status ?: CheckStatus.IN_PROGRESS.toString(),
             items = items?.map { it.toDomain() } ?: emptyList(),
+            status = status ?: CheckStatus.IN_PROGRESS.toString(),
             startDateTime = startDateTime ?: "",
-            lastCheckDateTime = lastCheckDateTime ?: "",
-            endDateTime = endDateTime ?: ""
+            endDateTime = endDateTime,
+            lastCheckDateTime = lastCheckDateTime,
+            location = location,
+            locationCoordinates = locationCoordinates
         )
     } catch (e: Exception) {
         android.util.Log.e("ChecklistMapper", "Error mapping PreShiftCheckDto to domain", e)
         null
-    }
-}
-
-fun List<PreShiftCheckDto>?.toDomain(): List<PreShiftCheck> {
-    if (this == null) return emptyList()
-    
-    return mapNotNull { dto ->
-        try {
-            dto.toDomain()
-        } catch (e: Exception) {
-            android.util.Log.e("ChecklistMapper", "Error mapping PreShiftCheckDto to domain", e)
-            null
-        }
     }
 }
 

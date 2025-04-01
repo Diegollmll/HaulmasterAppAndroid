@@ -28,6 +28,7 @@ import app.forku.presentation.common.theme.BackgroundGray
 import androidx.lifecycle.lifecycleScope
 import app.forku.core.network.NetworkConnectivityManager
 import kotlinx.coroutines.launch
+import app.forku.core.location.LocationManager
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -39,6 +40,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var networkManager: NetworkConnectivityManager
+
+    @Inject
+    lateinit var locationManager: LocationManager
 
     private val loginViewModel: LoginViewModel by viewModels()
 
@@ -78,7 +82,8 @@ class MainActivity : ComponentActivity() {
                                 loginState is LoginState.Success || hasToken -> Screen.Dashboard.route
                                 else -> Screen.Login.route
                             },
-                            networkManager = networkManager
+                            networkManager = networkManager,
+                            locationManager = locationManager
                         )
                     }
                 }

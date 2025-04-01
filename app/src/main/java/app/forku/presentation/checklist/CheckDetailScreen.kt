@@ -82,11 +82,17 @@ fun CheckDetailScreen(
 
                                     Divider()
 
-                                    InfoRow("Vehicle", check.vehicleCodename)
-                                    InfoRow("Operator", check.operatorName)
+                                    InfoRow(
+                                        label = "Vehicle",
+                                        check.vehicleCodename
+                                    )
+                                    InfoRow(
+                                        label = "Operator",
+                                        check.operatorName
+                                    )
                                     InfoRow(
                                         label = "Date",
-                                        value = getRelativeTimeSpanString(check.lastCheckDateTime),
+                                        value = check.lastCheckDateTime?.let { getRelativeTimeSpanString(it) } ?: "Not available",
                                         valueColor = MaterialTheme.colorScheme.primary
                                     )
                                 }

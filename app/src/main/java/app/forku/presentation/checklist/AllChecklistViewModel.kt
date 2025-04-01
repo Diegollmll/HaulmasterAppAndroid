@@ -20,7 +20,7 @@ data class PreShiftCheckState(
     val vehicleCodename: String,
     val operatorName: String,
     val status: String,
-    val lastCheckDateTime: String
+    val lastCheckDateTime: String? = null
 )
 
 data class AllChecklistState(

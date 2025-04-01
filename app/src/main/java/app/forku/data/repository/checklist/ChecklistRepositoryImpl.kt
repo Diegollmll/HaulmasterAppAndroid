@@ -14,6 +14,7 @@ import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.CheckStatus
 import java.time.Instant
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
+import app.forku.core.location.LocationManager
 
 
 
@@ -21,7 +22,8 @@ class ChecklistRepositoryImpl @Inject constructor(
     private val api: GeneralApi,
     private val authDataStore: AuthDataStore,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
-    private val checklistStatusNotifier: ChecklistStatusNotifier
+    private val checklistStatusNotifier: ChecklistStatusNotifier,
+    private val locationManager: LocationManager
 ) : ChecklistRepository {
 
     companion object {
@@ -84,9 +86,13 @@ class ChecklistRepositoryImpl @Inject constructor(
         vehicleId: String,
         checkItems: List<ChecklistItem>,
         checkId: String?,
-        status: String
+        status: String,
+        location: String?,
+        locationCoordinates: String?
     ): PreShiftCheck {
-        val userId = authDataStore.getCurrentUser()?.id ?: throw Exception("User not logged in")
+        val userId = authDataStore.getCurrentUser()?.id 
+            ?: throw Exception("User not logged in")
+
         val currentDateTime = java.time.Instant.now()
             .atZone(java.time.ZoneId.systemDefault())
             .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
@@ -102,7 +108,9 @@ class ChecklistRepositoryImpl @Inject constructor(
                 userId = userId,
                 startDateTime = currentDateTime,
                 lastCheckDateTime = currentDateTime,
-                endDateTime = null
+                endDateTime = null,
+                location = location,
+                locationCoordinates = locationCoordinates
             )
             createGlobalCheck(newCheck).also {
                 updateVehicleStatusForCheck(vehicleId, status)
@@ -115,7 +123,9 @@ class ChecklistRepositoryImpl @Inject constructor(
                 status = status,
                 lastCheckDateTime = currentDateTime,
                 endDateTime = if (status == CheckStatus.COMPLETED_PASS.toString() || 
-                                status == CheckStatus.COMPLETED_FAIL.toString()) currentDateTime else null
+                                status == CheckStatus.COMPLETED_FAIL.toString()) currentDateTime else null,
+                location = location,
+                locationCoordinates = locationCoordinates
             )
             updateGlobalCheck(checkId, updatedCheck).also {
                 updateVehicleStatusForCheck(vehicleId, status)
