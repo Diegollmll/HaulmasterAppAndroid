@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -121,22 +123,40 @@ class ChecklistViewModel @Inject constructor(
                 _state.value?.let { currentState ->
                     if (!currentState.isCompleted && currentState.startDateTime != null) {
                         try {
-                            // Parse the date using ISO format and system default timezone
-                            val formatter = java.time.format.DateTimeFormatter.ISO_DATE_TIME
-                            val startInstant = java.time.LocalDateTime.parse(currentState.startDateTime, formatter)
-                                .atZone(java.time.ZoneId.systemDefault())
-                                .toInstant()
+                            val startDateTime = currentState.startDateTime
+                            android.util.Log.d("ChecklistViewModel", "Timer - Current startDateTime: $startDateTime")
                             
-                            val newElapsedTime = System.currentTimeMillis() - startInstant.toEpochMilli()
+                            // Parse the date using ZonedDateTime first, then convert to Instant
+                            val startTimeMillis = try {
+                                val zonedDateTime = java.time.ZonedDateTime.parse(startDateTime)
+                                zonedDateTime.toInstant().toEpochMilli()
+                            } catch (e: Exception) {
+                                android.util.Log.e("ChecklistViewModel", "Failed to parse date: $startDateTime", e)
+                                // Try parsing as Instant directly if ZonedDateTime fails
+                                try {
+                                    val instantStr = startDateTime.substringBefore("[")
+                                    java.time.Instant.parse(instantStr).toEpochMilli()
+                                } catch (e2: Exception) {
+                                    android.util.Log.e("ChecklistViewModel", "Failed to parse as Instant: $startDateTime", e2)
+                                    System.currentTimeMillis() // Use current time as fallback
+                                }
+                            }
                             
-                            android.util.Log.d("ChecklistViewModel", "Start time: ${currentState.startDateTime}")
-                            android.util.Log.d("ChecklistViewModel", "Current time: ${System.currentTimeMillis()}")
-                            android.util.Log.d("ChecklistViewModel", "Elapsed time: $newElapsedTime")
+                            val newElapsedTime = System.currentTimeMillis() - startTimeMillis
+                            android.util.Log.d("ChecklistViewModel", "Timer - Start time millis: $startTimeMillis")
+                            android.util.Log.d("ChecklistViewModel", "Timer - Current time millis: ${System.currentTimeMillis()}")
+                            android.util.Log.d("ChecklistViewModel", "Timer - Calculated elapsed time: $newElapsedTime ms")
                             
-                            _state.value = currentState.copy(elapsedTime = newElapsedTime)
+                            _state.update { state -> 
+                                state?.copy(elapsedTime = newElapsedTime.coerceAtLeast(0))
+                            }
                         } catch (e: Exception) {
-                            android.util.Log.e("ChecklistViewModel", "Error calculating elapsed time: ${e.message}", e)
+                            android.util.Log.e("ChecklistViewModel", "Error updating timer", e)
                         }
+                    } else {
+                        android.util.Log.d("ChecklistViewModel", "Timer - Check completed or no start time available")
+                        android.util.Log.d("ChecklistViewModel", "Timer - isCompleted: ${currentState.isCompleted}")
+                        android.util.Log.d("ChecklistViewModel", "Timer - startDateTime: ${currentState.startDateTime}")
                     }
                 }
             }
@@ -149,7 +169,7 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun loadChecklistData() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 // 1. Obtener datos del checklist
                 val checklists = getChecklistUseCase(vehicleId.toString())
@@ -162,12 +182,29 @@ class ChecklistViewModel @Inject constructor(
 
                 // 2. Crear o recuperar el check
                 val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString())
+                
+                // Get current time in ISO format
+                val currentDateTime = java.time.Instant.now().toString()
+                android.util.Log.d("ChecklistViewModel", "Setting initial startDateTime: $currentDateTime")
+
                 val checkId = if (lastCheck?.status == CheckStatus.IN_PROGRESS.toString()) {
                     lastCheck.id
                 } else {
+                    // Get current location before creating new check
+                    val locationState = locationManager.locationState.value
+                    android.util.Log.d("ChecklistViewModel", "Location state during check creation: $locationState")
+                    
+                    // Request a single location update if we don't have location
+                    if (locationState.location == null) {
+                        android.util.Log.w("ChecklistViewModel", "Location is null during check creation, requesting update")
+                        locationManager.requestSingleUpdate()
+                    }
+
                     val initialCheck = submitChecklistUseCase(
                         vehicleId = vehicleId.toString(),
-                        items = selectedItems
+                        items = selectedItems,
+                        location = locationState.location,
+                        locationCoordinates = locationState.location
                     )
                     initialCheck.id
                 }
@@ -175,29 +212,32 @@ class ChecklistViewModel @Inject constructor(
                 // 3. Obtener datos del vehículo
                 val vehicle = getVehicleUseCase(vehicleId.toString())
 
-                // 4. Establecer el estado inicial completo
-                val currentDateTime = java.time.LocalDateTime.now()
-                    .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
-
-                _state.value = ChecklistState(
-                    vehicle = vehicle,
-                    vehicleId = vehicleId.toString(),
-                    vehicleStatus = VehicleStatus.AVAILABLE,
-                    checkItems = if (lastCheck?.status == CheckStatus.IN_PROGRESS.toString())
-                        lastCheck.items else selectedItems,
-                    rotationRules = firstChecklist.rotationRules,
-                    checkId = checkId,
-                    checkStatus = CheckStatus.IN_PROGRESS.toString(),
-                    startDateTime = lastCheck?.startDateTime ?: currentDateTime
-                )
+                withContext(Dispatchers.Main) {
+                    _state.value = ChecklistState(
+                        vehicle = vehicle,
+                        vehicleId = vehicleId.toString(),
+                        vehicleStatus = VehicleStatus.AVAILABLE,
+                        checkItems = if (lastCheck?.status == CheckStatus.IN_PROGRESS.toString())
+                            lastCheck.items else selectedItems,
+                        rotationRules = firstChecklist.rotationRules,
+                        checkId = checkId,
+                        checkStatus = CheckStatus.IN_PROGRESS.toString(),
+                        startDateTime = lastCheck?.startDateTime ?: currentDateTime
+                    )
+                    
+                    // Start timer after state is set
+                    startTimer()
+                }
 
             } catch (e: Exception) {
-                _state.value = ChecklistState(
-                    vehicleId = vehicleId.toString(),
-                    vehicleStatus = VehicleStatus.AVAILABLE,
-                    checkStatus = CheckStatus.NOT_STARTED.toString(),
-                    error = "Failed to load checklist: ${e.message}"
-                )
+                withContext(Dispatchers.Main) {
+                    _state.value = ChecklistState(
+                        vehicleId = vehicleId.toString(),
+                        vehicleStatus = VehicleStatus.AVAILABLE,
+                        checkStatus = CheckStatus.NOT_STARTED.toString(),
+                        error = "Failed to load checklist: ${e.message}"
+                    )
+                }
             }
         }
     }
@@ -269,10 +309,31 @@ class ChecklistViewModel @Inject constructor(
 
                     // Submit to API with current timestamp
                     try {
+                        // Get current location
+                        val locationState = locationManager.locationState.value
+                        android.util.Log.d("ChecklistViewModel", "Location state during update: $locationState")
+                        android.util.Log.d("ChecklistViewModel", "Location string: ${locationState.location}")
+                        android.util.Log.d("ChecklistViewModel", "Latitude: ${locationState.latitude}")
+                        android.util.Log.d("ChecklistViewModel", "Longitude: ${locationState.longitude}")
+                        
+                        // Verify we have location before proceeding
+                        if (locationState.location == null) {
+                            android.util.Log.w("ChecklistViewModel", "Location is null during update")
+                            // Request a single location update
+                            locationManager.requestSingleUpdate()
+                            // Don't block the UI, continue with null location
+                        }
+
+                        // Use the location string directly from the state
+                        val locationCoordinates = locationState.location
+
+                        android.util.Log.d("ChecklistViewModel", "Submitting update with location coordinates: $locationCoordinates")
+
                         checklistRepository.submitPreShiftCheck(
                             vehicleId = state.value?.vehicleId ?: "",
                             checkItems = currentItems,
-                            checkId = state.value?.checkId ?: ""
+                            checkId = state.value?.checkId ?: "",
+                            locationCoordinates = locationCoordinates
                         )
                     } catch (e: Exception) {
                         // Log error but don't disrupt user experience
@@ -347,9 +408,11 @@ class ChecklistViewModel @Inject constructor(
 
                 // Get current location
                 val locationState = locationManager.locationState.value
+                android.util.Log.d("ChecklistViewModel", "Location state: $locationState")
                 
                 // Verify we have location before proceeding
                 if (locationState.location == null) {
+                    android.util.Log.w("ChecklistViewModel", "Location is null, cannot proceed with submission")
                     _state.update { 
                         it?.copy(
                             showErrorModal = true,
@@ -363,6 +426,10 @@ class ChecklistViewModel @Inject constructor(
                 val locationCoordinates = if (locationState.latitude != null && locationState.longitude != null) {
                     "${locationState.latitude},${locationState.longitude}"
                 } else null
+
+                android.util.Log.d("ChecklistViewModel", "Location coordinates: $locationCoordinates")
+                android.util.Log.d("ChecklistViewModel", "Location state latitude: ${locationState.latitude}")
+                android.util.Log.d("ChecklistViewModel", "Location state longitude: ${locationState.longitude}")
 
                 // Determine final status based on validation and completion
                 val updatedCheck = submitChecklistUseCase(

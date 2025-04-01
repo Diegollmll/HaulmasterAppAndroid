@@ -13,8 +13,6 @@ fun VehicleSessionDto.toVehicleSession(): VehicleSession {
         startTime = startTime,
         endTime = endTime,
         status = if (endTime == null) VehicleSessionStatus.OPERATING else VehicleSessionStatus.NOT_OPERATING,
-        startLocation = startLocation,
-        endLocation = endLocation,
         startLocationCoordinates = startLocationCoordinates,
         endLocationCoordinates = endLocationCoordinates,
         durationMinutes = null,
@@ -40,8 +38,6 @@ fun VehicleSession.toVehicleSessionDto(): VehicleSessionDto {
         endTime = endTime,
         closeMethod = closeMethod.name,
         closedBy = closedBy,
-        startLocation = startLocation,
-        endLocation = endLocation,
         startLocationCoordinates = startLocationCoordinates,
         endLocationCoordinates = endLocationCoordinates
     )

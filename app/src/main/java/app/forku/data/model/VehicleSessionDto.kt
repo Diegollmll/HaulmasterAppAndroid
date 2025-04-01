@@ -17,10 +17,6 @@ data class VehicleSessionDto(
     val closeMethod: String? = null,
     @SerializedName("closed_by")
     val closedBy: String? = null,
-    @SerializedName("start_location")
-    val startLocation: String? = null,
-    @SerializedName("end_location")
-    val endLocation: String? = null,
     @SerializedName("start_location_coordinates")
     val startLocationCoordinates: String? = null,
     @SerializedName("end_location_coordinates")

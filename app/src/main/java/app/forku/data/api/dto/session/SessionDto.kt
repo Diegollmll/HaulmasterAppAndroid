@@ -9,8 +9,6 @@ data class SessionDto(
     val startTime: String,
     val endTime: String?,
     val status: String,
-    val startLocation: String?,
-    val endLocation: String?,
     val startLocationCoordinates: String?,
     val endLocationCoordinates: String?,
     val timestamp: String,

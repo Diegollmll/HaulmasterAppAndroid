@@ -7,6 +7,5 @@ data class StartSessionRequestDto(
     val startTime: String,
     val timestamp: String,
     val status: String,
-    val startLocation: String? = null,
     val startLocationCoordinates: String? = null
 ) 

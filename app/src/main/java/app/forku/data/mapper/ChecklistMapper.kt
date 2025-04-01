@@ -71,7 +71,6 @@ fun PreShiftCheck.toDto(): PreShiftCheckDto {
         startDateTime = startDateTime ?: "",
         endDateTime = endDateTime,
         lastCheckDateTime = lastCheckDateTime ?: "",
-        location = location,
         locationCoordinates = locationCoordinates
     )
 }
@@ -89,7 +88,6 @@ fun PreShiftCheckDto?.toDomain(): PreShiftCheck? {
             startDateTime = startDateTime ?: "",
             endDateTime = endDateTime,
             lastCheckDateTime = lastCheckDateTime,
-            location = location,
             locationCoordinates = locationCoordinates
         )
     } catch (e: Exception) {

@@ -22,7 +22,6 @@ class SubmitChecklistUseCase @Inject constructor(
             checkItems = items,
             checkId = checkId,
             status = status ?: CheckStatus.IN_PROGRESS.toString(),
-            location = location,
             locationCoordinates = locationCoordinates
         )
     }

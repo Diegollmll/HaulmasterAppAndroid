@@ -9,6 +9,5 @@ data class PreShiftCheckDto(
     val userId: String,
     val vehicleId: String,
     val items: List<ChecklistItemDto>,
-    val location: String? = null,
     val locationCoordinates: String? = null
 ) 

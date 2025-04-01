@@ -13,7 +13,6 @@ interface ChecklistRepository {
         checkItems: List<ChecklistItem>,
         checkId: String?,
         status: String = CheckStatus.IN_PROGRESS.toString(),
-        location: String? = null,
         locationCoordinates: String? = null
     ): PreShiftCheck
     

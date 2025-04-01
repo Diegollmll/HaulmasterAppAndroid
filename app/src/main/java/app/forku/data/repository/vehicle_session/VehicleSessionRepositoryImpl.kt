@@ -91,8 +91,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                     startTime = currentDateTime,
                     timestamp = currentDateTime,
                     status = VehicleSessionStatus.OPERATING.toString(),
-                    startLocationCoordinates = locationCoordinates,
-                    startLocation = locationState.location
+                    startLocationCoordinates = locationCoordinates
                 )
             )
 
@@ -163,8 +162,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 closeMethod = closeMethod.name,
                 closedBy = closedBy,
                 notes = notes,
-                endLocationCoordinates = locationCoordinates,
-                endLocation = locationState.location
+                endLocationCoordinates = locationCoordinates
             )
             
             val response = api.updateSession(

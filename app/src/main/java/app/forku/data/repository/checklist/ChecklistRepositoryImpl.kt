@@ -87,9 +87,14 @@ class ChecklistRepositoryImpl @Inject constructor(
         checkItems: List<ChecklistItem>,
         checkId: String?,
         status: String,
-        location: String?,
         locationCoordinates: String?
     ): PreShiftCheck {
+        android.util.Log.d("ChecklistRepository", "Submitting pre-shift check with location coordinates: $locationCoordinates")
+        android.util.Log.d("ChecklistRepository", "Vehicle ID: $vehicleId")
+        android.util.Log.d("ChecklistRepository", "Check ID: $checkId")
+        android.util.Log.d("ChecklistRepository", "Status: $status")
+        android.util.Log.d("ChecklistRepository", "Number of items: ${checkItems.size}")
+        
         val userId = authDataStore.getCurrentUser()?.id 
             ?: throw Exception("User not logged in")
 
@@ -109,9 +114,9 @@ class ChecklistRepositoryImpl @Inject constructor(
                 startDateTime = currentDateTime,
                 lastCheckDateTime = currentDateTime,
                 endDateTime = null,
-                location = location,
                 locationCoordinates = locationCoordinates
             )
+            android.util.Log.d("ChecklistRepository", "Creating new check with location coordinates: $locationCoordinates")
             createGlobalCheck(newCheck).also {
                 updateVehicleStatusForCheck(vehicleId, status)
             }
@@ -124,9 +129,9 @@ class ChecklistRepositoryImpl @Inject constructor(
                 lastCheckDateTime = currentDateTime,
                 endDateTime = if (status == CheckStatus.COMPLETED_PASS.toString() || 
                                 status == CheckStatus.COMPLETED_FAIL.toString()) currentDateTime else null,
-                location = location,
                 locationCoordinates = locationCoordinates
             )
+            android.util.Log.d("ChecklistRepository", "Updating existing check with location coordinates: $locationCoordinates")
             updateGlobalCheck(checkId, updatedCheck).also {
                 updateVehicleStatusForCheck(vehicleId, status)
             }

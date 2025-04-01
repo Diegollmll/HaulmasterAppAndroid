@@ -183,17 +183,17 @@ fun DashboardScreen(
                 modifier = Modifier.align(Alignment.TopCenter)
             )
 
-            // Show loading overlay when loading or checking out
-            if (dashboardState.isLoading || isCheckoutLoading || sessionState.isLoading) {
-                LoadingOverlay(
-                    modifier = Modifier.fillMaxSize(),
-                    message = when {
-                        isCheckoutLoading -> "Checking out..."
-                        sessionState.isLoading -> "Processing session..."
-                        else -> "Loading..."
-                    }
-                )
-            }
+//            // Show loading overlay when loading or checking out
+//            if (dashboardState.isLoading || isCheckoutLoading || sessionState.isLoading) {
+//                LoadingOverlay(
+//                    modifier = Modifier.fillMaxSize(),
+//                    message = when {
+//                        isCheckoutLoading -> "Checking out..."
+//                        sessionState.isLoading -> "Processing session..."
+//                        else -> "Loading..."
+//                    }
+//                )
+//            }
         }
     }
 }
