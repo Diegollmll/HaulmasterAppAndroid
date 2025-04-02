@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -33,6 +34,9 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
+import androidx.navigation.NavController
+import app.forku.presentation.common.components.BaseScreen
+import app.forku.presentation.navigation.Screen
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +45,8 @@ fun QRScannerScreen(
     onNavigateToVehicleProfile: (String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: QRScannerViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    navController: NavController
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -49,14 +54,22 @@ fun QRScannerScreen(
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val executor = remember { Executors.newSingleThreadExecutor() }
     
+    // Control flags for scanning and navigation
+    var isScanning by remember { mutableStateOf(true) }
+    var hasNavigated by remember { mutableStateOf(false) }
+    var lastScannedCode by remember { mutableStateOf<String?>(null) }
+    var isProcessingNavigation by remember { mutableStateOf(false) }
+    
+    Log.d("QRFlow", "Screen State - isScanning: $isScanning, hasNavigated: $hasNavigated, isProcessingNavigation: $isProcessingNavigation")
+    
     DisposableEffect(lifecycleOwner) {
         onDispose {
             try {
-                // Unbind all use cases and release camera resources
+                Log.d("QRFlow", "Disposing camera resources")
                 cameraProviderFuture.get()?.unbindAll()
                 executor.shutdown()
             } catch (e: Exception) {
-                Log.e("QRScanner", "Failed to cleanup camera resources", e)
+                Log.e("QRFlow", "Failed to cleanup camera resources", e)
             }
         }
     }
@@ -67,14 +80,46 @@ fun QRScannerScreen(
 
     val previewView = remember { PreviewView(context) }
 
-    // Handle navigation events
+    // Handle navigation events with protection against multiple navigations
     LaunchedEffect(state) {
-        state.vehicle?.id?.let { vehicleId ->
-            if (state.navigateToChecklist) {
-                onNavigateToPreShiftCheck(vehicleId)
-            } else if (state.navigateToProfile) {
-                onNavigateToVehicleProfile(vehicleId)
+        Log.d("QRFlow", "Navigation LaunchedEffect triggered - hasNavigated: $hasNavigated, isProcessingNavigation: $isProcessingNavigation")
+        Log.d("QRFlow", "Current state: navigateToChecklist: ${state.navigateToChecklist}, vehicle: ${state.vehicle?.id}")
+        
+        if (!hasNavigated && !isProcessingNavigation) {
+            state.vehicle?.id?.let { vehicleId ->
+                if (state.navigateToChecklist) {
+                    Log.d("QRFlow", "Starting navigation to Checklist with vehicleId: $vehicleId")
+                    isProcessingNavigation = true
+                    hasNavigated = true
+                    navController.navigate("checklist/${vehicleId}") {
+                        popUpTo("scanner") { inclusive = true }
+                    }
+                    Log.d("QRFlow", "Navigation command executed - hasNavigated: $hasNavigated")
+                    // Reset the state after navigation
+                    viewModel.resetNavigationState()
+                }
             }
+        }
+    }
+
+    // Reset scanning state when returning to this screen
+    LaunchedEffect(Unit) {
+        Log.d("QRFlow", "QRScanner screen entered/re-entered")
+        isScanning = true
+        hasNavigated = false
+        isProcessingNavigation = false
+        lastScannedCode = null
+        viewModel.resetNavigationState()
+    }
+
+    // Reset scanning state when state.error is not null
+    LaunchedEffect(state.error) {
+        if (state.error != null) {
+            Log.d("QRFlow", "Error detected, resetting states - Error: ${state.error}")
+            isScanning = true
+            hasNavigated = false
+            isProcessingNavigation = false
+            lastScannedCode = null
         }
     }
 
@@ -85,161 +130,127 @@ fun QRScannerScreen(
         }
     }
 
-    LaunchedEffect(cameraProviderFuture) {
-        val cameraProvider = cameraProviderFuture.get()
-        val preview = Preview.Builder().build()
-        preview.setSurfaceProvider(previewView.surfaceProvider)
+    BaseScreen(
+        navController = navController,
+        showTopBar = true,
+        showBottomBar = false,
+        showBackButton = true,
+        topBarTitle = "Scan Vehicle QR",
+        networkManager = networkManager,
+        content = { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                if (cameraPermissionState.status.isGranted) {
+                    AndroidView(
+                        factory = { previewView },
+                        modifier = Modifier.fillMaxSize()
+                    ) { preview ->
+                        cameraProviderFuture.addListener({
+                            Log.d("QRFlow", "Setting up camera preview")
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build()
+                            preview.setSurfaceProvider(previewView.surfaceProvider)
 
-        val imageAnalysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
+                            val imageAnalysis = ImageAnalysis.Builder()
+                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .build()
 
-        imageAnalysis.setAnalyzer(executor) { imageProxy ->
-            val mediaImage = imageProxy.image
-            if (mediaImage != null) {
-                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                val scanner = BarcodeScanning.getClient()
-                
-                scanner.process(image)
-                    .addOnSuccessListener { barcodes ->
-                        barcodes.firstOrNull()?.rawValue?.let { code ->
-                            viewModel.onQrScanned(code)
+                            imageAnalysis.setAnalyzer(executor) { imageProxy ->
+                                if (!isScanning || hasNavigated) {
+                                    Log.d("QRFlow", "Skipping image analysis - isScanning: $isScanning, hasNavigated: $hasNavigated")
+                                    imageProxy.close()
+                                    return@setAnalyzer
+                                }
+
+                                val mediaImage = imageProxy.image
+                                if (mediaImage != null) {
+                                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                    val scanner = BarcodeScanning.getClient()
+                                    
+                                    scanner.process(image)
+                                        .addOnSuccessListener { barcodes ->
+                                            barcodes.firstOrNull()?.rawValue?.let { code ->
+                                                Log.d("QRFlow", "QR Code detected: $code")
+                                                // Only process if this code hasn't been scanned before and we're not navigating
+                                                if (lastScannedCode != code && isScanning && !hasNavigated && !isProcessingNavigation) {
+                                                    Log.d("QRFlow", "Processing new QR code - lastScannedCode: $lastScannedCode")
+                                                    lastScannedCode = code
+                                                    isScanning = false
+                                                    viewModel.onQrScanned(code)
+                                                    Log.d("QRFlow", "QR code processed - isScanning: $isScanning, hasNavigated: $hasNavigated")
+                                                } else {
+                                                    Log.d("QRFlow", "Skipping QR code - already processed or navigation in progress")
+                                                }
+                                            }
+                                        }
+                                        .addOnCompleteListener {
+                                            imageProxy.close()
+                                        }
+                                } else {
+                                    imageProxy.close()
+                                }
+                            }
+
+                            try {
+                                Log.d("QRFlow", "Binding camera lifecycle")
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    CameraSelector.DEFAULT_BACK_CAMERA,
+                                    preview,
+                                    imageAnalysis
+                                )
+                            } catch (e: Exception) {
+                                Log.e("QRFlow", "Error binding camera lifecycle", e)
+                                e.printStackTrace()
+                            }
+                        }, ContextCompat.getMainExecutor(context))
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        QRCodeFrame()
+                    }
+                } else {
+                    Log.d("QRFlow", "Camera permission not granted")
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("Camera permission is required to scan QR codes")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
+                            Text("Grant Permission")
                         }
                     }
-                    .addOnCompleteListener {
-                        imageProxy.close()
-                    }
-            } else {
-                imageProxy.close()
+                }
+
+                if (state.error != null) {
+                    Log.d("QRFlow", "Showing error toast: ${state.error}")
+                    Toast.makeText(context, state.error, Toast.LENGTH_SHORT).show()
+                }
             }
         }
+    )
 
-        try {
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview,
-                imageAnalysis
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
+    BackHandler {
+        Log.d("QRFlow", "Back button pressed - isProcessingNavigation: $isProcessingNavigation")
+        if (!isProcessingNavigation) {
+            Log.d("QRFlow", "Executing back navigation")
+            onNavigateBack()
+        } else {
+            Log.d("QRFlow", "Back navigation ignored - navigation in progress")
         }
     }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Scan Vehicle QR") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (cameraPermissionState.status.isGranted) {
-                AndroidView(
-                    factory = { previewView },
-                    modifier = Modifier.fillMaxSize()
-                ) { preview ->
-                    setupQrCodeScanning(
-                        context = context,
-                        lifecycleOwner = lifecycleOwner,
-                        previewView = preview,
-                        onQrCodeScanned = { code ->
-                            viewModel.onQrScanned(code)
-                        }
-                    )
-                }
-
-                // QR frame overlay
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    QRCodeFrame()
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Camera permission is required to scan QR codes")
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
-                        Text("Grant Permission")
-                    }
-                }
-            }
-
-            if (state.error != null) {
-                Toast.makeText(context, state.error, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-}
-
-private fun setupQrCodeScanning(
-    context: Context,
-    lifecycleOwner: LifecycleOwner,
-    previewView: PreviewView,
-    onQrCodeScanned: (String) -> Unit
-) {
-    val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-    val executor = Executors.newSingleThreadExecutor()
-    
-    cameraProviderFuture.addListener({
-        val cameraProvider = cameraProviderFuture.get()
-        val preview = Preview.Builder().build()
-        preview.setSurfaceProvider(previewView.surfaceProvider)
-
-        val imageAnalysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-
-        imageAnalysis.setAnalyzer(executor) { imageProxy ->
-            val mediaImage = imageProxy.image
-            if (mediaImage != null) {
-                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                val scanner = BarcodeScanning.getClient()
-                
-                scanner.process(image)
-                    .addOnSuccessListener { barcodes ->
-                        barcodes.firstOrNull()?.rawValue?.let { code ->
-                            onQrCodeScanned(code)
-                        }
-                    }
-                    .addOnCompleteListener {
-                        imageProxy.close()
-                    }
-            } else {
-                imageProxy.close()
-            }
-        }
-
-        try {
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(
-                lifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                preview,
-                imageAnalysis
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }, ContextCompat.getMainExecutor(context))
 }
 
 @Composable

@@ -124,7 +124,7 @@ fun NavGraph(
         composable(Screen.QRScanner.route) {
             QRScannerScreen(
                 onNavigateToPreShiftCheck = { vehicleId ->
-                    navController.navigate("checklist/${vehicleId}?fromScanner=true")
+                    navController.navigate(Screen.Checklist.createRoute(vehicleId, fromScanner = true))
                 },
                 onNavigateToVehicleProfile = { vehicleId ->
                     navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
@@ -132,7 +132,8 @@ fun NavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                networkManager = networkManager
+                networkManager = networkManager,
+                navController = navController
             )
         }
 
@@ -161,7 +162,7 @@ fun NavGraph(
                 navController = navController,
                 onBackPressed = {
                     if (fromScanner) {
-                        navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId)) {
+                        navController.navigate(Screen.QRScanner.route) {
                             popUpTo(Screen.QRScanner.route) { inclusive = true }
                         }
                     } else {

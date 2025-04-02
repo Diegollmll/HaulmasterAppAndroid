@@ -1,5 +1,6 @@
 package app.forku.presentation.checklist
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -42,10 +43,14 @@ fun ChecklistScreen(
     networkManager: NetworkConnectivityManager,
     locationManager: LocationManager
 ) {
-    var showConfirmationDialog = remember { mutableStateOf(false) }
+    Log.d("QRFlow", "ChecklistScreen Composable started")
+    
+    var showConfirmationDialog by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
-    val scrollState = rememberScrollState()
+    val showDiscardDialog by viewModel.showDiscardDialog.collectAsState()
+    val navigationEvent by viewModel.navigationEvent.collectAsState()
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
     
     // Remember the last answered question index and description states
     val lastAnsweredIndex = remember { mutableStateOf(-1) }
@@ -100,29 +105,48 @@ fun ChecklistScreen(
         }
     }
 
-    // Handle back button press
-    BackHandler {
-        when (state?.message) {
-            "admin_dashboard" -> navController.navigate(Screen.AdminDashboard.route) {
-                popUpTo(Screen.AdminDashboard.route) { inclusive = true }
+    // Handle navigation events
+    LaunchedEffect(navigationEvent) {
+        Log.d("QRFlow", "ChecklistScreen - Navigation event received: $navigationEvent")
+        val event = navigationEvent
+        when (event) {
+            is NavigationEvent.Back -> {
+                Log.d("QRFlow", "ChecklistScreen - Navigating back")
+                navController.popBackStack()
+                viewModel.resetNavigation()
             }
-            "dashboard" -> navController.navigate(Screen.Dashboard.route) {
-                popUpTo(Screen.Dashboard.route) { inclusive = true }
+            is NavigationEvent.AfterSubmit -> {
+                Log.d("QRFlow", "ChecklistScreen - Navigating after submit, isAdmin: ${event.isAdmin}")
+                if (event.isAdmin) {
+                    navController.navigate(Screen.AdminDashboard.route) {
+                        popUpTo(Screen.AdminDashboard.route) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
+                }
+                viewModel.resetNavigation()
             }
-            else -> onBackPressed()
+            null -> {
+                Log.d("QRFlow", "ChecklistScreen - No navigation event")
+            }
         }
     }
-    
-    if (showConfirmationDialog.value) {
-        AppModal(
-            onDismiss = { showConfirmationDialog.value = false },
-            onConfirm = {
-                showConfirmationDialog.value = false
-                viewModel.submitCheck()
-            },
-            title = "Submit Checklist",
-            message = "Are you sure you want to submit this checklist?"
-        )
+
+    // Handle back button press
+    BackHandler {
+        Log.d("QRFlow", "ChecklistScreen - Back button pressed")
+        navController.previousBackStackEntry?.destination?.route?.let { previousRoute ->
+            Log.d("QRFlow", "ChecklistScreen - Previous route: $previousRoute")
+            navController.popBackStack()
+        } ?: run {
+            Log.d("QRFlow", "ChecklistScreen - No previous route, navigating to scanner")
+            navController.navigate(Screen.QRScanner.route) {
+                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            }
+        }
+        viewModel.resetNavigation()
     }
 
     BaseScreen(
@@ -240,12 +264,14 @@ fun ChecklistScreen(
 
                                 // Only show submit button when all items are answered
                                 if (currentState.showSubmitButton && currentState.allAnswered) {
+                                    Spacer(Modifier.height(4.dp))
                                     Button(
-                                        onClick = { showConfirmationDialog.value = true },
+                                        onClick = { showConfirmationDialog = true },
                                         enabled = currentState.showSubmitButton && currentState.allAnswered,
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp),
+                                            .height(56.dp)
+                                            .padding(horizontal = 16.dp, vertical = 3.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.primary
                                         )
@@ -266,26 +292,31 @@ fun ChecklistScreen(
                         }
                     }
                 }
+
+                // Show modals on top of the content
+                if (showConfirmationDialog) {
+                    AppModal(
+                        onDismiss = { showConfirmationDialog = false },
+                        onConfirm = {
+                            showConfirmationDialog = false
+                            viewModel.submitCheck()
+                        },
+                        title = "Submit Checklist",
+                        message = "Are you sure you want to submit this checklist?"
+                    )
+                }
+
+                if (showDiscardDialog) {
+                    AppModal(
+                        onDismiss = { viewModel.onDiscardDismissed() },
+                        onConfirm = { viewModel.onDiscardConfirmed() },
+                        title = "Discard Checklist",
+                        message = "Are you sure you want to discard this checklist? All progress will be lost."
+                    )
+                }
             }
         }
     )
-
-    // Handle navigation from viewModel
-    LaunchedEffect(viewModel.navigateBack.collectAsState().value) {
-        if (viewModel.navigateBack.value) {
-            // Check state message for navigation route
-            when (state?.message) {
-                "admin_dashboard" -> navController.navigate(Screen.AdminDashboard.route) {
-                    popUpTo(Screen.AdminDashboard.route) { inclusive = true }
-                }
-                "dashboard" -> navController.navigate(Screen.Dashboard.route) {
-                    popUpTo(Screen.Dashboard.route) { inclusive = true }
-                }
-                else -> onBackPressed()
-            }
-            viewModel.resetNavigation()
-        }
-    }
 }
 
 @Composable

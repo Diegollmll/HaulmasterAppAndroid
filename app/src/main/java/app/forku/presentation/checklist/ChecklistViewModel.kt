@@ -48,8 +48,11 @@ class ChecklistViewModel @Inject constructor(
     private val _state = MutableStateFlow<ChecklistState?>(null)
     val state = _state.asStateFlow()
 
-    private val _navigateBack = MutableStateFlow(false)
-    val navigateBack = _navigateBack.asStateFlow()
+    private val _showDiscardDialog = MutableStateFlow(false)
+    val showDiscardDialog = _showDiscardDialog.asStateFlow()
+
+    private val _navigationEvent = MutableStateFlow<NavigationEvent?>(null)
+    val navigationEvent = _navigationEvent.asStateFlow()
 
     private var timerJob: kotlinx.coroutines.Job? = null
 
@@ -376,12 +379,33 @@ class ChecklistViewModel @Inject constructor(
         return userRepository.getCurrentUser() != null
     }
 
+    fun hasUnsavedChanges(): Boolean {
+        return state.value?.let { currentState ->
+            currentState.checkItems.any { it.userAnswer != null } && !currentState.isSubmitted
+        } ?: false
+    }
+
     fun onBackPressed() {
-        _navigateBack.value = true
+        if (hasUnsavedChanges()) {
+            _showDiscardDialog.value = true
+        } else {
+            _navigationEvent.value = NavigationEvent.Back
+        }
+    }
+
+    fun onDiscardConfirmed() {
+        _showDiscardDialog.value = false
+        // Cancel any ongoing operations
+        timerJob?.cancel()
+        _navigationEvent.value = NavigationEvent.Back
+    }
+
+    fun onDiscardDismissed() {
+        _showDiscardDialog.value = false
     }
 
     fun resetNavigation() {
-        _navigateBack.value = false
+        _navigationEvent.value = null
     }
 
     fun submitCheck() {
@@ -468,14 +492,12 @@ class ChecklistViewModel @Inject constructor(
                         isCompleted = true,
                         checkItems = updatedCheck.items,
                         checkStatus = updatedCheck.status,
-                        isSubmitted = true,
-                        // Set navigation route based on user role
-                        message = if (isAdmin) "admin_dashboard" else "dashboard"
+                        isSubmitted = true
                     )
                 }
 
-                // Navigate back
-                _navigateBack.update { true }
+                // Trigger navigation based on user role
+                _navigationEvent.value = NavigationEvent.AfterSubmit(isAdmin)
 
             } catch (e: Exception) {
                 _state.update {
@@ -519,4 +541,9 @@ class ChecklistViewModel @Inject constructor(
             }
         }
     }
+}
+
+sealed class NavigationEvent {
+    object Back : NavigationEvent()
+    data class AfterSubmit(val isAdmin: Boolean) : NavigationEvent()
 }

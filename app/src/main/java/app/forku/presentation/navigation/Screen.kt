@@ -7,10 +7,17 @@ sealed class Screen(val route: String) {
     data object QRScanner : Screen("qr_scanner")
     data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
     data object Checklist : Screen("checklist/{vehicleId}") {
-        fun createRoute(vehicleId: String, checkId: String? = null): String = buildString {
+        fun createRoute(vehicleId: String, checkId: String? = null, fromScanner: Boolean = false): String = buildString {
             append("checklist/$vehicleId")
-            if (checkId != null) {
-                append("?checkId=$checkId")
+            if (checkId != null || fromScanner) {
+                append("?")
+                if (checkId != null) {
+                    append("checkId=$checkId")
+                    if (fromScanner) append("&")
+                }
+                if (fromScanner) {
+                    append("fromScanner=true")
+                }
             }
         }
     }
