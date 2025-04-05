@@ -1,9 +1,9 @@
 package app.forku.data.repository.vehicle_session
 
-import app.forku.data.api.GeneralApi
+import app.forku.data.api.VehicleSessionApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.api.dto.session.StartSessionRequestDto
-import app.forku.data.mapper.toDomain
+import app.forku.data.mapper.VehicleSessionMapper
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.session.VehicleSession
@@ -19,27 +19,30 @@ import app.forku.core.location.LocationManager
 import javax.inject.Inject
 
 class VehicleSessionRepositoryImpl @Inject constructor(
-    private val api: GeneralApi,
+    private val api: VehicleSessionApi,
     private val authDataStore: AuthDataStore,
     private val vehicleStatusRepository: VehicleStatusRepository,
     private val checklistRepository: ChecklistRepository,
     private val locationManager: LocationManager
 ) : VehicleSessionRepository {
     override suspend fun getCurrentSession(): VehicleSession? {
-        val userId = authDataStore.getCurrentUser()?.id ?: return null
-        return try {
-            val response = api.getAllSessions()
+        val currentUser = authDataStore.getCurrentUser() ?: return null
+        try {
+            val response = api.getAllSessions(currentUser.businessId ?: return null)
             if (response.isSuccessful) {
-                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
-                sessions.find { 
-                    it.userId == userId && 
+                val sessions = response.body()?.let { dtos ->
+                    dtos.map { dto -> VehicleSessionMapper.toDomain(dto) }
+                } ?: emptyList()
+                
+                return sessions.find { 
+                    it.userId == currentUser.id && 
                     it.status == VehicleSessionStatus.OPERATING
                 }
-            } else {
-                null
             }
+            return null
         } catch (e: Exception) {
-            null
+            android.util.Log.e("VehicleSession", "Error getting current session: ${e.message}", e)
+            return null
         }
     }
 
@@ -48,7 +51,10 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             ?: throw Exception("No user logged in")
 
         // Get vehicle status using VehicleStatusRepository instead
-        val vehicleStatus = vehicleStatusRepository.getVehicleStatus(vehicleId)
+        val vehicleStatus = vehicleStatusRepository.getVehicleStatus(
+            vehicleId = vehicleId,
+            businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+        )
 
         if (!vehicleStatus.isAvailable()) {
             throw Exception(vehicleStatus.getErrorMessage())
@@ -70,7 +76,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
 
         try {
             // Update vehicle status first
-            vehicleStatusRepository.updateVehicleStatus(vehicleId, VehicleStatus.IN_USE)
+            vehicleStatusRepository.updateVehicleStatus(
+                vehicleId = vehicleId,
+                status = VehicleStatus.IN_USE,
+                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+            )
             
             val currentDateTime = java.time.Instant.now()
                 .atZone(java.time.ZoneId.systemDefault())
@@ -97,16 +107,24 @@ class VehicleSessionRepositoryImpl @Inject constructor(
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session creation fails
-                vehicleStatusRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE)
+                vehicleStatusRepository.updateVehicleStatus(
+                    vehicleId = vehicleId,
+                    status = VehicleStatus.AVAILABLE,
+                    businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                )
                 throw Exception("Failed to create session: ${response.code()}")
             }
 
-            return response.body()?.toDomain() 
+            return response.body()?.let { VehicleSessionMapper.toDomain(it) }
                 ?: throw Exception("Failed to start session: Empty response")
                 
         } catch (e: Exception) {
             // Revert vehicle status on failure
-            vehicleStatusRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE)
+            vehicleStatusRepository.updateVehicleStatus(
+                vehicleId = vehicleId,
+                status = VehicleStatus.AVAILABLE,
+                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+            )
             throw e
         }
     }
@@ -122,29 +140,37 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             throw Exception("Failed to get session details")
         }
             
-        val existingSession = sessionResponse.body() ?: throw Exception("Session not found")
+        val existingSession = sessionResponse.body()?.let { VehicleSessionMapper.toDomain(it) }
+            ?: throw Exception("Session not found")
             
         // Determine who closed the session
         val currentUser = authDataStore.getCurrentUser()
+            ?: throw Exception("No user logged in")
+            
         val closedBy = when (closeMethod) {
-            VehicleSessionClosedMethod.USER_CLOSED -> currentUser?.id
-            VehicleSessionClosedMethod.ADMIN_CLOSED -> adminId ?: currentUser?.id
+            VehicleSessionClosedMethod.USER_CLOSED -> currentUser.id
+            VehicleSessionClosedMethod.ADMIN_CLOSED -> adminId ?: currentUser.id
             VehicleSessionClosedMethod.TIMEOUT_CLOSED -> "SYSTEM"
             VehicleSessionClosedMethod.GEOFENCE_CLOSED -> "SYSTEM"
         }
 
         // Verify permissions
-        if (closeMethod == VehicleSessionClosedMethod.ADMIN_CLOSED && currentUser?.role != UserRole.ADMIN) {
+        if (closeMethod == VehicleSessionClosedMethod.ADMIN_CLOSED && currentUser.role != UserRole.ADMIN) {
             throw Exception("Only administrators can perform administrative session closure")
         }
 
-        if (closeMethod == VehicleSessionClosedMethod.USER_CLOSED && currentUser?.id != existingSession.userId) {
+        if (closeMethod == VehicleSessionClosedMethod.USER_CLOSED && currentUser.id != existingSession.userId) {
             throw Exception("Users can only close their own sessions")
         }
             
         try {
             // Update vehicle status back to AVAILABLE
-            vehicleStatusRepository.updateVehicleStatus(existingSession.vehicleId, VehicleStatus.AVAILABLE)
+            vehicleStatusRepository.updateVehicleStatus(
+                vehicleId = existingSession.vehicleId,
+                status = VehicleStatus.AVAILABLE,
+                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+            )
+            
             val currentDateTime = java.time.Instant.now()
                 .atZone(java.time.ZoneId.systemDefault())
                 .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
@@ -158,8 +184,8 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             val updatedSession = existingSession.copy(
                 endTime = currentDateTime,
                 timestamp = currentDateTime,
-                status = VehicleSessionStatus.NOT_OPERATING.toString(),
-                closeMethod = closeMethod.name,
+                status = VehicleSessionStatus.NOT_OPERATING,
+                closeMethod = closeMethod,
                 closedBy = closedBy,
                 notes = notes,
                 endLocationCoordinates = locationCoordinates
@@ -167,31 +193,39 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             
             val response = api.updateSession(
                 sessionId = sessionId,
-                session = updatedSession
+                session = VehicleSessionMapper.toVehicleSessionDto(updatedSession)
             )
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session update fails
-                vehicleStatusRepository.updateVehicleStatus(existingSession.vehicleId, VehicleStatus.IN_USE)
+                vehicleStatusRepository.updateVehicleStatus(
+                    vehicleId = existingSession.vehicleId,
+                    status = VehicleStatus.IN_USE,
+                    businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                )
                 throw Exception("Failed to end session: ${response.code()}")
             }
             
-            return response.body()?.toDomain() 
+            return response.body()?.let { VehicleSessionMapper.toDomain(it) }
                 ?: throw Exception("Empty response when ending session")
         } catch (e: Exception) {
             // Ensure vehicle status is restored on any error
-            vehicleStatusRepository.updateVehicleStatus(existingSession.vehicleId, VehicleStatus.IN_USE)
+            vehicleStatusRepository.updateVehicleStatus(
+                vehicleId = existingSession.vehicleId,
+                status = VehicleStatus.IN_USE,
+                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+            )
             throw e
         }
     }
 
-    override suspend fun getActiveSessionForVehicle(vehicleId: String): VehicleSession? {
+    override suspend fun getActiveSessionForVehicle(vehicleId: String, businessId: String): VehicleSession? {
         android.util.Log.d("VehicleSession", "Fetching active session for vehicle: $vehicleId")
         return try {
-            val response = api.getAllSessions()
+            val response = api.getAllSessions(businessId)
             if (response.isSuccessful) {
                 android.util.Log.d("VehicleSession", "API response successful. Status code: ${response.code()}")
-                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 android.util.Log.d("VehicleSession", "Total sessions fetched: ${sessions.size}")
                 
                 val activeSession = sessions.find { session ->
@@ -221,10 +255,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getSessionsByUserId(userId: String): List<VehicleSession> {
+        val currentUser = authDataStore.getCurrentUser() ?: return emptyList()
         return try {
-            val response = api.getAllSessions()
+            val response = api.getAllSessions(currentUser.businessId ?: return emptyList())
             if (response.isSuccessful) {
-                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions.filter { it.userId == userId }
             } else {
                 emptyList()
@@ -235,10 +270,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getLastCompletedSessionForVehicle(vehicleId: String): VehicleSession? {
+        val currentUser = authDataStore.getCurrentUser() ?: return null
         return try {
-            val response = api.getAllSessions()
+            val response = api.getAllSessions(currentUser.businessId ?: return null)
             if (response.isSuccessful) {
-                val sessions = response.body()?.map { it.toDomain() } ?: emptyList()
+                val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions
                     .filter { 
                         it.vehicleId == vehicleId && 
@@ -256,10 +292,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getSessions(): List<VehicleSession> {
+        val currentUser = authDataStore.getCurrentUser() ?: return emptyList()
         return try {
-            val response = api.getAllSessions()
+            val response = api.getAllSessions(currentUser.businessId ?: return emptyList())
             if (response.isSuccessful && response.body() != null) {
-                response.body()!!.map { it.toDomain() }
+                response.body()!!.map { VehicleSessionMapper.toDomain(it) }
             } else {
                 emptyList()
             }

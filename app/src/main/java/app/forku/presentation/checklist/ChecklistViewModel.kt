@@ -75,11 +75,18 @@ class ChecklistViewModel @Inject constructor(
             val currentSession = vehicleSessionRepository.getCurrentSession()
             if (currentSession != null) {
                 // Get the last completed check for this vehicle
-                val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString())
-                if (lastCompletedCheck != null) {
-                    loadExistingCheck(lastCompletedCheck.id)
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId != null) {
+                    val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId)
+                    if (lastCompletedCheck != null) {
+                        loadExistingCheck(lastCompletedCheck.id)
+                    } else {
+                        loadChecklistData() // Fallback to normal flow if no check found
+                    }
                 } else {
-                    loadChecklistData() // Fallback to normal flow if no check found
+                    loadChecklistData() // Fallback if no business context
                 }
             } else {
                 loadChecklistData()
@@ -174,6 +181,22 @@ class ChecklistViewModel @Inject constructor(
     fun loadChecklistData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // Get current user's business ID
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    withContext(Dispatchers.Main) {
+                        _state.value = ChecklistState(
+                            vehicleId = vehicleId.toString(),
+                            vehicleStatus = VehicleStatus.AVAILABLE,
+                            checkStatus = CheckStatus.NOT_STARTED.toString(),
+                            error = "No business context available"
+                        )
+                    }
+                    return@launch
+                }
+
                 // 1. Obtener datos del checklist
                 val checklists = getChecklistUseCase(vehicleId.toString())
                 val firstChecklist = checklists.first()
@@ -184,7 +207,7 @@ class ChecklistViewModel @Inject constructor(
                 )
 
                 // 2. Crear o recuperar el check
-                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString())
+                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId)
                 
                 // Get current time in ISO format
                 val currentDateTime = java.time.Instant.now().toString()

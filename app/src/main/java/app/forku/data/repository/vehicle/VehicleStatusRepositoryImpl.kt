@@ -11,21 +11,24 @@ class VehicleStatusRepositoryImpl @Inject constructor(
     private val vehicleStatusUpdater: VehicleStatusUpdater
 ) : VehicleStatusRepository {
 
-    override suspend fun getVehicleStatus(vehicleId: String): VehicleStatus {
-        return vehicleValidationService.getVehicleStatus(vehicleId)
+    override suspend fun getVehicleStatus(vehicleId: String, businessId: String): VehicleStatus {
+        return vehicleValidationService.getVehicleStatus(vehicleId, businessId)
     }
 
-    override suspend fun updateVehicleStatus(vehicleId: String, status: VehicleStatus): Boolean {
-        vehicleStatusUpdater.updateVehicleStatus(vehicleId, status)
-        return true
+    override suspend fun updateVehicleStatus(
+        vehicleId: String,
+        status: VehicleStatus,
+        businessId: String
+    ): Boolean {
+        return vehicleStatusUpdater.updateVehicleStatus(vehicleId, status, businessId)
     }
 
-    override suspend fun isVehicleAvailable(vehicleId: String): Boolean {
-        return vehicleValidationService.isVehicleAvailable(vehicleId)
+    override suspend fun isVehicleAvailable(vehicleId: String, businessId: String): Boolean {
+        return vehicleValidationService.isVehicleAvailable(vehicleId, businessId)
     }
 
-    override suspend fun getVehicleErrorMessage(vehicleId: String): String? {
-        return vehicleValidationService.getVehicleErrorMessage(vehicleId)
+    override suspend fun getVehicleErrorMessage(vehicleId: String, businessId: String): String? {
+        return vehicleValidationService.getVehicleErrorMessage(vehicleId, businessId)
     }
 
     override suspend fun determineStatusFromCheck(checkStatus: String): VehicleStatus {

@@ -21,7 +21,8 @@ data class DashboardState(
     val vehicles: List<Vehicle> = emptyList(),
     val activeSessions: List<VehicleSession> = emptyList(),
     val users: List<User> = emptyList(),
-    val checks: List<PreShiftCheck> = emptyList()
+    val checks: List<PreShiftCheck> = emptyList(),
+    val needsBusinessAssignment: Boolean = false
 )
 //{
 //    val displayVehicle: Vehicle?

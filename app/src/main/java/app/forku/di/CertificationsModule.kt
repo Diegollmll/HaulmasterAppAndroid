@@ -17,12 +17,6 @@ object CertificationsModule {
 
     @Provides
     @Singleton
-    fun provideCertificationApi(retrofit: Retrofit): CertificationApi {
-        return retrofit.create(CertificationApi::class.java)
-    }
-
-    @Provides
-    @Singleton
     fun provideCertificationRepository(
         api: CertificationApi
     ): CertificationRepository {

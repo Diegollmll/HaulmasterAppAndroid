@@ -195,7 +195,7 @@ private fun OperationStatusSection(
 }
 
 @Composable
-private fun StatusItem(
+fun StatusItem(
     icon: ImageVector,
     count: String,
     label: String,

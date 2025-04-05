@@ -55,14 +55,26 @@ class VehicleListViewModel @Inject constructor(
                     isRefreshing = showLoading
                 )
 
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.value = _state.value.copy(
+                        error = "No business context available",
+                        isLoading = false,
+                        isRefreshing = false
+                    )
+                    return@launch
+                }
+
                 // Get all vehicles
-                val vehicles = vehicleRepository.getVehicles()
+                val vehicles = vehicleRepository.getVehicles(businessId)
                 
                 // Get all active sessions with rate limiting
                 val activeSessions = vehicles.map { vehicle ->
                     async {
                         try {
-                            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id)
+                            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, businessId)
                             if (session != null) {
                                 val operator = try {
                                     // Add delay between requests to avoid rate limiting
@@ -137,7 +149,7 @@ class VehicleListViewModel @Inject constructor(
                         try {
                             // Add delay between requests to avoid rate limiting
                             kotlinx.coroutines.delay(300)
-                            val lastCheck = checklistRepository.getLastPreShiftCheck(vehicle.id)
+                            val lastCheck = checklistRepository.getLastPreShiftCheck(vehicle.id, businessId)
                             vehicle.id to lastCheck
                         } catch (e: Exception) {
                             // If there's an error getting the check, return null

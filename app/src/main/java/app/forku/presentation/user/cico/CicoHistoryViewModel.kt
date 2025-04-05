@@ -172,7 +172,12 @@ class CicoHistoryViewModel @Inject constructor(
                 // Process sessions with vehicle and operator details
                 val processedSessions = sessions.mapNotNull { session ->
                     try {
-                        val vehicle = vehicleRepository.getVehicle(session.vehicleId)
+                        val businessId = currentUser?.businessId
+                        if (businessId == null) {
+                            android.util.Log.e("CICO", "No business context available for vehicle ${session.vehicleId}")
+                            return@mapNotNull null
+                        }
+                        val vehicle = vehicleRepository.getVehicle(session.vehicleId, businessId)
                         val operatorResult = loadOperatorWithRetry(session.userId)
                         
                         val operator = operatorResult.getOrNull()

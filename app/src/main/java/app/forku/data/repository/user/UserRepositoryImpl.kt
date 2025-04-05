@@ -1,6 +1,6 @@
 package app.forku.data.repository.user
 
-import app.forku.data.api.GeneralApi
+import app.forku.data.api.UserApi
 import app.forku.data.api.dto.user.UserDto
 import app.forku.data.mapper.toDomain
 import app.forku.domain.model.user.User
@@ -15,10 +15,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import android.util.Log
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
-    private val api: GeneralApi,
+    private val api: UserApi,
     private val authDataStore: AuthDataStore,
     private val tourPreferences: TourPreferences
 ) : UserRepository {
@@ -290,11 +291,26 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteUser(userId: String) {
-        TODO("Not yet implemented")
+        try {
+            val response = api.deleteUser(userId)
+            if (!response.isSuccessful) {
+                throw Exception("Failed to delete user")
+            }
+        } catch (e: Exception) {
+            throw e
+        }
     }
 
     override suspend fun searchUsers(query: String): List<User> {
-        TODO("Not yet implemented")
+        return try {
+            val allUsers = getAllUsers()
+            allUsers.filter { user ->
+                user.fullName.contains(query, ignoreCase = true) ||
+                user.email.contains(query, ignoreCase = true)
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     override suspend fun observeCurrentUser(): Flow<User?> {
@@ -324,5 +340,25 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getCurrentUserId(): String? {
         return authDataStore.getCurrentUser()?.id
+    }
+
+    override suspend fun getUnassignedUsers(): List<User> {
+        Log.d("UserRepository", "Getting unassigned users")
+        return try {
+            // Obtener todos los usuarios
+            val allUsers = getAllUsers()
+            Log.d("UserRepository", "Total users: ${allUsers.size}")
+            
+            // Filtrar usuarios que no tienen businessId o businessId está vacío
+            val unassignedUsers = allUsers.filter { user ->
+                user.businessId.isNullOrEmpty()
+            }
+            Log.d("UserRepository", "Unassigned users: ${unassignedUsers.size}")
+            
+            unassignedUsers
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error getting unassigned users", e)
+            emptyList()
+        }
     }
 } 

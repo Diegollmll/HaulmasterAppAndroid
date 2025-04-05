@@ -1,6 +1,5 @@
 package app.forku.data.repository.checklist
 
-import app.forku.data.api.GeneralApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
@@ -15,11 +14,11 @@ import app.forku.domain.model.checklist.CheckStatus
 import java.time.Instant
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
 import app.forku.core.location.LocationManager
-
+import app.forku.data.api.ChecklistApi
 
 
 class ChecklistRepositoryImpl @Inject constructor(
-    private val api: GeneralApi,
+    private val api: ChecklistApi,
     private val authDataStore: AuthDataStore,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
     private val checklistStatusNotifier: ChecklistStatusNotifier,
@@ -48,14 +47,14 @@ class ChecklistRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
+    override suspend fun getLastPreShiftCheck(vehicleId: String, businessId: String): PreShiftCheck? {
         var attempts = 0
         val maxAttempts = 3
         var delay = 1000L
         
         while (attempts < maxAttempts) {
             try {
-                val response = api.getAllChecks()
+                val response = api.getAllChecks(businessId)
                 
                 if (response.isSuccessful && response.body() != null) {
                     return response.body()!!
@@ -143,9 +142,11 @@ class ChecklistRepositoryImpl @Inject constructor(
         val maxAttempts = 3
         var delay = 1000L
 
+        val businessId = authDataStore.getCurrentUser()?.businessId ?: return emptyList()
+
         while (attempts < maxAttempts) {
             try {
-                val response = api.getAllChecks()
+                val response = api.getAllChecks(businessId)
                 
                 if (response.isSuccessful && response.body() != null) {
                     val allChecks = response.body()!!
@@ -208,7 +209,8 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun hasChecklistInCreation(vehicleId: String): Boolean {
         return try {
-            val lastCheck = getLastPreShiftCheck(vehicleId)
+            val businessId = authDataStore.getCurrentUser()?.businessId ?: return false
+            val lastCheck = getLastPreShiftCheck(vehicleId, businessId)
             lastCheck?.status == CheckStatus.NOT_STARTED.toString() ||
                     lastCheck?.status == CheckStatus.IN_PROGRESS.toString()
         } catch (e: Exception) {

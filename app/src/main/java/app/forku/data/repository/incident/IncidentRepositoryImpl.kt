@@ -1,6 +1,6 @@
 package app.forku.data.repository.incident
 
-import app.forku.data.api.GeneralApi
+import app.forku.data.api.IncidentApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.mapper.toDto
 import app.forku.data.mapper.toDomain
@@ -9,7 +9,7 @@ import app.forku.domain.repository.incident.IncidentRepository
 import javax.inject.Inject
 
 class IncidentRepositoryImpl @Inject constructor(
-    private val api: GeneralApi,
+    private val api: IncidentApi,
     private val authDataStore: AuthDataStore
 ) : IncidentRepository {
     override suspend fun reportIncident(incident: Incident): Result<Incident> {

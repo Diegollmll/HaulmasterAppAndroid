@@ -24,7 +24,8 @@ fun UserDto.toDomain(): User {
         lastMedicalCheck = lastMedicalCheck,
         lastLogin = lastLogin,
         isActive = isActive,
-        password = password
+        password = password,
+        businessId = businessId
     )
 }
 
@@ -51,7 +52,8 @@ fun User.toDto(): UserDto {
         certifications = certifications.map { it.toDto() },
         lastMedicalCheck = lastMedicalCheck,
         lastLogin = lastLogin,
-        isActive = isActive
+        isActive = isActive,
+        businessId = businessId
     )
 }
 

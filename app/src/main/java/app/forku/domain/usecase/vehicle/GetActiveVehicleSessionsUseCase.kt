@@ -15,13 +15,17 @@ class GetActiveVehicleSessionsUseCase @Inject constructor(
     suspend operator fun invoke(): Map<String, VehicleSessionInfo> {
         val sessionMap = mutableMapOf<String, VehicleSessionInfo>()
         
+        // Get current user's business ID
+        val currentUser = userRepository.getCurrentUser() ?: return emptyMap()
+        val businessId = currentUser.businessId ?: return emptyMap()
+        
         // Get all active sessions
         val activeSessions = vehicleSessionRepository.getOperatorSessionHistory()
             .filter { it.endTime == null }  // Only active sessions
             
         for (session in activeSessions) {
             val operator = userRepository.getUserById(session.userId)
-            val vehicle = vehicleRepository.getVehicle(session.vehicleId)
+            val vehicle = vehicleRepository.getVehicle(session.vehicleId, businessId)
             
             try {
                 sessionMap[session.vehicleId] = VehicleSessionInfo(

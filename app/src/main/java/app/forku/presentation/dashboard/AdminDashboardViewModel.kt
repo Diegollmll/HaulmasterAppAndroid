@@ -6,6 +6,7 @@ import app.forku.domain.model.checklist.Answer
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.session.VehicleSessionInfo
 import app.forku.domain.model.user.User
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.session.VehicleSessionRepository
@@ -62,37 +63,46 @@ class AdminDashboardViewModel @Inject constructor(
     private suspend fun getVehicleSessionInfo(session: VehicleSession): VehicleSessionInfo? {
         return try {
             android.util.Log.d("AdminDashboard", "Getting info for session: $session")
-            val vehicle = vehicleRepository.getVehicle(session.vehicleId)
-            android.util.Log.d("AdminDashboard", "Found vehicle: $vehicle")
-            val operator = userRepository.getUserById(session.userId)
-            android.util.Log.d("AdminDashboard", "Found operator: $operator with photoUrl: ${operator?.photoUrl}")
+            val currentUser = userRepository.getCurrentUser()
+            val businessId = currentUser?.businessId
             
-            // Calculate session progress (assuming 8-hour shifts)
+            if (businessId == null) {
+                android.util.Log.e("AdminDashboard", "No business context available")
+                return null
+            }
+            
+            val vehicle = vehicleRepository.getVehicle(session.vehicleId, businessId)
+            android.util.Log.d("AdminDashboard", "Got vehicle: $vehicle")
+            
+            val operator = userRepository.getUserById(session.userId)
+            android.util.Log.d("AdminDashboard", "Got operator: $operator, photoUrl: ${operator?.photoUrl}")
+
+            // Calculate session progress (assuming 8-hour default duration)
             val startTime = parseDateTime(session.startTime)
             val now = OffsetDateTime.now()
             val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
-
             val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
 
             // Default avatar URL for when photoUrl is empty
             val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"
-            
+
             // Create session info even if operator is null
             VehicleSessionInfo(
                 vehicle = vehicle,
                 vehicleId = vehicle.id,
                 vehicleType = vehicle.type.displayName,
-                progress = progress,
-                operatorName = operator?.let { "${it.firstName.first()}. ${it.lastName}" } ?: "Unknown",
-                operatorImage = operator?.photoUrl?.takeIf { it.isNotEmpty() } ?: defaultAvatarUrl,
-                sessionStartTime = session.startTime,
-                vehicleImage = vehicle.photoModel,
                 codename = vehicle.codename,
+                vehicleImage = vehicle.photoModel,
                 session = session,
-                operator = operator
+                operator = operator,
+                operatorName = "${operator?.firstName?.first() ?: ""}. ${operator?.lastName ?: ""}",
+                operatorImage = operator?.photoUrl ?: defaultAvatarUrl,
+                sessionStartTime = session.startTime,
+                userRole = operator?.role ?: UserRole.OPERATOR,
+                progress = progress
             )
         } catch (e: Exception) {
-            android.util.Log.e("AdminDashboard", "Error getting vehicle session info", e)
+            android.util.Log.e("AdminDashboard", "Error getting session info: ${e.message}")
             null
         }
     }
@@ -123,9 +133,20 @@ class AdminDashboardViewModel @Inject constructor(
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.value = _state.value.copy(
+                        error = "No business context available",
+                        isLoading = false
+                    )
+                    return@launch
+                }
+
                 // Get all vehicles with error handling
                 val vehicles = try {
-                    vehicleRepository.getVehicles()
+                    vehicleRepository.getVehicles(businessId)
                 } catch (e: Exception) {
                     android.util.Log.e("AdminDashboard", "Error getting vehicles", e)
                     emptyList()
@@ -137,7 +158,7 @@ class AdminDashboardViewModel @Inject constructor(
                         async {
                             try {
                                 delay(100) // Add small delay between requests to prevent rate limiting
-                                val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id)
+                                val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, businessId)
                                 session?.let { 
                                     val operator = userRepository.getUserById(it.userId)
                                     val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"
@@ -176,7 +197,7 @@ class AdminDashboardViewModel @Inject constructor(
                         async {
                             try {
                                 delay(100) // Add small delay between requests
-                                val lastCheck = checklistRepository.getLastPreShiftCheck(session.vehicle.id)
+                                val lastCheck = checklistRepository.getLastPreShiftCheck(session.vehicle.id, businessId)
                                 session.vehicle.id to lastCheck
                             } catch (e: Exception) {
                                 android.util.Log.e("AdminDashboard", "Error getting last check for vehicle ${session.vehicle.id}", e)

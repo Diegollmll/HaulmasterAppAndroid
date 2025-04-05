@@ -1,6 +1,7 @@
 package app.forku.data.repository.notification
 
-import app.forku.data.api.GeneralApi
+
+import app.forku.data.api.NotificationApi
 import app.forku.data.mapper.toNotification
 import app.forku.data.mapper.toNotificationDto
 import app.forku.domain.model.notification.Notification
@@ -13,7 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class NotificationRepositoryImpl @Inject constructor(
-    private val api: GeneralApi
+    private val api: NotificationApi
 ) : NotificationRepository {
 
     private val _notifications = MutableStateFlow<List<Notification>>(emptyList())

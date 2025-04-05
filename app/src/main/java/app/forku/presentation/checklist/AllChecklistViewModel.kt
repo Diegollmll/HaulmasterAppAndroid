@@ -69,11 +69,25 @@ class AllChecklistViewModel @Inject constructor(
             }
             
             try {
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            isLoadingMore = false,
+                            error = "No business context available"
+                        )
+                    }
+                    return@launch
+                }
+                
                 val checks = checklistRepository.getAllChecks(page)
                 val checkStates = checks.mapNotNull { check ->
                     try {
                         val operator = userRepository.getUserById(check.userId)
-                        val vehicle = vehicleRepository.getVehicle(check.vehicleId)
+                        val vehicle = vehicleRepository.getVehicle(check.vehicleId, businessId)
                         PreShiftCheckState(
                             id = check.id,
                             vehicleId = check.vehicleId,
@@ -83,6 +97,7 @@ class AllChecklistViewModel @Inject constructor(
                             lastCheckDateTime = check.lastCheckDateTime
                         )
                     } catch (e: Exception) {
+                        android.util.Log.e("AllChecklistViewModel", "Error processing check: ${e.message}")
                         null
                     }
                 }

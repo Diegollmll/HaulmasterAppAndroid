@@ -14,7 +14,8 @@ data class UserDto(
     val certifications: List<CertificationDto>,
     val lastMedicalCheck: String?,
     val lastLogin: String?,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    val businessId: String? = null
 )
 
 data class CertificationDto(

@@ -13,12 +13,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object FeedbackModule {
-    
-    @Provides
-    @Singleton
-    fun provideFeedbackApi(retrofit: Retrofit): FeedbackApi =
-        retrofit.create(FeedbackApi::class.java)
-
     @Provides
     @Singleton
     fun provideFeedbackRepository(api: FeedbackApi): FeedbackRepository =

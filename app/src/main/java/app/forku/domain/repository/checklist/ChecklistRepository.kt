@@ -7,7 +7,7 @@ import app.forku.domain.model.checklist.CheckStatus
 
 interface ChecklistRepository {
     suspend fun getChecklistItems(vehicleId: String): List<Checklist>
-    suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck?
+    suspend fun getLastPreShiftCheck(vehicleId: String, businessId: String): PreShiftCheck?
     suspend fun submitPreShiftCheck(
         vehicleId: String,
         checkItems: List<ChecklistItem>,

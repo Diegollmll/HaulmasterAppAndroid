@@ -103,39 +103,55 @@ class DashboardViewModel @Inject constructor(
     }
     
     private suspend fun loadDashboard(showLoading: Boolean = false) {
-        // Use mutex to prevent concurrent loadDashboard calls
-        if (!loadDashboardMutex.tryLock()) {
-            android.util.Log.d("DashboardViewModel", "Skipping loadDashboard - already in progress")
-            return
+        if (showLoading) {
+            android.util.Log.d("DashboardViewModel", "Setting loading state to true")
+            _state.update { it.copy(isLoading = true) }
         }
-        
+
         try {
-            if (showLoading) {
-                android.util.Log.d("DashboardViewModel", "Setting loading state to true")
-                _state.update { it.copy(isLoading = true) }
-            }
-            
             val currentUser = userRepository.getCurrentUser()
                 ?: throw Exception("User not authenticated")
+                
+            // For operators without a business context, we'll show a limited dashboard
+            if (currentUser.businessId == null) {
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        error = null,
+                        vehicles = emptyList(),
+                        activeSessions = emptyList(),
+                        users = emptyList(),
+                        checks = emptyList(),
+                        currentSession = null,
+                        lastSession = null,
+                        displayVehicle = null,
+                        lastPreShiftCheck = null,
+                        needsBusinessAssignment = true
+                    )
+                }
+                return
+            }
+
+            val businessId = currentUser.businessId
 
             // Load all vehicles
-            val vehicles = vehicleRepository.getVehicles()
-            
+            val vehicles = vehicleRepository.getVehicles(businessId)
+
             // Load only active sessions (where endTime is null)
             val activeSessions = vehicleSessionRepository.getSessions()
-                .filter { session -> 
-                    session.endTime == null && 
+                .filter { session ->
+                    session.endTime == null &&
                     // Ensure the vehicle exists for this session
                     vehicles.any { vehicle -> vehicle.id == session.vehicleId }
                 }
-                .distinctBy { it.vehicleId } // Ensure only one active session per vehicle
-            
+                .distinctBy { it.vehicleId } // Ensure only one session per vehicle
+
             // Load all users involved in active sessions
-            val userIds = activeSessions.map { it.userId }.distinct()
+            val userIds = activeSessions.map { it.userId }
             val users = userIds.mapNotNull { userId ->
                 userRepository.getUserById(userId)
             }
-            
+
             // Load latest checks for each vehicle
             val checks = vehicles.mapNotNull { vehicle ->
                 getLastPreShiftCheckUseCase(vehicle.id)
@@ -192,15 +208,8 @@ class DashboardViewModel @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            android.util.Log.e("DashboardViewModel", "Error in loadDashboard", e)
-            _state.update {
-                it.copy(
-                    error = e.message,
-                    isLoading = false
-                )
-            }
-        } finally {
-            loadDashboardMutex.unlock()
+            android.util.Log.e("DashboardViewModel", "Error loading dashboard", e)
+            _state.update { it.copy(error = "Error loading dashboard: ${e.message}") }
         }
     }
 

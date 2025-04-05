@@ -41,14 +41,20 @@ object UseCaseModule {
 
     @Provides
     @Singleton
-    fun provideGetVehicleUseCase(repository: VehicleRepository): GetVehicleUseCase {
-        return GetVehicleUseCase(repository)
+    fun provideGetVehicleUseCase(
+        repository: VehicleRepository,
+        userRepository: UserRepository
+    ): GetVehicleUseCase {
+        return GetVehicleUseCase(repository, userRepository)
     }
 
     @Provides
     @Singleton
-    fun provideGetVehiclesUseCase(repository: VehicleRepository): GetVehiclesUseCase {
-        return GetVehiclesUseCase(repository)
+    fun provideGetVehiclesUseCase(
+        repository: VehicleRepository,
+        userRepository: UserRepository
+    ): GetVehiclesUseCase {
+        return GetVehiclesUseCase(repository, userRepository)
     }
 
     @Provides
@@ -64,9 +70,10 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideGetVehicleStatusUseCase(
-        vehicleStatusRepository: VehicleStatusRepository
+        vehicleStatusRepository: VehicleStatusRepository,
+        userRepository: UserRepository
     ): GetVehicleStatusUseCase {
-        return GetVehicleStatusUseCase(vehicleStatusRepository)
+        return GetVehicleStatusUseCase(vehicleStatusRepository, userRepository)
     }
 
     @Provides

@@ -1,6 +1,7 @@
 package app.forku.domain.model.user
 
 enum class UserRole {
+    SUPERADMIN,
     ADMIN,
     OPERATOR;
 

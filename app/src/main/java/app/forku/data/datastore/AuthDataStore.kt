@@ -36,6 +36,8 @@ class AuthDataStore @Inject constructor(
         val PASSWORD = stringPreferencesKey("password")
         val LAST_ACTIVE = stringPreferencesKey("last_active")
         val IS_ONLINE = booleanPreferencesKey("is_online")
+        val BUSINESS_ID = stringPreferencesKey("business_id")
+        val SITE_ID = stringPreferencesKey("site_id")
     }
 
     @Volatile
@@ -77,6 +79,8 @@ class AuthDataStore @Inject constructor(
             - Name: ${user.fullName}
             - Token: ${user.token.take(10)}...
             - Role: ${user.role}
+            - Business ID: ${user.businessId}
+            - Site ID: ${user.siteId}
         """.trimIndent())
         
         context.dataStore.edit { preferences ->
@@ -92,6 +96,8 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.TOKEN_KEY] = user.token
             preferences[PreferencesKeys.PASSWORD] = user.password
             preferences[PreferencesKeys.IS_ONLINE] = true
+            user.businessId?.let { preferences[PreferencesKeys.BUSINESS_ID] = it }
+            user.siteId?.let { preferences[PreferencesKeys.SITE_ID] = it }
             val now = System.currentTimeMillis()
             preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
             lastActiveTime = now
@@ -117,6 +123,8 @@ class AuthDataStore @Inject constructor(
                 - ROLE: ${preferences[PreferencesKeys.ROLE]}
                 - IS_ONLINE: ${preferences[PreferencesKeys.IS_ONLINE]}
                 - LAST_ACTIVE: ${preferences[PreferencesKeys.LAST_ACTIVE]}
+                - BUSINESS_ID: ${preferences[PreferencesKeys.BUSINESS_ID]}
+                - SITE_ID: ${preferences[PreferencesKeys.SITE_ID]}
             """.trimIndent())
             
             val userId = preferences[PreferencesKeys.USER_ID]
@@ -157,6 +165,8 @@ class AuthDataStore @Inject constructor(
                 return null
             }
             val password = preferences[PreferencesKeys.PASSWORD] ?: ""
+            val businessId = preferences[PreferencesKeys.BUSINESS_ID]
+            val siteId = preferences[PreferencesKeys.SITE_ID]
 
             val isOnline = preferences[PreferencesKeys.IS_ONLINE] ?: false
             val lastActive = preferences[PreferencesKeys.LAST_ACTIVE]?.toLongOrNull() ?: 0L
@@ -174,7 +184,9 @@ class AuthDataStore @Inject constructor(
                 certifications = emptyList(),
                 password = password,
                 isActive = isOnline,
-                lastLogin = lastActive.toString()
+                lastLogin = lastActive.toString(),
+                businessId = businessId,
+                siteId = siteId
             ).also {
                 android.util.Log.d("AuthDataStore", """
                     User retrieved successfully:
@@ -182,6 +194,8 @@ class AuthDataStore @Inject constructor(
                     - Name: ${it.fullName}
                     - Token: ${it.token.take(10)}...
                     - Role: ${it.role}
+                    - Business ID: ${it.businessId}
+                    - Site ID: ${it.siteId}
                     - Online: $isOnline
                     - Last Active: ${java.time.Instant.ofEpochMilli(lastActive)}
                 """.trimIndent())

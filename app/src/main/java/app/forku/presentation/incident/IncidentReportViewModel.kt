@@ -125,10 +125,6 @@ class IncidentReportViewModel @Inject constructor(
     private fun loadInitialData() {
         viewModelScope.launch {
             try {
-                // Load available vehicles first
-                val vehicles = vehicleRepository.getVehicles()
-                _state.update { it.copy(availableVehicles = vehicles) }
-
                 // Get current user first
                 var user = userRepository.getCurrentUser()
                 android.util.Log.d("IncidentReport", "Initial current user fetch: $user")
@@ -140,6 +136,17 @@ class IncidentReportViewModel @Inject constructor(
                     user = refreshResult.getOrNull()
                     android.util.Log.d("IncidentReport", "After refresh, current user: $user")
                 }
+
+                val businessId = user?.businessId
+                if (businessId == null) {
+                    android.util.Log.e("IncidentReport", "No business context available")
+                    _state.update { it.copy(error = "No business context available") }
+                    return@launch
+                }
+                
+                // Load available vehicles first
+                val vehicles = vehicleRepository.getVehicles(businessId)
+                _state.update { it.copy(availableVehicles = vehicles) }
                 
                 // Set user information regardless of session
                 user?.let { currentUser ->
@@ -169,8 +176,8 @@ class IncidentReportViewModel @Inject constructor(
                 
                 session?.vehicleId?.let { vehicleId ->
                     try {
-                        val vehicle = vehicleRepository.getVehicle(vehicleId)
-                        val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                        val vehicle = vehicleRepository.getVehicle(vehicleId, businessId)
+                        val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
                         
                         _state.update { currentState ->
                             currentState.copy(
@@ -200,7 +207,16 @@ class IncidentReportViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    android.util.Log.e("IncidentReport", "No business context available")
+                    _state.update { it.copy(error = "No business context available") }
+                    return@launch
+                }
+                
+                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
                 _state.update { currentState -> 
                     currentState.copy(
                         lastPreshiftCheck = lastCheck?.lastCheckDateTime?.let { dateString ->

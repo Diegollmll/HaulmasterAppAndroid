@@ -122,7 +122,13 @@ class ProfileViewModel @Inject constructor(
             val OPERATING = userSessions.find { it.status == VehicleSessionStatus.OPERATING }
             
             val activeVehicle = OPERATING?.let { session ->
-                vehicleRepository.getVehicle(session.vehicleId)
+                val businessId = user.businessId
+                if (businessId != null) {
+                    vehicleRepository.getVehicle(session.vehicleId, businessId)
+                } else {
+                    android.util.Log.e("ProfileViewModel", "No business context available for vehicle ${session.vehicleId}")
+                    null
+                }
             }
             
             // Update user with current active status based on vehicle session

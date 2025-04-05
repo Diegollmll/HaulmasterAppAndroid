@@ -74,6 +74,7 @@ sealed class Screen(val route: String) {
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
     data object Tour : Screen("tour")
     data object AdminDashboard : Screen("admin_dashboard")
+    data object SuperAdminDashboard : Screen("super_admin_dashboard")
     data object OperatorsList : Screen("operator_session_list")
     data object Notifications : Screen("notifications")
     data object AllChecklist : Screen("all_checklist")
@@ -91,6 +92,20 @@ sealed class Screen(val route: String) {
             "certification/$certificationId/edit"
     }
     data object CertificationCreate : Screen("certification/create")
+    
+    // SuperAdmin specific routes
+    data object UserManagement : Screen("user_management")
+    data object RoleManagement : Screen("role_management")
+    data object PermissionsManagement : Screen("permissions_management")
+    data object BusinessManagement : Screen("business_management")
+    data object AddUser : Screen("add_user")
+    data object AdminManagement : Screen("admin_management")
+    data object AddVehicle : Screen("add_vehicle")
+    data object MaintenanceSchedule : Screen("maintenance_schedule")
+    data object VehicleReports : Screen("vehicle_reports")
+    data object SystemSettings : Screen("system_settings")
+    data object SystemBackup : Screen("system_backup")
+    data object AuditLog : Screen("audit_log")
 
     companion object {
         fun Profile.withOperatorId(operatorId: String?) = 

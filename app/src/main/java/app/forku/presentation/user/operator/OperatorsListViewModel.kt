@@ -55,11 +55,23 @@ class OperatorsListViewModel @Inject constructor(
     fun loadOperators(showLoading: Boolean = true) {
         viewModelScope.launch {
             try {
-                _state.value = _state.value.copy(
-                    isLoading = showLoading,
-                    isRefreshing = showLoading
-                )
-
+                if (showLoading) {
+                    _state.value = _state.value.copy(isLoading = true)
+                }
+                
+                // Get current user's business context
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    android.util.Log.e("OperatorsList", "No business context available")
+                    _state.value = _state.value.copy(
+                        error = "No business context available",
+                        isLoading = false
+                    )
+                    return@launch
+                }
+                
                 // Get both operators and admins
                 val operators = try {
                     userRepository.getUsersByRole(UserRole.OPERATOR)
@@ -79,7 +91,7 @@ class OperatorsListViewModel @Inject constructor(
                 
                 // Get all vehicles and their active sessions with retry
                 val vehicles = try {
-                    vehicleRepository.getVehicles()
+                    vehicleRepository.getVehicles(businessId)
                 } catch (e: Exception) {
                     android.util.Log.e("OperatorsList", "Error getting vehicles", e)
                     emptyList()
@@ -91,7 +103,7 @@ class OperatorsListViewModel @Inject constructor(
                         async {
                             try {
                                 delay(100) // Add small delay between requests to prevent rate limiting
-                                vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id)
+                                vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, businessId)
                             } catch (e: Exception) {
                                 android.util.Log.e("OperatorsList", "Error getting session for vehicle ${vehicle.id}", e)
                                 null

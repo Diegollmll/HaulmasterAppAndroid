@@ -47,4 +47,6 @@ interface UserRepository {
     suspend fun getLastActiveTime(userId: String): Long?
 
     suspend fun getCurrentUserId(): String?
+
+    suspend fun getUnassignedUsers(): List<User>
 } 

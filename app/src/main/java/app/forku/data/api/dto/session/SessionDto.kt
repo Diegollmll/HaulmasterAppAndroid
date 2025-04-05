@@ -6,6 +6,7 @@ data class SessionDto(
     val id: String,
     val vehicleId: String,
     val userId: String,
+    val checkId: String,
     val startTime: String,
     val endTime: String?,
     val status: String,

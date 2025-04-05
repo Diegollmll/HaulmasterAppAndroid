@@ -34,18 +34,29 @@ class SafetyAlertsViewModel @Inject constructor(
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.value = _state.value.copy(
+                        error = "No business context available",
+                        isLoading = false
+                    )
+                    return@launch
+                }
+
                 // Get all checks
                 val checks = checklistRepository.getAllChecks()
-                
+
                 // Process checks to find safety alerts (failed non-critical items)
                 val alerts = mutableListOf<SafetyAlert>()
-                
+
                 checks.forEach { check ->
                     // Get vehicle info
-                    val vehicle = vehicleRepository.getVehicle(check.vehicleId)
+                    val vehicle = vehicleRepository.getVehicle(check.vehicleId, businessId)
                     // Get operator info
                     val operator = userRepository.getUserById(check.userId)
-                    
+
                     // Find failed non-critical items
                     check.items
                         .filter { !it.isCritical && it.userAnswer == Answer.FAIL }
@@ -65,11 +76,12 @@ class SafetyAlertsViewModel @Inject constructor(
 
                 _state.value = _state.value.copy(
                     safetyAlerts = alerts.sortedByDescending { it.date },
-                    isLoading = false
+                    isLoading = false,
+                    error = null
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
-                    error = e.message,
+                    error = "Failed to load safety alerts",
                     isLoading = false
                 )
             }

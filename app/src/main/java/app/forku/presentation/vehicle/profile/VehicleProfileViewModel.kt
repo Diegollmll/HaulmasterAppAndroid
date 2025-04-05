@@ -95,9 +95,23 @@ class VehicleProfileViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = showLoading) }
                 
+                // Get current user and business context
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "No business context available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
                 // Get vehicle details with retry
                 val vehicle = retryOnFailure {
-                    vehicleRepository.getVehicle(vehicleId)
+                    vehicleRepository.getVehicle(vehicleId, businessId)
                 }
                 
                 if (vehicle == null) {
@@ -106,12 +120,12 @@ class VehicleProfileViewModel @Inject constructor(
                 
                 // Get active session with retry
                 val activeSession = retryOnFailure {
-                    vehicleSessionRepository.getActiveSessionForVehicle(vehicleId)
+                    vehicleSessionRepository.getActiveSessionForVehicle(vehicleId, businessId)
                 }
                 
                 // Get last pre-shift check with retry
                 val lastPreShiftCheck = retryOnFailure {
-                    checklistRepository.getLastPreShiftCheck(vehicleId)
+                    checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
                 }
                 
                 // Fetch operator details if there's an active session
@@ -233,13 +247,27 @@ class VehicleProfileViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
+                // Get current user and business context
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "No business context available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
                 // Check vehicle status first
                 val vehicleStatus = getVehicleStatusUseCase(vehicleId)
                 if (!vehicleStatus.isAvailable()) {
                     throw Exception(vehicleStatus.getErrorMessage())
                 }
                 
-                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId)
+                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
                 
                 if (lastCheck?.status == CheckStatus.COMPLETED_PASS.toString()) {
                     val session = vehicleSessionRepository.startSession(
@@ -299,7 +327,15 @@ class VehicleProfileViewModel @Inject constructor(
     }
 
     suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
-        return checklistRepository.getLastPreShiftCheck(vehicleId)
+        val currentUser = userRepository.getCurrentUser()
+        val businessId = currentUser?.businessId
+        
+        if (businessId == null) {
+            android.util.Log.e("VehicleProfile", "No business context available")
+            return null
+        }
+        
+        return checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
     }
 
     fun endVehicleSession() {
@@ -308,7 +344,19 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
-                if (currentUser?.role != UserRole.ADMIN) {
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "No business context available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                if (currentUser.role != UserRole.ADMIN) {
                     _state.update { 
                         it.copy(
                             error = "Only administrators can end sessions",
@@ -338,7 +386,7 @@ class VehicleProfileViewModel @Inject constructor(
 
                 // Update vehicle status to AVAILABLE
                 state.value.vehicle?.id?.let { vehicleId ->
-                    vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE)
+                    vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE, businessId)
                 }
                 
                 // Reload vehicle state to reflect all changes
@@ -362,7 +410,19 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
-                if (currentUser?.role != UserRole.ADMIN) {
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "No business context available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                if (currentUser.role != UserRole.ADMIN) {
                     _state.update { 
                         it.copy(
                             error = "Only administrators can change vehicle status",
@@ -392,7 +452,7 @@ class VehicleProfileViewModel @Inject constructor(
                 }
 
                 // Update vehicle status
-                vehicleRepository.updateVehicleStatus(vehicleId, newStatus)
+                vehicleRepository.updateVehicleStatus(vehicleId, newStatus, businessId)
                 
                 // Reload vehicle state to reflect changes
                 loadVehicle(showLoading = false)

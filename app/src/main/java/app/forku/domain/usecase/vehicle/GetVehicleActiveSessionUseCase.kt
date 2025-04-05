@@ -15,9 +15,13 @@ class GetVehicleActiveSessionUseCase @Inject constructor(
     private val vehicleRepository: VehicleRepository
 ) {
     suspend operator fun invoke(vehicleId: String): VehicleSessionInfo? {
-        val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId) ?: return null
+        // Get current user's business ID
+        val currentUser = userRepository.getCurrentUser() ?: return null
+        val businessId = currentUser.businessId ?: return null
+        
+        val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId, businessId) ?: return null
         val operator = userRepository.getUserById(session.userId)
-        val vehicle = vehicleRepository.getVehicle(vehicleId)
+        val vehicle = vehicleRepository.getVehicle(vehicleId, businessId)
         
         val startTime = LocalDateTime.parse(session.startTime)
         val currentTime = LocalDateTime.now()

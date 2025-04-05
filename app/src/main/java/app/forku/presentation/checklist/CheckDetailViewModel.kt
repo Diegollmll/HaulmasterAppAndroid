@@ -25,16 +25,27 @@ class CheckDetailViewModel @Inject constructor(
             try {
                 _state.value = _state.value.copy(isLoading = true)
                 
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = currentUser?.businessId
+                
+                if (businessId == null) {
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = "No business context available"
+                    )
+                    return@launch
+                }
+
                 val check = checklistRepository.getCheckById(checkId)
                 check?.let {
                     val operator = userRepository.getUserById(it.userId)
-                    val vehicle = vehicleRepository.getVehicle(it.vehicleId)
+                    val vehicle = vehicleRepository.getVehicle(it.vehicleId, businessId)
                     _state.value = _state.value.copy(
                         check = PreShiftCheckState(
                             id = it.id,
                             vehicleId = it.vehicleId,
                             vehicleCodename = vehicle.codename,
-                            operatorName = operator?.let { user -> "${user.firstName} ${user.lastName}" } ?: "Unknown",
+                            operatorName = operator?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown",
                             status = it.status,
                             lastCheckDateTime = it.lastCheckDateTime
                         ),
@@ -50,7 +61,7 @@ class CheckDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Unknown error occurred"
+                    error = "Error loading check: ${e.message}"
                 )
             }
         }

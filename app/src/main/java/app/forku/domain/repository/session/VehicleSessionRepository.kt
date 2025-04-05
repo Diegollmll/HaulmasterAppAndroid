@@ -12,7 +12,7 @@ interface VehicleSessionRepository {
         adminId: String? = null,
         notes: String? = null
     ): VehicleSession
-    suspend fun getActiveSessionForVehicle(vehicleId: String): VehicleSession?
+    suspend fun getActiveSessionForVehicle(vehicleId: String, businessId: String): VehicleSession?
     suspend fun getOperatorSessionHistory(): List<VehicleSession>
     suspend fun getSessionsByUserId(userId: String): List<VehicleSession>
     suspend fun getLastCompletedSessionForVehicle(vehicleId: String): VehicleSession?

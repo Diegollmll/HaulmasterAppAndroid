@@ -15,6 +15,7 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.core.location.LocationManager
 import app.forku.presentation.user.login.LoginScreen
 import app.forku.presentation.dashboard.DashboardScreen
+import app.forku.presentation.dashboard.SuperAdminDashboardScreen
 import app.forku.presentation.checklist.ChecklistScreen
 import app.forku.presentation.vehicle.list.VehicleListScreen
 import app.forku.presentation.vehicle.profile.VehicleProfileScreen
@@ -26,7 +27,6 @@ import app.forku.presentation.incident.IncidentReportViewModel
 import app.forku.presentation.incident.list.IncidentListScreen
 import app.forku.presentation.user.profile.ProfileScreen
 import app.forku.presentation.vehicle.manual.PerformanceReportScreen
-
 import app.forku.presentation.incident.detail.IncidentDetailScreen
 import app.forku.presentation.tour.TourScreen
 import app.forku.presentation.user.register.RegisterScreen
@@ -42,8 +42,7 @@ import app.forku.presentation.notification.NotificationScreen
 import app.forku.presentation.user.operator.OperatorsListScreen
 import app.forku.presentation.checklist.CheckDetailScreen
 import app.forku.presentation.safety.SafetyAlertsScreen
-
-
+import app.forku.presentation.business.BusinessManagementScreen
 
 @Composable
 fun NavGraph(
@@ -64,6 +63,7 @@ fun NavGraph(
             !tourCompleted -> Screen.Tour.route
             loginState is LoginState.Success || hasToken -> {
                 when (currentUser?.role) {
+                    UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
                     UserRole.ADMIN -> Screen.AdminDashboard.route
                     else -> Screen.Dashboard.route
                 }
@@ -75,6 +75,7 @@ fun NavGraph(
             LoginScreen(
                 onLoginSuccess = { user ->
                     val route = when (user.role) {
+                        UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
                         UserRole.ADMIN -> Screen.AdminDashboard.route
                         else -> Screen.Dashboard.route
                     }
@@ -428,6 +429,68 @@ fun NavGraph(
                 navController = navController,
                 networkManager = networkManager
             )
+        }
+
+        composable(Screen.SuperAdminDashboard.route) {
+            SuperAdminDashboardScreen(
+                navController = navController,
+                onNavigate = { route ->
+                    navController.navigate(route)
+                },
+                networkManager = networkManager
+            )
+        }
+
+        // SuperAdmin specific routes
+        composable(Screen.UserManagement.route) {
+            // TODO: Implement UserManagementScreen
+        }
+
+        composable(Screen.BusinessManagement.route) {
+            BusinessManagementScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.RoleManagement.route) {
+            // TODO: Implement RoleManagementScreen
+        }
+
+        composable(Screen.PermissionsManagement.route) {
+            // TODO: Implement PermissionsManagementScreen
+        }
+
+        composable(Screen.AddUser.route) {
+            // TODO: Implement AddUserScreen
+        }
+
+        composable(Screen.AdminManagement.route) {
+            // TODO: Implement AdminManagementScreen
+        }
+
+        composable(Screen.AddVehicle.route) {
+            // TODO: Implement AddVehicleScreen
+        }
+
+        composable(Screen.MaintenanceSchedule.route) {
+            // TODO: Implement MaintenanceScheduleScreen
+        }
+
+        composable(Screen.VehicleReports.route) {
+            // TODO: Implement VehicleReportsScreen
+        }
+
+        composable(Screen.SystemSettings.route) {
+            // TODO: Implement SystemSettingsScreen
+        }
+
+        composable(Screen.SystemBackup.route) {
+            // TODO: Implement SystemBackupScreen
+        }
+
+        composable(Screen.AuditLog.route) {
+            // TODO: Implement AuditLogScreen
         }
     }
 }

@@ -3,6 +3,7 @@ package app.forku.presentation.common.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,8 +17,10 @@ import androidx.compose.ui.unit.sp
 fun DashboardHeader(
     userName: String,
     onNotificationClick: () -> Unit,
+    onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     showNotifications: Boolean = true,
+    showProfile: Boolean = true,
     greeting: String = "How are you today?"
 ) {
     Row(
@@ -39,17 +42,35 @@ fun DashboardHeader(
                 fontSize = 18.sp
             )
         }
-        if (showNotifications) {
-            IconButton(
-                onClick = onNotificationClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(28.dp)
-                )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (showProfile) {
+                IconButton(
+                    onClick = onProfileClick,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = "Profile",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            if (showNotifications) {
+                IconButton(
+                    onClick = onNotificationClick,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
     }

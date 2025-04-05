@@ -2,7 +2,6 @@ package app.forku.di
 
 import app.forku.core.location.LocationManager
 import app.forku.domain.repository.vehicle.VehicleStatusChecker
-import app.forku.data.api.GeneralApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.repository.vehicle.VehicleRepositoryImpl
 import app.forku.domain.repository.vehicle.VehicleRepository
@@ -29,6 +28,10 @@ import app.forku.data.service.VehicleStatusDeterminerImpl
 import app.forku.data.repository.notification.NotificationRepositoryImpl
 import app.forku.domain.repository.notification.NotificationRepository
 import app.forku.domain.repository.cico.CicoHistoryRepository
+import app.forku.data.api.VehicleApi
+import app.forku.data.api.ChecklistApi
+import app.forku.data.api.VehicleSessionApi
+import app.forku.data.api.IncidentApi
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -45,7 +48,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideVehicleStatusUpdater(
-        api: GeneralApi
+        api: VehicleApi
     ): VehicleStatusUpdater {
         return VehicleStatusUpdaterImpl(api)
     }
@@ -53,7 +56,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSessionStatusChecker(
-        api: GeneralApi
+        api: VehicleSessionApi
     ): SessionStatusChecker {
         return VehicleSessionStatusCheckerImpl(api)
     }
@@ -68,15 +71,20 @@ object RepositoryModule {
     @Singleton
     fun provideChecklistStatusNotifier(
         vehicleStatusUpdater: VehicleStatusUpdater,
-        vehicleStatusDeterminer: VehicleStatusDeterminer
+        vehicleStatusDeterminer: VehicleStatusDeterminer,
+        authDataStore: AuthDataStore
     ): ChecklistStatusNotifier {
-        return ChecklistStatusNotifierImpl(vehicleStatusUpdater, vehicleStatusDeterminer)
+        return ChecklistStatusNotifierImpl(
+            vehicleStatusUpdater = vehicleStatusUpdater,
+            vehicleStatusDeterminer = vehicleStatusDeterminer,
+            authDataStore = authDataStore
+        )
     }
 
     @Provides
     @Singleton
     fun provideChecklistRepository(
-        api: GeneralApi,
+        api: ChecklistApi,
         authDataStore: AuthDataStore,
         validateChecklistUseCase: ValidateChecklistUseCase,
         checklistStatusNotifier: ChecklistStatusNotifier,
@@ -94,13 +102,11 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideVehicleValidationService(
-        api: GeneralApi,
         sessionStatusChecker: SessionStatusChecker,
         checklistRepository: ChecklistRepository,
         vehicleStatusDeterminer: VehicleStatusDeterminer
     ): VehicleValidationService {
         return VehicleValidationServiceImpl(
-            api = api,
             sessionStatusChecker = sessionStatusChecker,
             checklistRepository = checklistRepository,
             vehicleStatusDeterminer = vehicleStatusDeterminer
@@ -119,7 +125,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideSessionRepository(
-        api: GeneralApi,
+        api: VehicleSessionApi,
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
         checklistRepository: ChecklistRepository,
@@ -141,7 +147,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideIncidentRepository(
-        api: GeneralApi,
+        api: IncidentApi,
         authDataStore: AuthDataStore
     ): IncidentRepository {
         return IncidentRepositoryImpl(api, authDataStore)
@@ -150,7 +156,7 @@ object RepositoryModule {
     @Provides
     @Singleton
     fun provideVehicleRepository(
-        api: GeneralApi,
+        api: VehicleApi,
         authDataStore: AuthDataStore,
         validateChecklistUseCase: ValidateChecklistUseCase,
         vehicleStatusRepository: VehicleStatusRepository

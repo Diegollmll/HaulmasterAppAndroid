@@ -4,6 +4,7 @@ data class VehicleSession(
     val id: String,
     val vehicleId: String,
     val userId: String,
+    val checkId: String,
     val startTime: String,
     val endTime: String?,
     val status: VehicleSessionStatus,
@@ -11,7 +12,7 @@ data class VehicleSession(
     val endLocationCoordinates: String?,
     val durationMinutes: Int?,
     val timestamp: String,
-    val closeMethod: VehicleSessionClosedMethod,
+    val closeMethod: VehicleSessionClosedMethod?,
     val closedBy: String? = null,
     val notes: String? = null
 )
