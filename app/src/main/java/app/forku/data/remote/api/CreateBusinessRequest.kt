@@ -7,9 +7,15 @@ data class CreateBusinessRequest(
     val name: String,
     
     @SerializedName("status")
-    val status: String = "PENDING"
+    val status: String = "PENDING",
+
+    @SerializedName("system_owner_id")
+    val systemOwnerId: String?,
+
+    @SerializedName("super_admin_id")
+    val superAdminId: String?
 ) {
     override fun toString(): String {
-        return "CreateBusinessRequest(name='$name', status='$status')"
+        return "CreateBusinessRequest(name='$name', status='$status', systemOwnerId='$systemOwnerId', superAdminId='$superAdminId')"
     }
 } 

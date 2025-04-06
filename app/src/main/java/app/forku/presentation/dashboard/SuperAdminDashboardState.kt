@@ -30,14 +30,6 @@ data class SuperAdminDashboardState(
     val recentAuditLogs: List<AuditLogEntry> = emptyList()
 )
 
-data class Business(
-    val id: String,
-    val name: String,
-    val totalUsers: Int,
-    val totalVehicles: Int,
-    val status: BusinessStatus
-)
-
 enum class BusinessStatus {
     ACTIVE,
     PENDING,

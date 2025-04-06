@@ -16,5 +16,17 @@ data class BusinessDto(
     val totalVehicles: Int,
     
     @SerializedName("status")
-    val status: String
+    val status: String,
+
+    @SerializedName("system_owner_id")
+    val systemOwnerId: String,
+
+    @SerializedName("super_admin_id")
+    val superAdminId: String,
+
+    @SerializedName("created_at")
+    val createdAt: String,
+
+    @SerializedName("updated_at")
+    val updatedAt: String
 ) 

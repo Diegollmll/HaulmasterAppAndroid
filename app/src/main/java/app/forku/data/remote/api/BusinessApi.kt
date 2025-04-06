@@ -1,6 +1,7 @@
 package app.forku.data.remote.api
 
 import app.forku.data.remote.dto.BusinessDto
+import app.forku.data.remote.dto.BusinessStats
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -41,4 +42,23 @@ interface BusinessApi {
 
     @GET("business/{businessId}/vehicles")
     suspend fun getBusinessVehicles(@Path("businessId") businessId: String): List<String>
+
+    // New endpoints for System Owner and Super Admin
+    @GET("business/system-owner/{systemOwnerId}")
+    suspend fun getBusinessesBySystemOwnerId(@Path("systemOwnerId") systemOwnerId: String): List<BusinessDto>
+
+    @GET("business/super-admin/{superAdminId}")
+    suspend fun getBusinessesBySuperAdminId(@Path("superAdminId") superAdminId: String): List<BusinessDto>
+
+    @PUT("business/{businessId}/transfer")
+    suspend fun transferBusiness(
+        @Path("businessId") businessId: String,
+        @Query("newSuperAdminId") newSuperAdminId: String
+    ): BusinessDto
+
+    @GET("business/stats/system-owner/{systemOwnerId}")
+    suspend fun getSystemOwnerBusinessStats(@Path("systemOwnerId") systemOwnerId: String): BusinessStats
+
+    @GET("business/stats/super-admin/{superAdminId}")
+    suspend fun getSuperAdminBusinessStats(@Path("superAdminId") superAdminId: String): BusinessStats
 }

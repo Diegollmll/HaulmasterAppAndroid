@@ -38,6 +38,7 @@ class AuthDataStore @Inject constructor(
         val IS_ONLINE = booleanPreferencesKey("is_online")
         val BUSINESS_ID = stringPreferencesKey("business_id")
         val SITE_ID = stringPreferencesKey("site_id")
+        val SYSTEM_OWNER_ID = stringPreferencesKey("system_owner_id")
     }
 
     @Volatile
@@ -74,13 +75,14 @@ class AuthDataStore @Inject constructor(
 
     suspend fun setCurrentUser(user: User) {
         android.util.Log.d("AuthDataStore", """
-            Setting current user:
+            Storing user data:
             - ID: ${user.id}
             - Name: ${user.fullName}
             - Token: ${user.token.take(10)}...
             - Role: ${user.role}
             - Business ID: ${user.businessId}
             - Site ID: ${user.siteId}
+            - System Owner ID: ${user.systemOwnerId}
         """.trimIndent())
         
         context.dataStore.edit { preferences ->
@@ -98,6 +100,7 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.IS_ONLINE] = true
             user.businessId?.let { preferences[PreferencesKeys.BUSINESS_ID] = it }
             user.siteId?.let { preferences[PreferencesKeys.SITE_ID] = it }
+            user.systemOwnerId?.let { preferences[PreferencesKeys.SYSTEM_OWNER_ID] = it }
             val now = System.currentTimeMillis()
             preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
             lastActiveTime = now
@@ -110,12 +113,9 @@ class AuthDataStore @Inject constructor(
         return try {
             val preferences = context.dataStore.data.first()
             
-            // Log all stored preferences for debugging
             android.util.Log.d("AuthDataStore", """
-                Stored preferences:
+                Current preferences:
                 - USER_ID: ${preferences[PreferencesKeys.USER_ID]}
-                - TOKEN: ${preferences[PreferencesKeys.TOKEN]?.take(10)}...
-                - TOKEN_KEY: ${preferences[PreferencesKeys.TOKEN_KEY]?.take(10)}...
                 - EMAIL: ${preferences[PreferencesKeys.EMAIL]}
                 - USERNAME: ${preferences[PreferencesKeys.USERNAME]}
                 - FIRST_NAME: ${preferences[PreferencesKeys.FIRST_NAME]}
@@ -125,16 +125,13 @@ class AuthDataStore @Inject constructor(
                 - LAST_ACTIVE: ${preferences[PreferencesKeys.LAST_ACTIVE]}
                 - BUSINESS_ID: ${preferences[PreferencesKeys.BUSINESS_ID]}
                 - SITE_ID: ${preferences[PreferencesKeys.SITE_ID]}
+                - SYSTEM_OWNER_ID: ${preferences[PreferencesKeys.SYSTEM_OWNER_ID]}
             """.trimIndent())
             
-            val userId = preferences[PreferencesKeys.USER_ID]
-            android.util.Log.d("AuthDataStore", "Getting current user - Found ID: $userId")
-            
-            if (userId == null) {
-                android.util.Log.e("AuthDataStore", "No user ID found in preferences")
+            val userId = preferences[PreferencesKeys.USER_ID] ?: run {
+                android.util.Log.e("AuthDataStore", "No user ID found")
                 return null
             }
-            
             val token = preferences[PreferencesKeys.TOKEN] ?: run {
                 android.util.Log.e("AuthDataStore", "No token found for user $userId")
                 return null
@@ -167,6 +164,7 @@ class AuthDataStore @Inject constructor(
             val password = preferences[PreferencesKeys.PASSWORD] ?: ""
             val businessId = preferences[PreferencesKeys.BUSINESS_ID]
             val siteId = preferences[PreferencesKeys.SITE_ID]
+            val systemOwnerId = preferences[PreferencesKeys.SYSTEM_OWNER_ID]
 
             val isOnline = preferences[PreferencesKeys.IS_ONLINE] ?: false
             val lastActive = preferences[PreferencesKeys.LAST_ACTIVE]?.toLongOrNull() ?: 0L
@@ -186,7 +184,8 @@ class AuthDataStore @Inject constructor(
                 isActive = isOnline,
                 lastLogin = lastActive.toString(),
                 businessId = businessId,
-                siteId = siteId
+                siteId = siteId,
+                systemOwnerId = systemOwnerId
             ).also {
                 android.util.Log.d("AuthDataStore", """
                     User retrieved successfully:
@@ -196,6 +195,7 @@ class AuthDataStore @Inject constructor(
                     - Role: ${it.role}
                     - Business ID: ${it.businessId}
                     - Site ID: ${it.siteId}
+                    - System Owner ID: ${it.systemOwnerId}
                     - Online: $isOnline
                     - Last Active: ${java.time.Instant.ofEpochMilli(lastActive)}
                 """.trimIndent())

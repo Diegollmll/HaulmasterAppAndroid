@@ -242,7 +242,9 @@ class UserRepositoryImpl @Inject constructor(
                 certifications = user.certifications.map { it.toDto() },
                 lastMedicalCheck = user.lastMedicalCheck,
                 lastLogin = user.lastLogin,
-                isActive = user.isActive
+                isActive = user.isActive,
+                businessId = user.businessId,
+                systemOwnerId = user.systemOwnerId
             )
 
             val response = api.updateUser(user.id, userDto)
@@ -279,13 +281,21 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
         try {
+            Log.d("UserRepository", "Getting all users")
             val response = api.getUsers()
             if (!response.isSuccessful) {
+                Log.e("UserRepository", "Failed to get users: ${response.code()}")
                 return@withContext emptyList()
             }
 
-            response.body()?.map { it.toDomain() } ?: emptyList()
+            val users = response.body()?.map { it.toDomain() } ?: emptyList()
+            Log.d("UserRepository", "Successfully retrieved ${users.size} users")
+            users.forEach { user ->
+                Log.d("UserRepository", "User: ${user.firstName} ${user.lastName}, Role: ${user.role}")
+            }
+            users
         } catch (e: Exception) {
+            Log.e("UserRepository", "Error getting all users", e)
             emptyList()
         }
     }

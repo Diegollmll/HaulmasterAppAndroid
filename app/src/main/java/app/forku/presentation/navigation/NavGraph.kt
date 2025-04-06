@@ -43,6 +43,7 @@ import app.forku.presentation.user.operator.OperatorsListScreen
 import app.forku.presentation.checklist.CheckDetailScreen
 import app.forku.presentation.safety.SafetyAlertsScreen
 import app.forku.presentation.business.BusinessManagementScreen
+import app.forku.presentation.dashboard.SystemOwnerDashboardScreen
 
 @Composable
 fun NavGraph(
@@ -63,6 +64,7 @@ fun NavGraph(
             !tourCompleted -> Screen.Tour.route
             loginState is LoginState.Success || hasToken -> {
                 when (currentUser?.role) {
+                    UserRole.SYSTEM_OWNER -> Screen.SystemOwnerDashboard.route
                     UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
                     UserRole.ADMIN -> Screen.AdminDashboard.route
                     else -> Screen.Dashboard.route
@@ -75,6 +77,7 @@ fun NavGraph(
             LoginScreen(
                 onLoginSuccess = { user ->
                     val route = when (user.role) {
+                        UserRole.SYSTEM_OWNER -> Screen.SystemOwnerDashboard.route
                         UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
                         UserRole.ADMIN -> Screen.AdminDashboard.route
                         else -> Screen.Dashboard.route
@@ -433,6 +436,16 @@ fun NavGraph(
 
         composable(Screen.SuperAdminDashboard.route) {
             SuperAdminDashboardScreen(
+                navController = navController,
+                onNavigate = { route ->
+                    navController.navigate(route)
+                },
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.SystemOwnerDashboard.route) {
+            SystemOwnerDashboardScreen(
                 navController = navController,
                 onNavigate = { route ->
                     navController.navigate(route)

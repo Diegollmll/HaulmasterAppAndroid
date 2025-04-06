@@ -74,6 +74,7 @@ sealed class Screen(val route: String) {
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
     data object Tour : Screen("tour")
     data object AdminDashboard : Screen("admin_dashboard")
+    data object SystemOwnerDashboard : Screen("system_owner_dashboard")
     data object SuperAdminDashboard : Screen("super_admin_dashboard")
     data object OperatorsList : Screen("operator_session_list")
     data object Notifications : Screen("notifications")

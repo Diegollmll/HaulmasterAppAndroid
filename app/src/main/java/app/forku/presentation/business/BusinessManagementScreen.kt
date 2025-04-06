@@ -48,7 +48,7 @@ fun BusinessManagementScreen(
 
     LaunchedEffect(Unit) {
         Log.d("BusinessManagement", "Screen launched, current user role: ${currentUser.value?.role}")
-        if (currentUser.value?.role != UserRole.SUPERADMIN) {
+        if (currentUser.value?.role != UserRole.SYSTEM_OWNER && currentUser.value?.role != UserRole.SUPERADMIN) {
             navController.navigateUp()
         }
     }
