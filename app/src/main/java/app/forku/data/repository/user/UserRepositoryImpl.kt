@@ -74,6 +74,12 @@ class UserRepositoryImpl @Inject constructor(
                 return@withContext Result.failure(Exception("Tu cuenta está desactivada. Contacta al administrador"))
             }
 
+            // Verificar si el usuario está aprobado
+            if (!user.isApproved) {
+                android.util.Log.e("appflow UserRepository", "User account is not approved: $email")
+                return@withContext Result.failure(Exception("Tu cuenta está pendiente de aprobación. Por favor espera a que un administrador la apruebe."))
+            }
+
             // Update lastLogin timestamp
             val updatedUser = user.copy(
                 lastLogin = java.time.Instant.now()
@@ -104,7 +110,8 @@ class UserRepositoryImpl @Inject constructor(
         firstName: String,
         lastName: String,
         email: String,
-        password: String
+        password: String,
+        role: UserRole
     ): Result<User> = withContext(Dispatchers.IO) {
         try {
             // Verificar si el usuario ya existe buscando en la lista de usuarios
@@ -118,10 +125,7 @@ class UserRepositoryImpl @Inject constructor(
                 return@withContext Result.failure(Exception("User already exists"))
             }
 
-            // Por defecto, los nuevos usuarios se registran con rol USER
-            val role = UserRole.OPERATOR
-            
-            // Crear nuevo usuario
+            // Create new user with the provided role
             val newUser = UserDto(
                 id = UUID.randomUUID().toString(),
                 email = email,
@@ -136,7 +140,8 @@ class UserRepositoryImpl @Inject constructor(
                 certifications = listOf(),
                 lastMedicalCheck = null,
                 lastLogin = null,
-                isActive = true
+                isActive = true,
+                isApproved = false
             )
 
             val response = api.createUser(newUser)
@@ -228,10 +233,17 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun updateUser(user: User): Unit = withContext(Dispatchers.IO) {
         try {
+            Log.d("UserRepository", "Updating user: ${user.id}")
+            Log.d("UserRepository", "Update details: isApproved=${user.isApproved}, role=${user.role}")
+            
+            // Get the current user data to preserve the password
+            val currentUserData = api.getUser(user.id).body()
+            val currentPassword = currentUserData?.password ?: ""
+            
             val userDto = UserDto(
                 id = user.id,
                 email = user.email,
-                password = "", // No incluimos el password en la actualización
+                password = currentPassword, // Preserve the current password
                 username = user.username,
                 firstName = user.firstName,
                 lastName = user.lastName,
@@ -243,22 +255,31 @@ class UserRepositoryImpl @Inject constructor(
                 lastMedicalCheck = user.lastMedicalCheck,
                 lastLogin = user.lastLogin,
                 isActive = user.isActive,
+                isApproved = user.isApproved,
                 businessId = user.businessId,
                 systemOwnerId = user.systemOwnerId
             )
 
+            Log.d("UserRepository", "Sending update request to API")
             val response = api.updateUser(user.id, userDto)
+            
             if (!response.isSuccessful) {
-                throw Exception("Failed to update user")
+                Log.e("UserRepository", "Failed to update user: ${response.code()}")
+                Log.e("UserRepository", "Error body: ${response.errorBody()?.string()}")
+                throw Exception("Failed to update user: ${response.code()}")
             }
 
+            Log.d("UserRepository", "User updated successfully")
+            
             // Si el usuario actualizado es el usuario actual, actualizar en AuthDataStore
             getCurrentUser()?.let { currentUser ->
                 if (currentUser.id == user.id) {
+                    Log.d("UserRepository", "Updating current user in AuthDataStore")
                     authDataStore.setCurrentUser(user)
                 }
             }
         } catch (e: Exception) {
+            Log.e("UserRepository", "Error updating user", e)
             throw e
         }
     }

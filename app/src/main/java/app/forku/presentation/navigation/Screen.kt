@@ -5,7 +5,9 @@ sealed class Screen(val route: String) {
     data object Register : Screen("register")
     data object Dashboard : Screen("dashboard")
     data object QRScanner : Screen("qr_scanner")
-    data object VehicleProfile : Screen("vehicle_profile/{vehicleId}")
+    data object VehicleProfile : Screen("vehicle_profile/{vehicleId}?businessId={businessId}") {
+        fun createRoute(vehicleId: String, businessId: String?) = "vehicle_profile/$vehicleId" + (businessId?.let { "?businessId=$it" } ?: "")
+    }
     data object Checklist : Screen("checklist/{vehicleId}") {
         fun createRoute(vehicleId: String, checkId: String? = null, fromScanner: Boolean = false): String = buildString {
             append("checklist/$vehicleId")
@@ -69,6 +71,8 @@ sealed class Screen(val route: String) {
         }
     }
     data object VehiclesList : Screen("vehicles")
+    data object VehicleCategories : Screen("vehicle_categories")
+    data object VehicleTypes : Screen("vehicle_types")
     data object SafetyReporting : Screen("safety_reporting")
     data object PerformanceReport : Screen("performance_report")
     data object IncidentDetail : Screen("incident_detail/{incidentId}")
@@ -105,8 +109,51 @@ sealed class Screen(val route: String) {
     data object MaintenanceSchedule : Screen("maintenance_schedule")
     data object VehicleReports : Screen("vehicle_reports")
     data object SystemSettings : Screen("system_settings")
+    data object Subscriptions : Screen("subscriptions")
     data object SystemBackup : Screen("system_backup")
-    data object AuditLog : Screen("audit_log")
+    data object TimeZones : Screen("timezones")
+    data object Countries : Screen("countries")
+    data object EditVehicle : Screen("edit_vehicle/{vehicleId}?businessId={businessId}") {
+        fun createRoute(vehicleId: String, businessId: String?) = "edit_vehicle/$vehicleId" + (businessId?.let { "?businessId=$it" } ?: "")
+    }
+
+    // Admin Specific Vehicle Routes
+    data object AdminVehiclesList : Screen("admin_vehicles_list")
+    data object AdminVehicleProfile : Screen("admin_vehicle_profile/{vehicleId}") {
+        fun createRoute(vehicleId: String) = "admin_vehicle_profile/$vehicleId"
+    }
+    
+    // Checklist Management Routes
+    data object ChecklistCategories : Screen("checklist_categories")
+    data object ChecklistSubcategories : Screen("checklist_subcategories") {
+        fun createRoute(): String = "checklist_subcategories"
+    }
+    data object Questionaries : Screen("questionaries")
+    data object QuestionaryItems : Screen("questionary_items?questionaryId={questionaryId}") {
+        fun createRoute(questionaryId: String? = null) =
+            "questionary_items" + (questionaryId?.let { "?questionaryId=$it" } ?: "")
+    }
+    data object EditChecklistCategory : Screen("edit_checklist_category/{categoryId}") {
+        fun createRoute(categoryId: String) = "edit_checklist_category/$categoryId"
+    }
+    data object EditQuestionaryChecklistItemCategory : Screen("edit_questionary_checklist_item_category/{categoryId}") {
+        fun createRoute(categoryId: String) = "edit_questionary_checklist_item_category/$categoryId"
+    }
+    data object QuestionaryChecklistItemSubcategory : Screen("questionary_checklist_item_subcategory/{categoryId}") {
+        fun createRoute(categoryId: String) = "questionary_checklist_item_subcategory/$categoryId"
+    }
+    data object EditQuestionaryChecklistItemSubcategory : Screen("edit_questionary_checklist_item_subcategory/{subcategoryId}?categoryId={categoryId}") {
+        fun createRoute(subcategoryId: String?, categoryId: String? = null): String {
+            return if (subcategoryId != null) {
+                "edit_questionary_checklist_item_subcategory/$subcategoryId" + (categoryId?.let { "?categoryId=$it" } ?: "")
+            } else {
+                "edit_questionary_checklist_item_subcategory/new" + (categoryId?.let { "?categoryId=$it" } ?: "")
+            }
+        }
+    }
+    data object QuestionaryChecklist : Screen("questionary_checklist") {
+        fun createRoute(): String = "questionary_checklist"
+    }
 
     companion object {
         fun Profile.withOperatorId(operatorId: String?) = 

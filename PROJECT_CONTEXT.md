@@ -223,5 +223,125 @@ app/src/main/java/app/forku/
 - Checklist validation system
 - Session management improvements
 
+## Naming Conventions
+
+### API & JSON Fields
+- Use camelCase for all API endpoints and JSON fields
+- snake_case should be avoided unless dealing with external systems that strictly require it
+- All DTOs should use camelCase in both property names and @SerializedName annotations
+- Example:
+  ```json
+  {
+    "id": "123",
+    "typeId": "456",
+    "vehicleName": "Forklift-1",
+    "createdAt": "2024-04-08T10:00:00Z"
+  }
+  ```
+
+## MockAPI Integration
+
+### API Base URL
+```
+https://67ed9e4e4387d9117bbe2e16.mockapi.io/forku/api/v1
+```
+
+### API's Data Structure
+```
+user (7)
+vehicle-category (6)
+    └── vehicle-type (26)
+experience-level (0)
+energy-source (0)
+
+questionary-checklist-item-category (9)
+    └── questionary-checklist-item-subcategory (15)
+questionary-checklist (0)
+    └── questionary-checklist-item (0)
+feedback (1)
+notification (0)
+timezone (0)
+country (50)
+    └── country-state (100)
+business (3)
+    └── site (0)
+        └── site-configuration (0)
+        └── incident (0)
+        └── vehicle (1)
+            └── checklist (0)
+            └── safety-alert (0)
+            └── vehicle-session (0)
+        └── geofence (0)
+        └── business-configuration (0)
+configuration (0)
+certification (0)
+subscription (0)
+```
+The numbers in parentheses indicate the count of records in each collection.
+We can access to any entity like this for example: "/business/1/vehicle" (all vehicles of that business) or "/vehicle" (for all vehicles)
+
+### Naming Convention
+- All API endpoints and response fields use camelCase
+- Example: `businessId`, `vehicleType`, `nextService` (not `business_id`, `vehicle_type`, `next_service`)
+
+### Response Handling
+- When no results are found (404), the API returns a string: "Not found"
+- Success responses return JSON objects/arrays
+- Error responses follow standard HTTP status codes
+
+### Filtering
+Filtering is implemented using query parameters:
+
+| Parameter | Type | Example | Description |
+|-----------|------|---------|-------------|
+| search | String | search=hello | Get items matching string in any field |
+| filter | String | filter=hello | Get items matching string in any field |
+| fieldName | String | status=suspended | Get items matching specific field value |
+
+Example:
+```kotlin
+// Get businesses with suspended status
+api.getAllBusinesses(status = "SUSPENDED")
+
+// Get businesses for a specific superAdmin
+api.getAllBusinesses(superAdminId = "123")
+```
+
+### Pagination
+Pagination parameters:
+
+| Parameter | Type | Example | Description |
+|-----------|------|---------|-------------|
+| page | Number | page=1 | Get specific page |
+| limit | Number | limit=10 | Items per page |
+
+### Sorting
+Sorting parameters:
+
+| Parameter | Type | Example | Description |
+|-----------|------|---------|-------------|
+| sortBy | field_name | sortBy=name | Sort by field |
+| order | asc/desc | order=desc | Sort direction |
+
+### API Endpoints
+
+#### Businesses
+- GET `/business` - Get all businesses (supports filtering)
+- GET `/business/{id}` - Get business by ID
+- POST `/business` - Create new business
+- PUT `/business/{id}` - Update business
+- DELETE `/business/{id}` - Delete business
+
+#### Users
+- GET `/user` - Get all users (supports filtering)
+- GET `/user/{id}` - Get user by ID
+- POST `/user` - Create new user
+- PUT `/user/{id}` - Update user
+- DELETE `/user/{id}` - Delete user
+
+### Error Handling
+- All API calls should handle 404 "Not found" responses by returning empty lists/null objects
+- Other error codes should be propagated to the UI layer for user feedback
+
 ---
 *Note: This context file should be updated as the project evolves.* 

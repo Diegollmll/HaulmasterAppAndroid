@@ -32,7 +32,7 @@ fun VehicleSelector(
         modifier = modifier
     ) {
         CustomOutlinedTextField(
-            value = selectedVehicle?.let { "${it.codename} (${it.type.displayName})" } ?: "Select Vehicle",
+            value = selectedVehicle?.let { "${it.codename} (${it.type.name})" } ?: "Select Vehicle",
             onValueChange = { },
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -47,7 +47,7 @@ fun VehicleSelector(
         ) {
             vehicles.forEach { vehicle ->
                 DropdownMenuItem(
-                    text = { Text("${vehicle.codename} (${vehicle.type.displayName})") },
+                    text = { Text("${vehicle.codename} (${vehicle.type.name})") },
                     onClick = {
                         onVehicleSelected(vehicle)
                         expanded = false

@@ -22,23 +22,23 @@ class AuthDataStore @Inject constructor(
     private val gson = Gson()
 
     private object PreferencesKeys {
-        val USER_ID = stringPreferencesKey("user_id")
+        val USER_ID = stringPreferencesKey("userId")
         val TOKEN = stringPreferencesKey("token")
-        val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
+        val REFRESH_TOKEN = stringPreferencesKey("refreshToken")
         val EMAIL = stringPreferencesKey("email")
         val USERNAME = stringPreferencesKey("username")
-        val FIRST_NAME = stringPreferencesKey("first_name")
-        val LAST_NAME = stringPreferencesKey("last_name")
-        val PHOTO_URL = stringPreferencesKey("photo_url")
+        val FIRST_NAME = stringPreferencesKey("firstName")
+        val LAST_NAME = stringPreferencesKey("lastName")
+        val PHOTO_URL = stringPreferencesKey("photoUrl")
         val ROLE = stringPreferencesKey("role")
         val USER_KEY = stringPreferencesKey("user")
         val TOKEN_KEY = stringPreferencesKey("token")
         val PASSWORD = stringPreferencesKey("password")
-        val LAST_ACTIVE = stringPreferencesKey("last_active")
-        val IS_ONLINE = booleanPreferencesKey("is_online")
-        val BUSINESS_ID = stringPreferencesKey("business_id")
-        val SITE_ID = stringPreferencesKey("site_id")
-        val SYSTEM_OWNER_ID = stringPreferencesKey("system_owner_id")
+        val LAST_ACTIVE = stringPreferencesKey("lastActive")
+        val IS_ONLINE = booleanPreferencesKey("isOnline")
+        val BUSINESS_ID = stringPreferencesKey("businessId")
+        val SITE_ID = stringPreferencesKey("siteId")
+        val SYSTEM_OWNER_ID = stringPreferencesKey("systemOwnerId")
     }
 
     @Volatile

@@ -29,6 +29,9 @@ import androidx.lifecycle.lifecycleScope
 import app.forku.core.network.NetworkConnectivityManager
 import kotlinx.coroutines.launch
 import app.forku.core.location.LocationManager
+import app.forku.presentation.dashboard.DashboardViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.domain.model.user.UserRole
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -60,9 +63,15 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            val userRole = currentUser?.role
+            val isAuthenticated by dashboardViewModel.hasToken.collectAsState()
+            val tourCompleted by dashboardViewModel.tourCompleted.collectAsState()
+
             val loginState by loginViewModel.state.collectAsState()
             val hasToken = authDataStore.getToken() != null
-            val tourCompleted = tourPreferences.hasTourCompleted()
+            val tourCompletedFromPrefs = tourPreferences.hasTourCompleted()
 
             ForkUTheme {
                 when (loginState) {
@@ -77,13 +86,11 @@ class MainActivity : ComponentActivity() {
                     }
                     else -> {
                         NavGraph(
-                            startDestination = when {
-                                !tourCompleted -> Screen.Tour.route
-                                loginState is LoginState.Success || hasToken -> Screen.Dashboard.route
-                                else -> Screen.Login.route
-                            },
                             networkManager = networkManager,
-                            locationManager = locationManager
+                            locationManager = locationManager,
+                            userRole = userRole ?: UserRole.OPERATOR,
+                            isAuthenticated = isAuthenticated,
+                            tourCompleted = tourCompleted
                         )
                     }
                 }

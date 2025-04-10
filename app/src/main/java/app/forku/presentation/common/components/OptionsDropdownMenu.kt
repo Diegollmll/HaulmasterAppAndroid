@@ -20,13 +20,12 @@ data class DropdownMenuOption(
 @Composable
 fun OptionsDropdownMenu(
     options: List<DropdownMenuOption>,
-    isAdmin: Boolean = false,
     isEnabled: Boolean = true,
     iconTint: Color = Color(0xFFFFA726)
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    if (isAdmin || isEnabled) {
+    if (isEnabled) {
         Box {
             IconButton(
                 onClick = { showMenu = true }
@@ -43,7 +42,7 @@ fun OptionsDropdownMenu(
                 onDismissRequest = { showMenu = false }
             ) {
                 options.forEach { option ->
-                    if (option.enabled && (!option.adminOnly || isAdmin)) {
+                    if (option.enabled) {
                         DropdownMenuItem(
                             text = { Text(option.text) },
                             onClick = {

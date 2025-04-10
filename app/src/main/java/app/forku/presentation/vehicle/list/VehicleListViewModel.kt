@@ -3,6 +3,7 @@ package app.forku.presentation.vehicle.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.session.VehicleSessionInfo
+import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
@@ -56,25 +57,56 @@ class VehicleListViewModel @Inject constructor(
                 )
 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
                 
-                if (businessId == null) {
-                    _state.value = _state.value.copy(
-                        error = "No business context available",
-                        isLoading = false,
-                        isRefreshing = false
-                    )
-                    return@launch
+                // Get all vehicles based on user role
+                val vehicles = when (currentUser?.role) {
+                    UserRole.SYSTEM_OWNER -> {
+                        // System owner can see all vehicles
+                        try {
+                            vehicleRepository.getAllVehicles()
+                        } catch (e: Exception) {
+                            _state.value = _state.value.copy(
+                                error = "Error loading vehicles: ${e.message}",
+                                isLoading = false,
+                                isRefreshing = false
+                            )
+                            return@launch
+                        }
+                    }
+                    null -> {
+                        _state.value = _state.value.copy(
+                            error = "User not authenticated",
+                            isLoading = false,
+                            isRefreshing = false
+                        )
+                        return@launch
+                    }
+                    else -> {
+                        // Other users can only see vehicles from their business
+                        val businessId = currentUser.businessId
+                        if (businessId == null) {
+                            _state.value = _state.value.copy(
+                                error = "No business context available",
+                                isLoading = false,
+                                isRefreshing = false
+                            )
+                            return@launch
+                        }
+                        vehicleRepository.getVehicles(businessId)
+                    }
                 }
-
-                // Get all vehicles
-                val vehicles = vehicleRepository.getVehicles(businessId)
                 
                 // Get all active sessions with rate limiting
-                val activeSessions = vehicles.map { vehicle ->
+                val activeSessions = vehicles.mapNotNull { vehicle ->
                     async {
                         try {
-                            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, businessId)
+                            // Skip vehicles without a business context
+                            if (vehicle.businessId == null) return@async null
+
+                            val session = vehicleSessionRepository.getActiveSessionForVehicle(
+                                vehicleId = vehicle.id,
+                                businessId = vehicle.businessId
+                            )
                             if (session != null) {
                                 val operator = try {
                                     // Add delay between requests to avoid rate limiting
@@ -101,7 +133,7 @@ class VehicleListViewModel @Inject constructor(
                                     operatorImage = operator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
                                     vehicle = vehicle,
                                     vehicleId = vehicle.id,
-                                    vehicleType = vehicle.type.displayName,
+                                    vehicleType = vehicle.type.name,
                                     progress = progress,
                                     vehicleImage = vehicle.photoModel,
                                     codename = vehicle.codename
@@ -129,7 +161,7 @@ class VehicleListViewModel @Inject constructor(
                                         operatorImage = lastOperator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
                                         vehicle = vehicle,
                                         vehicleId = vehicle.id,
-                                        vehicleType = vehicle.type.displayName,
+                                        vehicleType = vehicle.type.name,
                                         progress = null, // No progress for completed session
                                         vehicleImage = vehicle.photoModel,
                                         codename = vehicle.codename
@@ -144,19 +176,25 @@ class VehicleListViewModel @Inject constructor(
                 }.awaitAll().filterNotNull().toMap()
 
                 // Get last preshift checks with rate limiting
-                val lastChecks = vehicles.map { vehicle ->
+                val lastChecks = vehicles.mapNotNull { vehicle ->
                     async {
                         try {
+                            // Skip vehicles without a business context
+                            if (vehicle.businessId == null) return@async null
+
                             // Add delay between requests to avoid rate limiting
                             kotlinx.coroutines.delay(300)
-                            val lastCheck = checklistRepository.getLastPreShiftCheck(vehicle.id, businessId)
+                            val lastCheck = checklistRepository.getLastPreShiftCheck(
+                                vehicleId = vehicle.id,
+                                businessId = vehicle.businessId
+                            )
                             vehicle.id to lastCheck
                         } catch (e: Exception) {
                             // If there's an error getting the check, return null
                             vehicle.id to null
                         }
                     }
-                }.awaitAll().toMap()
+                }.awaitAll().filterNotNull().toMap()
 
                 _state.value = _state.value.copy(
                     vehicles = vehicles,

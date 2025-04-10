@@ -9,10 +9,10 @@ data class CreateBusinessRequest(
     @SerializedName("status")
     val status: String = "PENDING",
 
-    @SerializedName("system_owner_id")
+    @SerializedName("systemOwnerId")
     val systemOwnerId: String?,
 
-    @SerializedName("super_admin_id")
+    @SerializedName("superAdminId")
     val superAdminId: String?
 ) {
     override fun toString(): String {

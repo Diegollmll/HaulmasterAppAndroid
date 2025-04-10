@@ -90,7 +90,7 @@ class AdminDashboardViewModel @Inject constructor(
             VehicleSessionInfo(
                 vehicle = vehicle,
                 vehicleId = vehicle.id,
-                vehicleType = vehicle.type.displayName,
+                vehicleType = vehicle.type.name,
                 codename = vehicle.codename,
                 vehicleImage = vehicle.photoModel,
                 session = session,
@@ -177,7 +177,7 @@ class AdminDashboardViewModel @Inject constructor(
                                         operatorImage = operator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
                                         vehicle = vehicle,
                                         vehicleId = vehicle.id,
-                                        vehicleType = vehicle.type.displayName,
+                                        vehicleType = vehicle.type.name,
                                         progress = progress,
                                         vehicleImage = vehicle.photoModel,
                                         codename = vehicle.codename

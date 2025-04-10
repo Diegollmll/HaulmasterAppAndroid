@@ -1,5 +1,6 @@
 package app.forku.presentation.business
 
+import app.forku.domain.model.user.User
 import app.forku.presentation.dashboard.Business
 
 data class BusinessManagementState(
@@ -9,5 +10,9 @@ data class BusinessManagementState(
     val totalBusinesses: Int = 0,
     val pendingApprovals: Int = 0,
     val unassignedUsers: Int = 0,
-    val showAddBusinessDialog: Boolean = false
+    val showAddBusinessDialog: Boolean = false,
+    val showAssignUsersDialog: Boolean = false,
+    val selectedBusinessForUserAssignment: Business? = null,
+    val availableUsers: List<User> = emptyList(),
+    val selectedUsers: List<String> = emptyList()
 ) 

@@ -34,6 +34,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.domain.model.vehicle.getDescription
+import app.forku.presentation.navigation.Screen
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,12 +61,15 @@ fun VehicleProfileScreen(
     }
 
     LaunchedEffect(Unit) {
+        Log.d("VehicleProfileScreen", "User role: $userRole")
         viewModel.loadVehicle()
     }
 
     LaunchedEffect(state.hasActivePreShiftCheck) {
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.hasActivePreShiftCheck: ${state.hasActivePreShiftCheck}")
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.hasActiveSession: ${state.hasActiveSession}")
+        android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle.businessId: ${state.vehicle?.businessId}")
+        android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle.codename: ${state.vehicle?.codename}")
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle?.status?.name: ${state.vehicle?.status?.name}")
     }
 
@@ -147,18 +152,56 @@ fun VehicleProfileScreen(
                     if (state.vehicle != null) {
                         val vehicle = state.vehicle // Store vehicle in local variable
                         val isVehicleOutOfService = vehicle?.status == VehicleStatus.OUT_OF_SERVICE
-                        val shouldShowMenu = userRole == UserRole.ADMIN || !isVehicleOutOfService
+                        val shouldShowMenu = userRole == UserRole.ADMIN || userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER
 
                         if (shouldShowMenu) {
                             val options = buildList {
+
+                                    // Admin/SuperAdmin/SystemOwner specific options
+                                    if (userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER) {
+                                        add(DropdownMenuOption(
+                                            text = "Edit Vehicle",
+                                            onClick = {
+                                                state.vehicle?.let { v ->
+                                                    navController.navigate(
+                                                        Screen.EditVehicle.createRoute(
+                                                            vehicleId = v.id,
+                                                            // Pass the actual businessId (can be null)
+                                                            businessId = v.businessId
+                                                        )
+                                                    )
+                                                }
+                                            },
+                                            leadingIcon = Icons.Default.Edit,
+                                            enabled = true,
+                                            adminOnly = true // Technically for admins+
+                                        ))
+                                    }
+
+
                                 if (userRole == UserRole.ADMIN) {
-                                    // Admin-only options
+                                    add(DropdownMenuOption(
+                                        text = "Change Vehicle Status",
+                                        onClick = { showStatusDialog = true },
+                                        leadingIcon = Icons.Default.Edit, // Maybe change icon? Re-using Edit for now.
+                                        enabled = true,
+                                        adminOnly = true
+                                    ))
+
                                     add(DropdownMenuOption(
                                         text = "Show QR Code",
                                         onClick = { viewModel.toggleQrCode() },
                                         leadingIcon = Icons.Default.Info,
                                         enabled = true,
                                         adminOnly = true
+                                    ))
+
+// Options available to all users (conditionally enabled)
+                                    add(DropdownMenuOption(
+                                        text = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist",
+                                        onClick = { onPreShiftCheck(vehicle?.id ?: "") },
+                                        leadingIcon = Icons.Default.CheckCircle,
+                                        enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession
                                     ))
 
                                     // Add End Session option if there's an active session
@@ -173,27 +216,14 @@ fun VehicleProfileScreen(
                                         ))
                                     }
 
-                                    add(DropdownMenuOption(
-                                        text = "Change Vehicle Status",
-                                        onClick = { showStatusDialog = true },
-                                        leadingIcon = Icons.Default.Edit,
-                                        enabled = true,
-                                        adminOnly = true
-                                    ))
+
+
                                 }
 
-                                // Options available to all users
-                                add(DropdownMenuOption(
-                                    text = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist",
-                                    onClick = { onPreShiftCheck(vehicle?.id ?: "") },
-                                    leadingIcon = Icons.Default.CheckCircle,
-                                    enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession
-                                ))
                             }
 
                             OptionsDropdownMenu(
                                 options = options,
-                                isAdmin = userRole == UserRole.ADMIN,
                                 isEnabled = true
                             )
                         }

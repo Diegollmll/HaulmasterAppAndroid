@@ -70,7 +70,15 @@ fun IncidentDto.toDomain(): Incident {
         othersInvolved = othersInvolved,
         injuries = injuries,
         injuryLocations = injuryLocations,
-        vehicleType = vehicleType?.let { VehicleType.valueOf(it) },
+        vehicleType = vehicleType?.let { type ->
+            VehicleType(
+                id = type,
+                name = type,
+                categoryId = "",
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+        },
         vehicleName = vehicleName,
         checkId = checkId,
         isLoadCarried = isLoadCarried,

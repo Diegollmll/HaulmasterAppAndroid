@@ -18,10 +18,10 @@ data class BusinessDto(
     @SerializedName("status")
     val status: String,
 
-    @SerializedName("system_owner_id")
+    @SerializedName("systemOwnerId")
     val systemOwnerId: String,
 
-    @SerializedName("super_admin_id")
+    @SerializedName("superAdminId")
     val superAdminId: String,
 
     @SerializedName("created_at")

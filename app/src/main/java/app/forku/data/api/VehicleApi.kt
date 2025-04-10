@@ -11,7 +11,7 @@ interface VehicleApi {
      * @param siteId Optional site ID to filter vehicles
      * @return List of vehicles
      */
-    @GET("business/{businessId}/vehicles")
+    @GET("business/{businessId}/vehicle")
     suspend fun getVehicles(
         @Path("businessId") businessId: String,
         @Query("siteId") siteId: String? = null
@@ -21,7 +21,7 @@ interface VehicleApi {
      * Get all vehicles across all businesses (SuperAdmin only)
      * @return List of all vehicles
      */
-    @GET("admin/vehicles")
+    @GET("vehicle")
     suspend fun getAllVehicles(): Response<List<VehicleDto>>
 
     /**
@@ -30,7 +30,7 @@ interface VehicleApi {
      * @param vehicleId Vehicle ID
      * @return Vehicle details
      */
-    @GET("business/{businessId}/vehicles/{vehicleId}")
+    @GET("business/{businessId}/vehicle/{vehicleId}")
     suspend fun getVehicle(
         @Path("businessId") businessId: String,
         @Path("vehicleId") vehicleId: String
@@ -42,7 +42,7 @@ interface VehicleApi {
      * @param vehicle Vehicle data
      * @return Created vehicle
      */
-    @POST("business/{businessId}/vehicles")
+    @POST("business/{businessId}/vehicle")
     suspend fun createVehicle(
         @Path("businessId") businessId: String,
         @Body vehicle: VehicleDto
@@ -55,7 +55,7 @@ interface VehicleApi {
      * @param vehicle Updated vehicle data
      * @return Updated vehicle
      */
-    @PUT("business/{businessId}/vehicles/{vehicleId}")
+    @PUT("business/{businessId}/vehicle/{vehicleId}")
     suspend fun updateVehicle(
         @Path("businessId") businessId: String,
         @Path("vehicleId") vehicleId: String,
@@ -67,7 +67,7 @@ interface VehicleApi {
      * @param businessId Business ID
      * @param vehicleId Vehicle ID
      */
-    @DELETE("business/{businessId}/vehicles/{vehicleId}")
+    @DELETE("business/{businessId}/vehicle/{vehicleId}")
     suspend fun deleteVehicle(
         @Path("businessId") businessId: String,
         @Path("vehicleId") vehicleId: String
@@ -79,7 +79,7 @@ interface VehicleApi {
      * @param qrCode QR code
      * @return Vehicle details
      */
-    @GET("business/{businessId}/vehicles/qr/{qrCode}")
+    @GET("business/{businessId}/vehicle/qr/{qrCode}")
     suspend fun getVehicleByQr(
         @Path("businessId") businessId: String,
         @Path("qrCode") qrCode: String
@@ -92,10 +92,34 @@ interface VehicleApi {
      * @param status New status
      * @return Updated vehicle
      */
-    @PUT("business/{businessId}/vehicles/{vehicleId}/status")
+    @PUT("business/{businessId}/vehicle/{vehicleId}/status")
     suspend fun updateVehicleStatus(
         @Path("businessId") businessId: String,
         @Path("vehicleId") vehicleId: String,
         @Query("status") status: String
+    ): Response<VehicleDto>
+
+    /**
+     * Create new vehicle globally (without specific business)
+     * Used by SYSTEM_OWNER/SUPERADMIN
+     * @param vehicle Vehicle data
+     * @return Created vehicle
+     */
+    @POST("vehicle")
+    suspend fun createVehicleGlobally(
+        @Body vehicle: VehicleDto
+    ): Response<VehicleDto>
+
+    /**
+     * Update vehicle globally (without specific business in path)
+     * Used by SYSTEM_OWNER/SUPERADMIN
+     * @param vehicleId Vehicle ID
+     * @param vehicle Updated vehicle data
+     * @return Updated vehicle
+     */
+    @PUT("vehicle/{vehicleId}")
+    suspend fun updateVehicleGlobally(
+        @Path("vehicleId") vehicleId: String,
+        @Body vehicle: VehicleDto
     ): Response<VehicleDto>
 } 

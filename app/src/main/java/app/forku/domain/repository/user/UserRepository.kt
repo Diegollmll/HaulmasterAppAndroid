@@ -13,7 +13,8 @@ interface UserRepository {
         firstName: String,
         lastName: String,
         email: String,
-        password: String
+        password: String,
+        role: UserRole = UserRole.OPERATOR
     ): Result<User>
     
     suspend fun getCurrentUser(): User?

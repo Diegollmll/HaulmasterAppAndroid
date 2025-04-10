@@ -41,7 +41,7 @@ class GetVehicleActiveSessionUseCase @Inject constructor(
             vehicleImage = vehicle.photoModel,
             progress = progress,
             vehicleId = vehicleId,
-            vehicleType = vehicle.type.displayName
+            vehicleType = vehicle.type.name
         )
     }
 } 

@@ -191,7 +191,7 @@ fun VehicleItem(
                 }
 
                 Text(
-                    text = vehicle.type.displayName,
+                    text = vehicle.type.name,
                     style = TextStyle(
                         fontSize = textConfigs.vehicleType.fontSize.sp,
                         lineHeight = textConfigs.vehicleType.lineHeight.sp,

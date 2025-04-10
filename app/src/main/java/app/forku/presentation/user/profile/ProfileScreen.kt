@@ -70,7 +70,8 @@ fun ProfileScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
-
+    val isAdminRole = state.user?.role == UserRole.SYSTEM_OWNER || state.user?.role == UserRole.SUPERADMIN
+    
     // Load operator profile if operatorId is provided
     LaunchedEffect(operatorId) {
         if (operatorId != null) {
@@ -115,7 +116,11 @@ fun ProfileScreen(
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = if (operatorId != null) "Operator Profile" else "User Profile",
+        topBarTitle = when {
+            operatorId != null -> "Operator Profile"
+            isAdminRole -> "${state.user?.role?.name ?: ""} Profile"
+            else -> "User Profile"
+        },
         content = { padding ->
             Column(
                 modifier = Modifier
@@ -134,7 +139,10 @@ fun ProfileScreen(
                         isCurrentUser = operatorId == null
                     )
 
-                    //StatsGrid(state)
+                    // Stats grid is only relevant for operational roles, not admin roles
+                    if (!isAdminRole) {
+                        StatsGrid(state)
+                    }
 
                     ProfileSections(
                         state = state,
@@ -179,7 +187,8 @@ fun ProfileScreen(
                                 source = if (operatorId == null) "profile" else "operator_profile"
                             ))
                         },
-                        isCurrentUser = operatorId == null
+                        isCurrentUser = operatorId == null,
+                        navController = navController
                     )
                 }
             }
@@ -210,6 +219,8 @@ private fun ProfileHeader(
     viewModel: ProfileViewModel,
     isCurrentUser: Boolean
 ) {
+    val isAdminRole = state.user?.role == UserRole.SYSTEM_OWNER || state.user?.role == UserRole.SUPERADMIN
+    
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -310,93 +321,105 @@ private fun ProfileHeader(
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                        
+                        // Statistics Row - Only show for operational roles, not for admin roles
+                        if (!isAdminRole) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            textAlign = TextAlign.Center,
+                                            text = "%.1f".format(state.user?.totalHours ?: 0f),
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+
+                                        Spacer(Modifier.width(1.dp))
+
+                                        Text(
+                                            textAlign = TextAlign.Center,
+                                            text = "hrs",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = Color.Gray
+                                        )
+                                    }
                                     Text(
                                         textAlign = TextAlign.Center,
-                                        text = "%.1f".format(state.user?.totalHours ?: 0f),
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-
-                                    Spacer(Modifier.width(1.dp))
-
-                                    Text(
-                                        textAlign = TextAlign.Center,
-                                        text = "hrs",
-                                        style = MaterialTheme.typography.titleMedium,
+                                        text = "Total Time",
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = Color.Gray
                                     )
                                 }
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "Total Time",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "${state.user?.sessionsCompleted ?: 0}",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "Sessions",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "${state.user?.incidentsReported ?: 0}",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        textAlign = TextAlign.Center,
+                                        text = "Incidents R.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
                             }
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "${state.user?.sessionsCompleted ?: 0}",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "Sessions",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
-                            }
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "${state.user?.incidentsReported ?: 0}",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    textAlign = TextAlign.Center,
-                                    text = "Incidents R.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
-                            }
+                        } else {
+                            // Alternative content for admin roles (System Owner, Super Admin)
+                            Text(
+                                text = "Administrator Account",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row {
-                            Button(
-                                onClick = {
-                                    navController.navigate(Screen.PerformanceReport.route)
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFFFA726)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("Performance Report")
+                        
+                        // Performance Report button - only for operational roles
+                        if (!isAdminRole) {
+                            Row {
+                                Button(
+                                    onClick = {
+                                        navController.navigate(Screen.PerformanceReport.route)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFFA726)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Performance Report")
+                                }
                             }
                         }
-
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-
-
             }
         }
     }

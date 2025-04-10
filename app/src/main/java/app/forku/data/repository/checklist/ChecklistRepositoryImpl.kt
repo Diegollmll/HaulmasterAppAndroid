@@ -15,6 +15,10 @@ import java.time.Instant
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
 import app.forku.core.location.LocationManager
 import app.forku.data.api.ChecklistApi
+import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategory
+import app.forku.presentation.checklist.category.QuestionaryChecklistItemSubcategory
+
+import java.util.UUID
 
 
 class ChecklistRepositoryImpl @Inject constructor(
@@ -222,5 +226,4 @@ class ChecklistRepositoryImpl @Inject constructor(
         return true // Assuming the logic is moved to VehicleValidationService
     }
     
-
 }

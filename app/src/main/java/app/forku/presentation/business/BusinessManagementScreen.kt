@@ -27,7 +27,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.vector.ImageVector
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
+import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 
 
@@ -144,7 +146,14 @@ fun BusinessManagementScreen(
                             }
                         } else {
                             items(state.value.businesses) { business ->
-                                BusinessCard(business)
+                                BusinessCard(
+                                    business = business,
+                                    onStatusChange = { b, newStatus -> 
+                                        viewModel.updateBusinessStatus(b, newStatus)
+                                    },
+                                    onAssignUsers = { b -> viewModel.showAssignUsersDialog(b) },
+                                    currentUser = currentUser.value
+                                )
                             }
                         }
                     }
@@ -165,6 +174,17 @@ fun BusinessManagementScreen(
         AddBusinessDialog(
             onDismiss = { viewModel.hideAddBusinessDialog() },
             onConfirm = { name -> viewModel.addBusiness(name) }
+        )
+    }
+
+    // Assign Users Dialog
+    if (state.value.showAssignUsersDialog) {
+        AssignUsersDialog(
+            availableUsers = state.value.availableUsers,
+            selectedUserIds = state.value.selectedUsers,
+            onUserToggle = { viewModel.toggleUserSelection(it) },
+            onDismiss = { viewModel.hideAssignUsersDialog() },
+            onSave = { viewModel.saveUserAssignments() }
         )
     }
 }
@@ -234,7 +254,18 @@ private fun StatItem(
 }
 
 @Composable
-private fun BusinessCard(business: Business) {
+private fun BusinessCard(
+    business: Business,
+    onStatusChange: (Business, BusinessStatus) -> Unit = { _, _ -> },
+    onAssignUsers: (Business) -> Unit = { },
+    currentUser: User? = null,
+    viewModel: BusinessManagementViewModel = hiltViewModel()
+) {
+    var showStatusMenu by remember { mutableStateOf(false) }
+    var showAssignSuperAdminDialog by remember { mutableStateOf(false) }
+    val businessSuperAdmins by viewModel.businessSuperAdmins.collectAsState()
+    val superAdmin = businessSuperAdmins[business.id]
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -245,48 +276,234 @@ private fun BusinessCard(business: Business) {
             }
         )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Business name and counts
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = business.name,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
                 )
-                AssistChip(
-                    onClick = { },
-                    label = { Text(business.status.name) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = when (business.status) {
-                            BusinessStatus.ACTIVE -> Color(0xFFE8F5E9)
-                            BusinessStatus.PENDING -> Color(0xFFFFF3E0)
-                            BusinessStatus.SUSPENDED -> Color(0xFFFFEBEE)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Users count with icon
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${business.totalUsers}",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Users",
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                    
+                    // Vehicles count with icon
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${business.totalVehicles}",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = "Vehicles",
+                            modifier = Modifier.size(16.dp),
+                            tint = Color.Gray
+                        )
+                    }
+
+                    // SuperAdmin info
+                    if (superAdmin != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AdminPanelSettings,
+                                contentDescription = "SuperAdmin",
+                                modifier = Modifier.size(16.dp),
+                                tint = Color.Gray
+                            )
+                            Text(
+                                text = "${superAdmin.firstName} ${superAdmin.lastName}",
+                                color = Color.Gray,
+                                fontSize = 14.sp,
+                                maxLines = 1
+                            )
                         }
-                    )
-                )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+
+            // Status and actions
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                InfoItem(
-                    icon = Icons.Default.Person,
-                    value = business.totalUsers.toString(),
-                    label = "Users"
-                )
-                InfoItem(
-                    icon = Icons.Default.DirectionsCar,
-                    value = business.totalVehicles.toString(),
-                    label = "Vehicles"
-                )
+                // Status chip
+                Box {
+                    if (showStatusMenu) {
+                        // Show chip with text and icon when menu is open
+                        AssistChip(
+                            onClick = { 
+                                if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                                    showStatusMenu = false
+                                }
+                            },
+                            label = { Text(business.status.name) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = when (business.status) {
+                                        BusinessStatus.ACTIVE -> Icons.Default.CheckCircle
+                                        BusinessStatus.PENDING -> Icons.Default.Pending
+                                        BusinessStatus.SUSPENDED -> Icons.Default.Block
+                                    },
+                                    contentDescription = null,
+                                    tint = when (business.status) {
+                                        BusinessStatus.ACTIVE -> Color(0xFF4CAF50)
+                                        BusinessStatus.PENDING -> Color(0xFFFFA726)
+                                        BusinessStatus.SUSPENDED -> Color(0xFFF44336)
+                                    },
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = when (business.status) {
+                                    BusinessStatus.ACTIVE -> Color(0xFFE8F5E9)
+                                    BusinessStatus.PENDING -> Color(0xFFFFF3E0)
+                                    BusinessStatus.SUSPENDED -> Color(0xFFFFEBEE)
+                                }
+                            ),
+                            trailingIcon = if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Change status",
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else null
+                        )
+                    } else {
+                        // Show only icon when menu is closed
+                        IconButton(
+                            onClick = { 
+                                if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                                    showStatusMenu = true 
+                                }
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = when (business.status) {
+                                    BusinessStatus.ACTIVE -> Icons.Default.CheckCircle
+                                    BusinessStatus.PENDING -> Icons.Default.Pending
+                                    BusinessStatus.SUSPENDED -> Icons.Default.Block
+                                },
+                                contentDescription = business.status.name,
+                                tint = when (business.status) {
+                                    BusinessStatus.ACTIVE -> Color(0xFF4CAF50)
+                                    BusinessStatus.PENDING -> Color(0xFFFFA726)
+                                    BusinessStatus.SUSPENDED -> Color(0xFFF44336)
+                                },
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    
+                    if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                        DropdownMenu(
+                            expanded = showStatusMenu,
+                            onDismissRequest = { showStatusMenu = false }
+                        ) {
+                            BusinessStatus.values().forEach { status ->
+                                DropdownMenuItem(
+                                    text = { Text(status.name) },
+                                    onClick = {
+                                        onStatusChange(business, status)
+                                        showStatusMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = when (status) {
+                                                BusinessStatus.ACTIVE -> Icons.Default.CheckCircle
+                                                BusinessStatus.PENDING -> Icons.Default.Pending
+                                                BusinessStatus.SUSPENDED -> Icons.Default.Block
+                                            },
+                                            contentDescription = null,
+                                            tint = when (status) {
+                                                BusinessStatus.ACTIVE -> Color(0xFF4CAF50)
+                                                BusinessStatus.PENDING -> Color(0xFFFFA726)
+                                                BusinessStatus.SUSPENDED -> Color(0xFFF44336)
+                                            }
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Action buttons
+                if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                    IconButton(
+                        onClick = { showAssignSuperAdminDialog = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AdminPanelSettings,
+                            contentDescription = "Assign SuperAdmin",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                
+                if (currentUser?.role == UserRole.SYSTEM_OWNER || 
+                    (currentUser?.role == UserRole.SUPERADMIN && business.superAdminId == currentUser.id)) {
+                    IconButton(
+                        onClick = { onAssignUsers(business) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PersonAdd,
+                            contentDescription = "Assign Users",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
+    }
+
+    if (showAssignSuperAdminDialog) {
+        AssignSuperAdminDialog(
+            business = business,
+            onDismiss = { showAssignSuperAdminDialog = false },
+            onAssign = { superAdminId ->
+                viewModel.assignSuperAdmin(business.id, superAdminId)
+                showAssignSuperAdminDialog = false
+            }
+        )
     }
 }
 
@@ -354,6 +571,181 @@ private fun AddBusinessDialog(
                 android.util.Log.d("BusinessManagement", "Cancel button clicked")
                 onDismiss() 
             }) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AssignUsersDialog(
+    availableUsers: List<User>,
+    selectedUserIds: List<String>,
+    onUserToggle: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage Users") },
+        text = {
+            if (availableUsers.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No users available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                Column {
+                    Text(
+                        text = "Select or unselect users to assign/unassign them from this business:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LazyColumn {
+                        items(availableUsers) { user ->
+                            val isHighPrivilegeRole = user.role == UserRole.SYSTEM_OWNER || user.role == UserRole.SUPERADMIN
+                            val isAssigned = user.id in selectedUserIds
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .clickable(
+                                        enabled = !isHighPrivilegeRole,
+                                        onClick = { onUserToggle(user.id) }
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isAssigned,
+                                    onCheckedChange = { if (!isHighPrivilegeRole) onUserToggle(user.id) },
+                                    enabled = !isHighPrivilegeRole
+                                )
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "${user.firstName} ${user.lastName}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = user.email,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        AssistChip(
+                                            onClick = { },
+                                            enabled = false,
+                                            label = { 
+                                                Text(
+                                                    text = if (isAssigned) "Assigned" else "Unassigned",
+                                                    fontSize = 12.sp
+                                                )
+                                            },
+                                            colors = AssistChipDefaults.assistChipColors(
+                                                containerColor = if (isAssigned) 
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                                else 
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onSave
+            ) {
+                Text("Save Changes")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AssignSuperAdminDialog(
+    business: Business,
+    onDismiss: () -> Unit,
+    onAssign: (String) -> Unit,
+    viewModel: BusinessManagementViewModel = hiltViewModel()
+) {
+    val superAdmins by viewModel.availableSuperAdmins.collectAsState()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Assign SuperAdmin to ${business.name}") },
+        text = {
+            if (superAdmins.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No SuperAdmins available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                LazyColumn {
+                    items(superAdmins) { superAdmin ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onAssign(superAdmin.id) }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp)
+                            ) {
+                                Text(
+                                    text = "${superAdmin.firstName} ${superAdmin.lastName}",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = superAdmin.email,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
         }

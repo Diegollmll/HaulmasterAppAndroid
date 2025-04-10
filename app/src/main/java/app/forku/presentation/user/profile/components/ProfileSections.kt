@@ -16,7 +16,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.ui.Alignment
-
+import app.forku.domain.model.user.UserRole
+import androidx.navigation.NavController
+import app.forku.presentation.navigation.Screen
 
 @Composable
 fun ProfileSections(
@@ -25,8 +27,11 @@ fun ProfileSections(
     onIncidentReportsClick: () -> Unit,
     onTrainingRecordClick: () -> Unit,
     onCicoHistoryClick: () -> Unit,
-    isCurrentUser: Boolean = true
+    isCurrentUser: Boolean = true,
+    navController: NavController
 ) {
+    val isAdminRole = state.user?.role == UserRole.SYSTEM_OWNER || state.user?.role == UserRole.SUPERADMIN
+    
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -38,20 +43,40 @@ fun ProfileSections(
             modifier = Modifier.padding(8.dp)
         )
 
+        // Certifications are shown for all user roles
         ProfileSection(
             "Certifications",
             onClick = onCertificationsClick
         )
 
-        ProfileSection(
-            title = "Incident Reports",
-            onClick = onIncidentReportsClick
-        )
+        // Incident Reports are not relevant for System Owners and Super Admins
+        if (!isAdminRole) {
+            ProfileSection(
+                title = "Incident Reports",
+                onClick = onIncidentReportsClick
+            )
+        }
 
-        ProfileSection(
-            title = if (isCurrentUser) "My CICO History" else "CICO History",
-            onClick = onCicoHistoryClick
-        )
+        // CICO History is not relevant for System Owners and Super Admins
+        if (!isAdminRole) {
+            ProfileSection(
+                title = if (isCurrentUser) "My CICO History" else "CICO History",
+                onClick = onCicoHistoryClick
+            )
+        }
+        
+        // Add admin-specific sections for admin roles
+        if (isAdminRole) {
+            ProfileSection(
+                title = "Account Settings",
+                onClick = { /* Handle account settings navigation */ }
+            )
+            
+            ProfileSection(
+                title = "System Preferences",
+                onClick = { navController.navigate(Screen.SystemSettings.route) }
+            )
+        }
     }
 }
 

@@ -74,7 +74,7 @@ fun VehicleProfileSummary(
                     )
                     
                     Text(
-                        text = vehicle?.type?.displayName ?: "Unknown type",
+                        text = vehicle?.type?.name ?: "Unknown type",
                         color = Color.Gray,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(top = 4.dp)

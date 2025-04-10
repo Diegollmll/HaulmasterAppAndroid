@@ -44,34 +44,53 @@ import app.forku.presentation.checklist.CheckDetailScreen
 import app.forku.presentation.safety.SafetyAlertsScreen
 import app.forku.presentation.business.BusinessManagementScreen
 import app.forku.presentation.dashboard.SystemOwnerDashboardScreen
+import app.forku.presentation.user.management.UserManagementScreen
+import app.forku.presentation.system.SystemSettingsScreen
+import app.forku.presentation.countries.CountriesScreen
+import app.forku.presentation.timezones.TimeZonesScreen
+import app.forku.presentation.checklist.questionary.QuestionaryChecklistScreen
+import app.forku.presentation.checklist.item.QuestionaryChecklistItemScreen
+import androidx.compose.runtime.LaunchedEffect
+import app.forku.presentation.vehicle.add.AddVehicleScreen
+import app.forku.presentation.vehicle.category.VehicleCategoryScreen
+import app.forku.presentation.vehicle.type.VehicleTypeScreen
+import app.forku.presentation.vehicle.edit.EditVehicleScreen
+import app.forku.presentation.admin.vehicle.AdminVehiclesListScreen
+import app.forku.presentation.admin.vehicle.AdminVehicleProfileScreen
+import androidx.compose.material3.Text
+import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategoryScreen
+import app.forku.presentation.checklist.subcategory.QuestionaryChecklistItemSubcategoryScreen
+import app.forku.presentation.checklist.subcategory.ChecklistSubcategoriesScreen
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+
 
 @Composable
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = Screen.Tour.route,
     networkManager: NetworkConnectivityManager,
-    locationManager: LocationManager
+    locationManager: LocationManager,
+    userRole: UserRole,
+    isAuthenticated: Boolean,
+    tourCompleted: Boolean
 ) {
     val viewModel = hiltViewModel<DashboardViewModel>()
-    val currentUser by viewModel.currentUser.collectAsState()
-    val tourCompleted by viewModel.tourCompleted.collectAsState()
+    val tourCompletedState by viewModel.tourCompleted.collectAsState()
     val loginState by viewModel.loginState.collectAsState()
     val hasToken by viewModel.hasToken.collectAsState()
 
     NavHost(
         navController = navController,
-        startDestination = when {
-            !tourCompleted -> Screen.Tour.route
-            loginState is LoginState.Success || hasToken -> {
-                when (currentUser?.role) {
-                    UserRole.SYSTEM_OWNER -> Screen.SystemOwnerDashboard.route
-                    UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
-                    UserRole.ADMIN -> Screen.AdminDashboard.route
-                    else -> Screen.Dashboard.route
-                }
-            }
-            else -> Screen.Login.route
-        }
+        startDestination = determineStartDestination(isAuthenticated, userRole, tourCompleted)
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
@@ -179,20 +198,36 @@ fun NavGraph(
         }
 
         composable(Screen.VehiclesList.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
             VehicleListScreen(
                 navController = navController,
-                onVehicleClick = { vehicleId ->
-                    navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleId))
+                onVehicleClick = { vehicle ->
+                    navController.navigate(
+                        Screen.VehicleProfile.createRoute(
+                            vehicleId = vehicle.id,
+                            businessId = vehicle.businessId
+                        )
+                    )
                 },
-                networkManager = networkManager
+                networkManager = networkManager,
+                userRole = currentUser?.role ?: UserRole.OPERATOR
             )
         }
 
         composable(
             route = Screen.VehicleProfile.route,
-            arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("businessId") { 
+                    type = NavType.StringType 
+                    nullable = true
+                } 
+            )
         ) { entry ->
             val vehicleId = entry.arguments?.getString("vehicleId") ?: return@composable
+            val businessId = entry.arguments?.getString("businessId")
             val viewModel: VehicleProfileViewModel = hiltViewModel()
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
             val currentUser by dashboardViewModel.currentUser.collectAsState()
@@ -456,7 +491,10 @@ fun NavGraph(
 
         // SuperAdmin specific routes
         composable(Screen.UserManagement.route) {
-            // TODO: Implement UserManagementScreen
+            UserManagementScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
         }
 
         composable(Screen.BusinessManagement.route) {
@@ -475,7 +513,11 @@ fun NavGraph(
         }
 
         composable(Screen.AddUser.route) {
-            // TODO: Implement AddUserScreen
+            UserManagementScreen(
+                navController = navController,
+                networkManager = networkManager,
+                showAddUserDialogByDefault = true
+            )
         }
 
         composable(Screen.AdminManagement.route) {
@@ -483,7 +525,26 @@ fun NavGraph(
         }
 
         composable(Screen.AddVehicle.route) {
-            // TODO: Implement AddVehicleScreen
+            AddVehicleScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(
+            route = Screen.EditVehicle.route,
+            arguments = listOf(
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("businessId") { 
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) {
+            EditVehicleScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
         }
 
         composable(Screen.MaintenanceSchedule.route) {
@@ -495,15 +556,217 @@ fun NavGraph(
         }
 
         composable(Screen.SystemSettings.route) {
-            // TODO: Implement SystemSettingsScreen
+            SystemSettingsScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
         }
 
         composable(Screen.SystemBackup.route) {
             // TODO: Implement SystemBackupScreen
         }
 
-        composable(Screen.AuditLog.route) {
-            // TODO: Implement AuditLogScreen
+        composable(Screen.TimeZones.route) {
+            TimeZonesScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
         }
+
+        composable(Screen.Countries.route) {
+            CountriesScreen(
+                navController = navController,
+                networkManager = networkManager
+            )
+        }
+
+        composable(Screen.VehicleCategories.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                VehicleCategoryScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        composable(Screen.VehicleTypes.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                VehicleTypeScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        // ---- Admin Vehicle Routes ----
+        composable(Screen.AdminVehiclesList.route) {
+            AdminVehiclesListScreen(
+                navController = navController,
+                networkManager = networkManager,
+                userRole = userRole
+            )
+        }
+        composable(
+            route = Screen.AdminVehicleProfile.route,
+            arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+             val vehicleId = backStackEntry.arguments?.getString("vehicleId")
+             if (vehicleId != null) {
+                 AdminVehicleProfileScreen(
+                     vehicleId = vehicleId,
+                     navController = navController,
+                     networkManager = networkManager,
+                     userRole = userRole
+                 )
+             } else {
+                 Text("Error: Vehicle ID missing")
+             }
+        }
+        // ---- End Admin Vehicle Routes ----
+
+        composable(Screen.ChecklistCategories.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                QuestionaryChecklistItemCategoryScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        composable(
+            route = Screen.QuestionaryChecklistItemSubcategory.route,
+            arguments = listOf(
+                navArgument("categoryId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: return@composable
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                QuestionaryChecklistItemSubcategoryScreen(
+                    navController = navController,
+                    networkManager = networkManager,
+                    categoryId = categoryId
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        composable(Screen.ChecklistSubcategories.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                ChecklistSubcategoriesScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        // Añadimos la ruta para Questionary
+        composable(Screen.Questionaries.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                QuestionaryChecklistScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        // Añadimos la ruta para QuestionaryItems
+        composable(
+            route = Screen.QuestionaryItems.route,
+            arguments = listOf(
+                navArgument("questionaryId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val questionaryId = backStackEntry.arguments?.getString("questionaryId")
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                if (questionaryId != null) {
+                    QuestionaryChecklistItemScreen(
+                        navController = navController,
+                        networkManager = networkManager,
+                        checklistId = questionaryId
+                    )
+                } else {
+                    // No questionary ID provided, show a message
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Please select a questionary first to manage its items")
+                    }
+                }
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+    }
+}
+
+private fun determineStartDestination(
+    isAuthenticated: Boolean,
+    userRole: UserRole?,
+    tourCompleted: Boolean
+): String {
+    return when {
+        !tourCompleted -> Screen.Tour.route
+        isAuthenticated -> {
+             when (userRole) {
+                 UserRole.SYSTEM_OWNER -> Screen.SystemOwnerDashboard.route
+                 UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
+                 UserRole.ADMIN -> Screen.AdminDashboard.route
+                 UserRole.OPERATOR -> Screen.Dashboard.route
+                 else -> Screen.Login.route
+             }
+         }
+        else -> Screen.Login.route
     }
 }

@@ -49,7 +49,7 @@ fun VehicleInfoSection(
         // Vehicle Type (Auto-filled)
         if(true) {
             CustomOutlinedTextField(
-                value = state.vehicleType?.displayName ?: "",
+                value = state.vehicleType?.name ?: "",
                 onValueChange = { /* Read-only */ },
                 label = "Vehicle Type",
                 enabled = false,

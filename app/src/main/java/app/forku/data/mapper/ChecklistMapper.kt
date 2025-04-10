@@ -21,7 +21,15 @@ fun ChecklistItemDto.toDomain(): ChecklistItem {
         category = category ?: "",
         subCategory = subCategory ?: "",
         energySource = (energySource ?: emptyList()).map { EnergySource.valueOf(it) },
-        vehicleType = (vehicleType ?: emptyList()).map { VehicleType.valueOf(it) },
+        vehicleType = (vehicleType ?: emptyList()).map { type -> 
+            VehicleType(
+                id = type,
+                name = type,
+                categoryId = "",
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+        },
         component = component ?: "",
         question = question,
         description = description ?: "",
@@ -139,7 +147,13 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
                     EnergySource.valueOf(source.uppercase())
                 } ?: emptyList(),
                 vehicleType = it.vehicleType?.map { type ->
-                    VehicleType.valueOf(type.uppercase())
+                    VehicleType(
+                        id = type,
+                        name = type,
+                        categoryId = "",
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
                 } ?: emptyList(),
                 component = it.component ?: "",
                 question = it.question,

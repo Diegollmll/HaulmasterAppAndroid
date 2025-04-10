@@ -2,6 +2,7 @@ package app.forku.domain.repository.vehicle
 
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
+import app.forku.domain.model.vehicle.VehicleType
 
 interface VehicleRepository {
     /**
@@ -54,4 +55,45 @@ interface VehicleRepository {
         vehicleId: String,
         businessId: String
     ): VehicleStatus
+
+    /**
+     * Creates a new vehicle
+     * @param codename The vehicle's codename
+     * @param model The vehicle's model
+     * @param type The vehicle's type
+     * @param description The vehicle's description
+     * @param bestSuitedFor What the vehicle is best suited for
+     * @param photoModel The vehicle's photo model
+     * @param energyType The vehicle's energy type
+     * @param nextService The vehicle's next service date
+     * @param businessId The business context
+     * @param serialNumber The vehicle's serial number
+     */
+    suspend fun createVehicle(
+        codename: String,
+        model: String,
+        type: VehicleType,
+        description: String,
+        bestSuitedFor: String,
+        photoModel: String,
+        energyType: String,
+        nextService: String,
+        businessId: String?,
+        serialNumber: String
+    ): Vehicle
+
+    /**
+     * Updates vehicle information globally (SYSTEM_OWNER/SUPERADMIN)
+     * @param vehicleId The ID of the vehicle to update
+     * @param updatedVehicle The vehicle object with updated data
+     */
+    suspend fun updateVehicleGlobally(vehicleId: String, updatedVehicle: Vehicle): Vehicle
+
+    /**
+     * Updates vehicle information within a specific business context.
+     * @param businessId The ID of the business the vehicle belongs to.
+     * @param vehicleId The ID of the vehicle to update.
+     * @param updatedVehicle The vehicle object with updated data.
+     */
+    suspend fun updateVehicle(businessId: String, vehicleId: String, updatedVehicle: Vehicle): Vehicle
 }

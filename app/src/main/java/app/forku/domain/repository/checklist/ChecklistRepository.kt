@@ -4,6 +4,8 @@ import app.forku.domain.model.checklist.Checklist
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.CheckStatus
+import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategory
+import app.forku.presentation.checklist.category.QuestionaryChecklistItemSubcategory
 
 interface ChecklistRepository {
     suspend fun getChecklistItems(vehicleId: String): List<Checklist>

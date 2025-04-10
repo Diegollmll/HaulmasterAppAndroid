@@ -4,21 +4,21 @@ import app.forku.data.dto.FeedbackDto
 import retrofit2.http.*
 
 interface FeedbackApi {
-    @POST("feedbacks")
+    @POST("feedback")
     suspend fun submitFeedback(@Body feedback: FeedbackDto): FeedbackDto
 
-    @GET("feedbacks")
+    @GET("feedback")
     suspend fun getFeedbacks(): List<FeedbackDto>
 
-    @GET("feedbacks/{id}")
+    @GET("feedback/{id}")
     suspend fun getFeedback(@Path("id") id: String): FeedbackDto
 
-    @PUT("feedbacks/{id}")
+    @PUT("feedback/{id}")
     suspend fun updateFeedback(
         @Path("id") id: String,
         @Body feedback: FeedbackDto
     ): FeedbackDto
 
-    @DELETE("feedbacks/{id}")
+    @DELETE("feedback/{id}")
     suspend fun deleteFeedback(@Path("id") id: String)
 } 

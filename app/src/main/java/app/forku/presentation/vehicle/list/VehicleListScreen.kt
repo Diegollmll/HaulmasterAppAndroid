@@ -35,8 +35,9 @@ import app.forku.domain.model.vehicle.Vehicle
 fun VehicleListScreen(
     navController: NavController,
     viewModel: VehicleListViewModel = hiltViewModel(),
-    onVehicleClick: (String) -> Unit,
-    networkManager: NetworkConnectivityManager
+    onVehicleClick: (Vehicle) -> Unit,
+    networkManager: NetworkConnectivityManager,
+    userRole: UserRole = UserRole.OPERATOR
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
@@ -51,7 +52,7 @@ fun VehicleListScreen(
         state.vehicles.sortedWith(
             compareByDescending<Vehicle> { vehicle ->
                 // First priority: Current user's active vehicle (if operator)
-                val isCurrentUserVehicle = if (currentUser?.role == UserRole.OPERATOR) {
+                val isCurrentUserVehicle = if (userRole == UserRole.OPERATOR) {
                     val session = state.vehicleSessions[vehicle.id]
                     session?.operator?.id == currentUser?.id && session?.sessionStartTime != null
                 } else false
@@ -113,10 +114,10 @@ fun VehicleListScreen(
                                     Box(modifier = Modifier.padding(12.dp)) {
                                         VehicleItem(
                                             vehicle = vehicle,
-                                            userRole = state.vehicleSessions[vehicle.id]?.operator?.role ?: UserRole.OPERATOR,
+                                            userRole = userRole,
                                             sessionInfo = state.vehicleSessions[vehicle.id],
                                             lastPreShiftCheck = state.lastPreShiftChecks[vehicle.id],
-                                            onClick = { onVehicleClick(vehicle.id) }
+                                            onClick = { onVehicleClick(vehicle) }
                                         )
                                     }
                                 }

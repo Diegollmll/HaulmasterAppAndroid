@@ -24,6 +24,7 @@ fun UserDto.toDomain(): User {
         lastMedicalCheck = lastMedicalCheck,
         lastLogin = lastLogin,
         isActive = isActive,
+        isApproved = isApproved,
         password = password,
         businessId = businessId,
         systemOwnerId = systemOwnerId
@@ -54,6 +55,7 @@ fun User.toDto(): UserDto {
         lastMedicalCheck = lastMedicalCheck,
         lastLogin = lastLogin,
         isActive = isActive,
+        isApproved = isApproved,
         businessId = businessId,
         systemOwnerId = systemOwnerId
     )

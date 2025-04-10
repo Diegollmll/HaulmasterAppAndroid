@@ -81,11 +81,13 @@ fun ForkUBottomBar(
                 ))
             }
 
-            navItems.add(BottomNavItem(
-                "Report",
-                painterResource(id = AppIcons.General.addIncident),
-                Screen.SafetyReporting.route
-            ))
+            if (userRole != UserRole.SYSTEM_OWNER) {
+                navItems.add(BottomNavItem(
+                    "Report",
+                    painterResource(id = AppIcons.General.addIncident),
+                    Screen.SafetyReporting.route
+                ))
+            }
 
             if (userRole == UserRole.ADMIN) {
                 navItems.add(

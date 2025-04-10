@@ -15,6 +15,7 @@ data class UserDto(
     val lastMedicalCheck: String?,
     val lastLogin: String?,
     val isActive: Boolean = true,
+    val isApproved: Boolean = false,
     val businessId: String? = null,
     val systemOwnerId: String? = null
 )

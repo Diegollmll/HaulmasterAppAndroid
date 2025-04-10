@@ -36,6 +36,7 @@ import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import app.forku.domain.model.session.VehicleSessionClosedMethod
 import app.forku.domain.model.vehicle.toDisplayString
+import android.util.Log
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -52,9 +53,11 @@ class VehicleProfileViewModel @Inject constructor(
     private val _state = MutableStateFlow(VehicleProfileState())
     val state = _state.asStateFlow()
 
-    private val vehicleId: String = checkNotNull(savedStateHandle["vehicleId"])
+    private val vehicleId: String? = savedStateHandle.get<String>("vehicleId")
+    private val navBusinessId: String? = savedStateHandle.get<String>("businessId") // Get businessId from navigation args
 
     init {
+        Log.d("VehicleProfileVM", "Initializing for vehicleId: $vehicleId, navBusinessId: $navBusinessId")
         loadVehicle(showLoading = true)
     }
 
@@ -95,71 +98,53 @@ class VehicleProfileViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = showLoading) }
                 
-                // Get current user and business context
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
-                
-                if (businessId == null) {
-                    _state.update { 
-                        it.copy(
-                            error = "No business context available",
-                            isLoading = false
-                        )
-                    }
+                if (currentUser == null) {
+                    _state.update { it.copy(isLoading = false, error = "User not authenticated") }
                     return@launch
                 }
+                Log.d("VehicleProfileVM_Debug", "User details before determining effectiveBusinessId: Role=${currentUser.role}, UserBusinessId=${currentUser.businessId}, NavBusinessId=$navBusinessId")
                 
-                // Get vehicle details with retry
+                val userRole = currentUser.role
+                _state.update { it.copy(currentUserRole = userRole) }
+
+                // Determine the businessId to use for fetching based on role and nav args
+                val effectiveBusinessId = when (userRole) {
+                    UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> navBusinessId ?: "0" // Use nav arg or placeholder '0'
+                    else -> currentUser.businessId ?: run {
+                        _state.update { it.copy(isLoading = false, error = "No business context available") }
+                        return@launch
+                    }
+                }
+                Log.d("VehicleProfileVM_Debug", "Determined effectiveBusinessId: $effectiveBusinessId based on Role=$userRole")
+
+                Log.d("VehicleProfileVM", "Attempting to load vehicle $vehicleId with effective businessId $effectiveBusinessId")
                 val vehicle = retryOnFailure {
-                    vehicleRepository.getVehicle(vehicleId, businessId)
+                    vehicleRepository.getVehicle(vehicleId!!, effectiveBusinessId)
                 }
                 
                 if (vehicle == null) {
                     throw Exception("Error al cargar vehiculo")
                 }
                 
-                // Get active session with retry
-                val activeSession = retryOnFailure {
-                    vehicleSessionRepository.getActiveSessionForVehicle(vehicleId, businessId)
+                // Load other related data (session, checks) using the actual vehicle.businessId
+                val actualBusinessId = vehicle.businessId
+                if (actualBusinessId != null) {
+                    loadActiveSession(vehicle.id, actualBusinessId)
+                    loadLastPreShiftCheck(vehicle.id, actualBusinessId)
+                } else {
+                    Log.w("VehicleProfileVM", "Vehicle ${vehicle.id} has no businessId, skipping session/check load.")
                 }
-                
-                // Get last pre-shift check with retry
-                val lastPreShiftCheck = retryOnFailure {
-                    checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
-                }
-                
-                // Fetch operator details if there's an active session
-                val operator = activeSession?.userId?.let { userId ->
-                    retryOnFailure {
-                        userRepository.getUserById(userId)
-                    }
-                }
-
-                // If no active operator, get the last session's operator
-                val lastOperator = if (operator == null) {
-                    withTimeoutOrNull(5000) { // Add timeout to prevent hanging
-                        vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
-                            retryOnFailure {
-                                userRepository.getUserById(userId)
-                            }
-                        }
-                    }
-                } else null
                 
                 _state.update { 
                     it.copy(
                         vehicle = vehicle,
-                        activeSession = activeSession,
-                        hasActiveSession = activeSession != null,
-                        hasActivePreShiftCheck = lastPreShiftCheck?.status == CheckStatus.IN_PROGRESS.toString(),
-                        activeOperator = operator,
-                        lastOperator = lastOperator,
                         isLoading = false,
                         error = null
                     )
                 }
             } catch (e: Exception) {
-                android.util.Log.e("VehicleProfile", "Error loading vehicle", e)
+                Log.e("VehicleProfileVM", "Error loading vehicle $vehicleId", e)
                 _state.update {
                     it.copy(
                         error = when (e) {
@@ -174,6 +159,55 @@ class VehicleProfileViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    private suspend fun loadActiveSession(vehicleId: String, businessId: String) {
+        try {
+            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId, businessId)
+            
+            // Fetch operator details if there's an active session
+            val operator = session?.userId?.let { userId ->
+                retryOnFailure {
+                    userRepository.getUserById(userId)
+                }
+            }
+
+            // If no active operator, get the last session's operator
+            val lastOperator = if (operator == null) {
+                withTimeoutOrNull(5000) { // Add timeout to prevent hanging
+                    vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
+                        retryOnFailure {
+                            userRepository.getUserById(userId)
+                        }
+                    }
+                }
+            } else null
+            
+            _state.update { 
+                it.copy(
+                    activeSession = session,
+                    hasActiveSession = session != null,
+                    activeOperator = operator,
+                    lastOperator = lastOperator
+                )
+            }
+        } catch (e: Exception) {
+            _state.update { it.copy(error = "Error loading active session: ${e.message}") }
+        }
+    }
+
+    private suspend fun loadLastPreShiftCheck(vehicleId: String, businessId: String) {
+        try {
+            val check = checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
+            
+            _state.update { 
+                it.copy(
+                    hasActivePreShiftCheck = check?.status == CheckStatus.IN_PROGRESS.toString()
+                )
+            }
+        } catch (e: Exception) {
+            _state.update { it.copy(error = "Error loading last pre-shift check: ${e.message}") }
         }
     }
 
@@ -262,16 +296,16 @@ class VehicleProfileViewModel @Inject constructor(
                 }
                 
                 // Check vehicle status first
-                val vehicleStatus = getVehicleStatusUseCase(vehicleId)
+                val vehicleStatus = getVehicleStatusUseCase(vehicleId!!)
                 if (!vehicleStatus.isAvailable()) {
                     throw Exception(vehicleStatus.getErrorMessage())
                 }
                 
-                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
+                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId!!, businessId)
                 
                 if (lastCheck?.status == CheckStatus.COMPLETED_PASS.toString()) {
                     val session = vehicleSessionRepository.startSession(
-                        vehicleId = vehicleId,
+                        vehicleId = vehicleId!!,
                         checkId = lastCheck.id
                     )
                     
@@ -328,14 +362,40 @@ class VehicleProfileViewModel @Inject constructor(
 
     suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
         val currentUser = userRepository.getCurrentUser()
-        val businessId = currentUser?.businessId
-        
-        if (businessId == null) {
-            android.util.Log.e("VehicleProfile", "No business context available")
+        if (currentUser == null) {
+            Log.e("VehicleProfile", "User not authenticated for getLastPreShiftCheck")
             return null
         }
-        
-        return checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
+
+        // Determine the correct business context for fetching the check
+        val vehicleFromState = _state.value.vehicle // Get the already loaded vehicle
+        val effectiveBusinessId = when (currentUser.role) {
+            UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> vehicleFromState?.businessId ?: "0" // Use vehicle's ID or placeholder '0'
+            else -> currentUser.businessId // Use user's business ID for non-admins
+        }
+
+        if (effectiveBusinessId == null && currentUser.role != UserRole.SYSTEM_OWNER && currentUser.role != UserRole.SUPERADMIN) {
+            Log.e("VehicleProfile", "No business context available for user to get last check")
+            return null
+        }
+
+        // Use the determined effectiveBusinessId (could be null for admin/global if vehicle isn't assigned)
+        // The repository needs to handle null/"0" appropriately for global checks if applicable.
+        // Assuming getLastPreShiftCheck in repository handles '0' or requires a valid ID.
+        // If '0' isn't valid for checks, we might need to skip if vehicleFromState?.businessId is null.
+        val checkBusinessId = effectiveBusinessId ?: run {
+            Log.w("VehicleProfile", "Vehicle has no businessId, cannot fetch specific check. Need global check logic?")
+            // Decide if you want to attempt a global fetch (e.g., with "0") or return null
+            return null // Returning null for now if vehicle has no business ID
+        }
+
+        Log.d("VehicleProfile", "Fetching last check for vehicle $vehicleId with business context: $checkBusinessId")
+        return try {
+            checklistRepository.getLastPreShiftCheck(vehicleId, checkBusinessId)
+        } catch (e: Exception) {
+            Log.e("VehicleProfile", "Error fetching last check for vehicle $vehicleId, business $checkBusinessId", e)
+            null // Return null on error
+        }
     }
 
     fun endVehicleSession() {

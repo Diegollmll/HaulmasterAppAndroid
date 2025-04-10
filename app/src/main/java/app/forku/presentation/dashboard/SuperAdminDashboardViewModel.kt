@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.session.VehicleSessionRepository
+import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
@@ -18,12 +19,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.delay
+import android.util.Log
 
 @HiltViewModel
 class SuperAdminDashboardViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository,
     private val vehicleSessionRepository: VehicleSessionRepository,
+    private val businessRepository: BusinessRepository,
     private val submitFeedbackUseCase: SubmitFeedbackUseCase
 ) : ViewModel() {
     
@@ -46,7 +49,9 @@ class SuperAdminDashboardViewModel @Inject constructor(
             try {
                 val user = userRepository.getCurrentUser()
                 _currentUser.value = user
+                Log.d("SuperAdminDashboard", "Current user loaded: ${user?.role}")
             } catch (e: Exception) {
+                Log.e("SuperAdminDashboard", "Error loading user", e)
                 _state.update { it.copy(error = "Error loading user: ${e.message}") }
             }
         }
@@ -54,43 +59,97 @@ class SuperAdminDashboardViewModel @Inject constructor(
     
     fun loadDashboardData() {
         viewModelScope.launch {
-            if (!loadDashboardMutex.tryLock()) return@launch
+            if (!loadDashboardMutex.tryLock()) {
+                Log.d("SuperAdminDashboard", "Dashboard data load already in progress")
+                return@launch
+            }
             
             try {
-                _state.update { it.copy(isLoading = true) }
+                _state.update { it.copy(isLoading = true, error = null) }
+                Log.d("SuperAdminDashboard", "Starting dashboard data load")
                 
-                // Load system overview data
-                val users = userRepository.getAllUsers()
-                val vehicles = vehicleRepository.getAllVehicles()
-                val activeAdmins = users.count { it.role == UserRole.ADMIN }
+                // Load current user first
+                val currentUser = userRepository.getCurrentUser()
+                Log.d("SuperAdminDashboard", "Current user: role=${currentUser?.role}, id=${currentUser?.id}")
                 
-                // Load user management data
-                val recentUsers = users.take(5)
-                val pendingApprovals = users.count { !it.isApproved }
+                // Load businesses for current SuperAdmin
+                val businesses = try {
+                    businessRepository.getAllBusinesses().also { businessList ->
+                        Log.d("SuperAdminDashboard", "Successfully loaded ${businessList.size} businesses for SuperAdmin")
+                        businessList.forEach { business ->
+                            Log.d("SuperAdminDashboard", "Business loaded: id=${business.id}, name=${business.name}, status=${business.status}, superAdminId=${business.superAdminId}")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SuperAdminDashboard", "Error loading businesses", e)
+                    emptyList()
+                }
+
+                // Get business IDs for this SuperAdmin
+                val superAdminBusinessIds = businesses.map { it.id }.toSet()
+                Log.d("SuperAdminDashboard", "SuperAdmin business IDs: $superAdminBusinessIds")
+
+                // Load and filter users belonging to SuperAdmin's businesses
+                val users = try {
+                    userRepository.getAllUsers()
+                        .filter { user -> 
+                            user.businessId in superAdminBusinessIds
+                        }
+                        .also { filteredUsers ->
+                            Log.d("SuperAdminDashboard", "Filtered ${filteredUsers.size} users belonging to SuperAdmin's businesses")
+                            filteredUsers.forEach { user ->
+                                Log.d("SuperAdminDashboard", "Filtered user: id=${user.id}, businessId=${user.businessId}")
+                            }
+                        }
+                } catch (e: Exception) {
+                    Log.e("SuperAdminDashboard", "Error loading users", e)
+                    emptyList()
+                }
+
+                // Load and filter vehicles belonging to SuperAdmin's businesses
+                val vehicles = try {
+                    val allVehicles = vehicleRepository.getAllVehicles()
+                    allVehicles.filter { vehicle -> 
+                        // Get the business for this vehicle and check if it belongs to the SuperAdmin
+                        val businessId = vehicle.businessId
+                        businessId in superAdminBusinessIds
+                    }.also { filteredVehicles ->
+                        Log.d("SuperAdminDashboard", "Filtered ${filteredVehicles.size} vehicles belonging to SuperAdmin's businesses")
+                    }
+                } catch (e: Exception) {
+                    Log.e("SuperAdminDashboard", "Error loading vehicles", e)
+                    emptyList()
+                }
+
+                // Calculate business statistics
+                val activeBusinesses = businesses.count { it.status == BusinessStatus.ACTIVE }
+                val pendingBusinesses = businesses.count { it.status == BusinessStatus.PENDING }
                 
-                // Load vehicle management data
-                val maintenanceAlerts = vehicles.count { it.maintenanceStatus != MaintenanceStatus.UP_TO_DATE }
-                val vehicleIssues = vehicles.count { it.hasIssues }
-                
-                // Load system settings data
-                val systemHealth = SystemHealth(
-                    lastCheckTime = java.time.LocalDateTime.now().toString()
-                )
-                
-                _state.update { 
-                    it.copy(
+                Log.d("SuperAdminDashboard", "Business statistics: " +
+                    "total=${businesses.size}, " +
+                    "active=$activeBusinesses, " +
+                    "pending=$pendingBusinesses")
+
+                // Update state with filtered data
+                _state.update { currentState ->
+                    Log.d("SuperAdminDashboard", "Updating dashboard state with filtered data")
+                    currentState.copy(
                         isLoading = false,
+                        error = null,
                         totalUsersCount = users.size,
                         totalVehiclesCount = vehicles.size,
-                        activeAdminsCount = activeAdmins,
-                        recentUsers = recentUsers,
-                        pendingUserApprovals = pendingApprovals,
-                        maintenanceAlerts = maintenanceAlerts,
-                        vehicleIssues = vehicleIssues,
-                        systemHealth = systemHealth
+                        totalBusinessCount = businesses.size,
+                        activeAdminsCount = users.count { it.role == UserRole.ADMIN },
+                        recentUsers = users.take(5),
+                        recentBusinesses = businesses.take(5),
+                        pendingBusinessApprovals = pendingBusinesses,
+                        pendingUserApprovals = users.count { !it.isApproved }
                     )
                 }
+                Log.d("SuperAdminDashboard", "Dashboard state updated successfully")
+                
             } catch (e: Exception) {
+                Log.e("SuperAdminDashboard", "Error loading dashboard data", e)
                 _state.update { 
                     it.copy(
                         isLoading = false,

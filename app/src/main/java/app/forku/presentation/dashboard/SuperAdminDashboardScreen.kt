@@ -1,20 +1,16 @@
 package app.forku.presentation.dashboard
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,7 +22,6 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import app.forku.presentation.navigation.Screen
-import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
 
@@ -55,7 +50,7 @@ fun SuperAdminDashboardScreen(
     
     BaseScreen(
         navController = navController ?: return,
-        showBottomBar = true,
+        showBottomBar = false,
         showTopBar = false,
         showBackButton = false,
         dashboardState = regularDashboardState,
@@ -89,13 +84,13 @@ fun SuperAdminDashboardScreen(
                     
                     item { SystemOverviewSection(dashboardState, navController) }
                     
-                    item { UserManagementSection(dashboardState, navController) }
+                    item { UserAndSettingsSection(dashboardState, navController) }
                     
-                    item { BusinessManagementSection(dashboardState, navController) }
-                    
+//                    item { BusinessManagementSection(dashboardState, navController) }
+//
                     item { VehicleManagementSection(dashboardState, navController) }
                     
-                    item { SystemSettingsSection(dashboardState, navController) }
+                    //item { SystemSettingsSection(dashboardState, navController) }
                     
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -171,7 +166,7 @@ private fun SystemOverviewSection(
                     count = state.totalVehiclesCount.toString(),
                     label = "Vehicles",
                     iconTint = Color(0xFF4CAF50),
-                    onClick = { navController.navigate(Screen.VehiclesList.route) }
+                    onClick = { navController.navigate(Screen.AdminVehiclesList.route) }
                 )
             }
         }
@@ -179,7 +174,7 @@ private fun SystemOverviewSection(
 }
 
 @Composable
-private fun UserManagementSection(
+private fun UserAndSettingsSection(
     state: SuperAdminDashboardState,
     navController: NavController
 ) {
@@ -207,14 +202,14 @@ private fun UserManagementSection(
                     onClick = { navController.navigate(Screen.AddUser.route) }
                 )
                 AdminActionButton(
-                    icon = Icons.Default.Group,
-                    text = "Manage Roles",
-                    onClick = { navController.navigate(Screen.RoleManagement.route) }
+                    icon = Icons.Default.Business,
+                    text = "Add Business",
+                    onClick = { navController.navigate(Screen.BusinessManagement.route) }
                 )
                 AdminActionButton(
-                    icon = Icons.Default.Security,
-                    text = "Permissions",
-                    onClick = { navController.navigate(Screen.PermissionsManagement.route) }
+                    icon = Icons.Default.Groups,
+                    text = "Assign Users",
+                    onClick = { navController.navigate(Screen.BusinessManagement.route) }
                 )
             }
         }
@@ -255,9 +250,9 @@ private fun BusinessManagementSection(
                     onClick = { navController.navigate(Screen.BusinessManagement.route) }
                 )
                 AdminActionButton(
-                    icon = Icons.Default.Settings,
-                    text = "Settings",
-                    onClick = { navController.navigate(Screen.BusinessManagement.route) }
+                    icon = Icons.Default.Add,
+                    text = "Add Vehicle",
+                    onClick = { navController.navigate(Screen.AddVehicle.route) }
                 )
             }
         }
@@ -343,7 +338,7 @@ private fun SystemSettingsSection(
                 AdminActionButton(
                     icon = Icons.Default.History,
                     text = "Audit Log",
-                    onClick = { navController.navigate(Screen.AuditLog.route) }
+                    onClick = { navController.navigate(Screen.TimeZones.route) }
                 )
             }
         }

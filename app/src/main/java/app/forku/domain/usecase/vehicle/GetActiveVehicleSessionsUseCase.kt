@@ -40,7 +40,7 @@ class GetActiveVehicleSessionsUseCase @Inject constructor(
                     vehicleImage = vehicle.photoModel,
                     progress = 0f,
                     vehicleId = vehicle.id,
-                    vehicleType = vehicle.type.displayName
+                    vehicleType = vehicle.type.name
                 )
             } catch (e: Exception) {
                 android.util.Log.e("GetActiveVehicleSessions", "Error getting session info for vehicle ${session.vehicleId}", e)

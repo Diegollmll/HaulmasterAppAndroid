@@ -31,6 +31,11 @@ import app.forku.data.api.ChecklistApi
 import app.forku.data.api.SessionApi
 import app.forku.data.api.NotificationApi
 import app.forku.data.remote.api.BusinessApi
+import app.forku.data.api.CountryApi
+import app.forku.data.api.StateApi
+import app.forku.data.remote.api.VehicleCategoryApi
+import app.forku.data.api.VehicleTypeApi
+//import app.forku.data.api.CicoHistoryApi
 
 
 @Module
@@ -43,6 +48,16 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideVehicleApi(retrofit: Retrofit): VehicleApi = retrofit.create(VehicleApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleCategoryApi(retrofit: Retrofit): VehicleCategoryApi = 
+        retrofit.create(VehicleCategoryApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleTypeApi(retrofit: Retrofit): VehicleTypeApi = 
+        retrofit.create(VehicleTypeApi::class.java)
 
     @Provides
     @Singleton
@@ -79,9 +94,23 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideBusinessApi(retrofit: Retrofit): BusinessApi {
-        return retrofit.create(BusinessApi::class.java)
-    }
+    fun provideBusinessApi(retrofit: Retrofit): BusinessApi =
+        retrofit.create(BusinessApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCountryApi(retrofit: Retrofit): CountryApi =
+        retrofit.create(CountryApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideStateApi(retrofit: Retrofit): StateApi =
+        retrofit.create(StateApi::class.java)
+
+//    @Provides
+//    @Singleton
+//    fun provideCicoHistoryApi(retrofit: Retrofit): CicoHistoryApi =
+//        retrofit.create(CicoHistoryApi::class.java)
 
     @Provides
     @Singleton

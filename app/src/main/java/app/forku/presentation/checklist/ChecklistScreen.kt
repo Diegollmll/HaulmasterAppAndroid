@@ -216,7 +216,7 @@ fun ChecklistScreen(
                                 color = MaterialTheme.colorScheme.surfaceVariant
                             )
 
-                            // Add padding to the questionnaire section
+                            // Add padding to the questionary section
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()

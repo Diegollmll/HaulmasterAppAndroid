@@ -1,9 +1,10 @@
 package app.forku.presentation.vehicle.profile
 
-import app.forku.domain.model.vehicle.Vehicle
-import app.forku.domain.model.session.VehicleSessionInfo
-import app.forku.domain.model.user.User
+import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.session.VehicleSession
+import app.forku.domain.model.user.User
+import app.forku.domain.model.user.UserRole
+import app.forku.domain.model.vehicle.Vehicle
 
 data class VehicleProfileState(
     val vehicle: Vehicle? = null,
@@ -17,5 +18,6 @@ data class VehicleProfileState(
     val lastOperator: User? = null,
     val checkId: String? = null,
     val canStartCheck: Boolean = false,
-    val navigateToChecklist: Boolean = false
+    val navigateToChecklist: Boolean = false,
+    val currentUserRole: UserRole? = null
 ) 
