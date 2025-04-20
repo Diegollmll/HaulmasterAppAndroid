@@ -1,6 +1,6 @@
 package app.forku.data.api
 
-import app.forku.data.model.QuestionaryChecklistItemDto
+import app.forku.data.api.dto.QuestionaryChecklistItemDto
 import retrofit2.Response
 import retrofit2.http.*
 

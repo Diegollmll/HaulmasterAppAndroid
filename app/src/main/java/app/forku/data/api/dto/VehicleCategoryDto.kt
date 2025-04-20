@@ -1,4 +1,4 @@
-package app.forku.data.remote.dto
+package app.forku.data.api.dto
 
 import app.forku.domain.model.vehicle.VehicleCategory
 import kotlinx.serialization.SerialName

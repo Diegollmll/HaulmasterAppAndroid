@@ -13,10 +13,9 @@ data class IncidentDto(
     val status: String,
     val photoUrls: List<String>,
     val date: Long,
-    val location: String,
     val locationDetails: String,
     val weather: String,
-    val incidentTime: String?,
+    val incidentDateTime: String?,
     val severityLevel: String?,
     val preshiftCheckStatus: String,
     

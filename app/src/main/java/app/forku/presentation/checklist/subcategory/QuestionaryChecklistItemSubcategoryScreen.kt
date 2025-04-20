@@ -4,12 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,13 +16,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.core.network.NetworkConnectivityManager
-import app.forku.data.model.QuestionaryChecklistItemSubcategoryDto
+import app.forku.data.api.dto.QuestionaryChecklistItemSubcategoryDto
 import app.forku.presentation.common.components.BaseScreen
 import androidx.navigation.NavController
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
 
 @Composable
 fun QuestionaryChecklistItemSubcategoryScreen(
@@ -143,7 +142,10 @@ fun QuestionaryChecklistItemSubcategoryScreen(
                                         viewModel.createSubcategory(
                                             QuestionaryChecklistItemSubcategoryDto(
                                                 name = "Test Subcategory $randomNum",
-                                                description = "This is a test subcategory created on ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(java.util.Date())}",
+                                                description = "This is a test subcategory created on ${
+                                                    SimpleDateFormat("yyyy-MM-dd HH:mm").format(
+                                                        Date()
+                                                    )}",
                                                 categoryId = categoryId,
                                                 priority = 5
                                             )

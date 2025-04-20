@@ -5,8 +5,9 @@ sealed class Screen(val route: String) {
     data object Register : Screen("register")
     data object Dashboard : Screen("dashboard")
     data object QRScanner : Screen("qr_scanner")
-    data object VehicleProfile : Screen("vehicle_profile/{vehicleId}?businessId={businessId}") {
-        fun createRoute(vehicleId: String, businessId: String?) = "vehicle_profile/$vehicleId" + (businessId?.let { "?businessId=$it" } ?: "")
+    data object VehicleProfile : Screen("vehicle/{vehicleId}?businessId={businessId}") {
+        fun createRoute(vehicleId: String, businessId: String? = null): String =
+            "vehicle/$vehicleId${if (businessId != null) "?businessId=$businessId" else ""}"
     }
     data object Checklist : Screen("checklist/{vehicleId}") {
         fun createRoute(vehicleId: String, checkId: String? = null, fromScanner: Boolean = false): String = buildString {
@@ -23,78 +24,45 @@ sealed class Screen(val route: String) {
             }
         }
     }
-    data object CheckDetail : Screen("check_detail/{checkId}") {
-        fun createRoute(checkId: String): String = "check_detail/$checkId"
+    data object CheckDetail : Screen("check/{checkId}") {
+        fun createRoute(checkId: String): String = "check/$checkId"
     }
     data object Profile : Screen("profile?operatorId={operatorId}") {
-        fun createRoute(operatorId: String? = null): String {
-            return if (operatorId != null) {
-                "profile?operatorId=$operatorId"
-            } else {
-                "profile"
-            }
-        }
+        fun createRoute(operatorId: String? = null): String =
+            "profile${if (operatorId != null) "?operatorId=$operatorId" else ""}"
     }
-    data object IncidentList : Screen("incident_list?userId={userId}&source={source}") {
-        fun createRoute(userId: String? = null, source: String? = null): String {
-            return buildString {
-                append("incident_list")
-                if (userId != null || source != null) {
-                    append("?")
-                    if (userId != null) {
-                        append("userId=$userId")
-                        if (source != null) append("&")
-                    }
-                    if (source != null) {
-                        append("source=$source")
-                    }
-                }
-            }
-        }
+    data object IncidentList : Screen("incidents?userId={userId}&source={source}") {
+        fun createRoute(userId: String? = null, source: String? = null): String =
+            "incidents${if (userId != null) "?userId=$userId" else ""}${if (source != null) "&source=$source" else ""}"
     }
-    data object OperatorsCICOHistory : Screen("operators_cico_history?operatorId={operatorId}&source={source}") {
-        fun createRoute(operatorId: String? = null, source: String? = null): String {
-            android.util.Log.e("appflow", "OperatorsCICOHistory createRoute operatorId: $operatorId, source: $source")
-            return buildString {
-                append("operators_cico_history")
-                if (operatorId != null || source != null) {
-                    append("?")
-                    if (operatorId != null) {
-                        append("operatorId=$operatorId")
-                        if (source != null) append("&")
-                    }
-                    if (source != null) {
-                        append("source=$source")
-                    }
-                }
-            }
-        }
+    data object OperatorsCICOHistory : Screen("cico_history?operatorId={operatorId}&source={source}") {
+        fun createRoute(operatorId: String? = null, source: String? = null): String =
+            "cico_history${if (operatorId != null) "?operatorId=$operatorId" else ""}${if (source != null) "&source=$source" else ""}"
     }
     data object VehiclesList : Screen("vehicles")
     data object VehicleCategories : Screen("vehicle_categories")
     data object VehicleTypes : Screen("vehicle_types")
     data object SafetyReporting : Screen("safety_reporting")
     data object PerformanceReport : Screen("performance_report")
-    data object IncidentDetail : Screen("incident_detail/{incidentId}")
+    data object IncidentDetail : Screen("incident/{incidentId}")
     data object Tour : Screen("tour")
     data object AdminDashboard : Screen("admin_dashboard")
     data object SystemOwnerDashboard : Screen("system_owner_dashboard")
-    data object SuperAdminDashboard : Screen("super_admin_dashboard")
-    data object OperatorsList : Screen("operator_session_list")
+    data object SuperAdminDashboard : Screen("superadmin_dashboard")
+    data object OperatorsList : Screen("operators")
     data object Notifications : Screen("notifications")
     data object AllChecklist : Screen("all_checklist")
     data object SafetyAlerts : Screen("safety_alerts")
+    data object EnergySources : Screen("energy_sources")
     data object CertificationsList : Screen("certifications?userId={userId}") {
         fun createRoute(userId: String? = null): String =
-            "certifications" + (userId?.let { "?userId=$it" } ?: "")
+            "certifications${if (userId != null) "?userId=$userId" else ""}"
     }
     data object CertificationDetail : Screen("certification/{certificationId}") {
-        fun createRoute(certificationId: String): String =
-            "certification/$certificationId"
+        fun createRoute(certificationId: String): String = "certification/$certificationId"
     }
-    data object CertificationEdit : Screen("certification/{certificationId}/edit") {
-        fun createRoute(certificationId: String): String =
-            "certification/$certificationId/edit"
+    data object CertificationEdit : Screen("certification/edit/{certificationId}") {
+        fun createRoute(certificationId: String): String = "certification/edit/$certificationId"
     }
     data object CertificationCreate : Screen("certification/create")
     
@@ -118,9 +86,9 @@ sealed class Screen(val route: String) {
     }
 
     // Admin Specific Vehicle Routes
-    data object AdminVehiclesList : Screen("admin_vehicles_list")
-    data object AdminVehicleProfile : Screen("admin_vehicle_profile/{vehicleId}") {
-        fun createRoute(vehicleId: String) = "admin_vehicle_profile/$vehicleId"
+    data object AdminVehiclesList : Screen("admin_vehicles")
+    data object AdminVehicleProfile : Screen("admin_vehicle/{vehicleId}") {
+        fun createRoute(vehicleId: String) = "admin_vehicle/$vehicleId"
     }
     
     // Checklist Management Routes
@@ -139,8 +107,8 @@ sealed class Screen(val route: String) {
     data object EditQuestionaryChecklistItemCategory : Screen("edit_questionary_checklist_item_category/{categoryId}") {
         fun createRoute(categoryId: String) = "edit_questionary_checklist_item_category/$categoryId"
     }
-    data object QuestionaryChecklistItemSubcategory : Screen("questionary_checklist_item_subcategory/{categoryId}") {
-        fun createRoute(categoryId: String) = "questionary_checklist_item_subcategory/$categoryId"
+    data object QuestionaryChecklistItemSubcategory : Screen("checklist_subcategory/{categoryId}") {
+        fun createRoute(categoryId: String): String = "checklist_subcategory/$categoryId"
     }
     data object EditQuestionaryChecklistItemSubcategory : Screen("edit_questionary_checklist_item_subcategory/{subcategoryId}?categoryId={categoryId}") {
         fun createRoute(subcategoryId: String?, categoryId: String? = null): String {
@@ -153,6 +121,14 @@ sealed class Screen(val route: String) {
     }
     data object QuestionaryChecklist : Screen("questionary_checklist") {
         fun createRoute(): String = "questionary_checklist"
+    }
+    data object Sites : Screen("sites/{businessId}") {
+        fun createRoute(businessId: String): String = "sites/$businessId"
+    }
+
+    // Vehicle Management
+    data object VehicleComponents : Screen("vehicle-components") {
+        val title: String = "Vehicle Components"
     }
 
     companion object {

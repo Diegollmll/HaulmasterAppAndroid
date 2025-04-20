@@ -1,4 +1,4 @@
-package app.forku.data.dto
+package app.forku.data.api.dto
 
 import com.google.gson.annotations.SerializedName
 

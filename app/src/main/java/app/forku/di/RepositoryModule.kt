@@ -11,6 +11,7 @@ import app.forku.data.repository.country.CountryRepositoryImpl
 import app.forku.data.repository.country.StateRepositoryImpl
 import app.forku.data.repository.incident.IncidentRepositoryImpl
 import app.forku.data.repository.notification.NotificationRepositoryImpl
+import app.forku.data.repository.site.SiteRepositoryImpl
 import app.forku.data.repository.user.UserRepositoryImpl
 import app.forku.data.repository.vehicle.*
 import app.forku.data.repository.vehicle_session.*
@@ -26,6 +27,7 @@ import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.notification.NotificationRepository
 import app.forku.domain.repository.session.SessionStatusChecker
 import app.forku.domain.repository.session.VehicleSessionRepository
+import app.forku.domain.repository.site.SiteRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.*
 import app.forku.domain.service.VehicleStatusDeterminer
@@ -90,6 +92,12 @@ abstract class RepositoryModule {
     abstract fun bindVehicleRepository(
         impl: VehicleRepositoryImpl
     ): VehicleRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSiteRepository(
+        siteRepositoryImpl: SiteRepositoryImpl
+    ): SiteRepository
 
     companion object {
         @Provides

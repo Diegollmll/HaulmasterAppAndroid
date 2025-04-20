@@ -1,4 +1,4 @@
-package app.forku.data.remote.api
+package app.forku.data.api
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

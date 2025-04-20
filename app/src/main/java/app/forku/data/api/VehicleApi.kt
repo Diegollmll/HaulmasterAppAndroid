@@ -6,16 +6,28 @@ import retrofit2.http.*
 
 interface VehicleApi {
     /**
-     * Get all vehicles for a business
-     * @param businessId Business ID
-     * @param siteId Optional site ID to filter vehicles
-     * @return List of vehicles
+     * Get all vehicles, optionally filtered by business ID or site ID.
+     *
+     * @param businessId Optional Business ID to filter vehicles.
+     * @param siteId Optional Site ID to filter vehicles.
+     * @return List of vehicles.
      */
-    @GET("business/{businessId}/vehicle")
+    @GET("vehicle")
     suspend fun getVehicles(
-        @Path("businessId") businessId: String,
+        @Query("businessId") businessId: String? = null,
         @Query("siteId") siteId: String? = null
     ): Response<List<VehicleDto>>
+
+    /**
+     * Get a specific vehicle by its ID.
+     *
+     * @param vehicleId The ID of the vehicle to retrieve.
+     * @return The vehicle details.
+     */
+    @GET("vehicle/{vehicleId}")
+    suspend fun getVehicleById(
+        @Path("vehicleId") vehicleId: String
+    ): Response<VehicleDto>
 
     /**
      * Get all vehicles across all businesses (SuperAdmin only)

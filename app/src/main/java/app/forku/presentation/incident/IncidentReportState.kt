@@ -8,7 +8,7 @@ import com.google.android.gms.common.api.ResolvableApiException
 import java.time.LocalTime
 import app.forku.domain.model.vehicle.VehicleType
 import java.time.LocalDateTime
-import app.forku.domain.model.incident.IncidentSeverityLevel
+import app.forku.domain.model.incident.IncidentSeverityLevelEnum
 import app.forku.domain.model.incident.LoadWeight
 import app.forku.domain.model.vehicle.Vehicle
 
@@ -24,7 +24,7 @@ data class IncidentReportState(
     
     // Add new common fields
     val incidentTime: LocalTime? = null,
-    val severityLevel: IncidentSeverityLevel? = null,
+    val severityLevel: IncidentSeverityLevelEnum? = null,
     val preshiftCheckStatus: String = "",
     
     // Type-specific fields wrapper

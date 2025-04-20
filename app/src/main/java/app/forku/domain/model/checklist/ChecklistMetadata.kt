@@ -1,6 +1,6 @@
 package app.forku.domain.model.checklist
 
-import app.forku.domain.model.vehicle.EnergySource
+import app.forku.domain.model.vehicle.EnergySourceEnum
 
 data class ChecklistMetadata(
     val version: String,
@@ -8,5 +8,5 @@ data class ChecklistMetadata(
     val totalQuestions: Int,
     val rotationGroups: Int,
     val questionsPerCheck: Int,
-    val energySources: List<EnergySource>
+    val energySourceEnums: List<EnergySourceEnum>
 )

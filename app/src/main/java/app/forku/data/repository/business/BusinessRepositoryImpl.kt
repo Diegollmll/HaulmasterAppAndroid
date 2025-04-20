@@ -1,19 +1,19 @@
 package app.forku.data.repository.business
 
-import app.forku.data.remote.api.BusinessApi
-import app.forku.data.remote.api.CreateBusinessRequest
+import app.forku.data.api.BusinessApi
+import app.forku.data.api.CreateBusinessRequest
 import app.forku.domain.repository.business.BusinessRepository
 import app.forku.presentation.dashboard.Business
 import app.forku.presentation.dashboard.BusinessStatus
 import retrofit2.HttpException
 import javax.inject.Inject
 import android.util.Log
-import app.forku.data.remote.dto.BusinessDto
-import app.forku.data.remote.dto.BusinessStats
+import app.forku.data.api.dto.BusinessDto
+import app.forku.data.api.dto.BusinessStats
 import com.google.gson.Gson
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.user.UserRepository
-import app.forku.data.remote.api.UpdateBusinessRequest
+import app.forku.data.api.UpdateBusinessRequest
 
 class BusinessRepositoryImpl @Inject constructor(
     private val api: BusinessApi,
@@ -142,7 +142,7 @@ class BusinessRepositoryImpl @Inject constructor(
                     val request = UpdateBusinessRequest(
                         name = business.name,
                         status = business.status.name.uppercase(),
-                        superAdminId = newSuperAdminId
+                        superAdminId = newSuperAdminId.ifEmpty { "" }
                     )
                     try {
                         val updatedBusiness = api.updateBusiness(businessId, request)
@@ -157,7 +157,7 @@ class BusinessRepositoryImpl @Inject constructor(
                     val request = UpdateBusinessRequest(
                         name = business.name,
                         status = business.status.name.uppercase(),
-                        superAdminId = newSuperAdminId
+                        superAdminId = newSuperAdminId.ifEmpty { "" }
                     )
                     try {
                         val updatedBusiness = api.updateBusiness(businessId, request)
@@ -307,7 +307,7 @@ class BusinessRepositoryImpl @Inject constructor(
         try {
             val currentUser = userRepository.getCurrentUser()
             Log.d("BusinessManagement", "Attempting to update business: ${business.id}")
-            Log.d("BusinessManagement", "Update details: name=${business.name}, status=${business.status}")
+            Log.d("BusinessManagement", "Update details: name=${business.name}, status=${business.status}, superAdminId=${business.superAdminId}")
             Log.d("BusinessManagement", "Current user role: ${currentUser?.role}")
 
             when (currentUser?.role) {
@@ -330,8 +330,10 @@ class BusinessRepositoryImpl @Inject constructor(
             // Create and log the request
             val request = UpdateBusinessRequest(
                 name = business.name,
-                status = business.status.name.uppercase()
+                status = business.status.name.uppercase(),
+                superAdminId = business.superAdminId
             )
+            
             Log.d("BusinessManagement", "Sending API request: PUT /business/${business.id}")
             Log.d("BusinessManagement", "Request body: $request")
 
@@ -341,7 +343,7 @@ class BusinessRepositoryImpl @Inject constructor(
             )
             
             Log.d("BusinessManagement", "API response received")
-            Log.d("BusinessManagement", "Response DTO: id=${dto.id}, name=${dto.name}, status=${dto.status}")
+            Log.d("BusinessManagement", "Response DTO: id=${dto.id}, name=${dto.name}, status=${dto.status}, superAdminId=${dto.superAdminId}")
 
             return mapDtoToBusiness(dto).also { mappedBusiness ->
                 Log.d("BusinessManagement", "Final mapped business: " +

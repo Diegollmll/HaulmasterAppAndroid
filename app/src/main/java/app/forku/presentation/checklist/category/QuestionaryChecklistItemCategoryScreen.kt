@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.core.network.NetworkConnectivityManager
-import app.forku.data.model.QuestionaryChecklistItemCategoryDto
+import app.forku.data.api.dto.QuestionaryChecklistItemCategoryDto
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import androidx.navigation.NavController

@@ -123,7 +123,8 @@ fun UserManagementScreen(
                     onRoleSelected = { role ->
                         viewModel.updateUserRole(state.value.selectedUser!!, role)
                         viewModel.hideRoleDialog()
-                    }
+                    },
+                    viewModel = viewModel
                 )
             }
 
@@ -363,8 +364,11 @@ private fun StatItem(
 private fun RoleChangeDialog(
     user: User,
     onDismiss: () -> Unit,
-    onRoleSelected: (UserRole) -> Unit
+    onRoleSelected: (UserRole) -> Unit,
+    viewModel: UserManagementViewModel = hiltViewModel()
 ) {
+    val currentUser = viewModel.currentUser.collectAsState()
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Change Role") },
@@ -372,14 +376,19 @@ private fun RoleChangeDialog(
             Column {
                 Text("Select new role for ${user.fullName}")
                 Spacer(modifier = Modifier.height(16.dp))
-                UserRole.values().forEach { role ->
-                    if (role != UserRole.SYSTEM_OWNER) { // Prevent changing to SYSTEM_OWNER
-                        TextButton(
-                            onClick = { onRoleSelected(role) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(role.name)
-                        }
+                // Filter available roles based on current user's role
+                val availableRoles = when (currentUser.value?.role) {
+                    UserRole.SYSTEM_OWNER -> UserRole.values().filter { it != UserRole.SYSTEM_OWNER }
+                    UserRole.SUPERADMIN -> listOf(UserRole.ADMIN, UserRole.OPERATOR)
+                    else -> emptyList()
+                }
+                
+                availableRoles.forEach { role ->
+                    TextButton(
+                        onClick = { onRoleSelected(role) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(role.name)
                     }
                 }
             }
@@ -406,6 +415,7 @@ private fun AddUserDialog(
     var password by remember { mutableStateOf("") }
     var role by remember { mutableStateOf(UserRole.OPERATOR) }
     var isRoleMenuExpanded by remember { mutableStateOf(false) }
+    val currentUser = viewModel.currentUser.collectAsState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -440,7 +450,7 @@ private fun AddUserDialog(
                     visualTransformation = PasswordVisualTransformation()
                 )
                 
-                // Role selection dropdown
+                // Role selection dropdown - show different options based on user role
                 Box(modifier = Modifier.fillMaxWidth()) {
                     ExposedDropdownMenuBox(
                         expanded = isRoleMenuExpanded,
@@ -463,16 +473,21 @@ private fun AddUserDialog(
                             expanded = isRoleMenuExpanded,
                             onDismissRequest = { isRoleMenuExpanded = false }
                         ) {
-                            UserRole.values().forEach { userRole ->
-                                if (userRole != UserRole.SYSTEM_OWNER) { // Prevent creating SYSTEM_OWNER
-                                    DropdownMenuItem(
-                                        text = { Text(userRole.name) },
-                                        onClick = {
-                                            role = userRole
-                                            isRoleMenuExpanded = false
-                                        }
-                                    )
-                                }
+                            // Filter available roles based on current user's role
+                            val availableRoles = when (currentUser.value?.role) {
+                                UserRole.SYSTEM_OWNER -> UserRole.values().filter { it != UserRole.SYSTEM_OWNER }
+                                UserRole.SUPERADMIN -> listOf(UserRole.ADMIN, UserRole.OPERATOR)
+                                else -> emptyList()
+                            }
+                            
+                            availableRoles.forEach { userRole ->
+                                DropdownMenuItem(
+                                    text = { Text(userRole.name) },
+                                    onClick = {
+                                        role = userRole
+                                        isRoleMenuExpanded = false
+                                    }
+                                )
                             }
                         }
                     }

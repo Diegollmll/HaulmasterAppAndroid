@@ -20,7 +20,7 @@ fun ChecklistItemDto.toDomain(): ChecklistItem {
         userAnswer = userAnswer?.let { Answer.valueOf(it.toString()) },
         category = category ?: "",
         subCategory = subCategory ?: "",
-        energySource = (energySource ?: emptyList()).map { EnergySource.valueOf(it) },
+        energySourceEnum = (energySource ?: emptyList()).map { EnergySourceEnum.valueOf(it) },
         vehicleType = (vehicleType ?: emptyList()).map { type -> 
             VehicleType(
                 id = type,
@@ -44,7 +44,7 @@ fun ChecklistMetadataDto.toDomain(): ChecklistMetadata {
         totalQuestions = totalQuestions,
         rotationGroups = rotationGroups,
         questionsPerCheck = questionsPerCheck,
-        energySources = energySources.map { EnergySource.valueOf(it) }
+        energySourceEnums = energySources.map { EnergySourceEnum.valueOf(it) }
     )
 }
 
@@ -109,7 +109,7 @@ fun ChecklistItem.toDto(): ChecklistItemDto {
         id = id,
         category = category,
         subCategory = subCategory,
-        energySource = energySource.map { it.name },
+        energySource = energySourceEnum.map { it.name },
         vehicleType = vehicleType.map { it.name },
         component = component,
         question = question,
@@ -143,8 +143,8 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
                 },
                 category = it.category ?: "",
                 subCategory = it.subCategory ?: "",
-                energySource = it.energySource?.map { source -> 
-                    EnergySource.valueOf(source.uppercase())
+                energySourceEnum = it.energySource?.map { source ->
+                    EnergySourceEnum.valueOf(source.uppercase())
                 } ?: emptyList(),
                 vehicleType = it.vehicleType?.map { type ->
                     VehicleType(

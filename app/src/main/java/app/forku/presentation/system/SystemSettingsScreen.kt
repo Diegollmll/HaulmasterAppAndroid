@@ -19,6 +19,8 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 
+import androidx.hilt.navigation.compose.hiltViewModel
+
 @Composable
 fun SystemSettingsScreen(
     navController: NavController,
@@ -62,6 +64,13 @@ fun SystemSettingsScreen(
                         title = "Time Zones",
                         subtitle = "Configure system time zones",
                         onClick = { navController.navigate(Screen.TimeZones.route) }
+                    )
+                    Divider()
+                    SettingsItem(
+                        icon = Icons.Default.EnergySavingsLeaf,
+                        title = "Energy Sources",
+                        subtitle = "Configure system energy sources",
+                        onClick = { navController.navigate(Screen.EnergySources.route) }
                     )                
                 }
             }
@@ -89,6 +98,13 @@ fun SystemSettingsScreen(
                         title = "Vehicle Types",
                         subtitle = "Manage vehicle types",
                         onClick = { navController.navigate(Screen.VehicleTypes.route) }
+                    )
+                    Divider()
+                    SettingsItem(
+                        icon = Icons.Default.Build,
+                        title = "Vehicle Components",
+                        subtitle = "Manage vehicle components",
+                        onClick = { navController.navigate(Screen.VehicleComponents.route) }
                     )
                 }
             }
@@ -125,13 +141,13 @@ fun SystemSettingsScreen(
                         subtitle = "Create and edit checklist questionary rules",
                         onClick = { navController.navigate(Screen.Questionaries.route) }
                     )
-                    Divider()
-                    SettingsItem(
-                        icon = Icons.Default.QuestionAnswer,
-                        title = "Questionary Items",
-                        subtitle = "Manage individual checklist questions",
-                        onClick = { navController.navigate(Screen.QuestionaryItems.route) }
-                    )
+//                    Divider()
+//                    SettingsItem(
+//                        icon = Icons.Default.QuestionAnswer,
+//                        title = "Questionary Items",
+//                        subtitle = "Manage individual checklist questions",
+//                        onClick = { navController.navigate(Screen.QuestionaryItems.route) }
+//                    )
                 }
             }
 

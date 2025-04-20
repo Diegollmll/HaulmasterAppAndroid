@@ -19,7 +19,7 @@ data class Incident(
     // Nuevos campos consolidados de carga
     val isLoadCarried: Boolean = false,
     val loadBeingCarried: String = "",
-    val loadWeight: LoadWeight? = null, 
+    val loadWeight: LoadWeight? = null,
 
     val sessionId: String? = null,
     val status: IncidentStatus = IncidentStatus.REPORTED,
@@ -31,7 +31,7 @@ data class Incident(
     val locationDetails: String = "",
     val weather: String = "",
     val incidentTime: LocalTime? = null,
-    val severityLevel: IncidentSeverityLevel? = null,
+    val severityLevel: IncidentSeverityLevelEnum? = null,
     val preshiftCheckStatus: String = "",
     val typeSpecificFields: IncidentTypeFields? = null,
     val othersInvolved: List<String> = emptyList(),

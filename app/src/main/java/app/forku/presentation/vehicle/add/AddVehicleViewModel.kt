@@ -8,7 +8,7 @@ import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.vehicle.VehicleTypeRepository
 import app.forku.domain.repository.vehicle.VehicleCategoryRepository
 import app.forku.domain.model.vehicle.VehicleCategory
-import app.forku.domain.model.vehicle.EnergySource
+import app.forku.domain.model.vehicle.EnergySourceEnum
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,8 +31,8 @@ data class AddVehicleState(
     val currentUserRole: UserRole? = null,
     val vehicleCategories: List<VehicleCategory> = emptyList(),
     val selectedCategory: VehicleCategory? = null,
-    val energySources: List<EnergySource> = listOf(EnergySource.ELECTRIC, EnergySource.LPG, EnergySource.DIESEL),
-    val selectedEnergySource: EnergySource? = null
+    val energySourceEnums: List<EnergySourceEnum> = listOf(EnergySourceEnum.ELECTRIC, EnergySourceEnum.LPG, EnergySourceEnum.DIESEL),
+    val selectedEnergySourceEnum: EnergySourceEnum? = null
 )
 
 @HiltViewModel
@@ -125,8 +125,8 @@ class AddVehicleViewModel @Inject constructor(
         }
     }
 
-    fun selectEnergySource(energySource: EnergySource) {
-        _state.update { it.copy(selectedEnergySource = energySource) }
+    fun selectEnergySource(energySourceEnum: EnergySourceEnum) {
+        _state.update { it.copy(selectedEnergySourceEnum = energySourceEnum) }
     }
 
     fun selectVehicleType(type: VehicleType) {
@@ -175,7 +175,7 @@ class AddVehicleViewModel @Inject constructor(
                 }
 
                 // Check if energy source is selected
-                val energySource = _state.value.selectedEnergySource ?: run {
+                val energySource = _state.value.selectedEnergySourceEnum ?: run {
                     _state.update { it.copy(
                         isLoading = false,
                         error = "Please select an energy source"

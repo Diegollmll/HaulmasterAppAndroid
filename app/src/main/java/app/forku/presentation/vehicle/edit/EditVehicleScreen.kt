@@ -324,7 +324,7 @@ fun EditVehicleScreen(
                             onExpandedChange = { energySourceExpanded = it }
                         ) {
                             OutlinedTextField(
-                                value = state.selectedEnergySource?.name ?: "",
+                                value = state.selectedEnergySourceEnum?.name ?: "",
                                 onValueChange = { },
                                 readOnly = true,
                                 label = { Text("Energy Source") },
@@ -335,7 +335,7 @@ fun EditVehicleScreen(
                                 expanded = energySourceExpanded,
                                 onDismissRequest = { energySourceExpanded = false }
                             ) {
-                                state.energySources.forEach { source ->
+                                state.energySourceEnums.forEach { source ->
                                     DropdownMenuItem(
                                         text = { Text(source.name) },
                                         onClick = {

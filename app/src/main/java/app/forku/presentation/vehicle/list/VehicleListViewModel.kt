@@ -73,16 +73,8 @@ class VehicleListViewModel @Inject constructor(
                             return@launch
                         }
                     }
-                    null -> {
-                        _state.value = _state.value.copy(
-                            error = "User not authenticated",
-                            isLoading = false,
-                            isRefreshing = false
-                        )
-                        return@launch
-                    }
-                    else -> {
-                        // Other users can only see vehicles from their business
+                    UserRole.ADMIN, UserRole.OPERATOR -> {
+                        // ADMIN and OPERATOR can only see vehicles from their business
                         val businessId = currentUser.businessId
                         if (businessId == null) {
                             _state.value = _state.value.copy(
@@ -92,7 +84,28 @@ class VehicleListViewModel @Inject constructor(
                             )
                             return@launch
                         }
-                        vehicleRepository.getVehicles(businessId)
+                        try {
+                            vehicleRepository.getVehicles(businessId)
+                        } catch (e: Exception) {
+                            _state.value = _state.value.copy(
+                                error = "Error loading vehicles: ${e.message}",
+                                isLoading = false,
+                                isRefreshing = false
+                            )
+                            return@launch
+                        }
+                    }
+                    null -> {
+                        _state.value = _state.value.copy(
+                            error = "User not authenticated",
+                            isLoading = false,
+                            isRefreshing = false
+                        )
+                        return@launch
+                    }
+                    else -> {
+                        // For any other role, return empty list
+                        emptyList()
                     }
                 }
                 

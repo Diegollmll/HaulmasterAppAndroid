@@ -337,8 +337,16 @@ class BusinessManagementViewModel @Inject constructor(
                 val business = businessRepository.getBusinessById(businessId)
                 Log.d("BusinessManagement", "Current business state - Name: ${business.name}, Status: ${business.status}, CurrentSuperAdmin: ${business.superAdminId}")
                 
-                // Attempt to transfer business
-                businessRepository.transferBusinessToSuperAdmin(businessId, superAdminId)
+                if (superAdminId.isEmpty()) {
+                    // Remove the SuperAdmin assignment - set to empty string instead of null
+                    Log.d("BusinessManagement", "Removing SuperAdmin from business $businessId")
+                    // Create an updated business with empty string for superAdminId (not null)
+                    val updatedBusiness = business.copy(superAdminId = "")
+                    businessRepository.updateBusiness(updatedBusiness)
+                } else {
+                    // Assign a new SuperAdmin
+                    businessRepository.transferBusinessToSuperAdmin(businessId, superAdminId)
+                }
                 
                 // Reload businesses to reflect changes
                 loadBusinesses()
@@ -348,12 +356,12 @@ class BusinessManagementViewModel @Inject constructor(
                     error = null
                 ) }
                 
-                Log.d("BusinessManagement", "Successfully assigned SuperAdmin to business")
+                Log.d("BusinessManagement", "Successfully updated SuperAdmin assignment")
             } catch (e: Exception) {
-                Log.e("BusinessManagement", "Error assigning SuperAdmin", e)
+                Log.e("BusinessManagement", "Error updating SuperAdmin assignment", e)
                 _state.update { it.copy(
                     isLoading = false,
-                    error = "Failed to assign SuperAdmin: ${e.message}"
+                    error = "Failed to update SuperAdmin assignment: ${e.message}"
                 ) }
             }
         }

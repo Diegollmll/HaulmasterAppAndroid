@@ -4,8 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.user.UserRole
-import app.forku.domain.model.vehicle.EnergySource
-import app.forku.domain.model.vehicle.Vehicle
+import app.forku.domain.model.vehicle.EnergySourceEnum
 import app.forku.domain.model.vehicle.VehicleCategory
 import app.forku.domain.model.vehicle.VehicleType
 import app.forku.domain.repository.business.BusinessRepository
@@ -88,7 +87,7 @@ class EditVehicleViewModel @Inject constructor(
                         initialVehicle = vehicle,
                         selectedCategory = currentState.vehicleCategories.find { it.id == vehicle.type.categoryId },
                         selectedType = vehicle.type,
-                        selectedEnergySource = EnergySource.valueOf(vehicle.energyType.uppercase()),
+                        selectedEnergySourceEnum = EnergySourceEnum.valueOf(vehicle.energyType.uppercase()),
                         selectedBusinessId = vehicle.businessId, // Store the actual businessId from the vehicle
                         loadSuccess = true,
                         isLoading = false
@@ -185,8 +184,8 @@ class EditVehicleViewModel @Inject constructor(
         _state.update { it.copy(selectedType = type) }
     }
 
-    fun selectEnergySource(energySource: EnergySource) {
-        _state.update { it.copy(selectedEnergySource = energySource) }
+    fun selectEnergySource(energySourceEnum: EnergySourceEnum) {
+        _state.update { it.copy(selectedEnergySourceEnum = energySourceEnum) }
     }
 
     fun selectBusiness(businessId: String?) {
@@ -221,7 +220,7 @@ class EditVehicleViewModel @Inject constructor(
             _state.update { it.copy(error = "Vehicle data is missing. Cannot save.") }
             return
         }
-        if (currentState.selectedCategory == null || currentState.selectedType == null || currentState.selectedEnergySource == null) {
+        if (currentState.selectedCategory == null || currentState.selectedType == null || currentState.selectedEnergySourceEnum == null) {
             _state.update { it.copy(error = "Category, Type, and Energy Source must be selected.") }
             return
         }
@@ -265,7 +264,7 @@ class EditVehicleViewModel @Inject constructor(
                     nextService = nextService,
                     type = currentState.selectedType, // Use selected type from state
                     categoryId = currentState.selectedCategory.id, // Update category ID based on selection
-                    energyType = currentState.selectedEnergySource.name.uppercase(), // Use selected energy source
+                    energyType = currentState.selectedEnergySourceEnum.name.uppercase(), // Use selected energy source
                     businessId = effectiveBusinessId // Use explicitly determined business ID
                 )
 

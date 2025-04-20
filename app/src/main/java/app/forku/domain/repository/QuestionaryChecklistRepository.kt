@@ -1,6 +1,6 @@
 package app.forku.domain.repository
 
-import app.forku.data.model.QuestionaryChecklistDto
+import app.forku.data.api.dto.QuestionaryChecklistDto
 
 interface QuestionaryChecklistRepository {
     suspend fun getAllQuestionaries(): List<QuestionaryChecklistDto>

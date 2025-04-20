@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.data.model.QuestionaryChecklistItemSubcategoryDto
+import app.forku.data.api.dto.QuestionaryChecklistItemSubcategoryDto
 import app.forku.domain.repository.QuestionaryChecklistItemSubcategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

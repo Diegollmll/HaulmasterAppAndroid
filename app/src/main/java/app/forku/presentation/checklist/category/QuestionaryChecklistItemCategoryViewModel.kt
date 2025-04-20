@@ -3,7 +3,7 @@ package app.forku.presentation.checklist.category
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.data.model.QuestionaryChecklistItemCategoryDto
+import app.forku.data.api.dto.QuestionaryChecklistItemCategoryDto
 import app.forku.domain.repository.QuestionaryChecklistItemCategoryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -1,6 +1,6 @@
 package app.forku.data.mapper
 
-import app.forku.data.model.VehicleSessionDto
+import app.forku.data.api.dto.VehicleSessionDto
 import app.forku.data.api.dto.session.SessionDto
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.session.VehicleSessionStatus

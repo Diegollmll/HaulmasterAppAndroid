@@ -152,7 +152,8 @@ fun BusinessManagementScreen(
                                         viewModel.updateBusinessStatus(b, newStatus)
                                     },
                                     onAssignUsers = { b -> viewModel.showAssignUsersDialog(b) },
-                                    currentUser = currentUser.value
+                                    currentUser = currentUser.value,
+                                    navController = navController
                                 )
                             }
                         }
@@ -259,6 +260,7 @@ private fun BusinessCard(
     onStatusChange: (Business, BusinessStatus) -> Unit = { _, _ -> },
     onAssignUsers: (Business) -> Unit = { },
     currentUser: User? = null,
+    navController: NavController,
     viewModel: BusinessManagementViewModel = hiltViewModel()
 ) {
     var showStatusMenu by remember { mutableStateOf(false) }
@@ -490,6 +492,21 @@ private fun BusinessCard(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
+
+                    // Add Sites Management Button
+                    IconButton(
+                        onClick = { 
+                            navController.navigate("sites/${business.id}") 
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Manage Sites",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -696,47 +713,86 @@ private fun AssignSuperAdminDialog(
     viewModel: BusinessManagementViewModel = hiltViewModel()
 ) {
     val superAdmins by viewModel.availableSuperAdmins.collectAsState()
+    val businessSuperAdmins by viewModel.businessSuperAdmins.collectAsState()
+    val currentSuperAdmin = businessSuperAdmins[business.id]
     
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Assign SuperAdmin to ${business.name}") },
         text = {
-            if (superAdmins.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
+            Column {
+                // "None" option to explicitly deassign SuperAdmin
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onAssign("") }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    RadioButton(
+                        selected = currentSuperAdmin == null,
+                        onClick = { onAssign("") }
+                    )
                     Text(
-                        text = "No SuperAdmins available",
+                        text = "None (No SuperAdmin)",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
-            } else {
-                LazyColumn {
-                    items(superAdmins) { superAdmin ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onAssign(superAdmin.id) }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
+                
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                if (currentSuperAdmin != null) {
+                    Text(
+                        text = "Current SuperAdmin:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                
+                if (superAdmins.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No SuperAdmins available",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    LazyColumn {
+                        items(superAdmins) { superAdmin ->
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 8.dp)
+                                    .fillMaxWidth()
+                                    .clickable { onAssign(superAdmin.id) }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "${superAdmin.firstName} ${superAdmin.lastName}",
-                                    style = MaterialTheme.typography.bodyLarge
+                                RadioButton(
+                                    selected = currentSuperAdmin != null && superAdmin.id == currentSuperAdmin.id,
+                                    onClick = { onAssign(superAdmin.id) }
                                 )
-                                Text(
-                                    text = superAdmin.email,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "${superAdmin.firstName} ${superAdmin.lastName}",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = superAdmin.email,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }

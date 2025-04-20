@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.user.UserRepository
+import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.usecase.user.GetCurrentUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class UserManagementViewModel @Inject constructor(
     private val userRepository: UserRepository,
+    private val businessRepository: BusinessRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
@@ -50,8 +52,86 @@ class UserManagementViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true, error = null) }
                 
-                val users = userRepository.getAllUsers()
-                Log.d("UserManagement", "Loaded ${users.size} users")
+                val currentUser = getCurrentUserUseCase.invoke()
+                Log.d("UserManagement", """
+                    |=== Starting User Load ===
+                    |Current User: 
+                    |- ID: ${currentUser?.id}
+                    |- Role: ${currentUser?.role}
+                    |- BusinessId: ${currentUser?.businessId}
+                    |=====================
+                """.trimMargin())
+                
+                val users = when (currentUser?.role) {
+                    UserRole.SYSTEM_OWNER -> {
+                        Log.d("UserManagement", "Loading all users for SYSTEM_OWNER")
+                        userRepository.getAllUsers()
+                    }
+                    UserRole.SUPERADMIN -> {
+                        Log.d("UserManagement", "=== Loading users for SUPERADMIN ===")
+                        
+                        try {
+                            // Get all businesses first
+                            val allBusinesses = businessRepository.getAllBusinesses()
+                            Log.d("UserManagement", "All businesses loaded: ${allBusinesses.size}")
+                            
+                            // Filter businesses for this SuperAdmin
+                            val superAdminBusinesses = allBusinesses.filter { it.superAdminId == currentUser.id }
+                            Log.d("UserManagement", """
+                                |SuperAdmin Businesses:
+                                |${superAdminBusinesses.joinToString("\n") { business ->
+                                    "- ${business.name} (ID: ${business.id}, SuperAdminId: ${business.superAdminId})"
+                                }}
+                                |=====================
+                            """.trimMargin())
+                            
+                            val businessIds = superAdminBusinesses.map { it.id }.toSet()
+                            Log.d("UserManagement", "Business IDs: $businessIds")
+
+                            // Get all users and filter by business
+                            val allUsers = userRepository.getAllUsers()
+                            Log.d("UserManagement", "Total users before filtering: ${allUsers.size}")
+
+                            val filteredUsers = allUsers.filter { user ->
+                                val belongsToBusiness = user.businessId in businessIds
+                                val hasValidRole = user.role == UserRole.ADMIN || user.role == UserRole.OPERATOR
+                                
+                                Log.d("UserManagement", """
+                                    |User Check:
+                                    |- Name: ${user.firstName} ${user.lastName}
+                                    |- Email: ${user.email}
+                                    |- BusinessId: ${user.businessId}
+                                    |- Role: ${user.role}
+                                    |- Belongs to Business: $belongsToBusiness
+                                    |- Has Valid Role: $hasValidRole
+                                    |- Will Include: ${belongsToBusiness && hasValidRole}
+                                """.trimMargin())
+                                
+                                belongsToBusiness && hasValidRole
+                            }
+
+                            Log.d("UserManagement", """
+                                |=== Filtered Users ===
+                                |Total: ${filteredUsers.size}
+                                |Users:
+                                |${filteredUsers.joinToString("\n") { user ->
+                                    "- ${user.firstName} ${user.lastName} (${user.email})"
+                                }}
+                                |=====================
+                            """.trimMargin())
+
+                            filteredUsers
+                        } catch (e: Exception) {
+                            Log.e("UserManagement", "Error loading SuperAdmin users", e)
+                            e.printStackTrace()
+                            emptyList()
+                        }
+                    }
+                    else -> {
+                        Log.e("UserManagement", "Unauthorized role: ${currentUser?.role}")
+                        emptyList()
+                    }
+                }
                 
                 // Calculate role distribution
                 val roleDistribution = users.groupBy { it.role }
@@ -66,12 +146,21 @@ class UserManagementViewModel @Inject constructor(
                         users = users,
                         totalUsers = users.size,
                         roleDistribution = roleDistribution,
-                        pendingApprovals = pendingApprovals
+                        pendingApprovals = pendingApprovals,
+                        error = null
                     )
                 }
-                Log.d("UserManagement", "State updated with users data")
+                
+                Log.d("UserManagement", """
+                    |=== Final State Update ===
+                    |Total Users: ${users.size}
+                    |Role Distribution: $roleDistribution
+                    |Pending Approvals: $pendingApprovals
+                    |=====================
+                """.trimMargin())
             } catch (e: Exception) {
                 Log.e("UserManagement", "Error loading users", e)
+                e.printStackTrace()
                 _state.update { 
                     it.copy(
                         isLoading = false,
@@ -212,7 +301,18 @@ class UserManagementViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true) }
                 
+                val currentUser = getCurrentUserUseCase.invoke()
                 Log.d("UserManagement", "Attempting to register new user: $firstName $lastName with role $role")
+                
+                // Get the business ID for the new user
+                val businessId = when (currentUser?.role) {
+                    UserRole.SUPERADMIN -> {
+                        // Get the first business owned by the SuperAdmin
+                        val businesses = businessRepository.getBusinessesBySuperAdminId(currentUser.id)
+                        businesses.firstOrNull()?.id
+                    }
+                    else -> null
+                }
                 
                 val result = userRepository.register(
                     firstName = firstName,
@@ -222,19 +322,15 @@ class UserManagementViewModel @Inject constructor(
                 )
                 
                 result.onSuccess { user ->
-                    // Update the user's role after successful registration
-                    userRepository.updateUserRole(user.id, role).onSuccess {
-                        Log.d("UserManagement", "User registered and role updated successfully")
-                        loadUsers() // Reload the users list
-                    }.onFailure { e ->
-                        Log.e("UserManagement", "Failed to update user role", e)
-                        _state.update { 
-                            it.copy(
-                                isLoading = false,
-                                error = "Failed to set user role: ${e.message}"
-                            )
-                        }
-                    }
+                    // Update the user's role and business ID after successful registration
+                    val updatedUser = user.copy(
+                        role = role,
+                        businessId = businessId
+                    )
+                    userRepository.updateUser(updatedUser)
+                    
+                    Log.d("UserManagement", "User registered and updated successfully with businessId: $businessId")
+                    loadUsers() // Reload the users list
                 }.onFailure { e ->
                     Log.e("UserManagement", "Failed to register user", e)
                     _state.update { 

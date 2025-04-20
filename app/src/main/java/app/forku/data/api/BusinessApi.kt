@@ -1,10 +1,9 @@
-package app.forku.data.remote.api
+package app.forku.data.api
 
 import app.forku.data.api.dto.user.UserDto
-import app.forku.data.remote.dto.BusinessDto
-import app.forku.data.remote.dto.BusinessStats
+import app.forku.data.api.dto.BusinessDto
+import app.forku.data.api.dto.BusinessStats
 
-import retrofit2.Response
 import retrofit2.http.*
 
 interface BusinessApi {

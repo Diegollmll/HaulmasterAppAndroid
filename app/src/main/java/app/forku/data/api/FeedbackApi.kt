@@ -1,6 +1,6 @@
 package app.forku.data.api
 
-import app.forku.data.dto.FeedbackDto
+import app.forku.data.api.dto.FeedbackDto
 import retrofit2.http.*
 
 interface FeedbackApi {

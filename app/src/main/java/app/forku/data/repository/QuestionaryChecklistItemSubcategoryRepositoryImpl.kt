@@ -1,7 +1,7 @@
 package app.forku.data.repository
 
 import app.forku.data.api.QuestionaryChecklistItemSubcategoryApi
-import app.forku.data.model.QuestionaryChecklistItemSubcategoryDto
+import app.forku.data.api.dto.QuestionaryChecklistItemSubcategoryDto
 import app.forku.domain.repository.QuestionaryChecklistItemSubcategoryRepository
 import android.util.Log
 import retrofit2.HttpException

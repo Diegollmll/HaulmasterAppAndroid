@@ -2,27 +2,19 @@ package app.forku.presentation.vehicle.add
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import app.forku.domain.model.vehicle.VehicleType
-import app.forku.domain.model.vehicle.EnergySource
 import app.forku.domain.model.user.UserRole
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun AddVehicleScreen(
@@ -268,7 +260,7 @@ fun AddVehicleScreen(
                         onExpandedChange = { energySourceExpanded = it }
                     ) {
                         OutlinedTextField(
-                            value = state.selectedEnergySource?.name ?: "",
+                            value = state.selectedEnergySourceEnum?.name ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Energy Source") },
@@ -280,7 +272,7 @@ fun AddVehicleScreen(
                             expanded = energySourceExpanded,
                             onDismissRequest = { energySourceExpanded = false }
                         ) {
-                            state.energySources.forEach { source ->
+                            state.energySourceEnums.forEach { source ->
                                 DropdownMenuItem(
                                     onClick = {
                                         viewModel.selectEnergySource(source)
@@ -333,7 +325,7 @@ fun AddVehicleScreen(
                                 serialNumber.isNotBlank() &&
                                 state.selectedType != null &&
                                 state.selectedCategory != null &&
-                                state.selectedEnergySource != null &&
+                                state.selectedEnergySourceEnum != null &&
                                 (state.currentUserRole !in setOf(UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN) || 
                                  state.currentUserRole in setOf(UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN))
                     ) {

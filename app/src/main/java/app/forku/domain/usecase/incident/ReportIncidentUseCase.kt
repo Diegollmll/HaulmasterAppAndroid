@@ -9,7 +9,7 @@ import javax.inject.Inject
 import android.net.Uri
 import app.forku.domain.model.incident.IncidentStatus
 import app.forku.domain.model.vehicle.VehicleType
-import app.forku.domain.model.incident.IncidentSeverityLevel
+import app.forku.domain.model.incident.IncidentSeverityLevelEnum
 import app.forku.domain.model.incident.IncidentTypeFields
 import java.time.LocalTime
 import app.forku.domain.model.incident.LoadWeight
@@ -27,7 +27,7 @@ class ReportIncidentUseCase @Inject constructor(
         weather: String,
         description: String,
         incidentTime: LocalTime?,
-        severityLevel: IncidentSeverityLevel?,
+        severityLevel: IncidentSeverityLevelEnum?,
         preshiftCheckStatus: String,
         typeSpecificFields: IncidentTypeFields?,
         sessionId: String?,

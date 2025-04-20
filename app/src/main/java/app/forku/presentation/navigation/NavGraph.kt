@@ -71,6 +71,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import app.forku.presentation.checklist.questionary.QuestionaryChecklistViewModel
+import app.forku.presentation.checklist.questionary.QuestionarySelectionScreen
+import app.forku.presentation.system.EnergySourcesScreen
+import app.forku.presentation.sites.SitesScreen
+import app.forku.presentation.vehicle.component.VehicleComponentsScreen
 
 
 @Composable
@@ -562,6 +567,22 @@ fun NavGraph(
             )
         }
 
+        composable(Screen.EnergySources.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                EnergySourcesScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
         composable(Screen.SystemBackup.route) {
             // TODO: Implement SystemBackupScreen
         }
@@ -602,6 +623,22 @@ fun NavGraph(
             
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 VehicleTypeScreen(
+                    navController = navController,
+                    networkManager = networkManager
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
+
+        composable(Screen.VehicleComponents.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+                VehicleComponentsScreen(
                     navController = navController,
                     networkManager = networkManager
                 )
@@ -724,7 +761,8 @@ fun NavGraph(
             val questionaryId = backStackEntry.arguments?.getString("questionaryId")
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
             val currentUser by dashboardViewModel.currentUser.collectAsState()
-            
+            val questionaryChecklistViewModel: QuestionaryChecklistViewModel = hiltViewModel()
+
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 if (questionaryId != null) {
                     QuestionaryChecklistItemScreen(
@@ -733,13 +771,10 @@ fun NavGraph(
                         checklistId = questionaryId
                     )
                 } else {
-                    // No questionary ID provided, show a message
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Please select a questionary first to manage its items")
-                    }
+                    QuestionarySelectionScreen(
+                        navController = navController,
+                        viewModel = questionaryChecklistViewModel
+                    )
                 }
             } else {
                 LaunchedEffect(Unit) {
@@ -748,6 +783,30 @@ fun NavGraph(
             }
         }
 
+        // Add Sites Management Route
+        composable(
+            route = Screen.Sites.route,
+            arguments = listOf(
+                navArgument("businessId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val businessId = backStackEntry.arguments?.getString("businessId") ?: return@composable
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER || 
+                (currentUser?.role == UserRole.SUPERADMIN && currentUser?.id == businessId)) {
+                SitesScreen(
+                    navController = navController,
+                    networkManager = networkManager,
+                    businessId = businessId
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigateUp()
+                }
+            }
+        }
     }
 }
 

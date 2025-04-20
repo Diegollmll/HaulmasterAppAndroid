@@ -1,6 +1,4 @@
-package app.forku.data.model
-
-import com.google.gson.annotations.SerializedName
+package app.forku.data.api.dto
 
 data class VehicleSessionDto(
     val id: String,

@@ -1,7 +1,7 @@
 package app.forku.data.api
 
 import app.forku.data.api.dto.session.StartSessionRequestDto
-import app.forku.data.model.VehicleSessionDto
+import app.forku.data.api.dto.VehicleSessionDto
 import retrofit2.Response
 import retrofit2.http.*
 

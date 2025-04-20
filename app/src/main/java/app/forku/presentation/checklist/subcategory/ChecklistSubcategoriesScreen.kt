@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.core.network.NetworkConnectivityManager
-import app.forku.data.model.QuestionaryChecklistItemCategoryDto
+import app.forku.data.api.dto.QuestionaryChecklistItemCategoryDto
 import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategoryViewModel
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen

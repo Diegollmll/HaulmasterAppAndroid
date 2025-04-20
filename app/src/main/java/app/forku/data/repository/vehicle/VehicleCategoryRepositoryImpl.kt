@@ -1,15 +1,12 @@
 package app.forku.data.repository.vehicle
 
 import android.util.Log
-import app.forku.data.remote.api.CreateVehicleCategoryRequest
-import app.forku.data.remote.api.UpdateVehicleCategoryRequest
-import app.forku.data.remote.api.VehicleCategoryApi
-import app.forku.data.remote.dto.VehicleCategoryDto
-import app.forku.data.remote.dto.toDomain
-import app.forku.data.remote.dto.toDto
+import app.forku.data.api.CreateVehicleCategoryRequest
+import app.forku.data.api.UpdateVehicleCategoryRequest
+import app.forku.data.api.VehicleCategoryApi
+import app.forku.data.api.dto.toDomain
 import app.forku.domain.model.vehicle.VehicleCategory
 import app.forku.domain.repository.vehicle.VehicleCategoryRepository
-import retrofit2.Response
 import javax.inject.Inject
 import javax.inject.Singleton
 

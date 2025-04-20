@@ -25,16 +25,22 @@ import javax.inject.Singleton
 import java.util.concurrent.TimeUnit
 import android.content.Context
 import app.forku.core.network.NetworkConnectivityManager
+import app.forku.data.api.BusinessApi
 import javax.inject.Named
 import app.forku.data.api.IncidentApi
 import app.forku.data.api.ChecklistApi
 import app.forku.data.api.SessionApi
 import app.forku.data.api.NotificationApi
-import app.forku.data.remote.api.BusinessApi
+
 import app.forku.data.api.CountryApi
 import app.forku.data.api.StateApi
-import app.forku.data.remote.api.VehicleCategoryApi
+
 import app.forku.data.api.VehicleTypeApi
+import app.forku.data.api.EnergySourceApi
+import app.forku.data.api.SiteApi
+import app.forku.data.api.VehicleCategoryApi
+import app.forku.data.api.VehicleComponentApi
+
 //import app.forku.data.api.CicoHistoryApi
 
 
@@ -51,7 +57,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideVehicleCategoryApi(retrofit: Retrofit): VehicleCategoryApi = 
+    fun provideVehicleCategoryApi(retrofit: Retrofit): VehicleCategoryApi =
         retrofit.create(VehicleCategoryApi::class.java)
 
     @Provides
@@ -107,10 +113,27 @@ object NetworkModule {
     fun provideStateApi(retrofit: Retrofit): StateApi =
         retrofit.create(StateApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideEnergySourceApi(retrofit: Retrofit): EnergySourceApi =
+        retrofit.create(EnergySourceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSiteApi(retrofit: Retrofit): SiteApi {
+        return retrofit.create(SiteApi::class.java)
+    }
+
 //    @Provides
 //    @Singleton
 //    fun provideCicoHistoryApi(retrofit: Retrofit): CicoHistoryApi =
 //        retrofit.create(CicoHistoryApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleComponentApi(retrofit: Retrofit): VehicleComponentApi {
+        return retrofit.create(VehicleComponentApi::class.java)
+    }
 
     @Provides
     @Singleton

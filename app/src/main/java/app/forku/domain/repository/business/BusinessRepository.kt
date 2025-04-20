@@ -1,6 +1,6 @@
 package app.forku.domain.repository.business
 
-import app.forku.data.remote.dto.BusinessStats
+import app.forku.data.api.dto.BusinessStats
 import app.forku.presentation.dashboard.Business
 
 interface BusinessRepository {

@@ -243,7 +243,7 @@ enum class EnvironmentalImpact {
     }
 }
 
-enum class IncidentSeverityLevel {
+enum class IncidentSeverityLevelEnum {
     LOW,
     MEDIUM,
     HIGH,

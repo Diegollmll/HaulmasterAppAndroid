@@ -1,6 +1,6 @@
 package app.forku.di
 
-import app.forku.data.remote.api.BusinessApi
+import app.forku.data.api.BusinessApi
 import app.forku.data.repository.business.BusinessRepositoryImpl
 import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.repository.user.UserRepository
@@ -18,7 +18,7 @@ object BusinessModule {
     @Provides
     @Singleton
     fun provideBusinessRepository(
-        api: BusinessApi, 
+        api: BusinessApi,
         gson: Gson,
         userRepository: UserRepository
     ): BusinessRepository {

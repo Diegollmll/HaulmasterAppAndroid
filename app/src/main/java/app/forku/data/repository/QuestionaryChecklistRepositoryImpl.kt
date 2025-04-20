@@ -2,7 +2,8 @@ package app.forku.data.repository
 
 import android.util.Log
 import app.forku.data.api.QuestionaryChecklistApi
-import app.forku.data.model.QuestionaryChecklistDto
+import app.forku.data.api.dto.QuestionaryChecklistDto
+import app.forku.data.api.dto.QuestionaryChecklistMetadataDto
 import app.forku.domain.repository.QuestionaryChecklistRepository
 import java.io.IOException
 import javax.inject.Inject
@@ -43,8 +44,24 @@ class QuestionaryChecklistRepositoryImpl @Inject constructor(
             Log.d(TAG, "GET questionary by id: $id - ${response.raw().request.url}")
             
             if (response.isSuccessful) {
+                val questionary = response.body() ?: throw IOException("Questionary response body was null")
                 Log.d(TAG, "GET questionary by id: $id - Success")
-                return response.body() ?: throw IOException("Questionary response body was null")
+                
+                // Update the metadata.totalQuestions with the real count of items if available
+                if (questionary.items.isNotEmpty()) {
+                    Log.d(TAG, "Questionary has ${questionary.items.size} items, updating metadata.totalQuestions")
+                    val updatedMetadata = questionary.metadata?.copy(
+                        totalQuestions = questionary.items.size
+                    ) ?: QuestionaryChecklistMetadataDto(
+                        totalQuestions = questionary.items.size,
+                        rotationGroups = 4,
+                        criticalityLevels = listOf("CRITICAL", "STANDARD"),
+                        energySources = listOf("ALL", "ELECTRIC", "LPG", "DIESEL")
+                    )
+                    return questionary.copy(metadata = updatedMetadata)
+                }
+                
+                return questionary
             } else {
                 val errorMsg = when (response.code()) {
                     404 -> "Questionary not found (404) - No questionary with ID: $id"
@@ -83,13 +100,18 @@ class QuestionaryChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun updateQuestionary(id: String, questionary: QuestionaryChecklistDto): QuestionaryChecklistDto {
         try {
-            Log.d(TAG, "Updating questionary with id: $id, title: ${questionary.title}")
+            Log.d(TAG, "Updating questionary with id: $id")
+            Log.d(TAG, "Request body - Business ID: '${questionary.businessId}', Site ID: '${questionary.siteId}'")
+            
+            // Send the questionary as is, preserving empty strings
             val response = api.updateQuestionary(id, questionary)
             Log.d(TAG, "PUT update questionary - ${response.raw().request.url}")
+            Log.d(TAG, "Request body: ${response.raw().request.body}")
             
             if (response.isSuccessful) {
                 val updatedQuestionary = response.body() ?: throw IOException("Update questionary response body was null")
                 Log.d(TAG, "PUT update questionary - Success, ID: ${updatedQuestionary.id}")
+                Log.d(TAG, "Updated values - Business ID: '${updatedQuestionary.businessId}', Site ID: '${updatedQuestionary.siteId}'")
                 return updatedQuestionary
             } else {
                 val errorBody = response.errorBody()?.string() ?: "No error body"

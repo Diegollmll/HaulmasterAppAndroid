@@ -5,7 +5,7 @@ import app.forku.domain.model.incident.Incident
 import app.forku.domain.model.incident.IncidentStatus
 import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.model.vehicle.VehicleType
-import app.forku.domain.model.incident.IncidentSeverityLevel
+import app.forku.domain.model.incident.IncidentSeverityLevelEnum
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import android.net.Uri
@@ -24,10 +24,9 @@ fun Incident.toDto(): IncidentDto {
         status = status.name,
         photoUrls = photos.map { it.toString() },
         date = date,
-        location = location,
         locationDetails = locationDetails,
         weather = weather,
-        incidentTime = incidentTime?.format(DateTimeFormatter.ISO_TIME),
+        incidentDateTime = incidentTime?.format(DateTimeFormatter.ISO_TIME),
         severityLevel = severityLevel?.name,
         preshiftCheckStatus = preshiftCheckStatus,
         typeSpecificFields = typeSpecificFields?.toDto() ?: TypeSpecificFieldsDto(
@@ -60,11 +59,10 @@ fun IncidentDto.toDomain(): Incident {
         status = IncidentStatus.valueOf(status),
         photos = photoUrls.map { Uri.parse(it) },
         date = date,
-        location = location,
         locationDetails = locationDetails,
         weather = weather,
-        incidentTime = incidentTime?.let { LocalTime.parse(it) },
-        severityLevel = severityLevel?.let { IncidentSeverityLevel.valueOf(it) },
+        incidentTime = incidentDateTime?.let { LocalTime.parse(it) },
+        severityLevel = severityLevel?.let { IncidentSeverityLevelEnum.valueOf(it) },
         preshiftCheckStatus = preshiftCheckStatus,
         typeSpecificFields = typeSpecificFields.toDomain(),
         othersInvolved = othersInvolved,
