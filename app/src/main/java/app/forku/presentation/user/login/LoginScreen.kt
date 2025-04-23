@@ -12,20 +12,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.LoadingOverlay
-import app.forku.domain.model.user.User
-import app.forku.domain.model.user.UserRole
-import androidx.navigation.NavController
 import app.forku.presentation.navigation.Screen
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: (User) -> Unit,
+    onLoginSuccess: (String) -> Unit,
     networkManager: NetworkConnectivityManager,
     navController: NavController
 ) {
@@ -35,7 +31,7 @@ fun LoginScreen(
 
     LaunchedEffect(state) {
         if (state is LoginState.Success) {
-            onLoginSuccess((state as LoginState.Success).user)
+            onLoginSuccess((state as LoginState.Success).token)
         }
     }
 
@@ -103,8 +99,7 @@ fun LoginScreen(
                 ),
                 trailingIcon = {
                     TextButton(onClick = { /* TODO: Handle forgot password */ }) {
-                        /* TODO: Handle forgot password */
-                        //Text("Forgot?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Forgot?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             )

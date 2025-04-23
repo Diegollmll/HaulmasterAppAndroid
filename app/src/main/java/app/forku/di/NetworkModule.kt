@@ -40,6 +40,7 @@ import app.forku.data.api.EnergySourceApi
 import app.forku.data.api.SiteApi
 import app.forku.data.api.VehicleCategoryApi
 import app.forku.data.api.VehicleComponentApi
+import app.forku.data.api.interceptor.CsrfTokenInterceptor
 
 //import app.forku.data.api.CicoHistoryApi
 
@@ -137,27 +138,48 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(
-        okHttpClient: OkHttpClient,
-        @Named("baseUrl") baseUrl: String
-    ): Retrofit = Retrofit.Builder()
-        .baseUrl(baseUrl)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
+        return HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(
+        @ApplicationContext context: Context
+    ): AuthInterceptor {
+        return AuthInterceptor(context)
+    }
 
     @Provides
     @Singleton
     fun provideOkHttpClient(
-        @Named("apiKey") apiKey: String
-    ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("X-API-KEY", apiKey)
-                .build()
-            chain.proceed(request)
-        }
-        .build()
+        loggingInterceptor: HttpLoggingInterceptor,
+        authInterceptor: AuthInterceptor,
+        csrfTokenInterceptor: CsrfTokenInterceptor,
+        retryInterceptor: RetryInterceptor
+    ): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(csrfTokenInterceptor)
+            .addInterceptor(retryInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(Constants.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
 
     @Provides
     @Named("baseUrl")

@@ -2,12 +2,16 @@ package app.forku.data.datastore
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -19,9 +23,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class AuthDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val gson = Gson()
-
     private object PreferencesKeys {
+        val USER_KEY = stringPreferencesKey("user")
+        val TOKEN_KEY = stringPreferencesKey("auth_token")
         val USER_ID = stringPreferencesKey("userId")
         val TOKEN = stringPreferencesKey("token")
         val REFRESH_TOKEN = stringPreferencesKey("refreshToken")
@@ -31,8 +35,6 @@ class AuthDataStore @Inject constructor(
         val LAST_NAME = stringPreferencesKey("lastName")
         val PHOTO_URL = stringPreferencesKey("photoUrl")
         val ROLE = stringPreferencesKey("role")
-        val USER_KEY = stringPreferencesKey("user")
-        val TOKEN_KEY = stringPreferencesKey("token")
         val PASSWORD = stringPreferencesKey("password")
         val LAST_ACTIVE = stringPreferencesKey("lastActive")
         val IS_ONLINE = booleanPreferencesKey("isOnline")
@@ -41,36 +43,42 @@ class AuthDataStore @Inject constructor(
         val SYSTEM_OWNER_ID = stringPreferencesKey("systemOwnerId")
     }
 
-    @Volatile
     private var cachedToken: String? = null
     private var lastActiveTime: Long = 0
+    private val gson = Gson()
+
+    val token: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.TOKEN_KEY]
+        }
+
+    suspend fun initializeToken() {
+        android.util.Log.d("AuthDataStore", "Initializing token...")
+        cachedToken = context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.TOKEN_KEY]
+        }.first()
+        android.util.Log.d("AuthDataStore", "Token initialized: ${cachedToken?.take(10)}...")
+    }
 
     fun getToken(): String? {
         android.util.Log.d("AuthDataStore", "Getting cached token: $cachedToken")
         return cachedToken
     }
 
-    suspend fun updatePresence(isOnline: Boolean) {
+    suspend fun saveToken(token: String) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.IS_ONLINE] = isOnline
-            if (isOnline) {
-                val now = System.currentTimeMillis()
-                preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
-                lastActiveTime = now
-            }
+            preferences[PreferencesKeys.TOKEN_KEY] = token
         }
+        cachedToken = token
+        android.util.Log.d("AuthDataStore", "Saved token: ${token.take(10)}...")
     }
 
-    suspend fun setToken(token: String?) {
-        android.util.Log.d("AuthDataStore", "Setting token: ${token?.take(10)}...")
-        cachedToken = token
+    suspend fun clearToken() {
         context.dataStore.edit { preferences ->
-            if (token != null) {
-                preferences[PreferencesKeys.TOKEN_KEY] = token
-            } else {
-                preferences.remove(PreferencesKeys.TOKEN_KEY)
-            }
+            preferences.remove(PreferencesKeys.TOKEN_KEY)
         }
+        cachedToken = null
+        android.util.Log.d("AuthDataStore", "Cleared token")
     }
 
     suspend fun setCurrentUser(user: User) {
@@ -86,6 +94,7 @@ class AuthDataStore @Inject constructor(
         """.trimIndent())
         
         context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_KEY] = gson.toJson(user)
             preferences[PreferencesKeys.USER_ID] = user.id
             preferences[PreferencesKeys.TOKEN] = user.token
             preferences[PreferencesKeys.REFRESH_TOKEN] = user.refreshToken
@@ -95,7 +104,6 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.LAST_NAME] = user.lastName
             preferences[PreferencesKeys.PHOTO_URL] = user.photoUrl ?: ""
             preferences[PreferencesKeys.ROLE] = user.role.name
-            preferences[PreferencesKeys.TOKEN_KEY] = user.token
             preferences[PreferencesKeys.PASSWORD] = user.password
             preferences[PreferencesKeys.IS_ONLINE] = true
             user.businessId?.let { preferences[PreferencesKeys.BUSINESS_ID] = it }
@@ -110,99 +118,9 @@ class AuthDataStore @Inject constructor(
     }
 
     suspend fun getCurrentUser(): User? {
-        return try {
-            val preferences = context.dataStore.data.first()
-            
-            android.util.Log.d("AuthDataStore", """
-                Current preferences:
-                - USER_ID: ${preferences[PreferencesKeys.USER_ID]}
-                - EMAIL: ${preferences[PreferencesKeys.EMAIL]}
-                - USERNAME: ${preferences[PreferencesKeys.USERNAME]}
-                - FIRST_NAME: ${preferences[PreferencesKeys.FIRST_NAME]}
-                - LAST_NAME: ${preferences[PreferencesKeys.LAST_NAME]}
-                - ROLE: ${preferences[PreferencesKeys.ROLE]}
-                - IS_ONLINE: ${preferences[PreferencesKeys.IS_ONLINE]}
-                - LAST_ACTIVE: ${preferences[PreferencesKeys.LAST_ACTIVE]}
-                - BUSINESS_ID: ${preferences[PreferencesKeys.BUSINESS_ID]}
-                - SITE_ID: ${preferences[PreferencesKeys.SITE_ID]}
-                - SYSTEM_OWNER_ID: ${preferences[PreferencesKeys.SYSTEM_OWNER_ID]}
-            """.trimIndent())
-            
-            val userId = preferences[PreferencesKeys.USER_ID] ?: run {
-                android.util.Log.e("AuthDataStore", "No user ID found")
-                return null
-            }
-            val token = preferences[PreferencesKeys.TOKEN] ?: run {
-                android.util.Log.e("AuthDataStore", "No token found for user $userId")
-                return null
-            }
-            val refreshToken = preferences[PreferencesKeys.REFRESH_TOKEN] ?: run {
-                android.util.Log.e("AuthDataStore", "No refresh token found for user $userId")
-                return null
-            }
-            val email = preferences[PreferencesKeys.EMAIL] ?: run {
-                android.util.Log.e("AuthDataStore", "No email found for user $userId")
-                return null
-            }
-            val username = preferences[PreferencesKeys.USERNAME] ?: run {
-                android.util.Log.e("AuthDataStore", "No username found for user $userId")
-                return null
-            }
-            val firstName = preferences[PreferencesKeys.FIRST_NAME] ?: run {
-                android.util.Log.e("AuthDataStore", "No first name found for user $userId")
-                return null
-            }
-            val lastName = preferences[PreferencesKeys.LAST_NAME] ?: run {
-                android.util.Log.e("AuthDataStore", "No last name found for user $userId")
-                return null
-            }
-            val photoUrl = preferences[PreferencesKeys.PHOTO_URL]
-            val role = preferences[PreferencesKeys.ROLE]?.let { UserRole.fromString(it) } ?: run {
-                android.util.Log.e("AuthDataStore", "No role found for user $userId")
-                return null
-            }
-            val password = preferences[PreferencesKeys.PASSWORD] ?: ""
-            val businessId = preferences[PreferencesKeys.BUSINESS_ID]
-            val siteId = preferences[PreferencesKeys.SITE_ID]
-            val systemOwnerId = preferences[PreferencesKeys.SYSTEM_OWNER_ID]
-
-            val isOnline = preferences[PreferencesKeys.IS_ONLINE] ?: false
-            val lastActive = preferences[PreferencesKeys.LAST_ACTIVE]?.toLongOrNull() ?: 0L
-
-            User(
-                id = userId,
-                token = token,
-                refreshToken = refreshToken,
-                email = email,
-                username = username,
-                firstName = "$firstName",
-                lastName = "$lastName",
-                photoUrl = photoUrl?.takeIf { it.isNotEmpty() },
-                role = role,
-                certifications = emptyList(),
-                password = password,
-                isActive = isOnline,
-                lastLogin = lastActive.toString(),
-                businessId = businessId,
-                siteId = siteId,
-                systemOwnerId = systemOwnerId
-            ).also {
-                android.util.Log.d("AuthDataStore", """
-                    User retrieved successfully:
-                    - ID: ${it.id}
-                    - Name: ${it.fullName}
-                    - Token: ${it.token.take(10)}...
-                    - Role: ${it.role}
-                    - Business ID: ${it.businessId}
-                    - Site ID: ${it.siteId}
-                    - System Owner ID: ${it.systemOwnerId}
-                    - Online: $isOnline
-                    - Last Active: ${java.time.Instant.ofEpochMilli(lastActive)}
-                """.trimIndent())
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("AuthDataStore", "Error getting current user", e)
-            null
+        val preferences = context.dataStore.data.first()
+        return preferences[PreferencesKeys.USER_KEY]?.let { userJson ->
+            gson.fromJson(userJson, User::class.java)
         }
     }
 
@@ -216,10 +134,14 @@ class AuthDataStore @Inject constructor(
         lastActiveTime = 0
     }
 
-    suspend fun initializeToken() {
-        cachedToken = context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.TOKEN_KEY]
-        }.first()
-        android.util.Log.d("AuthDataStore", "Initialized token: ${cachedToken?.take(10)}...")
+    suspend fun updatePresence(isOnline: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.IS_ONLINE] = isOnline
+            if (isOnline) {
+                val now = System.currentTimeMillis()
+                preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
+                lastActiveTime = now
+            }
+        }
     }
 } 

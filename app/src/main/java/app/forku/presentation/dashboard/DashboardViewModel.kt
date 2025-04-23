@@ -46,7 +46,7 @@ class DashboardViewModel @Inject constructor(
     private val _tourCompleted = MutableStateFlow(false)
     val tourCompleted: StateFlow<Boolean> = _tourCompleted.asStateFlow()
 
-    private val _loginState = MutableStateFlow<LoginState>(LoginState.Initial)
+    private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState.asStateFlow()
 
     private val _hasToken = MutableStateFlow(false)
@@ -82,11 +82,11 @@ class DashboardViewModel @Inject constructor(
     
     private fun checkLoginState() {
         viewModelScope.launch {
-            val currentUser = getCurrentUser()
-            _loginState.value = if (currentUser != null) {
-                LoginState.Success(user = currentUser)
+            val token = userRepository.getAuthToken()
+            _loginState.value = if (!token.isNullOrEmpty()) {
+                LoginState.Success(token)
             } else {
-                LoginState.Initial
+                LoginState.Idle
             }
         }
     }

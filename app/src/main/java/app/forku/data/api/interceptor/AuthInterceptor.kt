@@ -1,24 +1,22 @@
 package app.forku.data.api.interceptor
 
-import app.forku.data.datastore.AuthDataStore
+import android.content.Context
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class AuthInterceptor @Inject constructor(
-    private val authDataStore: AuthDataStore
+    private val context: Context
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val request = chain.request()
-        val token = authDataStore.getToken()
-
-        return if (token != null) {
-            val authenticatedRequest = request.newBuilder()
-                .header("Authorization", "Bearer $token")
-                .build()
-            chain.proceed(authenticatedRequest)
-        } else {
-            chain.proceed(request)
-        }
+        val request = chain.request().newBuilder()
+            .addHeader("Accept", "application/json")
+            .addHeader("Content-Type", "application/json")
+            // Add any other default headers here
+            .build()
+        
+        return chain.proceed(request)
     }
 } 

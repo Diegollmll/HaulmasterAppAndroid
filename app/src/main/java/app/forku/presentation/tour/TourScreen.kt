@@ -43,7 +43,53 @@ fun TourScreen(
     ) { padding ->
         val state by viewModel.state.collectAsState()
         val scope = rememberCoroutineScope()
+
+        LaunchedEffect(Unit) {
+            viewModel.onEvent(TourEvent.InitializeCsrfToken)
+        }
         
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text(
+                        text = "Initializing...",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+            return@BaseScreen
+        }
+
+        if (state.error != null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = state.error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Button(onClick = { viewModel.onEvent(TourEvent.InitializeCsrfToken) }) {
+                        Text("Retry")
+                    }
+                }
+            }
+            return@BaseScreen
+        }
+
         val pages = listOf(
             TourPage(
                 "Driver safety and team compliance on any device.",
@@ -110,9 +156,9 @@ fun TourScreen(
                 }
             }
 
-            // Buttons - only show when on the last page
+            // Buttons - only show when on the last page and CSRF token is initialized
             AnimatedVisibility(
-                visible = pagerState.currentPage == pages.size - 1,
+                visible = pagerState.currentPage == pages.size - 1 && state.isCsrfTokenInitialized,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {

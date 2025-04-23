@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.local.TourPreferences
+import app.forku.data.service.GOServicesManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +15,35 @@ import javax.inject.Inject
 @HiltViewModel
 class TourViewModel @Inject constructor(
     private val authDataStore: AuthDataStore,
-    private val tourPreferences: TourPreferences
+    private val tourPreferences: TourPreferences,
+    private val goServicesManager: GOServicesManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TourState())
     val state: StateFlow<TourState> = _state.asStateFlow()
+
+    init {
+        initializeCsrfToken()
+    }
+
+    private fun initializeCsrfToken() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
+            goServicesManager.getOrRefreshCsrfToken()
+                .onSuccess {
+                    _state.value = _state.value.copy(
+                        isCsrfTokenInitialized = true,
+                        isLoading = false
+                    )
+                }
+                .onFailure { error ->
+                    _state.value = _state.value.copy(
+                        error = error.message ?: "Failed to initialize CSRF token",
+                        isLoading = false
+                    )
+                }
+        }
+    }
 
     fun onEvent(event: TourEvent) {
         when (event) {
@@ -50,6 +75,9 @@ class TourViewModel @Inject constructor(
                 viewModelScope.launch {
                     tourPreferences.setTourCompleted()
                 }
+            }
+            is TourEvent.InitializeCsrfToken -> {
+                initializeCsrfToken()
             }
         }
     }

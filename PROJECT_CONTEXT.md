@@ -331,6 +331,12 @@ Sorting parameters:
 - POST `/business` - Create new business
 - PUT `/business/{id}` - Update business
 - DELETE `/business/{id}` - Delete business
+- GET `/business/system-owner/{systemOwnerId}` - Get businesses by system owner ID
+- GET `/business/super-admin/{superAdminId}` - Get businesses by super admin ID
+- PUT `/business/{businessId}/transfer` - Transfer business to a new super admin
+- GET `/business/stats/system-owner/{systemOwnerId}` - Get business statistics for a system owner
+- GET `/business/stats/super-admin/{superAdminId}` - Get business statistics for a super admin
+- GET `/business/{businessId}/vehicles` - Get all vehicles for a business
 
 #### Users
 - GET `/user` - Get all users (supports filtering)
@@ -338,6 +344,10 @@ Sorting parameters:
 - POST `/user` - Create new user
 - PUT `/user/{id}` - Update user
 - DELETE `/user/{id}` - Delete user
+
+#### GO Platform Integration
+- GET `/dataset/api/goservices/csrf-token` - Get CSRF token for GO Services API
+- POST `/api/gosecurityprovider/authenticate` - Authenticate with the GO Security Provider
 
 ### Error Handling
 - All API calls should handle 404 "Not found" responses by returning empty lists/null objects
