@@ -4,7 +4,8 @@ import android.util.Log
 import app.forku.data.api.CreateVehicleCategoryRequest
 import app.forku.data.api.UpdateVehicleCategoryRequest
 import app.forku.data.api.VehicleCategoryApi
-import app.forku.data.api.dto.toDomain
+import app.forku.data.api.dto.vehicle.toDomain
+import app.forku.data.api.dto.vehicle.VehicleCategoryDto
 import app.forku.domain.model.vehicle.VehicleCategory
 import app.forku.domain.repository.vehicle.VehicleCategoryRepository
 import javax.inject.Inject
@@ -44,8 +45,15 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
     override suspend fun createVehicleCategory(name: String, description: String?): VehicleCategory {
         Log.d("VehicleCategoryRepo", "Creating vehicle category: $name")
         try {
-            val request = CreateVehicleCategoryRequest(name = name, description = description)
-            val response = api.createVehicleCategory(request)
+            val dto = VehicleCategoryDto(
+                id = "",
+                name = name,
+                description = description,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+                requiresCertification = false
+            )
+            val response = api.saveVehicleCategory(dto)
             if (!response.isSuccessful) {
                 Log.e("VehicleCategoryRepo", "Error creating category: ${response.code()}")
                 throw Exception("Failed to create vehicle category")
@@ -61,8 +69,15 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
     override suspend fun updateVehicleCategory(id: String, name: String, description: String?): VehicleCategory {
         Log.d("VehicleCategoryRepo", "Updating vehicle category: $id")
         try {
-            val request = UpdateVehicleCategoryRequest(name = name, description = description)
-            val response = api.updateVehicleCategory(id, request)
+            val dto = VehicleCategoryDto(
+                id = id,
+                name = name,
+                description = description,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+                requiresCertification = false
+            )
+            val response = api.saveVehicleCategory(dto)
             if (!response.isSuccessful) {
                 Log.e("VehicleCategoryRepo", "Error updating category: ${response.code()}")
                 throw Exception("Failed to update vehicle category")

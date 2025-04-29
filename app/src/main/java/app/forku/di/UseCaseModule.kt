@@ -18,6 +18,10 @@ import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
 
 import app.forku.domain.usecase.user.LoginUseCase
 import app.forku.domain.usecase.vehicle.GetVehicleActiveSessionUseCase
+import app.forku.domain.repository.gogroup.*
+import app.forku.domain.usecase.gogroup.group.*
+import app.forku.domain.usecase.gogroup.role.*
+import app.forku.domain.usecase.gogroup.file.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -107,4 +111,34 @@ object UseCaseModule {
     ): LoginUseCase {
         return LoginUseCase(userRepository)
     }
+
+    @Provides
+    @Singleton
+    fun provideGetGroupsUseCase(
+        repository: GOGroupRepository
+    ): GetGroupsUseCase = GetGroupsUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideManageGroupUseCase(
+        repository: GOGroupRepository
+    ): ManageGroupUseCase = ManageGroupUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideGetGroupRolesUseCase(
+        repository: GOGroupRoleRepository
+    ): GetGroupRolesUseCase = GetGroupRolesUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideManageGroupRoleUseCase(
+        repository: GOGroupRoleRepository
+    ): ManageGroupRoleUseCase = ManageGroupRoleUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUploadFileUseCase(
+        repository: GOFileUploaderRepository
+    ): UploadFileUseCase = UploadFileUseCase(repository)
 } 

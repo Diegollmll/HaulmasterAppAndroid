@@ -92,7 +92,9 @@ class QuestionaryChecklistViewModel @Inject constructor(
     private fun loadSites(businessId: String) {
         viewModelScope.launch {
             try {
-                val sites = siteRepository.getSitesByBusiness(businessId).map { it.toDomain() }
+                val sites = siteRepository.getAllSites()
+                    .filter { it.businessId == businessId }
+                    .map { it.toDomain() }
                 _uiState.update { it.copy(sites = sites) }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading sites for business $businessId", e)
@@ -265,7 +267,9 @@ class QuestionaryChecklistViewModel @Inject constructor(
                 // After loading sites, set the selected site
                 viewModelScope.launch {
                     try {
-                        val sites = siteRepository.getSitesByBusiness(businessId).map { it.toDomain() }
+                        val sites = siteRepository.getAllSites()
+                            .filter { it.businessId == businessId }
+                            .map { it.toDomain() }
                         _uiState.update { it.copy(sites = sites) }
                         // Find and set the selected site
                         questionary.siteId?.let { siteId ->

@@ -18,6 +18,8 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.Site
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.site.SitesViewModel
+import app.forku.data.mapper.toDomain
+import app.forku.data.mapper.toDto
 
 @Composable
 fun SitesScreen(

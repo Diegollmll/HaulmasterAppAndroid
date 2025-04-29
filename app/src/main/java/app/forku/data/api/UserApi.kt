@@ -9,7 +9,11 @@ interface UserApi {
      * Get all users
      * @return List of users
      */
-    @GET("user")
+    @GET("api/gouser/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
     suspend fun getUsers(): Response<List<UserDto>>
 
     /**
@@ -17,7 +21,11 @@ interface UserApi {
      * @param id User ID
      * @return User details
      */
-    @GET("user/{id}")
+    @GET("api/gouser/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
     suspend fun getUser(@Path("id") id: String): Response<UserDto>
 
     /**
@@ -25,25 +33,51 @@ interface UserApi {
      * @param user User data
      * @return Created user
      */
-    @POST("user")
+    @POST("api/gouser")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
     suspend fun createUser(@Body user: UserDto): Response<UserDto>
 
     /**
-     * Update user
-     * @param id User ID
+     * Update user (now saveUser)
      * @param user Updated user data
      * @return Updated user
      */
-    @PUT("user/{id}")
-    suspend fun updateUser(
-        @Path("id") id: String,
-        @Body user: UserDto
-    ): Response<UserDto>
+    @POST("api/gouser")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun saveUser(@Body user: UserDto): Response<UserDto>
 
     /**
      * Delete user
      * @param id User ID
      */
-    @DELETE("user/{id}")
+    @DELETE("api/gouser/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
     suspend fun deleteUser(@Path("id") id: String): Response<Unit>
+
+    /**
+     * Get the total count of users in the system
+     * @return The total number of users
+     */
+    @GET("dataset/api/gouser/count")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getUserCount(): Response<Int>
+
+    @GET("api/gouser/search")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun searchUsers(@Query("query") query: String): Response<List<UserDto>>
 } 

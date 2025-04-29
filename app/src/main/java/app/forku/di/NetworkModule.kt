@@ -12,6 +12,7 @@ import app.forku.data.api.interceptor.RetryInterceptor
 import app.forku.domain.repository.weather.WeatherRepository
 import app.forku.data.repository.weather.WeatherRepositoryImpl
 import app.forku.data.api.VehicleSessionApi
+import app.forku.data.service.GOServicesManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,20 +28,27 @@ import android.content.Context
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.data.api.BusinessApi
 import javax.inject.Named
+import javax.inject.Provider
 import app.forku.data.api.IncidentApi
 import app.forku.data.api.ChecklistApi
 import app.forku.data.api.SessionApi
 import app.forku.data.api.NotificationApi
 
 import app.forku.data.api.CountryApi
-import app.forku.data.api.StateApi
+import app.forku.data.api.CountryStateApi
 
 import app.forku.data.api.VehicleTypeApi
 import app.forku.data.api.EnergySourceApi
 import app.forku.data.api.SiteApi
 import app.forku.data.api.VehicleCategoryApi
 import app.forku.data.api.VehicleComponentApi
-import app.forku.data.api.interceptor.CsrfTokenInterceptor
+import app.forku.data.datastore.AuthDataStore
+import app.forku.data.api.GOFileUploaderApi
+import app.forku.data.api.GOGroupApi
+import app.forku.data.api.GOGroupRoleApi
+import app.forku.data.api.GOUserRoleApi
+import app.forku.data.api.UserBusinessApi
+import app.forku.data.api.BusinessConfigurationApi
 
 //import app.forku.data.api.CicoHistoryApi
 
@@ -101,8 +109,20 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideBusinessApi(retrofit: Retrofit): BusinessApi =
-        retrofit.create(BusinessApi::class.java)
+    fun provideBusinessApi(retrofit: Retrofit): BusinessApi {
+        return retrofit.create(BusinessApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBusinessConfigurationApi(retrofit: Retrofit): BusinessConfigurationApi =
+        retrofit.create(BusinessConfigurationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserBusinessApi(retrofit: Retrofit): UserBusinessApi {
+        return retrofit.create(UserBusinessApi::class.java)
+    }
 
     @Provides
     @Singleton
@@ -111,8 +131,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideStateApi(retrofit: Retrofit): StateApi =
-        retrofit.create(StateApi::class.java)
+    fun provideStateApi(retrofit: Retrofit): CountryStateApi =
+        retrofit.create(CountryStateApi::class.java)
 
     @Provides
     @Singleton
@@ -138,6 +158,30 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideGOFileUploaderApi(retrofit: Retrofit): GOFileUploaderApi {
+        return retrofit.create(GOFileUploaderApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGOGroupApi(retrofit: Retrofit): GOGroupApi {
+        return retrofit.create(GOGroupApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGOGroupRoleApi(retrofit: Retrofit): GOGroupRoleApi {
+        return retrofit.create(GOGroupRoleApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGOUserRoleApi(retrofit: Retrofit): GOUserRoleApi {
+        return retrofit.create(GOUserRoleApi::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -147,9 +191,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAuthInterceptor(
-        @ApplicationContext context: Context
+        authDataStore: AuthDataStore,
+        goServicesManagerProvider: Provider<GOServicesManager>
     ): AuthInterceptor {
-        return AuthInterceptor(context)
+        return AuthInterceptor(authDataStore, goServicesManagerProvider)
     }
 
     @Provides
@@ -157,12 +202,10 @@ object NetworkModule {
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         authInterceptor: AuthInterceptor,
-        csrfTokenInterceptor: CsrfTokenInterceptor,
         retryInterceptor: RetryInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
-            .addInterceptor(csrfTokenInterceptor)
             .addInterceptor(retryInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)

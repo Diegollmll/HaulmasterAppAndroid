@@ -1,6 +1,8 @@
 package app.forku.data.repository.user
 
+import android.util.Log
 import app.forku.data.api.UserApi
+import app.forku.data.api.GOUserRoleApi
 import app.forku.data.api.dto.user.UserDto
 import app.forku.data.mapper.toDomain
 import app.forku.domain.model.user.User
@@ -15,23 +17,59 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import android.util.Log
+import app.forku.data.repository.BaseRepository
+import app.forku.core.auth.TokenErrorHandler
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
     private val api: UserApi,
-    private val authDataStore: AuthDataStore,
-    private val tourPreferences: TourPreferences
-) : UserRepository {
+    private val goUserRoleApi: GOUserRoleApi,
+    authDataStore: AuthDataStore,
+    private val tourPreferences: TourPreferences,
+    tokenErrorHandler: TokenErrorHandler
+) : UserRepository, BaseRepository(authDataStore, tokenErrorHandler) {
     
-    override suspend fun getUserById(id: String): User? {
-        return try {
-            val response = api.getUser(id)
-            android.util.Log.d("UserRepository", "API response for user $id: ${response.body()}")
-            if (!response.isSuccessful) return null
-            response.body()?.toDomain()
+    private suspend fun getUserRoleFromGOApi(userId: String): UserRole {
+        try {
+            val response = goUserRoleApi.getUserRoles()
+            if (!response.isSuccessful) {
+                Log.e("UserRepository", "Failed to get user roles: ${response.code()}")
+                return UserRole.OPERATOR
+            }
+
+            val userRoles = response.body() ?: return UserRole.OPERATOR
+            val userRole = userRoles.find { it.GOUserId == userId }?.role?.Name
+                ?: return UserRole.OPERATOR
+
+            return when (userRole.lowercase()) {
+                "administrator" -> UserRole.SYSTEM_OWNER
+                "admin" -> UserRole.ADMIN
+                "operator" -> UserRole.OPERATOR
+                "superadmin" -> UserRole.SUPERADMIN
+                "systemowner", "system_owner" -> UserRole.SYSTEM_OWNER
+                else -> UserRole.OPERATOR
+            }
         } catch (e: Exception) {
-            android.util.Log.e("UserRepository", "Error getting user by id", e)
+            Log.e("UserRepository", "Error getting user role: ${e.message}")
+            return UserRole.OPERATOR
+        }
+    }
+
+    override suspend fun getUserById(userId: String): User? = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getUser(userId)
+            if (!response.isSuccessful) {
+                Log.e("UserRepository", "Failed to get user: ${response.code()}")
+                return@withContext null
+            }
+
+            val userDto = response.body() ?: return@withContext null
+            val userRole = getUserRoleFromGOApi(userId)
+            
+            // Map to domain model, passing the role directly
+            userDto.toDomain(userRole)
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error getting user: ${e.message}")
             null
         }
     }
@@ -88,7 +126,7 @@ class UserRepositoryImpl @Inject constructor(
             )
 
             // Update user in API
-            val updateResponse = api.updateUser(updatedUser.id, updatedUser.toDto())
+            val updateResponse = api.saveUser( updatedUser.toDto())
             if (!updateResponse.isSuccessful) {
                 android.util.Log.e("appflow UserRepository", "Failed to update lastLogin timestamp")
             }
@@ -132,16 +170,7 @@ class UserRepositoryImpl @Inject constructor(
                 password = password,
                 username = email,
                 firstName = firstName,
-                lastName = lastName,
-                token = UUID.randomUUID().toString(),
-                refreshToken = UUID.randomUUID().toString(),
-                photoUrl = null,
-                role = role.name,
-                certifications = listOf(),
-                lastMedicalCheck = null,
-                lastLogin = null,
-                isActive = true,
-                isApproved = false
+                lastName = lastName
             )
 
             val response = api.createUser(newUser)
@@ -199,18 +228,10 @@ class UserRepositoryImpl @Inject constructor(
                 password = "", // No incluimos el password en la actualización
                 username = user.username,
                 firstName = user.firstName,
-                lastName = user.lastName,
-                token = user.token,
-                refreshToken = user.refreshToken,
-                photoUrl = user.photoUrl,
-                role = newRole.name,
-                certifications = user.certifications.map { it.toDto() },
-                lastMedicalCheck = user.lastMedicalCheck,
-                lastLogin = user.lastLogin,
-                isActive = true
+                lastName = user.lastName
             )
 
-            val response = api.updateUser(userId, updatedUserDto)
+            val response = api.saveUser(updatedUserDto)
             if (!response.isSuccessful) {
                 return@withContext Result.failure(Exception("Failed to update user role"))
             }
@@ -246,22 +267,11 @@ class UserRepositoryImpl @Inject constructor(
                 password = currentPassword, // Preserve the current password
                 username = user.username,
                 firstName = user.firstName,
-                lastName = user.lastName,
-                token = user.token,
-                refreshToken = user.refreshToken,
-                photoUrl = user.photoUrl,
-                role = user.role.name,
-                certifications = user.certifications.map { it.toDto() },
-                lastMedicalCheck = user.lastMedicalCheck,
-                lastLogin = user.lastLogin,
-                isActive = user.isActive,
-                isApproved = user.isApproved,
-                businessId = user.businessId,
-                systemOwnerId = user.systemOwnerId
+                lastName = user.lastName
             )
 
             Log.d("UserRepository", "Sending update request to API")
-            val response = api.updateUser(user.id, userDto)
+            val response = api.saveUser(userDto)
             
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to update user: ${response.code()}")
@@ -292,8 +302,8 @@ class UserRepositoryImpl @Inject constructor(
             }
 
             response.body()
-                ?.filter { it.role.uppercase() == role.name }
                 ?.map { it.toDomain() }
+                ?.filter { it.role == role }
                 ?: emptyList()
         } catch (e: Exception) {
             emptyList()
@@ -301,23 +311,29 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
-        try {
-            Log.d("UserRepository", "Getting all users")
-            val response = api.getUsers()
-            if (!response.isSuccessful) {
-                Log.e("UserRepository", "Failed to get users: ${response.code()}")
-                return@withContext emptyList()
+        executeApiCallForList {
+            Log.d("UserRepository", "Starting getAllUsers request")
+            
+            // Log the API endpoint being called
+            Log.d("UserRepository", "Making API call to: api/gouser/list")
+            
+            // Log any stored tokens for debugging auth issues
+            val applicationToken = authDataStore.getApplicationToken()
+            val authToken = authDataStore.getAuthenticationToken()
+            val csrfToken = authDataStore.getCsrfToken()
+            Log.d("UserRepository", """
+                Auth state:
+                - Application token present: ${applicationToken != null}
+                - Auth token present: ${authToken != null}
+                - CSRF token present: ${csrfToken != null}
+            """.trimIndent())
+            
+            api.getUsers()
+        }.map { userDto ->
+            Log.d("UserRepository", "Processing user DTO: id=${userDto.id}, email=${userDto.email}")
+            userDto.toDomain().also { user ->
+                Log.d("UserRepository", "Mapped to domain user: id=${user.id}, role=${user.role}")
             }
-
-            val users = response.body()?.map { it.toDomain() } ?: emptyList()
-            Log.d("UserRepository", "Successfully retrieved ${users.size} users")
-            users.forEach { user ->
-                Log.d("UserRepository", "User: ${user.firstName} ${user.lastName}, Role: ${user.role}")
-            }
-            users
-        } catch (e: Exception) {
-            Log.e("UserRepository", "Error getting all users", e)
-            emptyList()
         }
     }
 
@@ -390,6 +406,35 @@ class UserRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.e("UserRepository", "Error getting unassigned users", e)
             emptyList()
+        }
+    }
+
+    override suspend fun getUserCount(): Int? = withContext(Dispatchers.IO) {
+        try {
+            Log.d("UserRepository", "Getting user count from API")
+            val response = api.getUserCount()
+            if (!response.isSuccessful) {
+                Log.e("UserRepository", "Failed to get user count: ${response.code()}")
+                Log.d("UserRepository", "Falling back to counting all users")
+                val users = getAllUsers()
+                Log.d("UserRepository", "Fallback count: ${users.size} users")
+                return@withContext users.size
+            }
+            
+            val count = response.body()
+            Log.d("UserRepository", "User count from API: $count")
+            return@withContext count
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error getting user count, falling back to getAllUsers()", e)
+            // Fallback to getting all users and counting them
+            try {
+                val users = getAllUsers()
+                Log.d("UserRepository", "Fallback count after exception: ${users.size} users")
+                return@withContext users.size
+            } catch (e2: Exception) {
+                Log.e("UserRepository", "Error in fallback count", e2)
+                return@withContext null
+            }
         }
     }
 } 

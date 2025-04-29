@@ -1,26 +1,20 @@
 package app.forku.data.api
 
-import app.forku.data.api.dto.VehicleCategoryDto
+import app.forku.data.api.dto.vehicle.VehicleCategoryDto
 import retrofit2.Response
 import retrofit2.http.*
 
 interface VehicleCategoryApi {
-    @GET("vehicle-category")
+    @GET("api/vehiclecategory/list")
     suspend fun getVehicleCategories(): Response<List<VehicleCategoryDto>>
     
-    @GET("vehicle-category/{id}")
+    @GET("api/vehiclecategory/byid/{id}")
     suspend fun getVehicleCategory(@Path("id") id: String): Response<VehicleCategoryDto>
     
-    @POST("vehicle-category")
-    suspend fun createVehicleCategory(@Body request: CreateVehicleCategoryRequest): Response<VehicleCategoryDto>
+    @POST("api/vehiclecategory")
+    suspend fun saveVehicleCategory(@Body category: VehicleCategoryDto): Response<VehicleCategoryDto>
     
-    @PUT("vehicle-category/{id}")
-    suspend fun updateVehicleCategory(
-        @Path("id") id: String,
-        @Body request: UpdateVehicleCategoryRequest
-    ): Response<VehicleCategoryDto>
-    
-    @DELETE("vehicle-category/{id}")
+    @DELETE("dataset/api/vehiclecategory/{id}")
     suspend fun deleteVehicleCategory(@Path("id") id: String): Response<Unit>
 }
 

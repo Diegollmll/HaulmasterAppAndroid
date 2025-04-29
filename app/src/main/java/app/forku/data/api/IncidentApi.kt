@@ -5,16 +5,45 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface IncidentApi {
-    @POST("incidents")
-    suspend fun reportIncident(
-        @Body incident: IncidentDto
-    ): Response<IncidentDto>
+    @GET("api/incident/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getAllIncidents(): Response<List<IncidentDto>>
 
-    @GET("incidents")
-    suspend fun getIncidents(): Response<List<IncidentDto>>
+    @GET("api/incident/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getIncidentById(@Path("id") id: String): Response<IncidentDto>
 
-    @GET("incidents/{id}")
-    suspend fun getIncidentById(
-        @Path("id") id: String
-    ): Response<IncidentDto>
+    @POST("api/incident")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun saveIncident(@Body incident: IncidentDto): Response<IncidentDto>
+
+    @DELETE("dataset/api/incident/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun deleteIncident(@Path("id") id: String): Response<Unit>
+
+    @GET("dataset/api/incident/count")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getIncidentCount(): Response<Int>
+
+    // Add endpoints for incident types and multimedia if needed
+    // Example:
+    // @GET("api/incidenttype/list")
+    // suspend fun getIncidentTypes(): Response<List<IncidentTypeDto>>
+    // @GET("api/incidentmultimedia/list")
+    // suspend fun getIncidentMultimedia(): Response<List<IncidentMultimediaDto>>
 } 

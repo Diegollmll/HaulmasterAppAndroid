@@ -37,8 +37,8 @@ class VehicleComponentRepositoryImpl @Inject constructor(
 
     override suspend fun createComponent(component: VehicleComponentDto): Response<VehicleComponentDto> {
         return try {
-            val response = api.createComponent(component)
-            Log.d(TAG, "POST create component - ${response.raw().request.url}")
+            val response = api.saveComponent(component)
+            Log.d(TAG, "POST save component (create) - ${response.raw().request.url}")
             response
         } catch (e: Exception) {
             Log.e(TAG, "Error creating component: ${e.message}", e)
@@ -48,8 +48,8 @@ class VehicleComponentRepositoryImpl @Inject constructor(
 
     override suspend fun updateComponent(id: String, component: VehicleComponentDto): Response<VehicleComponentDto> {
         return try {
-            val response = api.updateComponent(id, component)
-            Log.d(TAG, "PUT update component - ${response.raw().request.url}")
+            val response = api.saveComponent(component.copy(id = id))
+            Log.d(TAG, "POST save component (update) - ${response.raw().request.url}")
             response
         } catch (e: Exception) {
             Log.e(TAG, "Error updating component: ${e.message}", e)

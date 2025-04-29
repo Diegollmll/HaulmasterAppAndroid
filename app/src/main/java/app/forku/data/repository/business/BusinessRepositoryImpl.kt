@@ -1,85 +1,98 @@
 package app.forku.data.repository.business
 
-import app.forku.data.api.BusinessApi
-import app.forku.data.api.CreateBusinessRequest
-import app.forku.domain.repository.business.BusinessRepository
-import app.forku.presentation.dashboard.Business
-import app.forku.presentation.dashboard.BusinessStatus
-import retrofit2.HttpException
-import javax.inject.Inject
 import android.util.Log
-import app.forku.data.api.dto.BusinessDto
-import app.forku.data.api.dto.BusinessStats
-import com.google.gson.Gson
+import app.forku.data.api.BusinessApi
+import app.forku.data.api.UserBusinessApi
+import app.forku.data.api.dto.business.BusinessItemDto
+import app.forku.data.api.dto.business.UserBusinessAssignmentDto
+import app.forku.data.api.dto.business.BusinessStats
+import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
+import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.repository.user.UserRepository
+import app.forku.presentation.dashboard.Business
+import retrofit2.HttpException
+import retrofit2.Response
+import javax.inject.Inject
+import app.forku.data.api.CreateBusinessRequest
 import app.forku.data.api.UpdateBusinessRequest
+import app.forku.domain.model.business.BusinessStatus
+import app.forku.data.api.BusinessConfigurationApi
+import app.forku.data.api.dto.business.BusinessConfigurationDto
+
 
 class BusinessRepositoryImpl @Inject constructor(
     private val api: BusinessApi,
-    private val gson: Gson,
-    private val userRepository: UserRepository
+    private val userBusinessApi: UserBusinessApi,
+    private val userRepository: UserRepository,
+    private val businessConfigurationApi: BusinessConfigurationApi
 ) : BusinessRepository {
 
-    override suspend fun getAllBusinesses(): List<Business> {
-        try {
-            val currentUser = userRepository.getCurrentUser()
-            Log.d("BusinessManagement", "Fetching businesses for user role: ${currentUser?.role}, userId: ${currentUser?.id}")
-            
-            val businessDtos = when (currentUser?.role) {
-                UserRole.SYSTEM_OWNER -> {
-                    Log.d("BusinessManagement", "Fetching all businesses as SYSTEM_OWNER")
-                    try {
-                        api.getAllBusinesses()
-                    } catch (e: HttpException) {
-                        Log.e("BusinessManagement", "HTTP error fetching businesses: ${e.code()}", e)
-                        if (e.code() == 404) {
-                            Log.d("BusinessManagement", "No businesses found, returning empty list")
-                            emptyList()
-                        } else {
-                            throw e
-                        }
-                    }
+    private suspend fun <T> executeApiCallForList(apiCall: suspend () -> Response<List<T>>): List<T> {
+        return try {
+            val response = apiCall()
+            if (!response.isSuccessful) {
+                Log.e("BusinessRepository", "API call failed with code: ${response.code()}")
+                if (response.code() == 404) {
+                    emptyList()
+                } else {
+                    throw HttpException(response)
                 }
-                UserRole.SUPERADMIN -> {
-                    Log.d("BusinessManagement", "Fetching businesses for SUPERADMIN: ${currentUser.id}")
-                    try {
-                        api.getAllBusinesses(superAdminId = currentUser.id)
-                    } catch (e: HttpException) {
-                        Log.e("BusinessManagement", "HTTP error fetching businesses: ${e.code()}", e)
-                        if (e.code() == 404) {
-                            Log.d("BusinessManagement", "No businesses found, returning empty list")
-                            emptyList()
-                        } else {
-                            throw e
-                        }
-                    }
-                }
-                else -> {
-                    Log.e("BusinessManagement", "Unauthorized role: ${currentUser?.role}")
-                    throw SecurityException("Insufficient permissions to access businesses")
-                }
-            }
-            
-            Log.d("BusinessManagement", "Received ${businessDtos.size} businesses from API")
-            businessDtos.forEach { dto ->
-                Log.d("BusinessManagement", "Business DTO: id=${dto.id}, name=${dto.name}, status=${dto.status}")
-            }
-            
-            return businessDtos.map { dto ->
-                mapDtoToBusiness(dto).also { business ->
-                    Log.d("BusinessManagement", "Mapped business: id=${business.id}, name=${business.name}, status=${business.status}")
-                }
+            } else {
+                response.body() ?: emptyList()
             }
         } catch (e: Exception) {
-            Log.e("BusinessManagement", "Error fetching businesses", e)
-            return emptyList()
+            Log.e("BusinessRepository", "Error executing API call", e)
+            throw e
+        }
+    }
+
+    private fun mapToDomain(businessDto: BusinessItemDto): Business {
+        return try {
+            Log.d("BusinessRepository", "Mapping DTO to Business")
+            
+            val businessStatus = when (businessDto.status) {
+                0 -> BusinessStatus.PENDING
+                1 -> BusinessStatus.ACTIVE
+                2 -> BusinessStatus.SUSPENDED
+                else -> BusinessStatus.PENDING
+            }
+
+            Business(
+                id = businessDto.id,
+                name = businessDto.name,
+                totalUsers = 0,  // Will be updated separately
+                totalVehicles = 0,  // Will be updated separately
+                status = businessStatus,
+                createdAt = businessDto.createdAt,
+                updatedAt = businessDto.updatedAt,
+                createdBy = businessDto.createdBy,
+                updatedBy = businessDto.updatedBy,
+                settings = businessDto.settings ?: emptyMap(),
+                metadata = businessDto.metadata ?: emptyMap(),
+                superAdminId = businessDto.superAdminId
+            )
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error mapping DTO to Business", e)
+            throw e
+        }
+    }
+
+    override suspend fun getAllBusinesses(): List<Business> {
+        return executeApiCallForList {
+            Log.d("BusinessRepository", "Getting all businesses")
+            api.getAllBusinesses()
+        }.map { businessDto ->
+            mapToDomain(businessDto)
         }
     }
 
     override suspend fun getBusinessById(id: String): Business {
-        val dto = api.getBusinessById(id)
-        return mapDtoToBusiness(dto)
+        val response = api.getBusinessById(id)
+        if (!response.isSuccessful) {
+            throw Exception("Failed to get business: ${response.code()}")
+        }
+        return mapToDomain(response.body() ?: throw Exception("Business not found"))
     }
 
     override suspend fun createBusiness(name: String): Business {
@@ -87,47 +100,67 @@ class BusinessRepositoryImpl @Inject constructor(
             val currentUser = userRepository.getCurrentUser()
             when (currentUser?.role) {
                 UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> {
-                    val request = CreateBusinessRequest(
+                    val businessDto = BusinessItemDto(
+                        id = "",  // Will be assigned by server
                         name = name,
-                        systemOwnerId = if (currentUser.role == UserRole.SYSTEM_OWNER) currentUser.id else null,
-                        superAdminId = if (currentUser.role == UserRole.SUPERADMIN) currentUser.id else null
+                        status = 0,  // PENDING status
+                        businessConfigurationId = null,
+                        countryId = null,
+                        countryStateId = null,
+                        isNew = true,
+                        isDirty = true
                     )
                     
-                    val response = api.createBusiness(request)
+                    val response = api.saveBusiness(businessDto)
                     if (!response.isSuccessful) {
-                        handleErrorResponse(response)
+                        throw Exception("Failed to create business: ${response.code()}")
                     }
                     
-                    val dto = response.body() ?: throw Exception("Empty response body")
-                    val business = mapDtoToBusiness(dto)
+                    val createdBusiness = mapToDomain(response.body() ?: throw Exception("Empty response body"))
 
-                    // Update user's systemOwnerId if they are a SYSTEM_OWNER
-                    if (currentUser.role == UserRole.SYSTEM_OWNER) {
-                        val updatedUser = currentUser.copy(
-                            systemOwnerId = currentUser.id,
-                            businessId = business.id
-                        )
-                        userRepository.updateUser(updatedUser)
+                    // Assign the user to the business if they're a SuperAdmin
+                    if (currentUser.role == UserRole.SUPERADMIN) {
+                        assignUserToBusiness(currentUser.id, createdBusiness.id)
                     }
 
-                    return business
+                    return createdBusiness
                 }
                 else -> throw SecurityException("Insufficient permissions to create business")
             }
         } catch (e: Exception) {
-            handleException(e, "create business")
+            Log.e("BusinessRepository", "Error creating business", e)
             throw e
         }
     }
 
-    override suspend fun getBusinessesBySystemOwnerId(systemOwnerId: String): List<Business> {
-        validateSystemOwnerAccess(systemOwnerId)
-        return api.getBusinessesBySystemOwnerId(systemOwnerId).map { mapDtoToBusiness(it) }
-    }
-
     override suspend fun getBusinessesBySuperAdminId(superAdminId: String): List<Business> {
-        validateSuperAdminAccess(superAdminId, null)
-        return api.getBusinessesBySuperAdminId(superAdminId).map { mapDtoToBusiness(it) }
+        try {
+            validateSuperAdminAccess(superAdminId, null)
+            Log.d("BusinessRepository", "Getting businesses for super admin: $superAdminId")
+            
+            // Get all user-business assignments
+            val assignments = userBusinessApi.getUserBusinessAssignments()
+            if (!assignments.isSuccessful) {
+                Log.e("BusinessRepository", "Failed to get user-business assignments: ${assignments.code()}")
+                return emptyList()
+            }
+            
+            // Filter assignments for this SuperAdmin
+            val superAdminAssignments = assignments.body()?.filter { it.userId == superAdminId } ?: emptyList()
+            
+            // Get all businesses using executeApiCallForList
+            return executeApiCallForList {
+                api.getAllBusinesses()
+            }.filter { businessDto ->
+                // Only keep businesses that have an assignment for this SuperAdmin
+                superAdminAssignments.any { it.businessId == businessDto.id }
+            }.map { businessDto ->
+                mapToDomain(businessDto)
+            }
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error getting businesses for SuperAdmin", e)
+            return emptyList()
+        }
     }
 
     override suspend fun transferBusinessToSuperAdmin(businessId: String, newSuperAdminId: String) {
@@ -139,32 +172,64 @@ class BusinessRepositoryImpl @Inject constructor(
             when {
                 currentUser?.role == UserRole.SYSTEM_OWNER -> {
                     Log.d("BusinessManagement", "System Owner transferring business")
-                    val request = UpdateBusinessRequest(
-                        name = business.name,
-                        status = business.status.name.uppercase(),
-                        superAdminId = newSuperAdminId.ifEmpty { "" }
-                    )
-                    try {
-                        val updatedBusiness = api.updateBusiness(businessId, request)
-                        Log.d("BusinessManagement", "Business transferred successfully. New SuperAdmin: ${updatedBusiness.superAdminId}")
-                    } catch (e: Exception) {
-                        Log.e("BusinessManagement", "Failed to transfer business", e)
-                        throw Exception("Failed to transfer business: ${e.message}")
+                    
+                    // Get current assignments for this business
+                    val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
+                    
+                    // Find current SuperAdmin assignment if any
+                    val currentSuperAdminAssignment = assignments.find { assignment ->
+                        assignment.businessId == businessId && 
+                        assignment.role == UserRole.SUPERADMIN.name
                     }
+                    
+                    // Remove current SuperAdmin if exists
+                    if (currentSuperAdminAssignment != null) {
+                        userBusinessApi.removeUserFromBusiness(businessId, currentSuperAdminAssignment.userId)
+                        Log.d("BusinessManagement", "Removed previous SuperAdmin assignment")
+                    }
+                    
+                    // If new SuperAdmin ID is not empty, create new assignment
+                    if (newSuperAdminId.isNotEmpty()) {
+                        val newAssignment = UserBusinessAssignmentDto(
+                            businessId = businessId,
+                            userId = newSuperAdminId,
+                            role = UserRole.SUPERADMIN.name
+                        )
+                        userBusinessApi.assignUserToBusiness(newAssignment)
+                        Log.d("BusinessManagement", "Created new SuperAdmin assignment")
+                    }
+                    
+                    Log.d("BusinessManagement", "Business transfer completed successfully")
                 }
-                currentUser?.role == UserRole.SUPERADMIN && business.superAdminId == currentUser.id -> {
-                    Log.d("BusinessManagement", "Current SuperAdmin transferring their business")
-                    val request = UpdateBusinessRequest(
-                        name = business.name,
-                        status = business.status.name.uppercase(),
-                        superAdminId = newSuperAdminId.ifEmpty { "" }
-                    )
-                    try {
-                        val updatedBusiness = api.updateBusiness(businessId, request)
-                        Log.d("BusinessManagement", "Business transferred successfully. New SuperAdmin: ${updatedBusiness.superAdminId}")
-                    } catch (e: Exception) {
-                        Log.e("BusinessManagement", "Failed to transfer business", e)
-                        throw Exception("Failed to transfer business: ${e.message}")
+                currentUser?.role == UserRole.SUPERADMIN -> {
+                    // Get current assignments to verify ownership
+                    val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
+                    val hasOwnership = assignments.any { 
+                        it.businessId == businessId && 
+                        it.userId == currentUser.id &&
+                        it.role == UserRole.SUPERADMIN.name
+                    }
+                    
+                    if (hasOwnership) {
+                        Log.d("BusinessManagement", "Current SuperAdmin transferring their business")
+                        
+                        // Remove current SuperAdmin assignment
+                        userBusinessApi.removeUserFromBusiness(businessId, currentUser.id)
+                        
+                        // If new SuperAdmin ID is not empty, create new assignment
+                        if (newSuperAdminId.isNotEmpty()) {
+                            val newAssignment = UserBusinessAssignmentDto(
+                                businessId = businessId,
+                                userId = newSuperAdminId,
+                                role = UserRole.SUPERADMIN.name
+                            )
+                            userBusinessApi.assignUserToBusiness(newAssignment)
+                            Log.d("BusinessManagement", "Created new SuperAdmin assignment")
+                        }
+                        
+                        Log.d("BusinessManagement", "Business transfer completed successfully")
+                    } else {
+                        throw SecurityException("Current SuperAdmin does not have ownership of this business")
                     }
                 }
                 else -> {
@@ -192,8 +257,13 @@ class BusinessRepositoryImpl @Inject constructor(
                     if (businessId == null) {
                         true // SuperAdmin can access their own general resources without a specific business
                     } else {
-                        val business = getBusinessById(businessId)
-                        business.superAdminId == superAdminId
+                        // Verificar si el SuperAdmin tiene asignación para este negocio
+                        val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
+                        assignments.any { assignment ->
+                            assignment.userId == superAdminId &&
+                            assignment.businessId == businessId &&
+                            assignment.role == UserRole.SUPERADMIN.name
+                        }
                     }
                 }
                 
@@ -208,179 +278,85 @@ class BusinessRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getSystemOwnerBusinessStats(systemOwnerId: String): BusinessStats {
-        validateSystemOwnerAccess(systemOwnerId)
-        return api.getSystemOwnerBusinessStats(systemOwnerId)
-    }
-
-    override suspend fun getSuperAdminBusinessStats(superAdminId: String): BusinessStats {
-        validateSuperAdminAccess(superAdminId, null)
-        return api.getSuperAdminBusinessStats(superAdminId)
-    }
-
-    private suspend fun validateSystemOwnerAccess(systemOwnerId: String) {
-        val currentUser = userRepository.getCurrentUser()
-        if (currentUser?.role != UserRole.SYSTEM_OWNER || currentUser.id != systemOwnerId) {
-            throw SecurityException("Insufficient permissions to access system owner resources")
-        }
-    }
-
-    private suspend fun mapDtoToBusiness(dto: BusinessDto): Business {
-        return try {
-            Log.d("BusinessManagement", "Starting to map DTO to Business")
-            Log.d("BusinessManagement", "Raw DTO data: " +
-                "id=${dto.id}, " +
-                "name=${dto.name}, " +
-                "status=${dto.status}, " +
-                "systemOwnerId=${dto.systemOwnerId}, " +
-                "superAdminId=${dto.superAdminId}, " +
-                "totalUsers=${dto.totalUsers}, " +
-                "totalVehicles=${dto.totalVehicles}")
-                
-            // No need to uppercase since the status is already in uppercase from the API
-            val businessStatus = try {
-                BusinessStatus.valueOf(dto.status)
-            } catch (e: IllegalArgumentException) {
-                Log.w("BusinessManagement", "Invalid status value: ${dto.status}, attempting to normalize")
-                BusinessStatus.valueOf(dto.status.trim())
+    override suspend fun validateSystemOwnerAccess(systemOwnerId: String): Boolean {
+        try {
+            val currentUser = userRepository.getCurrentUser()
+            Log.d("BusinessManagement", "Validating SystemOwner access for user: ${currentUser?.id}, role: ${currentUser?.role}")
+            
+            val hasAccess = currentUser?.role == UserRole.SYSTEM_OWNER && currentUser.id == systemOwnerId
+            
+            if (!hasAccess) {
+                Log.w("BusinessManagement", "Access denied for user ${currentUser?.id} to SystemOwner resources")
             }
             
-            Log.d("BusinessManagement", "Parsed business status: $businessStatus")
-
-            // Get real count of users for this business
-            val realUserCount = getBusinessUsers(dto.id).size
-            Log.d("BusinessManagement", "Real user count for business ${dto.id}: $realUserCount")
-                
-            Business(
-                id = dto.id,
-                name = dto.name,
-                totalUsers = realUserCount,
-                totalVehicles = dto.totalVehicles,
-                status = businessStatus,
-                systemOwnerId = dto.systemOwnerId,
-                superAdminId = dto.superAdminId,
-                createdAt = dto.createdAt,
-                updatedAt = dto.updatedAt
-            ).also { business ->
-                Log.d("BusinessManagement", "Successfully mapped Business: " +
-                    "id=${business.id}, " +
-                    "name=${business.name}, " +
-                    "status=${business.status}, " +
-                    "systemOwnerId=${business.systemOwnerId}, " +
-                    "superAdminId=${business.superAdminId}, " +
-                    "totalUsers=${business.totalUsers}, " +
-                    "totalVehicles=${business.totalVehicles}")
-            }
+            return hasAccess
         } catch (e: Exception) {
-            Log.e("BusinessManagement", "Error mapping DTO to Business: ${dto.id}", e)
-            Log.e("BusinessManagement", "Failed DTO data: $dto")
-            throw Exception("Failed to map business data: ${e.message}")
-        }
-    }
-
-    private fun handleErrorResponse(response: retrofit2.Response<BusinessDto>) {
-        val errorBody = response.errorBody()?.string()
-        Log.e("BusinessManagement", "Error response: ${response.code()} - $errorBody")
-        Log.e("BusinessManagement", "Request URL: ${response.raw().request.url}")
-        Log.e("BusinessManagement", "Request headers: ${response.raw().request.headers}")
-        throw Exception("Failed to create business: [${response.code()}] $errorBody")
-    }
-
-    private fun handleException(e: Exception, operation: String) {
-        when (e) {
-            is HttpException -> {
-                val errorBody = e.response()?.errorBody()?.string()
-                val errorCode = e.response()?.code()
-                Log.e("BusinessManagement", "HTTP error: $errorCode - $errorBody")
-                Log.e("BusinessManagement", "Request URL: ${e.response()?.raw()?.request?.url}")
-                Log.e("BusinessManagement", "Request headers: ${e.response()?.raw()?.request?.headers}")
-                throw Exception("Failed to $operation: [$errorCode] $errorBody")
-            }
-            else -> {
-                Log.e("BusinessManagement", "Unexpected error", e)
-                throw Exception("Failed to $operation: ${e.message}")
-            }
+            Log.e("BusinessManagement", "Error validating SystemOwner access", e)
+            return false
         }
     }
 
     override suspend fun updateBusiness(business: Business): Business {
         try {
             val currentUser = userRepository.getCurrentUser()
-            Log.d("BusinessManagement", "Attempting to update business: ${business.id}")
-            Log.d("BusinessManagement", "Update details: name=${business.name}, status=${business.status}, superAdminId=${business.superAdminId}")
-            Log.d("BusinessManagement", "Current user role: ${currentUser?.role}")
-
-            when (currentUser?.role) {
-                UserRole.SYSTEM_OWNER -> {
-                    Log.d("BusinessManagement", "System Owner updating business")
-                }
-                UserRole.SUPERADMIN -> {
-                    if (!validateSuperAdminAccess(currentUser.id, business.id)) {
-                        Log.e("BusinessManagement", "SuperAdmin attempted to update unauthorized business")
-                        throw SecurityException("Insufficient permissions to update this business")
-                    }
-                    Log.d("BusinessManagement", "SuperAdmin updating their business")
-                }
-                else -> {
-                    Log.e("BusinessManagement", "Unauthorized role attempted to update business: ${currentUser?.role}")
-                    throw SecurityException("Insufficient permissions to update business")
-                }
+            if (!validateAdminAccess(currentUser?.id ?: "", business.id)) {
+                throw SecurityException("Insufficient permissions to update business")
             }
 
-            // Create and log the request
-            val request = UpdateBusinessRequest(
-                name = business.name,
-                status = business.status.name.uppercase(),
-                superAdminId = business.superAdminId
-            )
-            
-            Log.d("BusinessManagement", "Sending API request: PUT /business/${business.id}")
-            Log.d("BusinessManagement", "Request body: $request")
-
-            val dto = api.updateBusiness(
+            val businessDto = BusinessItemDto(
                 id = business.id,
-                request = request
+                name = business.name,
+                status = when(business.status) {
+                    BusinessStatus.ACTIVE -> 1
+                    BusinessStatus.PENDING -> 0
+                    BusinessStatus.SUSPENDED -> 2
+                },
+                businessConfigurationId = null,
+                countryId = null,
+                countryStateId = null,
+                isDirty = true
             )
-            
-            Log.d("BusinessManagement", "API response received")
-            Log.d("BusinessManagement", "Response DTO: id=${dto.id}, name=${dto.name}, status=${dto.status}, superAdminId=${dto.superAdminId}")
 
-            return mapDtoToBusiness(dto).also { mappedBusiness ->
-                Log.d("BusinessManagement", "Final mapped business: " +
-                    "id=${mappedBusiness.id}, " +
-                    "name=${mappedBusiness.name}, " +
-                    "status=${mappedBusiness.status}, " +
-                    "systemOwnerId=${mappedBusiness.systemOwnerId}, " +
-                    "superAdminId=${mappedBusiness.superAdminId}")
+            // Usar saveBusiness para crear o actualizar
+            val response = api.saveBusiness(businessDto)
+            if (!response.isSuccessful) {
+                throw Exception("Failed to update business: ${response.code()}")
             }
+            
+            return mapToDomain(response.body() ?: throw Exception("Empty response body"))
         } catch (e: Exception) {
-            Log.e("BusinessManagement", "Error updating business", e)
-            Log.e("BusinessManagement", "Error details: ${e.message}")
-            if (e is HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                Log.e("BusinessManagement", "HTTP error response: $errorBody")
-            }
-            handleException(e, "update business")
+            Log.e("BusinessRepository", "Error updating business", e)
             throw e
         }
     }
 
     override suspend fun deleteBusiness(id: String) {
-        api.deleteBusiness(id)
+        try {
+            val currentUser = userRepository.getCurrentUser()
+            if (!validateAdminAccess(currentUser?.id ?: "", id)) {
+                throw SecurityException("Insufficient permissions to delete business")
+            }
+
+            val response = api.deleteBusiness(id)
+            if (!response.isSuccessful) {
+                throw Exception("Failed to delete business: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error deleting business", e)
+            throw e
+        }
     }
 
     override suspend fun assignUserToBusiness(userId: String, businessId: String) {
         try {
-            Log.d("BusinessRepository", "Assigning user $userId to business $businessId")
-            
-            // Get the user first
-            val user = userRepository.getUserById(userId) ?: throw Exception("User not found")
-            
-            // Update the user's businessId
-            val updatedUser = user.copy(businessId = businessId)
-            userRepository.updateUser(updatedUser)
-            
-            Log.d("BusinessRepository", "Successfully assigned user to business")
+            val assignment = UserBusinessAssignmentDto(
+                businessId = businessId,
+                userId = userId
+            )
+            val response = userBusinessApi.assignUserToBusiness(assignment)
+            if (!response.isSuccessful) {
+                throw Exception("Failed to assign user to business: ${response.code()}")
+            }
         } catch (e: Exception) {
             Log.e("BusinessRepository", "Error assigning user to business", e)
             throw e
@@ -389,18 +365,9 @@ class BusinessRepositoryImpl @Inject constructor(
 
     override suspend fun removeUserFromBusiness(userId: String, businessId: String) {
         try {
-            Log.d("BusinessRepository", "Removing user $userId from business $businessId")
-            
-            // Get the user first
-            val user = userRepository.getUserById(userId) ?: throw Exception("User not found")
-            
-            // Only remove if the user belongs to this business
-            if (user.businessId == businessId) {
-                val updatedUser = user.copy(businessId = null)
-                userRepository.updateUser(updatedUser)
-                Log.d("BusinessRepository", "Successfully removed user from business")
-            } else {
-                Log.w("BusinessRepository", "User does not belong to this business")
+            val response = userBusinessApi.removeUserFromBusiness(businessId, userId)
+            if (!response.isSuccessful) {
+                throw Exception("Failed to remove user from business: ${response.code()}")
             }
         } catch (e: Exception) {
             Log.e("BusinessRepository", "Error removing user from business", e)
@@ -410,10 +377,12 @@ class BusinessRepositoryImpl @Inject constructor(
 
     override suspend fun getBusinessUsers(businessId: String): List<String> {
         return try {
-            Log.d("BusinessRepository", "Getting users for business: $businessId")
-            val users = api.getBusinessUsers(businessId).map { it.id }
-            Log.d("BusinessRepository", "Found ${users.size} users for business $businessId")
-            users
+            val response = api.getBusinessUsers(businessId)
+            if (!response.isSuccessful) {
+                emptyList()
+            } else {
+                response.body()?.mapNotNull { it.id } ?: emptyList()
+            }
         } catch (e: Exception) {
             Log.e("BusinessRepository", "Error getting business users", e)
             emptyList()
@@ -421,6 +390,141 @@ class BusinessRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getBusinessVehicles(businessId: String): List<String> {
-        return api.getBusinessVehicles(businessId)
+        return try {
+            val response = api.getBusinessVehicles(businessId)
+            if (!response.isSuccessful) {
+                emptyList()
+            } else {
+                response.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error getting business vehicles", e)
+            emptyList()
+        }
+    }
+
+    override suspend fun getBusinessesByRole(user: User): List<Business> {
+        return try {
+            Log.d("BusinessRepository", "Getting businesses for user ${user.id} with role ${user.role}")
+            
+            when (user.role) {
+                UserRole.SYSTEM_OWNER -> {
+                    // System Owner can see all businesses
+                    executeApiCallForList {
+                        api.getAllBusinesses()
+                    }.map { businessDto ->
+                        mapToDomain(businessDto)
+                    }
+                }
+                UserRole.SUPERADMIN, UserRole.ADMIN -> {
+                    // Get businesses through user-business assignments
+                    val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
+                    val userAssignments = assignments.filter { it.userId == user.id }
+                    
+                    userAssignments.mapNotNull { assignment ->
+                        try {
+                            val business = getBusinessById(assignment.businessId)
+                            business
+                        } catch (e: Exception) {
+                            Log.e("BusinessRepository", "Error getting business ${assignment.businessId}", e)
+                            null
+                        }
+                    }
+                }
+                else -> {
+                    Log.w("BusinessRepository", "Unauthorized role ${user.role}, returning empty list")
+                    emptyList()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error getting businesses by role", e)
+            throw e
+        }
+    }
+
+    override suspend fun validateUserAccess(userId: String, businessId: String): Boolean {
+        return try {
+            val response = userBusinessApi.getUserBusinessAssignment(businessId, userId)
+            response.isSuccessful && response.body() != null
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error validating user access", e)
+            false
+        }
+    }
+
+    override suspend fun validateAdminAccess(userId: String, businessId: String): Boolean {
+        val user = userRepository.getUserById(userId) ?: return false
+        return when (user.role) {
+            UserRole.SYSTEM_OWNER -> true
+            UserRole.SUPERADMIN, UserRole.ADMIN -> validateUserAccess(userId, businessId)
+            else -> false
+        }
+    }
+
+    override suspend fun getUserBusinesses(userId: String): List<Business> {
+        return try {
+            val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
+            val userAssignments = assignments.filter { it.userId == userId }
+            
+            userAssignments.mapNotNull { assignment ->
+                try {
+                    getBusinessById(assignment.businessId)
+                } catch (e: Exception) {
+                    Log.e("BusinessRepository", "Error getting business ${assignment.businessId}", e)
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error getting user businesses", e)
+            emptyList()
+        }
+    }
+
+    override suspend fun updateBusinessStatus(businessId: String, newStatus: BusinessStatus) {
+        val business = getBusinessById(businessId)
+        val updatedBusiness = business.copy(status = newStatus)
+        updateBusiness(updatedBusiness)
+    }
+
+    override suspend fun getBusinessStats(businessId: String): BusinessStats {
+        try {
+            Log.d("BusinessRepository", "Getting stats for business: $businessId")
+            
+            // Get business details
+            val business = getBusinessById(businessId)
+            
+            // Get users count
+            val users = executeApiCallForList {
+                api.getBusinessUsers(businessId)
+            }
+            
+            // Get vehicles count
+            val vehicles = executeApiCallForList {
+                api.getBusinessVehicles(businessId)
+            }
+            
+            // Get user assignments to understand roles distribution
+            val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
+            val businessAssignments = assignments.filter { it.businessId == businessId }
+            
+            // Count by role
+            val adminCount = businessAssignments.count { it.role == UserRole.ADMIN.name }
+            val operatorCount = businessAssignments.count { it.role == UserRole.OPERATOR.name }
+            
+            return BusinessStats(
+                totalUsers = users.size,
+                totalVehicles = vehicles.size,
+                activeUsers = users.size, // Could be refined if we track active status
+                activeVehicles = vehicles.size, // Could be refined if we track active status
+                adminCount = adminCount,
+                operatorCount = operatorCount,
+                businessStatus = business.status,
+                lastUpdated = System.currentTimeMillis()
+            )
+            
+        } catch (e: Exception) {
+            Log.e("BusinessRepository", "Error getting business stats", e)
+            throw Exception("Failed to get business stats: ${e.message}")
+        }
     }
 } 

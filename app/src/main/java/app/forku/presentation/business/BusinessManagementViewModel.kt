@@ -5,21 +5,23 @@ import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.user.User
 import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.repository.user.UserRepository
-import app.forku.domain.usecase.user.GetCurrentUserUseCase
+import app.forku.domain.model.business.BusinessStatus
 import app.forku.presentation.dashboard.Business
-import app.forku.presentation.dashboard.BusinessStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
+import app.forku.data.datastore.AuthDataStore
 import app.forku.domain.model.user.UserRole
+import app.forku.domain.repository.user.UserBusinessRepository
 
 @HiltViewModel
 class BusinessManagementViewModel @Inject constructor(
     private val businessRepository: BusinessRepository,
     private val userRepository: UserRepository,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val userBusinessRepository: UserBusinessRepository,
+    private val authDataStore: AuthDataStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BusinessManagementState())
@@ -31,8 +33,17 @@ class BusinessManagementViewModel @Inject constructor(
     private val _availableSuperAdmins = MutableStateFlow<List<User>>(emptyList())
     val availableSuperAdmins: StateFlow<List<User>> = _availableSuperAdmins.asStateFlow()
 
-    private val _businessSuperAdmins = MutableStateFlow<Map<String, User?>>(emptyMap())
-    val businessSuperAdmins: StateFlow<Map<String, User?>> = _businessSuperAdmins.asStateFlow()
+    private val _businesses = MutableStateFlow<List<Business>>(emptyList())
+    val businesses = _businesses.asStateFlow()
+
+    private val _businessSuperAdmins = MutableStateFlow<Map<String, User>>(emptyMap())
+    val businessSuperAdmins = _businessSuperAdmins.asStateFlow()
+
+    private val _loading = MutableStateFlow(false)
+    val loading = _loading.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
 
     init {
         loadCurrentUser()
@@ -43,7 +54,7 @@ class BusinessManagementViewModel @Inject constructor(
     private fun loadCurrentUser() {
         viewModelScope.launch {
             try {
-                val user = getCurrentUserUseCase.invoke()
+                val user = userRepository.getCurrentUser()
                 _currentUser.value = user
                 Log.d("BusinessManagement", "Current user loaded: ${user?.role}")
             } catch (e: Exception) {
@@ -65,65 +76,26 @@ class BusinessManagementViewModel @Inject constructor(
         }
     }
 
-    private fun loadBusinessSuperAdmins(businesses: List<Business>) {
+    fun loadBusinesses() {
         viewModelScope.launch {
+            _loading.value = true
             try {
-                val superAdminsMap = mutableMapOf<String, User?>()
-                businesses.forEach { business ->
-                    if (business.superAdminId != null) {
-                        val superAdmin = userRepository.getUserById(business.superAdminId)
+                val businessList = businessRepository.getAllBusinesses()
+                _businesses.value = businessList
+                
+                // Load SuperAdmins for each business
+                val superAdminsMap = mutableMapOf<String, User>()
+                businessList.forEach { business ->
+                    userBusinessRepository.getBusinessSuperAdmin(business.id)?.let { superAdmin ->
                         superAdminsMap[business.id] = superAdmin
                     }
                 }
                 _businessSuperAdmins.value = superAdminsMap
-                Log.d("BusinessManagement", "Loaded SuperAdmins for ${superAdminsMap.size} businesses")
+                
             } catch (e: Exception) {
-                Log.e("BusinessManagement", "Error loading business SuperAdmins", e)
-            }
-        }
-    }
-
-    fun loadBusinesses() {
-        viewModelScope.launch {
-            try {
-                Log.d("BusinessManagement", "Starting loadBusinesses function")
-                _state.update { it.copy(isLoading = true, error = null) }
-                
-                val businesses = businessRepository.getAllBusinesses()
-                Log.d("BusinessManagement", "Successfully loaded ${businesses.size} businesses")
-                
-                // Load SuperAdmins for businesses
-                loadBusinessSuperAdmins(businesses)
-                
-                // Get unassigned users excluding SYSTEM_OWNER and SUPERADMIN
-                val unassignedUsers = userRepository.getUnassignedUsers()
-                    .count { user -> 
-                        user.role != UserRole.SYSTEM_OWNER && 
-                        user.role != UserRole.SUPERADMIN 
-                    }
-                Log.d("BusinessManagement", "Unassigned users (excluding SYSTEM_OWNER and SUPERADMIN): $unassignedUsers")
-                
-                val totalBusinesses = businesses.size
-                val pendingApprovals = businesses.count { it.status == BusinessStatus.PENDING }
-                
-                _state.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        businesses = businesses,
-                        totalBusinesses = totalBusinesses,
-                        pendingApprovals = pendingApprovals,
-                        unassignedUsers = unassignedUsers,
-                        error = null
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e("BusinessManagement", "Error in loadBusinesses", e)
-                _state.update { 
-                    it.copy(
-                        isLoading = false,
-                        error = "Failed to load businesses: ${e.message}"
-                    )
-                }
+                _error.value = "Failed to load businesses: ${e.message}"
+            } finally {
+                _loading.value = false
             }
         }
     }
@@ -163,34 +135,13 @@ class BusinessManagementViewModel @Inject constructor(
     fun updateBusinessStatus(business: Business, newStatus: BusinessStatus) {
         viewModelScope.launch {
             try {
-                Log.d("BusinessManagement", "Updating business ${business.id} status to $newStatus")
-                _state.update { it.copy(isLoading = true, error = null) }
-                
-                val currentUser = getCurrentUserUseCase.invoke()
-                if (currentUser?.role != UserRole.SYSTEM_OWNER) {
-                    Log.e("BusinessManagement", "Unauthorized attempt to change business status by role: ${currentUser?.role}")
-                    _state.update { 
-                        it.copy(
-                            isLoading = false,
-                            error = "Only System Owner can change business status"
-                        )
-                    }
-                    return@launch
+                businessRepository.updateBusinessStatus(business.id, newStatus)
+                // Update local state
+                _businesses.value = _businesses.value.map { 
+                    if (it.id == business.id) it.copy(status = newStatus) else it 
                 }
-
-                val updatedBusiness = business.copy(status = newStatus)
-                businessRepository.updateBusiness(updatedBusiness)
-                
-                Log.d("BusinessManagement", "Business status updated successfully")
-                loadBusinesses() // Reload the list to reflect changes
             } catch (e: Exception) {
-                Log.e("BusinessManagement", "Error updating business status", e)
-                _state.update { 
-                    it.copy(
-                        isLoading = false,
-                        error = "Failed to update business status: ${e.message}"
-                    )
-                }
+                _error.value = "Failed to update business status: ${e.message}"
             }
         }
     }
@@ -327,43 +278,21 @@ class BusinessManagementViewModel @Inject constructor(
         }
     }
 
-    fun assignSuperAdmin(businessId: String, superAdminId: String) {
+    fun assignSuperAdmin(businessId: String, userId: String) {
         viewModelScope.launch {
             try {
-                _state.update { it.copy(isLoading = true) }
-                Log.d("BusinessManagement", "Starting SuperAdmin assignment - Business: $businessId, SuperAdmin: $superAdminId")
-                
-                // Get current business first
-                val business = businessRepository.getBusinessById(businessId)
-                Log.d("BusinessManagement", "Current business state - Name: ${business.name}, Status: ${business.status}, CurrentSuperAdmin: ${business.superAdminId}")
-                
-                if (superAdminId.isEmpty()) {
-                    // Remove the SuperAdmin assignment - set to empty string instead of null
-                    Log.d("BusinessManagement", "Removing SuperAdmin from business $businessId")
-                    // Create an updated business with empty string for superAdminId (not null)
-                    val updatedBusiness = business.copy(superAdminId = "")
-                    businessRepository.updateBusiness(updatedBusiness)
-                } else {
-                    // Assign a new SuperAdmin
-                    businessRepository.transferBusinessToSuperAdmin(businessId, superAdminId)
+                userBusinessRepository.assignSuperAdmin(businessId, userId)
+                // Refresh the SuperAdmin mapping
+                userRepository.getUserById(userId)?.let { superAdmin ->
+                    _businessSuperAdmins.value = _businessSuperAdmins.value + (businessId to superAdmin)
                 }
-                
-                // Reload businesses to reflect changes
-                loadBusinesses()
-                
-                _state.update { it.copy(
-                    isLoading = false,
-                    error = null
-                ) }
-                
-                Log.d("BusinessManagement", "Successfully updated SuperAdmin assignment")
             } catch (e: Exception) {
-                Log.e("BusinessManagement", "Error updating SuperAdmin assignment", e)
-                _state.update { it.copy(
-                    isLoading = false,
-                    error = "Failed to update SuperAdmin assignment: ${e.message}"
-                ) }
+                _error.value = "Failed to assign SuperAdmin: ${e.message}"
             }
         }
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 } 

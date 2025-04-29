@@ -15,6 +15,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import javax.inject.Singleton
+import okhttp3.OkHttpClient
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -36,23 +37,28 @@ object GOServicesModule {
     @Singleton
     fun provideGOServicesRepository(
         api: GOServicesApi,
-        preferences: GOServicesPreferences
+        authDataStore: AuthDataStore
     ): IGOServicesRepository {
-        return GOServicesRepository(api, preferences)
+        return GOServicesRepository(api, authDataStore)
     }
 
     @Provides
     @Singleton
     fun provideGOSecurityProviderRepository(
         api: GOSecurityProviderApi,
-        authDataStore: AuthDataStore
+        authDataStore: AuthDataStore,
+        okHttpClient: OkHttpClient,
+        retrofit: Retrofit
     ): IGOSecurityProviderRepository {
-        return GOSecurityProviderRepository(api, authDataStore)
+        return GOSecurityProviderRepository(api, authDataStore, okHttpClient, retrofit)
     }
 
     @Provides
     @Singleton
-    fun provideGOServicesManager(repository: IGOServicesRepository): GOServicesManager {
-        return GOServicesManager(repository)
+    fun provideGOServicesManager(
+        repository: IGOServicesRepository,
+        authDataStore: AuthDataStore
+    ): GOServicesManager {
+        return GOServicesManager(repository, authDataStore)
     }
 } 

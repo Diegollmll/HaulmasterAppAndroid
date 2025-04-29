@@ -32,6 +32,15 @@ import app.forku.core.location.LocationManager
 import app.forku.presentation.dashboard.DashboardViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.user.UserRole
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.compose.rememberNavController
+import app.forku.core.auth.AuthenticationState
+import app.forku.core.auth.TokenErrorHandler
+import kotlinx.coroutines.flow.collectLatest
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -46,6 +55,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var locationManager: LocationManager
+    
+    @Inject
+    lateinit var tokenErrorHandler: TokenErrorHandler
 
     private val loginViewModel: LoginViewModel by viewModels()
 
@@ -57,9 +69,9 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
         
-        // Inicializar el token al inicio
+        // Initialize token at startup
         lifecycleScope.launch {
-            authDataStore.initializeToken()
+            authDataStore.initializeApplicationToken()
         }
 
         setContent {
@@ -68,10 +80,51 @@ class MainActivity : ComponentActivity() {
             val userRole = currentUser?.role
             val isAuthenticated by dashboardViewModel.hasToken.collectAsState()
             val tourCompleted by dashboardViewModel.tourCompleted.collectAsState()
-
+            
             val loginState by loginViewModel.state.collectAsState()
-            val hasToken = authDataStore.getToken() != null
-            val tourCompletedFromPrefs = tourPreferences.hasTourCompleted()
+            val navController = rememberNavController()
+            
+            // State to track if we're showing an auth error
+            val authErrorMessage = remember { mutableStateOf<String?>(null) }
+            
+            // Observe authentication state in composition
+            val authState by tokenErrorHandler.authenticationState.collectAsState()
+            
+            // Watch for authentication events that require logging out
+            LaunchedEffect(authState) {
+                when (authState) {
+                    is AuthenticationState.RequiresAuthentication -> {
+                        // Set error message and show it
+                        val message = (authState as AuthenticationState.RequiresAuthentication).message
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Session expired: $message. Please log in again.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        
+                        // Clear auth data
+                        authDataStore.clearAuth()
+                        
+                        // Navigate to login screen
+                        if (navController.currentDestination?.route != Screen.Login.route) {
+                            navController.navigate(Screen.Login.route) {
+                                // Pop up to the start destination to clean up the back stack
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = false
+                                }
+                                // Avoid multiple copies of the same destination
+                                launchSingleTop = true
+                                // Restore state when navigating back
+                                restoreState = false
+                            }
+                        }
+                    }
+                    AuthenticationState.Authenticated -> {
+                        // Clear any error message
+                        authErrorMessage.value = null
+                    }
+                }
+            }
 
             ForkUTheme {
                 when (loginState) {
@@ -85,7 +138,15 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                     }
                     else -> {
+                        // Reset auth state when login succeeds
+                        if (loginState is LoginState.Success) {
+                            LaunchedEffect(Unit) {
+                                tokenErrorHandler.resetAuthenticationState()
+                            }
+                        }
+                        
                         NavGraph(
+                            navController = navController,
                             networkManager = networkManager,
                             locationManager = locationManager,
                             userRole = userRole ?: UserRole.OPERATOR,

@@ -1,52 +1,79 @@
 package app.forku.data.api
 
 import app.forku.data.api.dto.user.UserDto
-import app.forku.data.api.dto.BusinessDto
-import app.forku.data.api.dto.BusinessStats
-
+import app.forku.data.api.dto.business.BusinessItemDto
+import app.forku.data.api.dto.business.BusinessStats
+import retrofit2.Response
 import retrofit2.http.*
 
 interface BusinessApi {
-    @GET("business")
-    suspend fun getAllBusinesses(): List<BusinessDto>
+    @GET("api/business/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getBusinessById(@Path("id") id: String): Response<BusinessItemDto>
 
-    @GET("business")
-    suspend fun getAllBusinesses(
-        @Query("superAdminId") superAdminId: String? = null,
-        @Query("systemOwnerId") systemOwnerId: String? = null,
-        @Query("status") status: String? = null
-    ): List<BusinessDto>
+    @GET("api/business/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getAllBusinesses(): Response<List<BusinessItemDto>>
 
-    @GET("business/{id}")
-    suspend fun getBusinessById(@Path("id") id: String): BusinessDto
+    @GET("dataset/api/business/count")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getBusinessCount(): Response<Int>
 
-    @POST("business")
-    suspend fun createBusiness(@Body request: CreateBusinessRequest): retrofit2.Response<BusinessDto>
+    @POST("api/business")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun saveBusiness(@Body business: BusinessItemDto): Response<BusinessItemDto>
 
-    @PUT("business/{id}")
-    suspend fun updateBusiness(
-        @Path("id") id: String,
-        @Body request: UpdateBusinessRequest
-    ): BusinessDto
+    @DELETE("dataset/api/business/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun deleteBusiness(@Path("id") id: String): Response<Unit>
 
-    @DELETE("business/{id}")
-    suspend fun deleteBusiness(@Path("id") id: String)
+    @GET("dataset/api/business/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getAllBusinessesDataset(): Response<List<BusinessItemDto>>
 
-    @GET("user")
-    suspend fun getBusinessUsers(@Query("businessId") businessId: String): List<UserDto>
+    @GET("dataset/api/business/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getBusinessByIdDataset(@Path("id") id: String): Response<BusinessItemDto>
 
-    @GET("business/system-owner/{systemOwnerId}")
-    suspend fun getBusinessesBySystemOwnerId(@Path("systemOwnerId") systemOwnerId: String): List<BusinessDto>
+    @POST("dataset/api/business")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun createBusinessDataset(@Body business: BusinessItemDto): Response<BusinessItemDto>
 
-    @GET("business/super-admin/{superAdminId}")
-    suspend fun getBusinessesBySuperAdminId(@Path("superAdminId") superAdminId: String): List<BusinessDto>
+    @GET("api/business/{businessId}/user")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getBusinessUsers(@Path("businessId") businessId: String): Response<List<UserDto>>
 
-    @GET("business/stats/system-owner/{systemOwnerId}")
-    suspend fun getSystemOwnerBusinessStats(@Path("systemOwnerId") systemOwnerId: String): BusinessStats
-
-    @GET("business/stats/super-admin/{superAdminId}")
-    suspend fun getSuperAdminBusinessStats(@Path("superAdminId") superAdminId: String): BusinessStats
-
-    @GET("vehicle")
-    suspend fun getBusinessVehicles(@Query("businessId") businessId: String): List<String>
+    @GET("api/business/{businessId}/vehicle")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getBusinessVehicles(@Path("businessId") businessId: String): Response<List<String>>
 }

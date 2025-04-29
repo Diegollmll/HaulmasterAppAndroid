@@ -35,15 +35,16 @@ class SitesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val sites = repository.getSitesByBusiness(businessId).map { it.toDomain() }
-                _uiState.update { 
+                val allSites = repository.getAllSites().map { it.toDomain() }
+                val sites = allSites.filter { it.businessId == businessId }
+                _uiState.update {
                     it.copy(
                         sites = sites,
                         isLoading = false
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         error = e.message ?: "Failed to load sites",
                         isLoading = false
@@ -57,7 +58,7 @@ class SitesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val createdSite = repository.createSite(businessId, site.toDto()).toDomain()
+                val createdSite = repository.saveSite(site.copy(businessId = businessId).toDto()).toDomain()
                 _uiState.update { currentState ->
                     currentState.copy(
                         sites = currentState.sites + createdSite,
@@ -66,7 +67,7 @@ class SitesViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         error = e.message ?: "Failed to create site",
                         isLoading = false
@@ -80,18 +81,18 @@ class SitesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                val updatedSite = repository.updateSite(businessId, site.id, site.toDto()).toDomain()
+                val updatedSite = repository.saveSite(site.copy(businessId = businessId).toDto()).toDomain()
                 _uiState.update { currentState ->
                     currentState.copy(
-                        sites = currentState.sites.map { 
-                            if (it.id == updatedSite.id) updatedSite else it 
+                        sites = currentState.sites.map {
+                            if (it.id == updatedSite.id) updatedSite else it
                         },
                         isLoading = false,
                         showDialog = false
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         error = e.message ?: "Failed to update site",
                         isLoading = false
@@ -105,7 +106,7 @@ class SitesViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                repository.deleteSite(businessId, siteId)
+                repository.deleteSite(siteId)
                 _uiState.update { currentState ->
                     currentState.copy(
                         sites = currentState.sites.filter { it.id != siteId },
@@ -114,7 +115,7 @@ class SitesViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
                         error = e.message ?: "Failed to delete site",
                         isLoading = false

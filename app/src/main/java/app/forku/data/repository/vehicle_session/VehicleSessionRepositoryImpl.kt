@@ -93,17 +93,23 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             } else null
             
             // Create session
-            val response = api.createSession(
-                StartSessionRequestDto(
-                    vehicleId = vehicleId,
-                    checkId = checkId,
-                    userId = currentUser.id,
-                    startTime = currentDateTime,
-                    timestamp = currentDateTime,
-                    status = VehicleSessionStatus.OPERATING.toString(),
-                    startLocationCoordinates = locationCoordinates
-                )
+            val newSession = VehicleSession(
+                id = "", // Let backend assign
+                vehicleId = vehicleId,
+                userId = currentUser.id,
+                checkId = checkId,
+                startTime = currentDateTime,
+                endTime = null,
+                status = VehicleSessionStatus.OPERATING,
+                startLocationCoordinates = locationCoordinates,
+                endLocationCoordinates = null,
+                durationMinutes = null,
+                timestamp = currentDateTime,
+                closeMethod = null,
+                closedBy = null,
+                notes = null
             )
+            val response = api.saveSession(VehicleSessionMapper.toVehicleSessionDto(newSession))
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session creation fails
@@ -191,10 +197,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 endLocationCoordinates = locationCoordinates
             )
             
-            val response = api.updateSession(
-                sessionId = sessionId,
-                session = VehicleSessionMapper.toVehicleSessionDto(updatedSession)
-            )
+            val response = api.saveSession(VehicleSessionMapper.toVehicleSessionDto(updatedSession))
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session update fails

@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
+import app.forku.domain.model.user.User
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.navigation.Screen
 
@@ -21,17 +22,17 @@ import app.forku.presentation.navigation.Screen
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: (String) -> Unit,
+    onLoginSuccess: (User) -> Unit,
     networkManager: NetworkConnectivityManager,
     navController: NavController
 ) {
     val state by viewModel.state.collectAsState()
-    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     LaunchedEffect(state) {
         if (state is LoginState.Success) {
-            onLoginSuccess((state as LoginState.Success).token)
+            onLoginSuccess((state as LoginState.Success).user)
         }
     }
 
@@ -65,9 +66,9 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Phone or email") },
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFFFA726),
@@ -107,13 +108,13 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.login(email, password) },
+                onClick = { viewModel.login(username, password) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFFA726),
                     contentColor = Color.Black
                 ),
-                enabled = email.isNotBlank() && password.isNotBlank() && state !is LoginState.Loading
+                enabled = username.isNotBlank() && password.isNotBlank() && state !is LoginState.Loading
             ) {
                 if (state is LoginState.Loading) {
                     CircularProgressIndicator(

@@ -34,4 +34,4 @@ fun Certification.toDto(): CertificationDto {
         documentUrl = documentUrl,
         timestamp = timestamp
     )
-} 
+}

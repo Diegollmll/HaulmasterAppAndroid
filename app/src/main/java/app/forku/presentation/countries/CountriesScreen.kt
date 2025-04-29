@@ -11,13 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.domain.model.country.Country
-import app.forku.domain.model.country.State
+import app.forku.domain.model.country.CountryState
 
 @Composable
 fun CountriesScreen(
@@ -60,7 +59,7 @@ fun CountriesScreen(
                 items(state.countries) { country ->
                     CountryCard(
                         country = country,
-                        states = state.statesByCountry[country.id] ?: emptyList(),
+                        countryStates = state.statesByCountry[country.id] ?: emptyList(),
                         onEditCountry = { viewModel.showEditCountryDialog(country) },
                         onDeleteCountry = { viewModel.deleteCountry(country.id) },
                         onToggleCountryActive = { viewModel.toggleCountryActive(country) },
@@ -104,12 +103,12 @@ fun CountriesScreen(
             // Add/Edit State Dialog
             if (state.showStateDialog) {
                 StateDialog(
-                    state = state.selectedState,
+                    countryState = state.selectedCountryState,
                     onDismiss = { viewModel.hideStateDialog() },
                     onSave = { name, code ->
-                        if (state.selectedState != null) {
+                        if (state.selectedCountryState != null) {
                             viewModel.updateState(
-                                state.selectedState!!.copy(
+                                state.selectedCountryState!!.copy(
                                     name = name,
                                     code = code
                                 )
@@ -133,18 +132,18 @@ fun CountriesScreen(
 @Composable
 private fun CountryCard(
     country: Country,
-    states: List<State>,
+    countryStates: List<CountryState>,
     onEditCountry: () -> Unit,
     onDeleteCountry: () -> Unit,
     onToggleCountryActive: () -> Unit,
     onAddState: () -> Unit,
-    onEditState: (State) -> Unit,
-    onDeleteState: (State) -> Unit,
-    onToggleStateActive: (State) -> Unit
+    onEditState: (CountryState) -> Unit,
+    onDeleteState: (CountryState) -> Unit,
+    onToggleStateActive: (CountryState) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     
-    Log.d("CountriesScreen", "Rendering CountryCard for ${country.name} with ${states.size} states")
+    Log.d("CountriesScreen", "Rendering CountryCard for ${country.name} with ${countryStates.size} states")
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -203,7 +202,7 @@ private fun CountryCard(
 
             // States Section
             if (expanded) {
-                Log.d("CountriesScreen", "Showing states for ${country.name}: ${states.size} states")
+                Log.d("CountriesScreen", "Showing states for ${country.name}: ${countryStates.size} states")
                 Spacer(modifier = Modifier.height(8.dp))
                 Divider()
                 Spacer(modifier = Modifier.height(8.dp))
@@ -224,7 +223,7 @@ private fun CountryCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (states.isEmpty()) {
+                if (countryStates.isEmpty()) {
                     Text(
                         text = "No states/provinces added yet",
                         style = MaterialTheme.typography.bodyMedium,
@@ -232,9 +231,9 @@ private fun CountryCard(
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 } else {
-                    states.forEach { state ->
+                    countryStates.forEach { state ->
                         StateItem(
-                            state = state,
+                            countryState = state,
                             onEdit = { onEditState(state) },
                             onDelete = { onDeleteState(state) },
                             onToggleActive = { onToggleStateActive(state) }
@@ -249,7 +248,7 @@ private fun CountryCard(
 
 @Composable
 private fun StateItem(
-    state: State,
+    countryState: CountryState,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleActive: () -> Unit
@@ -269,18 +268,18 @@ private fun StateItem(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = state.name,
+                    text = countryState.name,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = state.code,
+                    text = countryState.code,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
             
             Row {
                 Switch(
-                    checked = state.isActive,
+                    checked = countryState.isActive,
                     onCheckedChange = { onToggleActive() }
                 )
                 IconButton(onClick = onEdit) {
@@ -370,16 +369,16 @@ private fun CountryDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StateDialog(
-    state: State?,
+    countryState: CountryState?,
     onDismiss: () -> Unit,
     onSave: (String, String) -> Unit
 ) {
-    var name by remember { mutableStateOf(state?.name ?: "") }
-    var code by remember { mutableStateOf(state?.code ?: "") }
+    var name by remember { mutableStateOf(countryState?.name ?: "") }
+    var code by remember { mutableStateOf(countryState?.code ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (state == null) "Add State" else "Edit State") },
+        title = { Text(if (countryState == null) "Add State" else "Edit State") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -406,7 +405,7 @@ private fun StateDialog(
                 },
                 enabled = name.isNotBlank() && code.isNotBlank()
             ) {
-                Text(if (state == null) "Add" else "Save")
+                Text(if (countryState == null) "Add" else "Save")
             }
         },
         dismissButton = {

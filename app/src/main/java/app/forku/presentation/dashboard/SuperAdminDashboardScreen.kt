@@ -24,13 +24,29 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import app.forku.presentation.navigation.Screen
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
+import androidx.hilt.navigation.compose.hiltViewModel
+
+import app.forku.presentation.common.components.ErrorBanner
+import androidx.compose.material.Card
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.Typography
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import app.forku.domain.model.business.BusinessStatus
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SuperAdminDashboardScreen(
     navController: NavController? = null,
     onNavigate: (String) -> Unit = {},
-    viewModel: SuperAdminDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
+    viewModel: SuperAdminDashboardViewModel = hiltViewModel(),
     networkManager: NetworkConnectivityManager
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
@@ -374,4 +390,105 @@ private fun AdminActionButton(
             )
         }
     }
+}
+
+@Composable
+private fun BusinessStatusSection(
+    totalBusinesses: Int,
+    businessesByStatus: Map<BusinessStatus, Int>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Business Statistics",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            Text(
+                text = "Total Businesses: $totalBusinesses",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            businessesByStatus.forEach { (status, count) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = status.name)
+                    Text(text = count.toString())
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentBusinessesSection(
+    businesses: List<Business>,
+    onBusinessClick: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Recent Businesses",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            businesses.forEach { business ->
+                BusinessItem(
+                    business = business,
+                    onClick = { onBusinessClick(business.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BusinessItem(
+    business: Business,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = business.name,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "Status: ${business.status.name}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowRight,
+            contentDescription = "View details"
+        )
+    }
+    Divider()
 } 

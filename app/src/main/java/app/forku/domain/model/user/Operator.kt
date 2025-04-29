@@ -1,6 +1,7 @@
 package app.forku.domain.model.user
 
 import app.forku.domain.model.vehicle.VehicleType
+import app.forku.domain.model.certification.Certification
 
 data class Operator(
     val user: User,
@@ -21,20 +22,6 @@ data class Operator(
     val username: String get() = user.username
     val role: UserRole get() = user.role
     val certifications: List<Certification> get() = user.certifications
-
-    fun canOperateVehicle(vehicleType: VehicleType): Boolean {
-        return isCertified && certifications.any {
-            it.vehicleTypeId == vehicleType.id && it.isValid
-        }
-    }
-
-    fun hasValidMedicalCheck(): Boolean {
-        return !lastMedicalCheck.isNullOrEmpty()
-    }
-
-    fun isQualifiedForTraining(): Boolean {
-        return experienceYears >= 2 && isCertified
-    }
 
 
 }

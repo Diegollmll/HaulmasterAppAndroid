@@ -131,6 +131,14 @@ sealed class Screen(val route: String) {
         val title: String = "Vehicle Components"
     }
 
+    data object GroupManagement : Screen("group_management")
+
+    data object GroupRoleManagement : Screen("group_role_management/{groupName}") {
+        const val GROUP_NAME_ARG = "groupName"
+
+        fun createRoute(groupName: String) = "group_role_management/$groupName"
+    }
+
     companion object {
         fun Profile.withOperatorId(operatorId: String?) = 
             "profile" + (operatorId?.let { "?operatorId=$it" } ?: "")

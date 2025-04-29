@@ -1,0 +1,95 @@
+Based on the GO API documentation and current implementation, here are the endpoints that need to be updated:
+
+UserApi.kt: [DONE]
+- Already correctly using /api/gouser endpoints
+- Added @Headers consistently for all endpoints
+- Updated updateUser to use correct path parameter format
+
+BusinessApi.kt: [DONE]
+- Todos los endpoints y repositorios migrados a la nueva GO API
+- Solo se usan endpoints oficiales:
+  - Crear/Actualizar: POST /api/business
+  - Eliminar: DELETE /dataset/api/business/{id}
+  - Obtener: GET /api/business/list, GET /api/business/byid/{id}
+  - Contar: GET /dataset/api/business/count
+
+VehicleApi.kt: [DONE]
+- Updated paths to match GO API format
+- Updated all usages in repositories/services to new endpoints
+- QR code now uses vehicle ID
+- All status updates use saveVehicle
+
+SiteApi.kt: [DONE]
+- All endpoints and repository usages migrated to the new GO API
+- getSitesByBusiness removed; now using getAllSites() + in-memory filtering by businessId
+- Create/Update: POST /api/site
+- Delete: DELETE /dataset/api/site/{id}
+- Get: GET /api/site/list, GET /api/site/byid/{id}
+- Count: GET /dataset/api/site/count
+
+CountryApi.kt and CountryStateApi.kt: [DONE]
+- All endpoints use the new GO API paths
+- Consistent @Headers("Content-Type: application/json", "Accept: text/plain") added to all endpoints
+
+VehicleSessionApi.kt: [DONE]
+- All endpoints, DTOs, and repository usages are now consistent with GO API documentation
+- No further migration needed for this API
+
+VehicleComponentApi: [DONE]
+- Updated to use /dataset/api/vehiclecomponent and /api/vehiclecomponent paths
+- All repository usages migrated to new endpoints
+- Create/update now use POST to /api/vehiclecomponent
+- Delete uses /dataset/api/vehiclecomponent/{id}
+
+ChecklistApi.kt: [DONE]
+- All endpoints now use /api/checklist and /dataset/api/checklist paths
+- Legacy endpoints removed
+- @Headers for JSON content type and Accept added to all endpoints
+
+ChecklistItemApi.kt: [DONE]
+- All endpoints now use /api/checklistitem and /dataset/api/checklistitem paths
+- Legacy endpoints removed
+- @Headers for JSON content type and Accept added to all endpoints
+
+ChecklistItemCategoryApi.kt: [DONE]
+- All endpoints now use /api/checklistitemcategory and /dataset/api/checklistitemcategory paths
+- Legacy endpoints removed
+- @Headers for JSON content type and Accept added to all endpoints
+
+ChecklistItemSubcategoryApi.kt: [DONE]
+- All endpoints now use /api/checklistitemsubcategory and /dataset/api/checklistitemsubcategory paths
+- Legacy endpoints removed
+- @Headers for JSON content type and Accept added to all endpoints
+
+IncidentApi.kt: [DONE]
+- All endpoints now use /api/incident and /dataset/api/incident paths
+- Legacy endpoints removed
+- @Headers for JSON content type and Accept added to all endpoints
+- Placeholders for incident types and multimedia endpoints added
+
+NotificationApi.kt: [TODO]
+- Update to use /dataset/api/notification and /api/notification paths
+- Add missing endpoints for notification preferences
+
+FeedbackApi.kt: [TODO]
+- Update to use /dataset/api/feedback and /api/feedback paths
+- Add missing endpoints for feedback analytics
+
+GOServicesApi.kt: [TODO]
+- Already correctly using /dataset/api/goservices path
+- Add missing endpoint for settings
+
+GOSecurityProviderApi.kt (needs to be created): [TODO]
+- Implement all authentication and security-related endpoints
+- Add CSRF token management
+- Add session management endpoints
+
+GOFileUploaderApi.kt: [TODO]
+- Already correctly using /api/gofileuploader path
+- Add missing endpoints for file management
+
+VehicleTypeApi and VehicleCategoryApi: [DONE]
+- Updated to use /dataset/api and /api paths consistently
+- All repository usages migrated to new endpoints
+- Create/update now use POST to /api/vehicletype and /api/vehiclecategory
+- Delete uses /dataset/api/vehicletype/{id} and /dataset/api/vehiclecategory/{id}

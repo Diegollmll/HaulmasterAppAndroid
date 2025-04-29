@@ -82,11 +82,15 @@ class DashboardViewModel @Inject constructor(
     
     private fun checkLoginState() {
         viewModelScope.launch {
-            val token = userRepository.getAuthToken()
-            _loginState.value = if (!token.isNullOrEmpty()) {
-                LoginState.Success(token)
-            } else {
-                LoginState.Idle
+            try {
+                val user = userRepository.getCurrentUser()
+                if (user != null) {
+                    _loginState.value = LoginState.Success(user)
+                } else {
+                    _loginState.value = LoginState.Idle
+                }
+            } catch (e: Exception) {
+                _loginState.value = LoginState.Error(e.message ?: "Unknown error checking login state")
             }
         }
     }

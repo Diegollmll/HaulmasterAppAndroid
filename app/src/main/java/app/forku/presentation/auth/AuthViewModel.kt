@@ -2,6 +2,7 @@ package app.forku.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.forku.domain.model.user.User
 import app.forku.domain.usecase.security.AuthenticateUseCase
 import app.forku.domain.usecase.security.AuthenticationState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +36,8 @@ class AuthViewModel @Inject constructor(
                                 state.value.copy(
                                     isLoading = false,
                                     isAuthenticated = true,
-                                    token = authState.token,
+                                    token = authState.user.token,
+                                    user = authState.user,
                                     error = null
                                 )
                             }

@@ -5,42 +5,42 @@ import app.forku.domain.model.vehicle.VehicleStatus
 import com.google.gson.annotations.SerializedName
 
 data class VehicleDto(
-    @SerializedName("id")
+    @SerializedName("Id")
     val id: String? = null,  // Allow null for creation
     
-    @SerializedName("businessId")
+    @SerializedName("BusinessId")
     val businessId: String? = null,
     
-    @SerializedName("vehicleTypeId")
+    @SerializedName("VehicleTypeId")
     val vehicleTypeId: String,
     
-    @SerializedName("categoryId")
+    @SerializedName("CategoryId")
     val categoryId: String,
     
-    @SerializedName("status")
+    @SerializedName("Status")
     val status: String = "AVAILABLE",
     
-    @SerializedName("serialNumber")
+    @SerializedName("SerialNumber")
     val serialNumber: String = "",
     
-    @SerializedName("description")
+    @SerializedName("Description")
     val description: String,
     
-    @SerializedName("bestSuitedFor")
+    @SerializedName("BestSuitedFor")
     val bestSuitedFor: String,
     
-    @SerializedName("photoModel")
+    @SerializedName("PhotoModel")
     val photoModel: String,
     
-    @SerializedName("codename")
+    @SerializedName("Codename")
     val codename: String,
     
-    @SerializedName("model")
+    @SerializedName("Model")
     val model: String,
     
-    @SerializedName("energyType")
+    @SerializedName("EnergyType")
     val energyType: String,
     
-    @SerializedName("nextService")
+    @SerializedName("NextService")
     val nextService: String
 )

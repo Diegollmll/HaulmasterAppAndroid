@@ -1,7 +1,6 @@
 package app.forku.data.mapper
 
-import app.forku.data.api.dto.VehicleSessionDto
-import app.forku.data.api.dto.session.SessionDto
+import app.forku.data.api.dto.session.VehicleSessionDto
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.session.VehicleSessionClosedMethod
@@ -38,25 +37,6 @@ object VehicleSessionMapper {
             checkId = dto.checkId,
             startTime = dto.startTime,
             endTime = dto.endTime,
-            status = VehicleSessionStatus.valueOf(dto.status),
-            startLocationCoordinates = dto.startLocationCoordinates,
-            endLocationCoordinates = dto.endLocationCoordinates,
-            durationMinutes = calculateDuration(dto.startTime, dto.endTime),
-            timestamp = dto.timestamp,
-            closeMethod = mapCloseMethod(dto.closeMethod),
-            closedBy = dto.closedBy,
-            notes = dto.notes
-        )
-    }
-
-    fun toDomain(dto: SessionDto): VehicleSession {
-        return VehicleSession(
-            id = dto.id,
-            vehicleId = dto.vehicleId,
-            userId = dto.userId,
-            checkId = dto.checkId,
-            startTime = dto.startTime,
-            endTime = dto.endTime,
             status = when (dto.status.uppercase()) {
                 "OPERATING" -> VehicleSessionStatus.OPERATING
                 else -> VehicleSessionStatus.NOT_OPERATING
@@ -71,8 +51,8 @@ object VehicleSessionMapper {
         )
     }
 
-    fun toDto(domain: VehicleSession): SessionDto {
-        return SessionDto(
+    fun toDto(domain: VehicleSession): VehicleSessionDto {
+        return VehicleSessionDto(
             id = domain.id,
             vehicleId = domain.vehicleId,
             userId = domain.userId,

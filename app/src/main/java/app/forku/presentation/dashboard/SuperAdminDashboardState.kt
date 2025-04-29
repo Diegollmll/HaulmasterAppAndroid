@@ -1,5 +1,7 @@
 package app.forku.presentation.dashboard
 
+import app.forku.domain.model.business.BusinessStatus
+
 data class SuperAdminDashboardState(
     val isLoading: Boolean = false,
     val error: String? = null,
@@ -27,14 +29,12 @@ data class SuperAdminDashboardState(
     // System Settings
     val systemHealth: SystemHealth = SystemHealth(),
     val lastBackupTime: String? = null,
-    val recentAuditLogs: List<AuditLogEntry> = emptyList()
+    val recentAuditLogs: List<AuditLogEntry> = emptyList(),
+    val businesses: List<Business> = emptyList(),
+    val totalBusinesses: Int = 0,
+    val totalUsers: Int = 0,
+    val businessesByStatus: Map<BusinessStatus, Int> = emptyMap()
 )
-
-enum class BusinessStatus {
-    ACTIVE,
-    PENDING,
-    SUSPENDED
-}
 
 data class SystemHealth(
     val serverStatus: String = "OK",

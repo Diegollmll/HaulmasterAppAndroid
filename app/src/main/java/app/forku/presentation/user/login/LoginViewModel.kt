@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.local.TourPreferences
+import app.forku.domain.model.user.User
 import app.forku.domain.usecase.security.AuthenticateUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,13 +23,13 @@ class LoginViewModel @Inject constructor(
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
     val state = _state.asStateFlow()
 
-    fun login(email: String, password: String) {
+    fun login(username: String, password: String) {
         viewModelScope.launch {
             try {
-                val sanitizedEmail = sanitizeInput(email)
+                val sanitizedUsername = sanitizeInput(username)
                 val sanitizedPassword = sanitizeInput(password)
 
-                authenticateUseCase(sanitizedEmail, sanitizedPassword)
+                authenticateUseCase(sanitizedUsername, sanitizedPassword)
                     .collect { authState ->
                         _state.value = when (authState) {
                             is app.forku.domain.usecase.security.AuthenticationState.Loading -> {
@@ -36,7 +37,7 @@ class LoginViewModel @Inject constructor(
                             }
                             is app.forku.domain.usecase.security.AuthenticationState.Success -> {
                                 tourPreferences.setTourCompleted()
-                                LoginState.Success(authState.token)
+                                LoginState.Success(authState.user)
                             }
                             is app.forku.domain.usecase.security.AuthenticationState.Error -> {
                                 val errorMessage = when {

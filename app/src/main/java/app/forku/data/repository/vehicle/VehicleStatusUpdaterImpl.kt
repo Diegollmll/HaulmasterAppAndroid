@@ -16,21 +16,19 @@ class VehicleStatusUpdaterImpl @Inject constructor(
         businessId: String
     ): Boolean {
         return try {
-            val response = api.updateVehicleStatus(
-                businessId = businessId,
-                vehicleId = vehicleId,
-                status = status.name
-            )
-            
-            if (!response.isSuccessful) {
-                when (response.code()) {
-                    404 -> throw Exception("Vehicle not found")
-                    429 -> throw Exception("Rate limit exceeded. Please try again later.")
-                    in 500..599 -> throw Exception("Server error. Please try again later.")
-                    else -> throw Exception("Failed to update vehicle status: ${response.code()}")
-                }
+            // Fetch the current vehicle
+            val currentResponse = api.getVehicleById(vehicleId)
+            if (!currentResponse.isSuccessful) {
+                throw Exception("Failed to fetch vehicle: ${currentResponse.code()}")
             }
-            
+            val currentVehicleDto = currentResponse.body() ?: throw Exception("Vehicle not found")
+            // Update the status (use property name, not serialized name)
+            val updatedVehicleDto = currentVehicleDto.copy(status = status.name)
+            // Save the updated vehicle
+            val response = api.saveVehicle(updatedVehicleDto)
+            if (!response.isSuccessful) {
+                throw Exception("Failed to update vehicle status: ${response.code()}")
+            }
             true
         } catch (e: Exception) {
             android.util.Log.e("VehicleStatus", "Error updating vehicle status", e)

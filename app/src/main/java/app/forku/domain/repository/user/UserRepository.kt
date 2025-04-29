@@ -50,4 +50,10 @@ interface UserRepository {
     suspend fun getCurrentUserId(): String?
 
     suspend fun getUnassignedUsers(): List<User>
+    
+    /**
+     * Get the total count of users in the system
+     * @return The number of users or null if there was an error
+     */
+    suspend fun getUserCount(): Int?
 } 

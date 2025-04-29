@@ -3,6 +3,7 @@ package app.forku.presentation.dashboard
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.forku.domain.model.business.BusinessStatus
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.domain.repository.business.BusinessRepository
@@ -97,14 +98,37 @@ class SystemOwnerDashboardViewModel @Inject constructor(
                     "pending=$pendingBusinesses, " +
                     "suspended=$suspendedBusinesses")
 
-                // Load users
+                // Load users first since we need them for multiple purposes
                 val users = try {
-                    userRepository.getAllUsers().also {
-                        Log.d("SystemOwnerDashboard", "Successfully loaded ${it.size} users")
+                    userRepository.getAllUsers().also { usersList ->
+                        Log.d("SystemOwnerDashboard", "Successfully loaded ${usersList.size} users for detailed info")
                     }
                 } catch (e: Exception) {
                     Log.e("SystemOwnerDashboard", "Error loading users", e)
                     emptyList()
+                }
+
+                // Get user count from API, falling back to users.size if needed
+                val userCount = try {
+                    userRepository.getUserCount().also { count ->
+                        Log.d("SystemOwnerDashboard", "User count from API: $count")
+                        if (count == 0 && users.isNotEmpty()) {
+                            Log.w("SystemOwnerDashboard", "API returned 0 users but we have ${users.size} users loaded")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SystemOwnerDashboard", "Error getting user count from API", e)
+                    null
+                }
+
+                // Use the most accurate count available
+                val finalUserCount = when {
+                    userCount != null && userCount > 0 -> userCount
+                    users.isNotEmpty() -> {
+                        Log.d("SystemOwnerDashboard", "Using users.size (${users.size}) as count since API returned null or 0")
+                        users.size
+                    }
+                    else -> 0
                 }
 
                 // Load vehicles
@@ -123,7 +147,7 @@ class SystemOwnerDashboardViewModel @Inject constructor(
                     currentState.copy(
                         isLoading = false,
                         error = null,
-                        totalUsersCount = users.size,
+                        totalUsersCount = finalUserCount,
                         totalVehiclesCount = vehicles.size,
                         totalBusinessCount = businesses.size,
                         activeBusinesses = activeBusinesses,

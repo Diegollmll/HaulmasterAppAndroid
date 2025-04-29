@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.country.Country
-import app.forku.domain.model.country.State
+import app.forku.domain.model.country.CountryState
 import app.forku.domain.repository.country.CountryRepository
 import app.forku.domain.repository.country.StateRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,7 +39,7 @@ class CountriesViewModel @Inject constructor(
                 Log.d("CountriesViewModel", "Loaded ${countries.size} countries")
                 
                 // Load states for each country
-                val statesByCountry = mutableMapOf<String, List<State>>()
+                val statesByCountry = mutableMapOf<String, List<CountryState>>()
                 countries.forEach { country ->
                     Log.d("CountriesViewModel", "Loading states for country: ${country.name} (${country.id})")
                     val states = stateRepository.getStatesByCountry(country.id)
@@ -152,14 +152,14 @@ class CountriesViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                val newState = State(
+                val newCountryState = CountryState(
                     id = UUID.randomUUID().toString(),
                     countryId = countryId,
                     name = name,
                     code = code.uppercase(),
                     isActive = true
                 )
-                stateRepository.createState(newState)
+                stateRepository.createState(newCountryState)
                 loadCountries()
             } catch (e: Exception) {
                 _state.update { 
@@ -172,11 +172,11 @@ class CountriesViewModel @Inject constructor(
         }
     }
 
-    fun updateState(state: State) {
+    fun updateState(countryState: CountryState) {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                stateRepository.updateState(state)
+                stateRepository.updateState(countryState)
                 loadCountries()
             } catch (e: Exception) {
                 _state.update { 
@@ -206,10 +206,10 @@ class CountriesViewModel @Inject constructor(
         }
     }
 
-    fun toggleStateActive(state: State) {
+    fun toggleStateActive(countryState: CountryState) {
         viewModelScope.launch {
             try {
-                val updatedState = state.copy(isActive = !state.isActive)
+                val updatedState = countryState.copy(isActive = !countryState.isActive)
                 updateState(updatedState)
             } catch (e: Exception) {
                 _state.update { 
@@ -252,16 +252,16 @@ class CountriesViewModel @Inject constructor(
             it.copy(
                 showStateDialog = true,
                 selectedCountry = country,
-                selectedState = null
+                selectedCountryState = null
             )
         }
     }
 
-    fun showEditStateDialog(state: State) {
+    fun showEditStateDialog(countryState: CountryState) {
         _state.update { 
             it.copy(
                 showStateDialog = true,
-                selectedState = state
+                selectedCountryState = countryState
             )
         }
     }
@@ -270,7 +270,7 @@ class CountriesViewModel @Inject constructor(
         _state.update { 
             it.copy(
                 showStateDialog = false,
-                selectedState = null
+                selectedCountryState = null
             )
         }
     }

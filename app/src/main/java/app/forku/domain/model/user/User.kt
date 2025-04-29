@@ -1,5 +1,7 @@
 package app.forku.domain.model.user
 
+import app.forku.domain.model.certification.Certification
+
 data class User(
     val id: String,
     val token: String,

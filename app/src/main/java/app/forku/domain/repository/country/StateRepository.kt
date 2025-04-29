@@ -1,12 +1,12 @@
 package app.forku.domain.repository.country
 
-import app.forku.domain.model.country.State
+import app.forku.domain.model.country.CountryState
 
 interface StateRepository {
-    suspend fun getAllStates(): List<State>
-    suspend fun getStatesByCountry(countryId: String): List<State>
-    suspend fun getStateById(id: String): State
-    suspend fun createState(state: State)
-    suspend fun updateState(state: State)
+    suspend fun getAllStates(): List<CountryState>
+    suspend fun getStatesByCountry(countryId: String): List<CountryState>
+    suspend fun getStateById(id: String): CountryState
+    suspend fun createState(countryState: CountryState)
+    suspend fun updateState(countryState: CountryState)
     suspend fun deleteState(id: String)
 } 

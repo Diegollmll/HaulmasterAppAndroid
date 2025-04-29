@@ -135,6 +135,11 @@ private fun SystemOverviewSection(
         "businesses=${state.totalBusinessCount}, " +
         "vehicles=${state.totalVehiclesCount}")
         
+    // Additional debug logging to verify the state values
+    if (state.totalUsersCount <= 0) {
+        Log.w("SystemOwnerDashboard", "User count is still showing as 0 or less in the UI")
+    }
+        
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),

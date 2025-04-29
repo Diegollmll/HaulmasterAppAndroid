@@ -84,7 +84,7 @@ class ForkUApplication : Application(), ProviderInstallListener {
 
     private fun initializeAuth() {
         CoroutineScope(Dispatchers.IO).launch {
-            authDataStore.initializeToken()
+            authDataStore.initializeApplicationToken()
         }
     }
 } 

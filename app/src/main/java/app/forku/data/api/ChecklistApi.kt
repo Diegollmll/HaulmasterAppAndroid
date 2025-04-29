@@ -1,30 +1,63 @@
 package app.forku.data.api
 
-import app.forku.data.api.dto.checklist.ChecklistResponseDto
-import app.forku.data.api.dto.checklist.PreShiftCheckDto
+import app.forku.data.api.dto.checklist.ChecklistDto
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ChecklistApi {
-    @GET("checklist_questionary")
-    suspend fun getChecklistQuestionary(): Response<ChecklistResponseDto>
+    @GET("api/checklist/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getList(): Response<List<ChecklistDto>>
 
-    @GET("checks")
-    suspend fun getAllChecks(@Query("businessId") businessId: String): Response<List<PreShiftCheckDto>>
+    @GET("api/checklist/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getById(@Path("id") id: String): Response<ChecklistDto>
 
-    @GET("checks/{checkId}")
-    suspend fun getCheckById(
-        @Path("checkId") checkId: String
-    ): Response<PreShiftCheckDto>
+    @POST("api/checklist")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun save(@Body checklist: ChecklistDto): Response<ChecklistDto>
 
-    @POST("checks")
-    suspend fun createGlobalCheck(
-        @Body check: PreShiftCheckDto
-    ): Response<PreShiftCheckDto>
+    @DELETE("dataset/api/checklist/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun delete(@Path("id") id: String): Response<Unit>
 
-    @PUT("checks/{checkId}")
-    suspend fun updateGlobalCheck(
-        @Path("checkId") checkId: String,
-        @Body check: PreShiftCheckDto
-    ): Response<PreShiftCheckDto>
+    @GET("dataset/api/checklist/count")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getCount(): Response<Int>
+
+    @GET("dataset/api/checklist/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getListDataset(): Response<List<ChecklistDto>>
+
+    @GET("dataset/api/checklist/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getByIdDataset(@Path("id") id: String): Response<ChecklistDto>
+
+    @POST("dataset/api/checklist")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun saveDataset(@Body checklist: ChecklistDto): Response<ChecklistDto>
 } 

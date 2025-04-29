@@ -1,6 +1,6 @@
 package app.forku.data.manager
 
-import app.forku.data.api.dto.VehicleSessionDto
+import app.forku.data.api.dto.session.VehicleSessionDto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map

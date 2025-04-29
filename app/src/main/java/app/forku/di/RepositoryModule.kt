@@ -41,6 +41,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import app.forku.data.repository.gogroup.*
+import app.forku.domain.repository.gogroup.*
+import app.forku.data.api.UserBusinessApi
+import app.forku.data.repository.user.UserBusinessRepositoryImpl
+import app.forku.domain.repository.user.UserBusinessRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -99,105 +104,134 @@ abstract class RepositoryModule {
         siteRepositoryImpl: SiteRepositoryImpl
     ): SiteRepository
 
-    companion object {
-        @Provides
-        @Singleton
-        fun provideGson(): Gson = GsonBuilder().create()
+    @Binds
+    @Singleton
+    abstract fun bindGOGroupRepository(
+        repository: GOGroupRepositoryImpl
+    ): GOGroupRepository
 
-        @Provides
-        @Singleton
-        fun provideVehicleStatusUpdater(
-            api: VehicleApi
-        ): VehicleStatusUpdater = VehicleStatusUpdaterImpl(api)
+    @Binds
+    @Singleton
+    abstract fun bindGOGroupRoleRepository(
+        repository: GOGroupRoleRepositoryImpl
+    ): GOGroupRoleRepository
 
-        @Provides
-        @Singleton
-        fun provideSessionStatusChecker(
-            api: VehicleSessionApi
-        ): SessionStatusChecker = VehicleSessionStatusCheckerImpl(api)
+    @Binds
+    @Singleton
+    abstract fun bindGOFileUploaderRepository(
+        repository: GOFileUploaderRepositoryImpl
+    ): GOFileUploaderRepository
+}
 
-        @Provides
-        @Singleton
-        fun provideVehicleStatusDeterminer(): VehicleStatusDeterminer = 
-            VehicleStatusDeterminerImpl()
-
-        @Provides
-        @Singleton
-        fun provideChecklistStatusNotifier(
-            vehicleStatusUpdater: VehicleStatusUpdater,
-            vehicleStatusDeterminer: VehicleStatusDeterminer,
-            authDataStore: AuthDataStore
-        ): ChecklistStatusNotifier = ChecklistStatusNotifierImpl(
-            vehicleStatusUpdater = vehicleStatusUpdater,
-            vehicleStatusDeterminer = vehicleStatusDeterminer,
-            authDataStore = authDataStore
-        )
-
-        @Provides
-        @Singleton
-        fun provideChecklistRepository(
-            api: ChecklistApi,
-            authDataStore: AuthDataStore,
-            validateChecklistUseCase: ValidateChecklistUseCase,
-            checklistStatusNotifier: ChecklistStatusNotifier,
-            locationManager: LocationManager
-        ): ChecklistRepository = ChecklistRepositoryImpl(
-            api = api,
-            authDataStore = authDataStore,
-            validateChecklistUseCase = validateChecklistUseCase,
-            checklistStatusNotifier = checklistStatusNotifier,
-            locationManager = locationManager
-        )
-
-        @Provides
-        @Singleton
-        fun provideVehicleValidationService(
-            sessionStatusChecker: SessionStatusChecker,
-            checklistRepository: ChecklistRepository,
-            vehicleStatusDeterminer: VehicleStatusDeterminer
-        ): VehicleValidationService = VehicleValidationServiceImpl(
-            sessionStatusChecker = sessionStatusChecker,
-            checklistRepository = checklistRepository,
-            vehicleStatusDeterminer = vehicleStatusDeterminer
-        )
-
-        @Provides
-        @Singleton
-        fun provideVehicleStatusRepository(
-            vehicleValidationService: VehicleValidationService,
-            vehicleStatusUpdater: VehicleStatusUpdater
-        ): VehicleStatusRepository = VehicleStatusRepositoryImpl(
-            vehicleValidationService, 
-            vehicleStatusUpdater
-        )
-
-        @Provides
-        @Singleton
-        fun provideSessionRepository(
-            api: VehicleSessionApi,
-            authDataStore: AuthDataStore,
-            vehicleStatusRepository: VehicleStatusRepository,
-            checklistRepository: ChecklistRepository,
-            locationManager: LocationManager
-        ): VehicleSessionRepository = VehicleSessionRepositoryImpl(
-            api = api,
-            authDataStore = authDataStore,
-            vehicleStatusRepository = vehicleStatusRepository,
-            checklistRepository = checklistRepository,
-            locationManager = locationManager
-        )
-
-        @Provides
-        @Singleton
-        fun provideIncidentRepository(
-            api: IncidentApi,
-            authDataStore: AuthDataStore
-        ): IncidentRepository = IncidentRepositoryImpl(api, authDataStore)
-
-        @Provides
-        @Singleton
-        fun provideVehicleStatusChecker(
-            vehicleStatusRepository: VehicleStatusRepository
-        ): VehicleStatusChecker = vehicleStatusRepository
+@Module
+@InstallIn(SingletonComponent::class)
+object RepositoryProvidersModule {
+    @Provides
+    @Singleton
+    fun provideUserBusinessRepository(
+        userBusinessApi: UserBusinessApi,
+        userRepository: UserRepository
+    ): UserBusinessRepository {
+        return UserBusinessRepositoryImpl(userBusinessApi, userRepository)
     }
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = GsonBuilder().create()
+
+    @Provides
+    @Singleton
+    fun provideVehicleStatusUpdater(
+        api: VehicleApi
+    ): VehicleStatusUpdater = VehicleStatusUpdaterImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideSessionStatusChecker(
+        api: VehicleSessionApi
+    ): SessionStatusChecker = VehicleSessionStatusCheckerImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideVehicleStatusDeterminer(): VehicleStatusDeterminer = 
+        VehicleStatusDeterminerImpl()
+
+    @Provides
+    @Singleton
+    fun provideChecklistStatusNotifier(
+        vehicleStatusUpdater: VehicleStatusUpdater,
+        vehicleStatusDeterminer: VehicleStatusDeterminer,
+        authDataStore: AuthDataStore
+    ): ChecklistStatusNotifier = ChecklistStatusNotifierImpl(
+        vehicleStatusUpdater = vehicleStatusUpdater,
+        vehicleStatusDeterminer = vehicleStatusDeterminer,
+        authDataStore = authDataStore
+    )
+
+    @Provides
+    @Singleton
+    fun provideChecklistRepository(
+        api: ChecklistApi,
+        authDataStore: AuthDataStore,
+        validateChecklistUseCase: ValidateChecklistUseCase,
+        checklistStatusNotifier: ChecklistStatusNotifier,
+        locationManager: LocationManager
+    ): ChecklistRepository = ChecklistRepositoryImpl(
+        api = api,
+        authDataStore = authDataStore,
+        validateChecklistUseCase = validateChecklistUseCase,
+        checklistStatusNotifier = checklistStatusNotifier,
+        locationManager = locationManager
+    )
+
+    @Provides
+    @Singleton
+    fun provideVehicleValidationService(
+        sessionStatusChecker: SessionStatusChecker,
+        checklistRepository: ChecklistRepository,
+        vehicleStatusDeterminer: VehicleStatusDeterminer
+    ): VehicleValidationService = VehicleValidationServiceImpl(
+        sessionStatusChecker = sessionStatusChecker,
+        checklistRepository = checklistRepository,
+        vehicleStatusDeterminer = vehicleStatusDeterminer
+    )
+
+    @Provides
+    @Singleton
+    fun provideVehicleStatusRepository(
+        vehicleValidationService: VehicleValidationService,
+        vehicleStatusUpdater: VehicleStatusUpdater
+    ): VehicleStatusRepository = VehicleStatusRepositoryImpl(
+        vehicleValidationService, 
+        vehicleStatusUpdater
+    )
+
+    @Provides
+    @Singleton
+    fun provideSessionRepository(
+        api: VehicleSessionApi,
+        authDataStore: AuthDataStore,
+        vehicleStatusRepository: VehicleStatusRepository,
+        checklistRepository: ChecklistRepository,
+        locationManager: LocationManager
+    ): VehicleSessionRepository = VehicleSessionRepositoryImpl(
+        api = api,
+        authDataStore = authDataStore,
+        vehicleStatusRepository = vehicleStatusRepository,
+        checklistRepository = checklistRepository,
+        locationManager = locationManager
+    )
+
+    @Provides
+    @Singleton
+    fun provideIncidentRepository(
+        api: IncidentApi,
+        authDataStore: AuthDataStore
+    ): IncidentRepository = IncidentRepositoryImpl(api, authDataStore)
+
+    @Provides
+    @Singleton
+    fun provideVehicleStatusChecker(
+        vehicleStatusRepository: VehicleStatusRepository
+    ): VehicleStatusChecker = vehicleStatusRepository
 }

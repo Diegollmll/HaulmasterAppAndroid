@@ -1,24 +1,53 @@
 package app.forku.data.api
 
 import app.forku.data.api.dto.FeedbackDto
+import retrofit2.Response
 import retrofit2.http.*
 
 interface FeedbackApi {
-    @POST("feedback")
-    suspend fun submitFeedback(@Body feedback: FeedbackDto): FeedbackDto
+    @POST("api/feedback")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun submitFeedback(@Body feedback: FeedbackDto): Response<FeedbackDto>
 
-    @GET("feedback")
-    suspend fun getFeedbacks(): List<FeedbackDto>
+    @GET("api/feedback/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getFeedbacks(): Response<List<FeedbackDto>>
 
-    @GET("feedback/{id}")
-    suspend fun getFeedback(@Path("id") id: String): FeedbackDto
+    @GET("api/feedback/byid/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getFeedback(@Path("id") id: String): Response<FeedbackDto>
 
-    @PUT("feedback/{id}")
+    @PUT("api/feedback/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
     suspend fun updateFeedback(
         @Path("id") id: String,
         @Body feedback: FeedbackDto
-    ): FeedbackDto
+    ): Response<FeedbackDto>
 
-    @DELETE("feedback/{id}")
-    suspend fun deleteFeedback(@Path("id") id: String)
+    @DELETE("dataset/api/feedback/{id}")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun deleteFeedback(@Path("id") id: String): Response<Unit>
+
+    // Feedback analytics endpoint (example: get feedback stats)
+    @GET("api/feedback/analytics")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getFeedbackAnalytics(): Response<Map<String, Any>>
 } 

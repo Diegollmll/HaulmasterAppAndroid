@@ -18,7 +18,7 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.dashboard.SuperAdminDashboardState
 import app.forku.presentation.dashboard.Business
-import app.forku.presentation.dashboard.BusinessStatus
+import app.forku.domain.model.business.BusinessStatus
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -148,8 +148,8 @@ fun BusinessManagementScreen(
                             items(state.value.businesses) { business ->
                                 BusinessCard(
                                     business = business,
-                                    onStatusChange = { b, newStatus -> 
-                                        viewModel.updateBusinessStatus(b, newStatus)
+                                    onStatusChange = { business: Business, newStatus: BusinessStatus -> 
+                                        viewModel.updateBusinessStatus(business, newStatus)
                                     },
                                     onAssignUsers = { b -> viewModel.showAssignUsersDialog(b) },
                                     currentUser = currentUser.value,
@@ -266,7 +266,7 @@ private fun BusinessCard(
     var showStatusMenu by remember { mutableStateOf(false) }
     var showAssignSuperAdminDialog by remember { mutableStateOf(false) }
     val businessSuperAdmins by viewModel.businessSuperAdmins.collectAsState()
-    val superAdmin = businessSuperAdmins[business.id]
+    val currentSuperAdmin = businessSuperAdmins[business.id]
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -333,7 +333,7 @@ private fun BusinessCard(
                     }
 
                     // SuperAdmin info
-                    if (superAdmin != null) {
+                    if (currentSuperAdmin != null) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -345,7 +345,7 @@ private fun BusinessCard(
                                 tint = Color.Gray
                             )
                             Text(
-                                text = "${superAdmin.firstName} ${superAdmin.lastName}",
+                                text = "${currentSuperAdmin.firstName} ${currentSuperAdmin.lastName}",
                                 color = Color.Gray,
                                 fontSize = 14.sp,
                                 maxLines = 1
@@ -480,7 +480,7 @@ private fun BusinessCard(
                 }
                 
                 if (currentUser?.role == UserRole.SYSTEM_OWNER || 
-                    (currentUser?.role == UserRole.SUPERADMIN && business.superAdminId == currentUser.id)) {
+                    (currentUser?.role == UserRole.SUPERADMIN && currentSuperAdmin?.id == currentUser.id)) {
                     IconButton(
                         onClick = { onAssignUsers(business) },
                         modifier = Modifier.size(32.dp)

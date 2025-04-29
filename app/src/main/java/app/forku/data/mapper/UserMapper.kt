@@ -1,70 +1,53 @@
 package app.forku.data.mapper
 
 import app.forku.data.api.dto.user.UserDto
-import app.forku.data.api.dto.user.CertificationDto
-
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
-import app.forku.domain.model.user.Certification
+import android.util.Log
 
-fun UserDto.toDomain(): User {
-    // Split the name into first and last name
+fun UserDto.toDomain(roleOverride: UserRole? = null): User {
+    // Determine role from userRoleItems if available, else use override, else default to OPERATOR
+    val mappedRole = roleOverride ?: try {
+        val roleString = this.userRoleItems?.firstOrNull()?.toString()?.uppercase()
+        roleString?.let { UserRole.valueOf(it) } ?: UserRole.OPERATOR
+    } catch (e: Exception) {
+        Log.w("UserMapper", "Could not map user role from userRoleItems, defaulting to OPERATOR: "+e.message)
+        UserRole.OPERATOR
+    }
 
     return User(
-        id = id,
-        token = token,
-        refreshToken = refreshToken,
-        email = email,
-        username = username,
-        firstName = firstName,
-        lastName = lastName,
-        photoUrl = photoUrl,
-        role = UserRole.fromString(role),
-        certifications = certifications.map { it.toDomain() },
-        lastMedicalCheck = lastMedicalCheck,
-        lastLogin = lastLogin,
-        isActive = isActive,
-        isApproved = isApproved,
-        password = password,
-        businessId = businessId,
-        systemOwnerId = systemOwnerId
-    )
-}
-
-fun CertificationDto.toDomain(): Certification {
-    return Certification(
-        vehicleTypeId = vehicleTypeId,
-        isValid = isValid,
-        expiresAt = expiresAt
+        id = id ?: "",
+        token = "", // Not present in UserDto, set as empty
+        refreshToken = "", // Not present in UserDto, set as empty
+        email = email ?: "",
+        username = username ?: "",
+        firstName = firstName ?: "",
+        lastName = lastName ?: "",
+        photoUrl = null, // Not present in UserDto
+        role = mappedRole,
+        certifications = emptyList(), // If you want to map certifications, do it via CertificationMapper
+        lastMedicalCheck = null, // Not present in UserDto
+        lastLogin = null, // Not present in UserDto
+        isActive = !(blocked ?: false),
+        isApproved = userValidated ?: false,
+        password = password ?: "",
+        businessId = null, // Not present in UserDto
+        siteId = null, // Not present in UserDto
+        systemOwnerId = null // Not present in UserDto
     )
 }
 
 fun User.toDto(): UserDto {
+    // Only map fields that exist in UserDto
     return UserDto(
         id = id,
-        token = token,
-        refreshToken = refreshToken,
-        email = email,
-        password = password,
         username = username,
+        email = email,
         firstName = firstName,
         lastName = lastName,
-        photoUrl = photoUrl,
-        role = role.name,
-        certifications = certifications.map { it.toDto() },
-        lastMedicalCheck = lastMedicalCheck,
-        lastLogin = lastLogin,
-        isActive = isActive,
-        isApproved = isApproved,
-        businessId = businessId,
-        systemOwnerId = systemOwnerId
+        fullName = fullName,
+        password = password,
+        // Other fields can be added here if needed and present in UserDto
     )
 }
 
-fun Certification.toDto(): CertificationDto {
-    return CertificationDto(
-        vehicleTypeId = vehicleTypeId,
-        isValid = isValid,
-        expiresAt = expiresAt
-    )
-} 

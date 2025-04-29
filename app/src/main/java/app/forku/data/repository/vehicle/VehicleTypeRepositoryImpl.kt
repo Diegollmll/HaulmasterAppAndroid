@@ -74,7 +74,7 @@ class VehicleTypeRepositoryImpl @Inject constructor(
         requiresCertification: Boolean
     ): VehicleType {
         Log.d("VehicleTypeRepo", "Creating vehicle type: $name")
-        val response = api.createVehicleType(
+        val response = api.saveVehicleType(
             VehicleTypeDto(
                 id = "",  // ID will be assigned by the server
                 name = name,
@@ -98,8 +98,7 @@ class VehicleTypeRepositoryImpl @Inject constructor(
         requiresCertification: Boolean
     ): VehicleType {
         Log.d("VehicleTypeRepo", "Updating vehicle type: $id")
-        val response = api.updateVehicleType(
-            id,
+        val response = api.saveVehicleType(
             VehicleTypeDto(
                 id = id,
                 name = name,

@@ -10,6 +10,7 @@ import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.MaintenanceStatus
+import app.forku.domain.model.business.BusinessStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.delay
 import android.util.Log
 
+
 @HiltViewModel
 class SuperAdminDashboardViewModel @Inject constructor(
     private val userRepository: UserRepository,
@@ -31,7 +33,7 @@ class SuperAdminDashboardViewModel @Inject constructor(
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(SuperAdminDashboardState())
-    val state = _state.asStateFlow()
+    val state: StateFlow<SuperAdminDashboardState> = _state.asStateFlow()
     
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
@@ -77,7 +79,7 @@ class SuperAdminDashboardViewModel @Inject constructor(
                     businessRepository.getAllBusinesses().also { businessList ->
                         Log.d("SuperAdminDashboard", "Successfully loaded ${businessList.size} businesses for SuperAdmin")
                         businessList.forEach { business ->
-                            Log.d("SuperAdminDashboard", "Business loaded: id=${business.id}, name=${business.name}, status=${business.status}, superAdminId=${business.superAdminId}")
+                            Log.d("SuperAdminDashboard", "Business loaded: id=${business.id}, name=${business.name}, status=${business.status}, superAdminId=${business.superAdminId ?: "none"}")
                         }
                     }
                 } catch (e: Exception) {
@@ -86,7 +88,12 @@ class SuperAdminDashboardViewModel @Inject constructor(
                 }
 
                 // Get business IDs for this SuperAdmin
-                val superAdminBusinessIds = businesses.map { it.id }.toSet()
+                val superAdminBusinessIds = businesses
+                    .filter { business -> 
+                        currentUser?.id == business.superAdminId || currentUser?.role == UserRole.SYSTEM_OWNER
+                    }
+                    .map { it.id }
+                    .toSet()
                 Log.d("SuperAdminDashboard", "SuperAdmin business IDs: $superAdminBusinessIds")
 
                 // Load and filter users belonging to SuperAdmin's businesses
@@ -122,13 +129,13 @@ class SuperAdminDashboardViewModel @Inject constructor(
                 }
 
                 // Calculate business statistics
-                val activeBusinesses = businesses.count { it.status == BusinessStatus.ACTIVE }
-                val pendingBusinesses = businesses.count { it.status == BusinessStatus.PENDING }
+                val businessesByStatus = businesses.groupBy { it.status }
+                    .mapValues { it.value.size }
                 
                 Log.d("SuperAdminDashboard", "Business statistics: " +
                     "total=${businesses.size}, " +
-                    "active=$activeBusinesses, " +
-                    "pending=$pendingBusinesses")
+                    "active=${businessesByStatus[BusinessStatus.ACTIVE] ?: 0}, " +
+                    "pending=${businessesByStatus[BusinessStatus.PENDING] ?: 0}")
 
                 // Update state with filtered data
                 _state.update { currentState ->
@@ -142,8 +149,9 @@ class SuperAdminDashboardViewModel @Inject constructor(
                         activeAdminsCount = users.count { it.role == UserRole.ADMIN },
                         recentUsers = users.take(5),
                         recentBusinesses = businesses.take(5),
-                        pendingBusinessApprovals = pendingBusinesses,
-                        pendingUserApprovals = users.count { !it.isApproved }
+                        businesses = businesses,
+                        totalBusinesses = businesses.size,
+                        businessesByStatus = businessesByStatus
                     )
                 }
                 Log.d("SuperAdminDashboard", "Dashboard state updated successfully")
@@ -175,5 +183,9 @@ class SuperAdminDashboardViewModel @Inject constructor(
                 _state.update { it.copy(error = "Error submitting feedback: ${e.message}") }
             }
         }
+    }
+
+    fun refreshDashboard() {
+        loadDashboardData()
     }
 } 

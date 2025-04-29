@@ -25,10 +25,15 @@ class AuthDataStore @Inject constructor(
 ) {
     private object PreferencesKeys {
         val USER_KEY = stringPreferencesKey("user")
-        val TOKEN_KEY = stringPreferencesKey("auth_token")
+        
+        // Token keys with clear naming
+        val APPLICATION_TOKEN = stringPreferencesKey("application_token")
+        val AUTHENTICATION_TOKEN = stringPreferencesKey("authentication_token")
+        val CSRF_TOKEN = stringPreferencesKey("csrf_token")
+        val ANTIFORGERY_COOKIE = stringPreferencesKey("antiforgery_cookie")
+        
+        // User properties
         val USER_ID = stringPreferencesKey("userId")
-        val TOKEN = stringPreferencesKey("token")
-        val REFRESH_TOKEN = stringPreferencesKey("refreshToken")
         val EMAIL = stringPreferencesKey("email")
         val USERNAME = stringPreferencesKey("username")
         val FIRST_NAME = stringPreferencesKey("firstName")
@@ -43,42 +48,100 @@ class AuthDataStore @Inject constructor(
         val SYSTEM_OWNER_ID = stringPreferencesKey("systemOwnerId")
     }
 
-    private var cachedToken: String? = null
+    private var cachedApplicationToken: String? = null
+    private var cachedAuthenticationToken: String? = null
+    private var cachedCsrfToken: String? = null
+    private var cachedAntiforgeryCookie: String? = null
     private var lastActiveTime: Long = 0
     private val gson = Gson()
 
-    val token: Flow<String?> = context.dataStore.data
+    // Application Token methods (main JWT token with user claims)
+    val applicationToken: Flow<String?> = context.dataStore.data
         .map { preferences ->
-            preferences[PreferencesKeys.TOKEN_KEY]
+            preferences[PreferencesKeys.APPLICATION_TOKEN]
         }
 
-    suspend fun initializeToken() {
-        android.util.Log.d("AuthDataStore", "Initializing token...")
-        cachedToken = context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.TOKEN_KEY]
+    suspend fun initializeApplicationToken() {
+        android.util.Log.d("AuthDataStore", "Initializing application token...")
+        cachedApplicationToken = context.dataStore.data.map { preferences ->
+            preferences[PreferencesKeys.APPLICATION_TOKEN]
         }.first()
-        android.util.Log.d("AuthDataStore", "Token initialized: ${cachedToken?.take(10)}...")
+        android.util.Log.d("AuthDataStore", "Application token initialized: ${cachedApplicationToken?.take(10)}...")
+    }
+    
+    fun getApplicationToken(): String? {
+        android.util.Log.d("AuthDataStore", "Getting cached application token: ${cachedApplicationToken?.take(10)}")
+        return cachedApplicationToken
+    }
+    
+    suspend fun saveApplicationToken(token: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.APPLICATION_TOKEN] = token
+        }
+        cachedApplicationToken = token
+        android.util.Log.d("AuthDataStore", "Saved application token: ${token.take(10)}...")
     }
 
+    // Authentication Token methods (refresh token)
+    suspend fun saveAuthenticationToken(token: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTHENTICATION_TOKEN] = token
+        }
+        cachedAuthenticationToken = token
+        android.util.Log.d("AuthDataStore", "Saved authentication token: ${token.take(10)}...")
+    }
+    
+    fun getAuthenticationToken(): String? {
+        return cachedAuthenticationToken
+    }
+
+    // CSRF Token methods
+    suspend fun saveCsrfToken(token: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.CSRF_TOKEN] = token
+        }
+        cachedCsrfToken = token
+        android.util.Log.d("AuthDataStore", "Saved CSRF token: ${token.take(10)}...")
+    }
+    
+    fun getCsrfToken(): String? {
+        return cachedCsrfToken
+    }
+    
+    // Antiforgery Cookie methods
+    suspend fun saveAntiforgeryCookie(cookie: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANTIFORGERY_COOKIE] = cookie
+        }
+        cachedAntiforgeryCookie = cookie
+        android.util.Log.d("AuthDataStore", "Saved Antiforgery cookie: ${cookie.take(20)}...")
+    }
+    
+    fun getAntiforgeryCookie(): String? {
+        return cachedAntiforgeryCookie
+    }
+
+    // Backward compatibility method
     fun getToken(): String? {
-        android.util.Log.d("AuthDataStore", "Getting cached token: $cachedToken")
-        return cachedToken
+        return cachedApplicationToken
     }
-
+    
     suspend fun saveToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.TOKEN_KEY] = token
-        }
-        cachedToken = token
-        android.util.Log.d("AuthDataStore", "Saved token: ${token.take(10)}...")
+        saveApplicationToken(token)
     }
-
-    suspend fun clearToken() {
+    
+    suspend fun clearTokens() {
         context.dataStore.edit { preferences ->
-            preferences.remove(PreferencesKeys.TOKEN_KEY)
+            preferences.remove(PreferencesKeys.APPLICATION_TOKEN)
+            preferences.remove(PreferencesKeys.AUTHENTICATION_TOKEN)
+            preferences.remove(PreferencesKeys.CSRF_TOKEN)
+            preferences.remove(PreferencesKeys.ANTIFORGERY_COOKIE)
         }
-        cachedToken = null
-        android.util.Log.d("AuthDataStore", "Cleared token")
+        cachedApplicationToken = null
+        cachedAuthenticationToken = null
+        cachedCsrfToken = null
+        cachedAntiforgeryCookie = null
+        android.util.Log.d("AuthDataStore", "Cleared all tokens and cookies")
     }
 
     suspend fun setCurrentUser(user: User) {
@@ -96,8 +159,16 @@ class AuthDataStore @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_KEY] = gson.toJson(user)
             preferences[PreferencesKeys.USER_ID] = user.id
-            preferences[PreferencesKeys.TOKEN] = user.token
-            preferences[PreferencesKeys.REFRESH_TOKEN] = user.refreshToken
+            
+            // Store tokens in their specific keys
+            preferences[PreferencesKeys.APPLICATION_TOKEN] = user.token
+            preferences[PreferencesKeys.AUTHENTICATION_TOKEN] = user.refreshToken
+            
+            // Clear CSRF token and cookie on new login
+            preferences.remove(PreferencesKeys.CSRF_TOKEN)
+            preferences.remove(PreferencesKeys.ANTIFORGERY_COOKIE)
+            
+            // Store other user properties
             preferences[PreferencesKeys.EMAIL] = user.email
             preferences[PreferencesKeys.USERNAME] = user.username
             preferences[PreferencesKeys.FIRST_NAME] = user.firstName
@@ -113,7 +184,13 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
             lastActiveTime = now
         }
-        cachedToken = user.token
+        
+        // Update cached tokens
+        cachedApplicationToken = user.token
+        cachedAuthenticationToken = user.refreshToken
+        cachedCsrfToken = null
+        cachedAntiforgeryCookie = null
+        
         android.util.Log.d("AuthDataStore", "User data stored successfully")
     }
 
@@ -130,7 +207,10 @@ class AuthDataStore @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences.clear()
         }
-        cachedToken = null
+        cachedApplicationToken = null
+        cachedAuthenticationToken = null
+        cachedCsrfToken = null
+        cachedAntiforgeryCookie = null
         lastActiveTime = 0
     }
 

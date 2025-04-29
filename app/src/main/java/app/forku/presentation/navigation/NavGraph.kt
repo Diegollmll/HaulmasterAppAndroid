@@ -76,6 +76,8 @@ import app.forku.presentation.checklist.questionary.QuestionarySelectionScreen
 import app.forku.presentation.system.EnergySourcesScreen
 import app.forku.presentation.sites.SitesScreen
 import app.forku.presentation.vehicle.component.VehicleComponentsScreen
+import app.forku.presentation.gogroup.GroupManagementScreen
+import app.forku.presentation.gogroup.GroupRoleManagementScreen
 
 
 @Composable
@@ -806,6 +808,26 @@ fun NavGraph(
                     navController.navigateUp()
                 }
             }
+        }
+
+        composable(Screen.GroupManagement.route) {
+            GroupManagementScreen(
+                onNavigateToRoles = { groupName ->
+                    navController.navigate(Screen.GroupRoleManagement.createRoute(groupName))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.GroupRoleManagement.route,
+            arguments = listOf(
+                navArgument(Screen.GroupRoleManagement.GROUP_NAME_ARG) {
+                    type = NavType.StringType
+                }
+            )
+        ) { entry ->
+            val groupName = entry.arguments?.getString(Screen.GroupRoleManagement.GROUP_NAME_ARG) ?: return@composable
+            GroupRoleManagementScreen(groupName = groupName)
         }
     }
 }

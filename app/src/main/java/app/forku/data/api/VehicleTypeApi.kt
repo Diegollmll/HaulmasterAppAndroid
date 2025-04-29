@@ -5,24 +5,18 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface VehicleTypeApi {
-    @GET("vehicle-type")
+    @GET("api/vehicletype/list")
     suspend fun getAllVehicleTypes(): Response<List<VehicleTypeDto>>
 
-    @GET("vehicle-type/{id}")
+    @GET("api/vehicletype/byid/{id}")
     suspend fun getVehicleTypeById(@Path("id") id: String): Response<VehicleTypeDto>
 
-    @GET("vehicle-type")
-    suspend fun getVehicleTypesByCategory(@Query("categoryId") categoryId: String): Response<List<VehicleTypeDto>>
+    @POST("api/vehicletype")
+    suspend fun saveVehicleType(@Body vehicleType: VehicleTypeDto): Response<VehicleTypeDto>
 
-    @POST("vehicle-type")
-    suspend fun createVehicleType(@Body vehicleType: VehicleTypeDto): Response<VehicleTypeDto>
-
-    @PUT("vehicle-type/{id}")
-    suspend fun updateVehicleType(
-        @Path("id") id: String,
-        @Body vehicleType: VehicleTypeDto
-    ): Response<VehicleTypeDto>
-
-    @DELETE("vehicle-type/{id}")
+    @DELETE("dataset/api/vehicletype/{id}")
     suspend fun deleteVehicleType(@Path("id") id: String): Response<Unit>
+
+    @GET("api/vehicletype/list")
+    suspend fun getVehicleTypesByCategory(@Query("categoryId") categoryId: String): Response<List<VehicleTypeDto>>
 } 
