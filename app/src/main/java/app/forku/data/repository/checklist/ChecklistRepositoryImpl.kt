@@ -15,6 +15,7 @@ import java.time.Instant
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
 import app.forku.core.location.LocationManager
 import app.forku.data.api.ChecklistApi
+import app.forku.data.api.dto.checklist.ChecklistDto
 import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategory
 import app.forku.presentation.checklist.category.QuestionaryChecklistItemSubcategory
 
@@ -35,7 +36,7 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun getChecklistItems(vehicleId: String): List<Checklist> {
         try {
-            val response = api.getChecklistQuestionary()
+            val response = api.getList()
             android.util.Log.d("Checklist", "Raw API response: ${response.body()}")
             
             if (!response.isSuccessful) {
@@ -58,13 +59,26 @@ class ChecklistRepositoryImpl @Inject constructor(
         
         while (attempts < maxAttempts) {
             try {
-                val response = api.getAllChecks(businessId)
+                val response = api.getList()
                 
                 if (response.isSuccessful && response.body() != null) {
-                    return response.body()!!
-                        .mapNotNull { it?.toDomain() }
-                        .filter { it.vehicleId == vehicleId }
-                        .maxByOrNull { it.startDateTime }
+                    // Convert ChecklistDto to PreShiftCheck and filter by vehicleId
+                    return response.body()
+                        ?.filter { it.items.any { item -> item.vehicleType.contains(vehicleId) } }
+                        ?.map { dto ->
+                            PreShiftCheck(
+                                id = dto.id,
+                                userId = "", // We don't have this in ChecklistDto
+                                vehicleId = vehicleId,
+                                items = dto.items.map { it.toDomain() },
+                                status = CheckStatus.IN_PROGRESS.toString(),
+                                startDateTime = dto.createdAt,
+                                endDateTime = null,
+                                lastCheckDateTime = dto.updatedAt,
+                                locationCoordinates = null
+                            )
+                        }
+                        ?.maxByOrNull { it.startDateTime }
                 } else if (response.code() == 429) {
                     android.util.Log.w("Checklist", "Rate limit hit, attempt ${attempts + 1}/$maxAttempts, waiting ${delay}ms")
                     kotlinx.coroutines.delay(delay)
@@ -150,11 +164,23 @@ class ChecklistRepositoryImpl @Inject constructor(
 
         while (attempts < maxAttempts) {
             try {
-                val response = api.getAllChecks(businessId)
+                val response = api.getList()
                 
                 if (response.isSuccessful && response.body() != null) {
                     val allChecks = response.body()!!
-                        .mapNotNull { it?.toDomain() }
+                        .map { dto ->
+                            PreShiftCheck(
+                                id = dto.id,
+                                userId = "", // We don't have this in ChecklistDto
+                                vehicleId = dto.items.firstOrNull()?.vehicleType?.firstOrNull() ?: "",
+                                items = dto.items.map { it.toDomain() },
+                                status = CheckStatus.IN_PROGRESS.toString(),
+                                startDateTime = dto.createdAt,
+                                endDateTime = null,
+                                lastCheckDateTime = dto.updatedAt,
+                                locationCoordinates = null
+                            )
+                        }
                         .sortedByDescending { it.lastCheckDateTime }
                     
                     // Handle pagination on client side
@@ -183,23 +209,78 @@ class ChecklistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getCheckById(checkId: String): PreShiftCheck? {
-        val response = api.getCheckById(checkId)
+        val response = api.getById(checkId)
         if (!response.isSuccessful) return null
-        return response.body()?.toDomain()
+        
+        return response.body()?.let { dto ->
+            PreShiftCheck(
+                id = dto.id,
+                userId = "", // We don't have this in ChecklistDto
+                vehicleId = dto.items.firstOrNull()?.vehicleType?.firstOrNull() ?: "",
+                items = dto.items.map { it.toDomain() },
+                status = CheckStatus.IN_PROGRESS.toString(),
+                startDateTime = dto.createdAt,
+                endDateTime = null,
+                lastCheckDateTime = dto.updatedAt,
+                locationCoordinates = null
+            )
+        }
     }
 
     override suspend fun createGlobalCheck(check: PreShiftCheck): PreShiftCheck {
-        val dto = check.toDto()
-        val response = api.createGlobalCheck(dto)
-        if (!response.isSuccessful) throw Exception("Failed to save global checklist")
-        return response.body()?.toDomain() ?: throw Exception("Failed to save global check: Empty response")
+        val dto = ChecklistDto(
+            id = check.id,
+            title = "Pre-shift Check",
+            description = "Vehicle pre-shift check",
+            items = check.items.map { it.toDto() },
+            createdAt = check.startDateTime ?: "",
+            updatedAt = check.lastCheckDateTime ?: ""
+        )
+        
+        val response = api.save(dto)
+        if (!response.isSuccessful) throw Exception("Failed to save global checklist: ${response.code()}")
+        
+        return response.body()?.let { savedDto ->
+            PreShiftCheck(
+                id = savedDto.id,
+                userId = check.userId,
+                vehicleId = check.vehicleId,
+                items = savedDto.items.map { it.toDomain() },
+                status = check.status,
+                startDateTime = savedDto.createdAt,
+                endDateTime = check.endDateTime,
+                lastCheckDateTime = savedDto.updatedAt,
+                locationCoordinates = check.locationCoordinates
+            )
+        } ?: throw Exception("Failed to save global check: Empty response")
     }
 
     override suspend fun updateGlobalCheck(checkId: String, check: PreShiftCheck): PreShiftCheck {
-        val dto = check.toDto()
-        val response = api.updateGlobalCheck(checkId, dto)
-        if (!response.isSuccessful) throw Exception("Failed to update global checklist")
-        return response.body()?.toDomain() ?: throw Exception("Failed to update global check: Empty response")
+        val dto = ChecklistDto(
+            id = checkId,
+            title = "Pre-shift Check",
+            description = "Vehicle pre-shift check",
+            items = check.items.map { it.toDto() },
+            createdAt = check.startDateTime ?: "",
+            updatedAt = check.lastCheckDateTime ?: ""
+        )
+        
+        val response = api.save(dto)
+        if (!response.isSuccessful) throw Exception("Failed to update global checklist: ${response.code()}")
+        
+        return response.body()?.let { savedDto ->
+            PreShiftCheck(
+                id = savedDto.id,
+                userId = check.userId,
+                vehicleId = check.vehicleId,
+                items = savedDto.items.map { it.toDomain() },
+                status = check.status,
+                startDateTime = savedDto.createdAt,
+                endDateTime = check.endDateTime,
+                lastCheckDateTime = savedDto.updatedAt,
+                locationCoordinates = check.locationCoordinates
+            )
+        } ?: throw Exception("Failed to update global check: Empty response")
     }
 
     private suspend fun updateVehicleStatusForCheck(vehicleId: String, checkStatus: String) {

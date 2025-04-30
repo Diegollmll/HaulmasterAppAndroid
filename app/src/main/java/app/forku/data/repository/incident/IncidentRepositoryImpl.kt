@@ -17,7 +17,7 @@ class IncidentRepositoryImpl @Inject constructor(
             val currentUser = authDataStore.getCurrentUser() 
                 ?: return Result.failure(Exception("User not authenticated"))
             
-            val response = api.reportIncident(incident.toDto())
+            val response = api.saveIncident(incident.toDto())
             if (response.isSuccessful) {
                 Result.success(response.body()?.toDomain() 
                     ?: throw Exception("Empty response"))
@@ -31,7 +31,7 @@ class IncidentRepositoryImpl @Inject constructor(
 
     override suspend fun getIncidents(): Result<List<Incident>> {
         return try {
-            val response = api.getIncidents()
+            val response = api.getAllIncidents()
             if (response.isSuccessful) {
                 Result.success(response.body()?.map { it.toDomain() }
                     ?: throw Exception("Empty response"))
@@ -65,7 +65,7 @@ class IncidentRepositoryImpl @Inject constructor(
 
     override suspend fun getIncidentsByUserId(userId: String): Result<List<Incident>> {
         return try {
-            val response = api.getIncidents()
+            val response = api.getAllIncidents()
             
             if (response.isSuccessful) {
                 val allIncidents = response.body()?.map { it.toDomain() } ?: emptyList()

@@ -3,6 +3,7 @@ package app.forku.data.mapper
 import app.forku.data.api.dto.checklist.*
 import app.forku.domain.model.checklist.*
 import app.forku.domain.model.vehicle.*
+import app.forku.data.api.dto.checklist.ChecklistDto
 
 fun ChecklistResponseDtoElement.toDomain(): Checklist {
     return Checklist(
@@ -162,5 +163,25 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
                 rotationGroup = it.rotationGroup ?: 0
             )
         }
+    )
+}
+
+fun ChecklistDto.toDomain(): Checklist {
+    return Checklist(
+        items = items.map { it.toDomain() },
+        metadata = ChecklistMetadata(
+            version = "",
+            lastUpdated = "",
+            totalQuestions = items.size,
+            rotationGroups = 0,
+            questionsPerCheck = 0,
+            energySourceEnums = emptyList()
+        ),
+        rotationRules = RotationRules(
+            maxQuestionsPerCheck = 0,
+            requiredCategories = emptyList(),
+            criticalQuestionMinimum = 0,
+            standardQuestionMaximum = 0
+        )
     )
 }

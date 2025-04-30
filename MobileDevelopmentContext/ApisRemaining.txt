@@ -67,26 +67,39 @@ IncidentApi.kt: [DONE]
 - @Headers for JSON content type and Accept added to all endpoints
 - Placeholders for incident types and multimedia endpoints added
 
-NotificationApi.kt: [TODO]
-- Update to use /dataset/api/notification and /api/notification paths
-- Add missing endpoints for notification preferences
+NotificationApi.kt: [DONE]
+- Updated to use /dataset/api/notification and /api/notification paths
+- All endpoints now follow GO API format
+- Added consistent headers for all endpoints
+- Implemented proper dataset and json structured format endpoints
+- Repository implementation updated to match new API interface
 
-FeedbackApi.kt: [TODO]
-- Update to use /dataset/api/feedback and /api/feedback paths
-- Add missing endpoints for feedback analytics
+FeedbackApi.kt: [DONE]
+- Updated to use /dataset/api/feedback and /api/feedback paths
+- All endpoints now follow GO API format
+- Added consistent headers for all endpoints
+- Implemented proper dataset and json structured format endpoints
+- Added feedback analytics endpoint
+- Simplified CRUD operations to use save endpoint
 
-GOServicesApi.kt: [TODO]
-- Already correctly using /dataset/api/goservices path
-- Add missing endpoint for settings
+GOServicesApi.kt: [DONE]
+- Using correct /dataset/api/goservices path
+- Added settings endpoints (GET and POST)
+- Added proper DTO for settings
+- Added consistent headers for all endpoints
+- Added comprehensive documentation
 
-GOSecurityProviderApi.kt (needs to be created): [TODO]
+GOSecurityProviderApi.kt: [DONE]
 - Implement all authentication and security-related endpoints
 - Add CSRF token management
 - Add session management endpoints
 
-GOFileUploaderApi.kt: [TODO]
-- Already correctly using /api/gofileuploader path
-- Add missing endpoints for file management
+GOFileUploaderApi.kt: [DONE]
+- Using correct /api/gofileuploader path
+- Updated file upload endpoint to use multipart form data
+- Added proper response DTO
+- Added proper headers
+- Added comprehensive documentation
 
 VehicleTypeApi and VehicleCategoryApi: [DONE]
 - Updated to use /dataset/api and /api paths consistently

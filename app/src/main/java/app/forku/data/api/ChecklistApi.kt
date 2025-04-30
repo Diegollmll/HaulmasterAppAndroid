@@ -1,6 +1,7 @@
 package app.forku.data.api
 
 import app.forku.data.api.dto.checklist.ChecklistDto
+import app.forku.data.api.dto.checklist.PreShiftCheckDto
 import retrofit2.Response
 import retrofit2.http.*
 

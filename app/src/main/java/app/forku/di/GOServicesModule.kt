@@ -9,6 +9,7 @@ import app.forku.data.repository.GOSecurityProviderRepository
 import app.forku.data.service.GOServicesManager
 import app.forku.domain.repository.IGOServicesRepository
 import app.forku.domain.repository.IGOSecurityProviderRepository
+import app.forku.domain.usecase.security.*
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -61,4 +62,76 @@ object GOServicesModule {
     ): GOServicesManager {
         return GOServicesManager(repository, authDataStore)
     }
+
+    @Provides
+    @Singleton
+    fun provideRegisterUserUseCase(
+        repository: IGOSecurityProviderRepository
+    ): RegisterUserUseCase = RegisterUserUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideLostPasswordUseCase(
+        repository: IGOSecurityProviderRepository
+    ): LostPasswordUseCase = LostPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideResetPasswordUseCase(
+        repository: IGOSecurityProviderRepository
+    ): ResetPasswordUseCase = ResetPasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideChangePasswordUseCase(
+        repository: IGOSecurityProviderRepository
+    ): ChangePasswordUseCase = ChangePasswordUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideBlockUserUseCase(
+        repository: IGOSecurityProviderRepository
+    ): BlockUserUseCase = BlockUserUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideApproveUserUseCase(
+        repository: IGOSecurityProviderRepository
+    ): ApproveUserUseCase = ApproveUserUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideValidateRegistrationUseCase(
+        repository: IGOSecurityProviderRepository
+    ): ValidateRegistrationUseCase = ValidateRegistrationUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideKeepAliveUseCase(
+        repository: IGOSecurityProviderRepository
+    ): KeepAliveUseCase = KeepAliveUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideRegisterByEmailUseCase(
+        repository: IGOSecurityProviderRepository
+    ): RegisterByEmailUseCase = RegisterByEmailUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideRegisterFullUseCase(
+        repository: IGOSecurityProviderRepository
+    ): RegisterFullUseCase = RegisterFullUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideEmailChangeValidationUseCase(
+        repository: IGOSecurityProviderRepository
+    ): EmailChangeValidationUseCase = EmailChangeValidationUseCase(repository)
+
+    @Provides
+    @Singleton
+    fun provideUnregisterUseCase(
+        repository: IGOSecurityProviderRepository
+    ): UnregisterUseCase = UnregisterUseCase(repository)
 } 
