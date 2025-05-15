@@ -7,6 +7,7 @@ import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.usecase.session.StartVehicleSessionUseCase
+import app.forku.domain.usecase.session.EndVehicleSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SessionViewModel @Inject constructor(
     private val startVehicleSessionUseCase: StartVehicleSessionUseCase,
+    private val endVehicleSessionUseCase: EndVehicleSessionUseCase,
     private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
@@ -63,36 +65,39 @@ class SessionViewModel @Inject constructor(
         }
     }
 
-    fun endSession(sessionId: String? = null, isAdminClosure: Boolean = false) {
+    fun endSession(
+        sessionId: String? = null,
+        closeMethod: VehicleSessionClosedMethod = VehicleSessionClosedMethod.USER_CLOSED,
+        notes: String? = null
+    ) {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                
                 val targetSessionId = sessionId ?: state.value.session?.id
                 if (targetSessionId != null) {
-                    val closeMethod = if (isAdminClosure) {
-                        VehicleSessionClosedMethod.ADMIN_CLOSED
-                    } else {
-                        VehicleSessionClosedMethod.USER_CLOSED
-                    }
-                    
-                    val endedSession = vehicleSessionRepository.endSession(
-                        sessionId = targetSessionId,
-                        closeMethod = closeMethod
-                    )
-                    _state.update { 
-                        it.copy(
-                            session = endedSession,
-                            isLoading = false,
-                            error = null,
-                            sessionEnded = true
-                        )
+                    val result = endVehicleSessionUseCase(targetSessionId, closeMethod, notes)
+                    result.onSuccess { endedSession ->
+                        _state.update {
+                            it.copy(
+                                session = endedSession,
+                                isLoading = false,
+                                error = null,
+                                sessionEnded = true
+                            )
+                        }
+                    }.onFailure { error ->
+                        _state.update {
+                            it.copy(
+                                error = "Error ending session: ${error.message}",
+                                isLoading = false
+                            )
+                        }
                     }
                 } else {
                     throw Exception("No active session to end")
                 }
             } catch (e: Exception) {
-                _state.update { 
+                _state.update {
                     it.copy(
                         error = "Error ending session: ${e.message}",
                         isLoading = false

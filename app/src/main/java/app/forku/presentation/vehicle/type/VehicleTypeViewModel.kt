@@ -1,9 +1,7 @@
 package app.forku.presentation.vehicle.type
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.model.vehicle.VehicleCategory
 import app.forku.domain.model.vehicle.VehicleType
 import app.forku.domain.repository.vehicle.VehicleCategoryRepository
 import app.forku.domain.repository.vehicle.VehicleTypeRepository
@@ -136,10 +134,10 @@ class VehicleTypeViewModel @Inject constructor(
             try {
                 _state.update { it.copy(isLoading = true, error = null) }
                 typeRepository.updateVehicleType(
-                    id = type.id,
-                    name = type.name,
-                    categoryId = type.categoryId,
-                    requiresCertification = type.requiresCertification
+                    id = type.Id,
+                    name = type.Name,
+                    categoryId = type.VehicleCategoryId,
+                    requiresCertification = type.RequiresCertification
                 )
                 hideEditDialog()
                 loadTypes()

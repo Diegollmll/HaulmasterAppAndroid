@@ -26,9 +26,12 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.Vehicle
+import coil.ImageLoader
+import javax.inject.Inject
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -37,10 +40,13 @@ fun VehicleListScreen(
     viewModel: VehicleListViewModel = hiltViewModel(),
     onVehicleClick: (Vehicle) -> Unit,
     networkManager: NetworkConnectivityManager,
-    userRole: UserRole = UserRole.OPERATOR
+    userRole: UserRole = UserRole.OPERATOR,
+    imageLoader: ImageLoader,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
     
     val pullRefreshState = rememberPullRefreshState(
         refreshing = state.isLoading && state.isRefreshing,
@@ -70,6 +76,26 @@ fun VehicleListScreen(
         )
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.authEvent.collect { event ->
+            when (event) {
+                is VehicleListViewModel.AuthEvent.NavigateToLogin -> {
+                    navController.navigate("login") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadVehicles()
+    }
+
     BaseScreen(
         navController = navController,
         showTopBar = true,
@@ -77,7 +103,8 @@ fun VehicleListScreen(
         showBottomBar = false,
         onRefresh = { viewModel.loadVehicles(true) },
         showLoadingOnRefresh = false,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -117,6 +144,8 @@ fun VehicleListScreen(
                                             userRole = userRole,
                                             sessionInfo = state.vehicleSessions[vehicle.id],
                                             lastPreShiftCheck = state.lastPreShiftChecks[vehicle.id],
+                                            imageLoader = imageLoader,
+                                            checklistAnswer = checklistAnswers[vehicle.id],
                                             onClick = { onVehicleClick(vehicle) }
                                         )
                                     }

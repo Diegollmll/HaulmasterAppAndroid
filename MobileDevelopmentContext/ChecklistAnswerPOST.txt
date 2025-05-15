@@ -1,0 +1,4618 @@
+POST
+/api/checklistanswer
+Save (create or update if existing) a given ChecklistAnswer instance, and return the saved instance data
+Parameters
+Cancel
+Reset
+Name	Description
+byRef
+boolean
+(query)
+Setting to define how to handle reference loop. If byRef is true, reference loops are handled by serializing the first occurrence of the object and replacing subsequent occurrences with a reference. If ByRef is false, reference loops are ignored. Default is false when byRef is not specified
+
+
+--
+Request body
+
+application/x-www-form-urlencoded
+entity
+string
+{   "ChecklistId": "02abdbfa-bb1f-4545-978d-1a88ab5fdc51",   "EndDateTime": "2025-05-09T22:47:43.285693Z",   "GOUserId": "867b342e-5d9a-484c-a2db-3fd08a0dfeaf",   "LocationCoordinates": "4.4334821,-74.3882531",   "StartDateTime": "2025-05-09T22:47:36.983103Z",   "Status": 1,   "$type": "ChecklistAnswerDataObject" }
+Send empty value
+include
+string
+include
+Send empty value
+Execute
+Clear
+Responses
+Curl
+
+curl -X 'POST' \
+  'https://godev.collectiveintelligence.com.au/forkuapp-de6b98b5-4402-4a8f-891b-70b3591df162/api/checklistanswer' \
+  -H 'accept: text/plain' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -H 'X-CSRF-TOKEN: CfDJ8NI0kPAAx9FHpBw9-eO_Xbs5cPeq_vsYTqPsjv1JYivSDw4mWg9Qh2zYZ0RpnGZhkVjqy-C6RIoAove9i6wnYg6NjnTmaVrthFOI13d0OzBqTijto31STBm8Jddzn-z0Hqmql0I0D1rMhy2jAiKQ9J0' \
+  -d 'entity=%7B%20%20%20%22ChecklistId%22%3A%20%2202abdbfa-bb1f-4545-978d-1a88ab5fdc51%22%2C%20%20%20%22EndDateTime%22%3A%20%222025-05-09T22%3A47%3A43.285693Z%22%2C%20%20%20%22GOUserId%22%3A%20%22867b342e-5d9a-484c-a2db-3fd08a0dfeaf%22%2C%20%20%20%22LocationCoordinates%22%3A%20%224.4334821%2C-74.3882531%22%2C%20%20%20%22StartDateTime%22%3A%20%222025-05-09T22%3A47%3A36.983103Z%22%2C%20%20%20%22Status%22%3A%201%2C%20%20%20%22%24type%22%3A%20%22ChecklistAnswerDataObject%22%20%7D&include='
+Request URL
+https://godev.collectiveintelligence.com.au/forkuapp-de6b98b5-4402-4a8f-891b-70b3591df162/api/checklistanswer
+Server response
+Code	Details
+500
+Undocumented
+Error: response status is 500
+
+Response body
+Download
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.6.1",
+  "title": "Batch update returned unexpected row count from update; actual row count: 0; expected: 1\r\n[ UPDATE [dbo].[ChecklistAnswer] SET [EndDateTime] = @p0, [LastCheckDateTime] = @p1, [LocationCoordinates] = @p2, [StartDateTime] = @p3, [status] = @p4, [GOUserId] = @p5, [ChecklistItemId] = @p6, [VehicleId] = @p7, [ChecklistId] = @p8, [VehicleSessionId] = @p9 WHERE [Id] = @p10 ]\r\n",
+  "status": 500,
+  "detail": "NHibernate.StaleStateException: Batch update returned unexpected row count from update; actual row count: 0; expected: 1\r\n[ UPDATE [dbo].[ChecklistAnswer] SET [EndDateTime] = @p0, [LastCheckDateTime] = @p1, [LocationCoordinates] = @p2, [StartDateTime] = @p3, [status] = @p4, [GOUserId] = @p5, [ChecklistItemId] = @p6, [VehicleId] = @p7, [ChecklistId] = @p8, [VehicleSessionId] = @p9 WHERE [Id] = @p10 ]\r\n\r\n   at GenerativeObjects.Practices.LayerSupportClasses.DataLayer.DatabaseTransaction.RollbackAsync(Exception exception)\r\n   at GenerativeObjects.Practices.LayerSupportClasses.DataLayer.DatabaseTransaction.LeaveAsync(Exception exception, TransactionParticipant caller)\r\n   at GenerativeObjects.Practices.LayerSupportClasses.DataLayer.DataProvider`1.SaveAsync(TENTITY entity, Boolean deepMapping, LambdaExpression securityFilterExpression, List`1 includes, IObjectsDataSet context, Dictionary`2 parameters, Boolean skipSecurity)\r\n   at GenerativeObjects.Practices.LayerSupportClasses.DataLayer.DataProvider`1.SaveAsync(TENTITY entity, Boolean deepMapping, LambdaExpression securityFilterExpression, List`1 includes, IObjectsDataSet context, Dictionary`2 parameters, Boolean skipSecurity)\r\n   at GenerativeObjects.Practices.LayerSupportClasses.DataLayer.DataProvider`1.SaveAsync(TENTITY entity, LambdaExpression securityFilterExpression, List`1 includes, IObjectsDataSet context, Dictionary`2 parameters, Boolean skipSecurity)\r\n   at GenerativeObjects.Practices.LayerSupportClasses.ServiceLayer.EntityApiController`3.DoPostAsync(String entityAsJson, List`1 include)",
+  "traceId": "00-42aa97d221e8f4ec046377533b4065d7-b1be52d014ba9d11-00"
+}
+Response headers
+ content-length: 2123 
+ content-type: application/problem+json; charset=utf-8 
+ date: Fri,09 May 2025 23:32:18 GMT 
+ server: Microsoft-IIS/10.0 
+ strict-transport-security: max-age=2592000 
+ x-powered-by: ASP.NET 
+Responses
+Code	Description	Links
+200	
+Success
+
+Media type
+
+text/plain
+Controls Accept header.
+Example Value
+Schema
+{
+  "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "ChecklistItemId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "EndDateTime": "2025-05-10T01:00:40.719Z",
+  "EndDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+  "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "LastCheckDateTime": "2025-05-10T01:00:40.719Z",
+  "LastCheckDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+  "LocationCoordinates": "string",
+  "StartDateTime": "2025-05-10T01:00:40.719Z",
+  "StartDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+  "status": 0,
+  "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "VehicleSessionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "_checklist_NewObjectId": 0,
+  "_checklistQuestion_NewObjectId": 0,
+  "_gOUser_NewObjectId": 0,
+  "_vehicle_NewObjectId": 0,
+  "_vehicleSession_NewObjectId": 0,
+  "answeredChecklistItemItems": [
+    {
+      "ChecklistAnswerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "ChecklistItemId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "UserAnswer": 0,
+      "_checklistAnswer_NewObjectId": 0,
+      "_checklistItem_NewObjectId": 0,
+      "_gOUser_NewObjectId": 0,
+      "checklistAnswer": "string",
+      "checklistItem": {
+        "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "ChecklistItemCategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "ChecklistItemSubcategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Description": "string",
+        "EnergySource": [
+          0
+        ],
+        "ExpectedAnswer": 0,
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "IsCritical": true,
+        "Question": "string",
+        "RotationGroup": 0,
+        "VehicleComponent": 0,
+        "_checklist_NewObjectId": 0,
+        "_checklistItemCategory_NewObjectId": 0,
+        "_checklistItemSubcategory_NewObjectId": 0,
+        "answeredChecklistItemItems": [
+          "string"
+        ],
+        "checklist": "string",
+        "checklistAnswerItems": [
+          "string"
+        ],
+        "checklistItemCategory": {
+          "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "_checklist_NewObjectId": 0,
+          "checklist": "string",
+          "checklistItemSubcategoryItems1": [
+            {
+              "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "_checklistItemCategory1_NewObjectId": 0,
+              "checklistItemCategory1": "string",
+              "checklistQuestionItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "checklistQuestionItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "checklistItemSubcategory": {
+          "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "_checklistItemCategory1_NewObjectId": 0,
+          "checklistItemCategory1": "string",
+          "checklistQuestionItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "goUser": {
+        "Blocked": true,
+        "EmailAddress": "string",
+        "EmailChangeValidationInProgress": true,
+        "EmailValidated": true,
+        "FirstName": "string",
+        "FullName": "string",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "LastName": "string",
+        "NewEmailAddress": "string",
+        "NewEmailValidated": true,
+        "Password": "string",
+        "PasswordExpiry": "2025-05-10T01:00:40.719Z",
+        "PasswordExpiry_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+        "Unregistered": true,
+        "UserName": "string",
+        "UserValidated": true,
+        "answeredChecklistItemItems": [
+          "string"
+        ],
+        "certificationItems2": [
+          {
+            "CertificationCode": "string",
+            "Description": "string",
+            "ExpiryDate": "2025-05-10T01:00:40.719Z",
+            "ExpiryDate_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "GOUserId2": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "IssuedDate": "2025-05-10T01:00:40.719Z",
+            "IssuedDate_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "Issuer": "string",
+            "Name": "string",
+            "Status": 0,
+            "Timestamp": "2025-05-10T01:00:40.719Z",
+            "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "_gOUser2_NewObjectId": 0,
+            "goUser2": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "checklistAnswerItems": [
+          "string"
+        ],
+        "feedbackItems": [
+          {
+            "Comment": "string",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Rating": 0,
+            "_gOUser_NewObjectId": 0,
+            "goUser": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "incidentItems": [
+          {
+            "Description": "string",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "IncidentDateTime": "2025-05-10T01:00:40.719Z",
+            "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "IncidentType": 0,
+            "LocationCoordinates": "string",
+            "LocationDetails": "string",
+            "SeverityLevel": 0,
+            "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Status": 0,
+            "Weather": "string",
+            "_gOUser_NewObjectId": 0,
+            "_site_NewObjectId": 0,
+            "goUser": "string",
+            "incidentMultimediaItems": [
+              {
+                "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CreatedAt": "2025-05-10T01:00:40.719Z",
+                "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                "Description": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Image": "string",
+                "ImageFileSize": 0,
+                "ImageInternalName": "string",
+                "_incident_NewObjectId": 0,
+                "incident": "string",
+                "userMultimediaItems": [
+                  {
+                    "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "CreatedAt": "2025-05-10T01:00:40.719Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "_gOUser_NewObjectId": 0,
+                    "_multimedia_NewObjectId": 0,
+                    "goUser": "string",
+                    "multimedia": {
+                      "CreatedAt": "2025-05-10T01:00:40.719Z",
+                      "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                      "Description": "string",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Image": "string",
+                      "ImageFileSize": 0,
+                      "ImageInternalName": "string",
+                      "userMultimediaItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    },
+                    "userMultimediaItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "site": {
+              "Address": "string",
+              "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_business_NewObjectId": 0,
+              "_country_NewObjectId": 0,
+              "_stateProvince_NewObjectId": 0,
+              "_timezone_NewObjectId": 0,
+              "business": "string",
+              "country": {
+                "Code": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "businessItems": [
+                  "string"
+                ],
+                "countryStateItems": [
+                  {
+                    "Code": "string",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "_country_NewObjectId": 0,
+                    "businessItems": [
+                      "string"
+                    ],
+                    "country": "string",
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "incidentItems": [
+                "string"
+              ],
+              "stateProvince": {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "timezone": {
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "Offset": "string",
+                "businessConfiguration": "string",
+                "site": "string",
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "vehicleItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "notificationItems": [
+          {
+            "CreatedAt": "2025-05-10T01:00:40.719Z",
+            "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "Data": "string",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "IsRead": true,
+            "Message": "string",
+            "Priority": 0,
+            "Title": "string",
+            "Type": "string",
+            "_gOUser_NewObjectId": 0,
+            "goUser": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userBusinesses": [
+          {
+            "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_business_NewObjectId": 0,
+            "_gOUser_NewObjectId": 0,
+            "business": {
+              "BusinessConfigurationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "Status": 0,
+              "_businessConfiguration_NewObjectId": 0,
+              "_country_NewObjectId": 0,
+              "_stateProvince_NewObjectId": 0,
+              "businessConfiguration": {
+                "BusinessLogo": "string",
+                "BusinessLogoFileSize": 0,
+                "BusinessLogoInternalName": "string",
+                "EmailNotificationsEnabled": true,
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "OperatingHours": "string",
+                "PrimaryColor": "string",
+                "PushNotificationsEnabled": true,
+                "SecondaryColor": "string",
+                "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "WorkWeekDefinition": "string",
+                "_timezone_NewObjectId": 0,
+                "business": "string",
+                "timezone": {
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "Offset": "string",
+                  "businessConfiguration": "string",
+                  "site": "string",
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "country": {
+                "Code": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "businessItems": [
+                  "string"
+                ],
+                "countryStateItems": [
+                  {
+                    "Code": "string",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "_country_NewObjectId": 0,
+                    "businessItems": [
+                      "string"
+                    ],
+                    "country": "string",
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "siteItems": [
+                {
+                  "Address": "string",
+                  "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "_business_NewObjectId": 0,
+                  "_country_NewObjectId": 0,
+                  "_stateProvince_NewObjectId": 0,
+                  "_timezone_NewObjectId": 0,
+                  "business": "string",
+                  "country": {
+                    "Code": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "businessItems": [
+                      "string"
+                    ],
+                    "countryStateItems": [
+                      {
+                        "Code": "string",
+                        "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Name": "string",
+                        "_country_NewObjectId": 0,
+                        "businessItems": [
+                          "string"
+                        ],
+                        "country": "string",
+                        "siteItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      }
+                    ],
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "incidentItems": [
+                    "string"
+                  ],
+                  "stateProvince": {
+                    "Code": "string",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "_country_NewObjectId": 0,
+                    "businessItems": [
+                      "string"
+                    ],
+                    "country": "string",
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "timezone": {
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "Offset": "string",
+                    "businessConfiguration": "string",
+                    "site": "string",
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "vehicleItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "stateProvince": {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "userBusinesses": [
+                "string"
+              ],
+              "vehicleItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "goUser": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userChecklistItems": [
+          {
+            "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_checklist_NewObjectId": 0,
+            "_gOUser_NewObjectId": 0,
+            "checklist": "string",
+            "goUser": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userCollisionIncidentItems": [
+          {
+            "CollisionIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_collisionIncident_NewObjectId": 0,
+            "_gOUser_NewObjectId": 0,
+            "collisionIncident": {
+              "CollisionType": [
+                0
+              ],
+              "CommonCauses": [
+                0
+              ],
+              "ContributingFactors": [
+                0
+              ],
+              "DamageOccurrence": [
+                0
+              ],
+              "EnvironmentalImpact": [
+                0
+              ],
+              "ImmediateAction": [
+                0
+              ],
+              "ImmediateCause": [
+                0
+              ],
+              "InjuryLocation": [
+                0
+              ],
+              "InjurySeverity": 0,
+              "IsLoadCarried": true,
+              "LoadBeingCarried": "string",
+              "LoadWeight": 0,
+              "LongTermSolution": [
+                0
+              ],
+              "OthersInvolved": "string",
+              "Description": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "IncidentDateTime": "2025-05-10T01:00:40.719Z",
+              "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+              "IncidentType": 0,
+              "LocationCoordinates": "string",
+              "LocationDetails": "string",
+              "SeverityLevel": 0,
+              "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Status": 0,
+              "Weather": "string",
+              "userCollisionIncidentItems": [
+                "string"
+              ],
+              "vehicleCollisionIncidentItems": [
+                "string"
+              ],
+              "_gOUser_NewObjectId": 0,
+              "_site_NewObjectId": 0,
+              "goUser": "string",
+              "incidentMultimediaItems": [
+                {
+                  "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.719Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_incident_NewObjectId": 0,
+                  "incident": "string",
+                  "userMultimediaItems": [
+                    {
+                      "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "CreatedAt": "2025-05-10T01:00:40.719Z",
+                      "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                      "Description": "string",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Image": "string",
+                      "ImageFileSize": 0,
+                      "ImageInternalName": "string",
+                      "_gOUser_NewObjectId": 0,
+                      "_multimedia_NewObjectId": 0,
+                      "goUser": "string",
+                      "multimedia": {
+                        "CreatedAt": "2025-05-10T01:00:40.719Z",
+                        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                        "Description": "string",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Image": "string",
+                        "ImageFileSize": 0,
+                        "ImageInternalName": "string",
+                        "userMultimediaItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      },
+                      "userMultimediaItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "site": {
+                "Address": "string",
+                "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "_business_NewObjectId": 0,
+                "_country_NewObjectId": 0,
+                "_stateProvince_NewObjectId": 0,
+                "_timezone_NewObjectId": 0,
+                "business": "string",
+                "country": {
+                  "Code": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "businessItems": [
+                    "string"
+                  ],
+                  "countryStateItems": [
+                    {
+                      "Code": "string",
+                      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "_country_NewObjectId": 0,
+                      "businessItems": [
+                        "string"
+                      ],
+                      "country": "string",
+                      "siteItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "incidentItems": [
+                  "string"
+                ],
+                "stateProvince": {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "timezone": {
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "Offset": "string",
+                  "businessConfiguration": "string",
+                  "site": "string",
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "vehicleItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "goUser": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userGroupItems": [
+          {
+            "GOGroupName": "string",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_group_NewObjectId": 0,
+            "_user_NewObjectId": 0,
+            "group": {
+              "Description": "string",
+              "DisplayName": "string",
+              "IsSpecialGroup": true,
+              "Name": "string",
+              "SpecialGroup": 0,
+              "groupRoleItems": [
+                {
+                  "GOGroupName": "string",
+                  "GORoleName": "string",
+                  "_group_NewObjectId": 0,
+                  "_role_NewObjectId": 0,
+                  "group": "string",
+                  "role": "string",
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "userGroupItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "user": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userMultimediaItems": [
+          {
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CreatedAt": "2025-05-10T01:00:40.719Z",
+            "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "Description": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Image": "string",
+            "ImageFileSize": 0,
+            "ImageInternalName": "string",
+            "_gOUser_NewObjectId": 0,
+            "_multimedia_NewObjectId": 0,
+            "goUser": "string",
+            "multimedia": {
+              "CreatedAt": "2025-05-10T01:00:40.719Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+              "Description": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Image": "string",
+              "ImageFileSize": 0,
+              "ImageInternalName": "string",
+              "userMultimediaItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "userMultimediaItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userNearMissIncidentItems": [
+          {
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "NearMissIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_gOUser_NewObjectId": 0,
+            "_nearMissIncident_NewObjectId": 0,
+            "goUser": "string",
+            "nearMissIncident": {
+              "ContributingFactors": [
+                0
+              ],
+              "ImmediateActions": [
+                0
+              ],
+              "ImmediateCause": [
+                0
+              ],
+              "IsLoadCarried": true,
+              "LoadBeingCarried": "string",
+              "LoadWeight": 0,
+              "LongTermSolutions": [
+                0
+              ],
+              "NearMissType": [
+                0
+              ],
+              "OthersInvolved": "string",
+              "Description": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "IncidentDateTime": "2025-05-10T01:00:40.719Z",
+              "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+              "IncidentType": 0,
+              "LocationCoordinates": "string",
+              "LocationDetails": "string",
+              "SeverityLevel": 0,
+              "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Status": 0,
+              "Weather": "string",
+              "userNearMissIncidentItems": [
+                "string"
+              ],
+              "vehicleNearMissIncidentItems": [
+                "string"
+              ],
+              "_gOUser_NewObjectId": 0,
+              "_site_NewObjectId": 0,
+              "goUser": "string",
+              "incidentMultimediaItems": [
+                {
+                  "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.719Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_incident_NewObjectId": 0,
+                  "incident": "string",
+                  "userMultimediaItems": [
+                    {
+                      "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "CreatedAt": "2025-05-10T01:00:40.719Z",
+                      "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                      "Description": "string",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Image": "string",
+                      "ImageFileSize": 0,
+                      "ImageInternalName": "string",
+                      "_gOUser_NewObjectId": 0,
+                      "_multimedia_NewObjectId": 0,
+                      "goUser": "string",
+                      "multimedia": {
+                        "CreatedAt": "2025-05-10T01:00:40.719Z",
+                        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                        "Description": "string",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Image": "string",
+                        "ImageFileSize": 0,
+                        "ImageInternalName": "string",
+                        "userMultimediaItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      },
+                      "userMultimediaItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "site": {
+                "Address": "string",
+                "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "_business_NewObjectId": 0,
+                "_country_NewObjectId": 0,
+                "_stateProvince_NewObjectId": 0,
+                "_timezone_NewObjectId": 0,
+                "business": "string",
+                "country": {
+                  "Code": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "businessItems": [
+                    "string"
+                  ],
+                  "countryStateItems": [
+                    {
+                      "Code": "string",
+                      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "_country_NewObjectId": 0,
+                      "businessItems": [
+                        "string"
+                      ],
+                      "country": "string",
+                      "siteItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "incidentItems": [
+                  "string"
+                ],
+                "stateProvince": {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "timezone": {
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "Offset": "string",
+                  "businessConfiguration": "string",
+                  "site": "string",
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "vehicleItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "userRoleItems": [
+          {
+            "GORoleName": "string",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_role_NewObjectId": 0,
+            "_user_NewObjectId": 0,
+            "role": {
+              "Description": "string",
+              "DisplayName": "string",
+              "Name": "string",
+              "PasswordExpiry": 0,
+              "PasswordPolicySummary": "string",
+              "PasswordRegEx": "string",
+              "groupRoleItems": [
+                {
+                  "GOGroupName": "string",
+                  "GORoleName": "string",
+                  "_group_NewObjectId": 0,
+                  "_role_NewObjectId": 0,
+                  "group": "string",
+                  "role": "string",
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "userRoleItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "user": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "vehicleSessionItems": [
+          {
+            "ClosedBy": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "EndLocationCoordinates": "string",
+            "EndTime": "2025-05-10T01:00:40.719Z",
+            "EndTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "StartLocationCoordinates": "string",
+            "StartTime": "2025-05-10T01:00:40.719Z",
+            "StartTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "Status": 0,
+            "Timestamp": "2025-05-10T01:00:40.719Z",
+            "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "VehicleSessionClosedMethod": 0,
+            "_gOUser_NewObjectId": 0,
+            "_vehicle_NewObjectId": 0,
+            "checklistAnswer": "string",
+            "goUser": "string",
+            "vehicle": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    }
+  ],
+  "checklist": {
+    "CriticalityLevels": [
+      0
+    ],
+    "CriticalQuestionMinimum": 0,
+    "Description": "string",
+    "EnergySources": 0,
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "IsDefault": true,
+    "MaxQuestionsPerCheck": 0,
+    "RotationGroups": 0,
+    "StandardQuestionMaximum": 0,
+    "Title": "string",
+    "checklistAnswerItems": [
+      "string"
+    ],
+    "checklistChecklistQuestionItems": [
+      {
+        "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "ChecklistItemCategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "ChecklistItemSubcategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Description": "string",
+        "EnergySource": [
+          0
+        ],
+        "ExpectedAnswer": 0,
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "IsCritical": true,
+        "Question": "string",
+        "RotationGroup": 0,
+        "VehicleComponent": 0,
+        "_checklist_NewObjectId": 0,
+        "_checklistItemCategory_NewObjectId": 0,
+        "_checklistItemSubcategory_NewObjectId": 0,
+        "answeredChecklistItemItems": [
+          "string"
+        ],
+        "checklist": "string",
+        "checklistAnswerItems": [
+          "string"
+        ],
+        "checklistItemCategory": {
+          "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "_checklist_NewObjectId": 0,
+          "checklist": "string",
+          "checklistItemSubcategoryItems1": [
+            {
+              "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "_checklistItemCategory1_NewObjectId": 0,
+              "checklistItemCategory1": "string",
+              "checklistQuestionItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "checklistQuestionItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "checklistItemSubcategory": {
+          "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "_checklistItemCategory1_NewObjectId": 0,
+          "checklistItemCategory1": "string",
+          "checklistQuestionItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "checklistItemCategoryItems": [
+      {
+        "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "_checklist_NewObjectId": 0,
+        "checklist": "string",
+        "checklistItemSubcategoryItems1": [
+          {
+            "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_checklistItemCategory1_NewObjectId": 0,
+            "checklistItemCategory1": "string",
+            "checklistQuestionItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "checklistQuestionItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userChecklistItems": [
+      {
+        "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_checklist_NewObjectId": 0,
+        "_gOUser_NewObjectId": 0,
+        "checklist": "string",
+        "goUser": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "vehicleTypeItems": [
+      {
+        "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "RequiresCertification": true,
+        "VehicleCategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_checklist_NewObjectId": 0,
+        "_vehicleCategory_NewObjectId": 0,
+        "checklist": "string",
+        "vehicleCategory": {
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "vehicleItems": [
+            "string"
+          ],
+          "vehicleTypeItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "vehicleItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "isMarkedForDeletion": true,
+    "isDirty": false,
+    "isNew": false,
+    "internalObjectId": 0
+  },
+  "checklistQuestion": {
+    "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "ChecklistItemCategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "ChecklistItemSubcategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Description": "string",
+    "EnergySource": [
+      0
+    ],
+    "ExpectedAnswer": 0,
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "IsCritical": true,
+    "Question": "string",
+    "RotationGroup": 0,
+    "VehicleComponent": 0,
+    "_checklist_NewObjectId": 0,
+    "_checklistItemCategory_NewObjectId": 0,
+    "_checklistItemSubcategory_NewObjectId": 0,
+    "answeredChecklistItemItems": [
+      "string"
+    ],
+    "checklist": "string",
+    "checklistAnswerItems": [
+      "string"
+    ],
+    "checklistItemCategory": {
+      "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Name": "string",
+      "_checklist_NewObjectId": 0,
+      "checklist": "string",
+      "checklistItemSubcategoryItems1": [
+        {
+          "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "_checklistItemCategory1_NewObjectId": 0,
+          "checklistItemCategory1": "string",
+          "checklistQuestionItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        }
+      ],
+      "checklistQuestionItems": [
+        "string"
+      ],
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    },
+    "checklistItemSubcategory": {
+      "ChecklistItemCategoryId1": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Name": "string",
+      "_checklistItemCategory1_NewObjectId": 0,
+      "checklistItemCategory1": "string",
+      "checklistQuestionItems": [
+        "string"
+      ],
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    },
+    "isMarkedForDeletion": true,
+    "isDirty": false,
+    "isNew": false,
+    "internalObjectId": 0
+  },
+  "goUser": {
+    "Blocked": true,
+    "EmailAddress": "string",
+    "EmailChangeValidationInProgress": true,
+    "EmailValidated": true,
+    "FirstName": "string",
+    "FullName": "string",
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "LastName": "string",
+    "NewEmailAddress": "string",
+    "NewEmailValidated": true,
+    "Password": "string",
+    "PasswordExpiry": "2025-05-10T01:00:40.719Z",
+    "PasswordExpiry_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+    "Unregistered": true,
+    "UserName": "string",
+    "UserValidated": true,
+    "answeredChecklistItemItems": [
+      "string"
+    ],
+    "certificationItems2": [
+      {
+        "CertificationCode": "string",
+        "Description": "string",
+        "ExpiryDate": "2025-05-10T01:00:40.719Z",
+        "ExpiryDate_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+        "GOUserId2": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "IssuedDate": "2025-05-10T01:00:40.719Z",
+        "IssuedDate_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+        "Issuer": "string",
+        "Name": "string",
+        "Status": 0,
+        "Timestamp": "2025-05-10T01:00:40.719Z",
+        "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+        "_gOUser2_NewObjectId": 0,
+        "goUser2": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "checklistAnswerItems": [
+      "string"
+    ],
+    "feedbackItems": [
+      {
+        "Comment": "string",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Rating": 0,
+        "_gOUser_NewObjectId": 0,
+        "goUser": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "incidentItems": [
+      {
+        "Description": "string",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "IncidentDateTime": "2025-05-10T01:00:40.719Z",
+        "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+        "IncidentType": 0,
+        "LocationCoordinates": "string",
+        "LocationDetails": "string",
+        "SeverityLevel": 0,
+        "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Status": 0,
+        "Weather": "string",
+        "_gOUser_NewObjectId": 0,
+        "_site_NewObjectId": 0,
+        "goUser": "string",
+        "incidentMultimediaItems": [
+          {
+            "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CreatedAt": "2025-05-10T01:00:40.719Z",
+            "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+            "Description": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Image": "string",
+            "ImageFileSize": 0,
+            "ImageInternalName": "string",
+            "_incident_NewObjectId": 0,
+            "incident": "string",
+            "userMultimediaItems": [
+              {
+                "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CreatedAt": "2025-05-10T01:00:40.719Z",
+                "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                "Description": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Image": "string",
+                "ImageFileSize": 0,
+                "ImageInternalName": "string",
+                "_gOUser_NewObjectId": 0,
+                "_multimedia_NewObjectId": 0,
+                "goUser": "string",
+                "multimedia": {
+                  "CreatedAt": "2025-05-10T01:00:40.719Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "userMultimediaItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "userMultimediaItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "site": {
+          "Address": "string",
+          "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "_business_NewObjectId": 0,
+          "_country_NewObjectId": 0,
+          "_stateProvince_NewObjectId": 0,
+          "_timezone_NewObjectId": 0,
+          "business": "string",
+          "country": {
+            "Code": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "businessItems": [
+              "string"
+            ],
+            "countryStateItems": [
+              {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "incidentItems": [
+            "string"
+          ],
+          "stateProvince": {
+            "Code": "string",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_country_NewObjectId": 0,
+            "businessItems": [
+              "string"
+            ],
+            "country": "string",
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "timezone": {
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "Offset": "string",
+            "businessConfiguration": "string",
+            "site": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "vehicleItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "notificationItems": [
+      {
+        "CreatedAt": "2025-05-10T01:00:40.719Z",
+        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+        "Data": "string",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "IsRead": true,
+        "Message": "string",
+        "Priority": 0,
+        "Title": "string",
+        "Type": "string",
+        "_gOUser_NewObjectId": 0,
+        "goUser": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userBusinesses": [
+      {
+        "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_business_NewObjectId": 0,
+        "_gOUser_NewObjectId": 0,
+        "business": {
+          "BusinessConfigurationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "Status": 0,
+          "_businessConfiguration_NewObjectId": 0,
+          "_country_NewObjectId": 0,
+          "_stateProvince_NewObjectId": 0,
+          "businessConfiguration": {
+            "BusinessLogo": "string",
+            "BusinessLogoFileSize": 0,
+            "BusinessLogoInternalName": "string",
+            "EmailNotificationsEnabled": true,
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "OperatingHours": "string",
+            "PrimaryColor": "string",
+            "PushNotificationsEnabled": true,
+            "SecondaryColor": "string",
+            "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "WorkWeekDefinition": "string",
+            "_timezone_NewObjectId": 0,
+            "business": "string",
+            "timezone": {
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "Offset": "string",
+              "businessConfiguration": "string",
+              "site": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "country": {
+            "Code": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "businessItems": [
+              "string"
+            ],
+            "countryStateItems": [
+              {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "siteItems": [
+            {
+              "Address": "string",
+              "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_business_NewObjectId": 0,
+              "_country_NewObjectId": 0,
+              "_stateProvince_NewObjectId": 0,
+              "_timezone_NewObjectId": 0,
+              "business": "string",
+              "country": {
+                "Code": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "businessItems": [
+                  "string"
+                ],
+                "countryStateItems": [
+                  {
+                    "Code": "string",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "_country_NewObjectId": 0,
+                    "businessItems": [
+                      "string"
+                    ],
+                    "country": "string",
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "incidentItems": [
+                "string"
+              ],
+              "stateProvince": {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "timezone": {
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "Offset": "string",
+                "businessConfiguration": "string",
+                "site": "string",
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "vehicleItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "stateProvince": {
+            "Code": "string",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_country_NewObjectId": 0,
+            "businessItems": [
+              "string"
+            ],
+            "country": "string",
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "userBusinesses": [
+            "string"
+          ],
+          "vehicleItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "goUser": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userChecklistItems": [
+      {
+        "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_checklist_NewObjectId": 0,
+        "_gOUser_NewObjectId": 0,
+        "checklist": "string",
+        "goUser": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userCollisionIncidentItems": [
+      {
+        "CollisionIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_collisionIncident_NewObjectId": 0,
+        "_gOUser_NewObjectId": 0,
+        "collisionIncident": {
+          "CollisionType": [
+            0
+          ],
+          "CommonCauses": [
+            0
+          ],
+          "ContributingFactors": [
+            0
+          ],
+          "DamageOccurrence": [
+            0
+          ],
+          "EnvironmentalImpact": [
+            0
+          ],
+          "ImmediateAction": [
+            0
+          ],
+          "ImmediateCause": [
+            0
+          ],
+          "InjuryLocation": [
+            0
+          ],
+          "InjurySeverity": 0,
+          "IsLoadCarried": true,
+          "LoadBeingCarried": "string",
+          "LoadWeight": 0,
+          "LongTermSolution": [
+            0
+          ],
+          "OthersInvolved": "string",
+          "Description": "string",
+          "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "IncidentDateTime": "2025-05-10T01:00:40.719Z",
+          "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+          "IncidentType": 0,
+          "LocationCoordinates": "string",
+          "LocationDetails": "string",
+          "SeverityLevel": 0,
+          "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Status": 0,
+          "Weather": "string",
+          "userCollisionIncidentItems": [
+            "string"
+          ],
+          "vehicleCollisionIncidentItems": [
+            "string"
+          ],
+          "_gOUser_NewObjectId": 0,
+          "_site_NewObjectId": 0,
+          "goUser": "string",
+          "incidentMultimediaItems": [
+            {
+              "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CreatedAt": "2025-05-10T01:00:40.719Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+              "Description": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Image": "string",
+              "ImageFileSize": 0,
+              "ImageInternalName": "string",
+              "_incident_NewObjectId": 0,
+              "incident": "string",
+              "userMultimediaItems": [
+                {
+                  "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.719Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_gOUser_NewObjectId": 0,
+                  "_multimedia_NewObjectId": 0,
+                  "goUser": "string",
+                  "multimedia": {
+                    "CreatedAt": "2025-05-10T01:00:40.719Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.719Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "userMultimediaItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "userMultimediaItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "site": {
+            "Address": "string",
+            "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_business_NewObjectId": 0,
+            "_country_NewObjectId": 0,
+            "_stateProvince_NewObjectId": 0,
+            "_timezone_NewObjectId": 0,
+            "business": "string",
+            "country": {
+              "Code": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "businessItems": [
+                "string"
+              ],
+              "countryStateItems": [
+                {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "incidentItems": [
+              "string"
+            ],
+            "stateProvince": {
+              "Code": "string",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "_country_NewObjectId": 0,
+              "businessItems": [
+                "string"
+              ],
+              "country": "string",
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "timezone": {
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "Offset": "string",
+              "businessConfiguration": "string",
+              "site": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "vehicleItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "goUser": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userGroupItems": [
+      {
+        "GOGroupName": "string",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_group_NewObjectId": 0,
+        "_user_NewObjectId": 0,
+        "group": {
+          "Description": "string",
+          "DisplayName": "string",
+          "IsSpecialGroup": true,
+          "Name": "string",
+          "SpecialGroup": 0,
+          "groupRoleItems": [
+            {
+              "GOGroupName": "string",
+              "GORoleName": "string",
+              "_group_NewObjectId": 0,
+              "_role_NewObjectId": 0,
+              "group": "string",
+              "role": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userGroupItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "user": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userMultimediaItems": [
+      {
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "CreatedAt": "2025-05-10T01:00:40.720Z",
+        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "Description": "string",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Image": "string",
+        "ImageFileSize": 0,
+        "ImageInternalName": "string",
+        "_gOUser_NewObjectId": 0,
+        "_multimedia_NewObjectId": 0,
+        "goUser": "string",
+        "multimedia": {
+          "CreatedAt": "2025-05-10T01:00:40.720Z",
+          "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+          "Description": "string",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Image": "string",
+          "ImageFileSize": 0,
+          "ImageInternalName": "string",
+          "userMultimediaItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "userMultimediaItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userNearMissIncidentItems": [
+      {
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "NearMissIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_gOUser_NewObjectId": 0,
+        "_nearMissIncident_NewObjectId": 0,
+        "goUser": "string",
+        "nearMissIncident": {
+          "ContributingFactors": [
+            0
+          ],
+          "ImmediateActions": [
+            0
+          ],
+          "ImmediateCause": [
+            0
+          ],
+          "IsLoadCarried": true,
+          "LoadBeingCarried": "string",
+          "LoadWeight": 0,
+          "LongTermSolutions": [
+            0
+          ],
+          "NearMissType": [
+            0
+          ],
+          "OthersInvolved": "string",
+          "Description": "string",
+          "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+          "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+          "IncidentType": 0,
+          "LocationCoordinates": "string",
+          "LocationDetails": "string",
+          "SeverityLevel": 0,
+          "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Status": 0,
+          "Weather": "string",
+          "userNearMissIncidentItems": [
+            "string"
+          ],
+          "vehicleNearMissIncidentItems": [
+            "string"
+          ],
+          "_gOUser_NewObjectId": 0,
+          "_site_NewObjectId": 0,
+          "goUser": "string",
+          "incidentMultimediaItems": [
+            {
+              "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CreatedAt": "2025-05-10T01:00:40.720Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Description": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Image": "string",
+              "ImageFileSize": 0,
+              "ImageInternalName": "string",
+              "_incident_NewObjectId": 0,
+              "incident": "string",
+              "userMultimediaItems": [
+                {
+                  "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.720Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_gOUser_NewObjectId": 0,
+                  "_multimedia_NewObjectId": 0,
+                  "goUser": "string",
+                  "multimedia": {
+                    "CreatedAt": "2025-05-10T01:00:40.720Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "userMultimediaItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "userMultimediaItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "site": {
+            "Address": "string",
+            "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_business_NewObjectId": 0,
+            "_country_NewObjectId": 0,
+            "_stateProvince_NewObjectId": 0,
+            "_timezone_NewObjectId": 0,
+            "business": "string",
+            "country": {
+              "Code": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "businessItems": [
+                "string"
+              ],
+              "countryStateItems": [
+                {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "incidentItems": [
+              "string"
+            ],
+            "stateProvince": {
+              "Code": "string",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "_country_NewObjectId": 0,
+              "businessItems": [
+                "string"
+              ],
+              "country": "string",
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "timezone": {
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "Offset": "string",
+              "businessConfiguration": "string",
+              "site": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "vehicleItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "userRoleItems": [
+      {
+        "GORoleName": "string",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_role_NewObjectId": 0,
+        "_user_NewObjectId": 0,
+        "role": {
+          "Description": "string",
+          "DisplayName": "string",
+          "Name": "string",
+          "PasswordExpiry": 0,
+          "PasswordPolicySummary": "string",
+          "PasswordRegEx": "string",
+          "groupRoleItems": [
+            {
+              "GOGroupName": "string",
+              "GORoleName": "string",
+              "_group_NewObjectId": 0,
+              "_role_NewObjectId": 0,
+              "group": "string",
+              "role": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userRoleItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "user": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "vehicleSessionItems": [
+      {
+        "ClosedBy": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "EndLocationCoordinates": "string",
+        "EndTime": "2025-05-10T01:00:40.720Z",
+        "EndTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "StartLocationCoordinates": "string",
+        "StartTime": "2025-05-10T01:00:40.720Z",
+        "StartTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "Status": 0,
+        "Timestamp": "2025-05-10T01:00:40.720Z",
+        "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "VehicleSessionClosedMethod": 0,
+        "_gOUser_NewObjectId": 0,
+        "_vehicle_NewObjectId": 0,
+        "checklistAnswer": "string",
+        "goUser": "string",
+        "vehicle": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "isMarkedForDeletion": true,
+    "isDirty": false,
+    "isNew": false,
+    "internalObjectId": 0
+  },
+  "vehicle": {
+    "BestSuitedFor": "string",
+    "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Codename": "string",
+    "Description": "string",
+    "EnergySource": 0,
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Model": "string",
+    "NextServiceDateTime": "2025-05-10T01:00:40.720Z",
+    "NextServiceDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+    "Picture": "string",
+    "PictureFileSize": 0,
+    "PictureInternalName": "string",
+    "SerialNumber": "string",
+    "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Status": 0,
+    "VehicleCategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "VehicleTypeId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "_business_NewObjectId": 0,
+    "_site_NewObjectId": 0,
+    "_vehicleCategory_NewObjectId": 0,
+    "_vehicleType_NewObjectId": 0,
+    "business": {
+      "BusinessConfigurationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Name": "string",
+      "Status": 0,
+      "_businessConfiguration_NewObjectId": 0,
+      "_country_NewObjectId": 0,
+      "_stateProvince_NewObjectId": 0,
+      "businessConfiguration": {
+        "BusinessLogo": "string",
+        "BusinessLogoFileSize": 0,
+        "BusinessLogoInternalName": "string",
+        "EmailNotificationsEnabled": true,
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "OperatingHours": "string",
+        "PrimaryColor": "string",
+        "PushNotificationsEnabled": true,
+        "SecondaryColor": "string",
+        "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "WorkWeekDefinition": "string",
+        "_timezone_NewObjectId": 0,
+        "business": "string",
+        "timezone": {
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "Offset": "string",
+          "businessConfiguration": "string",
+          "site": "string",
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "country": {
+        "Code": "string",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "businessItems": [
+          "string"
+        ],
+        "countryStateItems": [
+          {
+            "Code": "string",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_country_NewObjectId": 0,
+            "businessItems": [
+              "string"
+            ],
+            "country": "string",
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "siteItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "siteItems": [
+        {
+          "Address": "string",
+          "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "_business_NewObjectId": 0,
+          "_country_NewObjectId": 0,
+          "_stateProvince_NewObjectId": 0,
+          "_timezone_NewObjectId": 0,
+          "business": "string",
+          "country": {
+            "Code": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "businessItems": [
+              "string"
+            ],
+            "countryStateItems": [
+              {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "incidentItems": [
+            "string"
+          ],
+          "stateProvince": {
+            "Code": "string",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_country_NewObjectId": 0,
+            "businessItems": [
+              "string"
+            ],
+            "country": "string",
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "timezone": {
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "Offset": "string",
+            "businessConfiguration": "string",
+            "site": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "vehicleItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        }
+      ],
+      "stateProvince": {
+        "Code": "string",
+        "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "_country_NewObjectId": 0,
+        "businessItems": [
+          "string"
+        ],
+        "country": "string",
+        "siteItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "userBusinesses": [
+        "string"
+      ],
+      "vehicleItems": [
+        "string"
+      ],
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    },
+    "checklistAnswerItems": [
+      "string"
+    ],
+    "safetyAlertItems": [
+      {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_vehicle_NewObjectId": 0,
+        "vehicle": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "site": {
+      "Address": "string",
+      "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Name": "string",
+      "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "_business_NewObjectId": 0,
+      "_country_NewObjectId": 0,
+      "_stateProvince_NewObjectId": 0,
+      "_timezone_NewObjectId": 0,
+      "business": "string",
+      "country": {
+        "Code": "string",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "businessItems": [
+          "string"
+        ],
+        "countryStateItems": [
+          {
+            "Code": "string",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_country_NewObjectId": 0,
+            "businessItems": [
+              "string"
+            ],
+            "country": "string",
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "siteItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "incidentItems": [
+        "string"
+      ],
+      "stateProvince": {
+        "Code": "string",
+        "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "_country_NewObjectId": 0,
+        "businessItems": [
+          "string"
+        ],
+        "country": "string",
+        "siteItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "timezone": {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "Offset": "string",
+        "businessConfiguration": "string",
+        "site": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "vehicleItems": [
+        "string"
+      ],
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    },
+    "vehicleCategory": {
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Name": "string",
+      "vehicleItems": [
+        "string"
+      ],
+      "vehicleTypeItems": [
+        "string"
+      ],
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    },
+    "vehicleCollisionIncidentItems": [
+      {
+        "CollisionIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_collisionIncident_NewObjectId": 0,
+        "_vehicle_NewObjectId": 0,
+        "collisionIncident": {
+          "CollisionType": [
+            0
+          ],
+          "CommonCauses": [
+            0
+          ],
+          "ContributingFactors": [
+            0
+          ],
+          "DamageOccurrence": [
+            0
+          ],
+          "EnvironmentalImpact": [
+            0
+          ],
+          "ImmediateAction": [
+            0
+          ],
+          "ImmediateCause": [
+            0
+          ],
+          "InjuryLocation": [
+            0
+          ],
+          "InjurySeverity": 0,
+          "IsLoadCarried": true,
+          "LoadBeingCarried": "string",
+          "LoadWeight": 0,
+          "LongTermSolution": [
+            0
+          ],
+          "OthersInvolved": "string",
+          "Description": "string",
+          "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+          "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+          "IncidentType": 0,
+          "LocationCoordinates": "string",
+          "LocationDetails": "string",
+          "SeverityLevel": 0,
+          "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Status": 0,
+          "Weather": "string",
+          "userCollisionIncidentItems": [
+            "string"
+          ],
+          "vehicleCollisionIncidentItems": [
+            "string"
+          ],
+          "_gOUser_NewObjectId": 0,
+          "_site_NewObjectId": 0,
+          "goUser": "string",
+          "incidentMultimediaItems": [
+            {
+              "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CreatedAt": "2025-05-10T01:00:40.720Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Description": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Image": "string",
+              "ImageFileSize": 0,
+              "ImageInternalName": "string",
+              "_incident_NewObjectId": 0,
+              "incident": "string",
+              "userMultimediaItems": [
+                {
+                  "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.720Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_gOUser_NewObjectId": 0,
+                  "_multimedia_NewObjectId": 0,
+                  "goUser": "string",
+                  "multimedia": {
+                    "CreatedAt": "2025-05-10T01:00:40.720Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "userMultimediaItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "userMultimediaItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "site": {
+            "Address": "string",
+            "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_business_NewObjectId": 0,
+            "_country_NewObjectId": 0,
+            "_stateProvince_NewObjectId": 0,
+            "_timezone_NewObjectId": 0,
+            "business": "string",
+            "country": {
+              "Code": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "businessItems": [
+                "string"
+              ],
+              "countryStateItems": [
+                {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "incidentItems": [
+              "string"
+            ],
+            "stateProvince": {
+              "Code": "string",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "_country_NewObjectId": 0,
+              "businessItems": [
+                "string"
+              ],
+              "country": "string",
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "timezone": {
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "Offset": "string",
+              "businessConfiguration": "string",
+              "site": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "vehicleItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "vehicle": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "vehicleFailIncidentItems": [
+      {
+        "ContributingFactors": [
+          0
+        ],
+        "DamageOccurrence": [
+          0
+        ],
+        "EnvironmentalImpact": [
+          0
+        ],
+        "FailImmediateCause": [
+          0
+        ],
+        "FailureType": [
+          0
+        ],
+        "IsLoadCarried": true,
+        "LoadBeingCarried": "string",
+        "LoadWeight": 0,
+        "LongTermSolution": [
+          0
+        ],
+        "VehicleFailImmediateAction": [
+          0
+        ],
+        "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Description": "string",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+        "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "IncidentType": 0,
+        "LocationCoordinates": "string",
+        "LocationDetails": "string",
+        "SeverityLevel": 0,
+        "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Status": 0,
+        "Weather": "string",
+        "_vehicle_NewObjectId": 0,
+        "vehicle": "string",
+        "_gOUser_NewObjectId": 0,
+        "_site_NewObjectId": 0,
+        "goUser": {
+          "Blocked": true,
+          "EmailAddress": "string",
+          "EmailChangeValidationInProgress": true,
+          "EmailValidated": true,
+          "FirstName": "string",
+          "FullName": "string",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "LastName": "string",
+          "NewEmailAddress": "string",
+          "NewEmailValidated": true,
+          "Password": "string",
+          "PasswordExpiry": "2025-05-10T01:00:40.720Z",
+          "PasswordExpiry_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+          "Unregistered": true,
+          "UserName": "string",
+          "UserValidated": true,
+          "answeredChecklistItemItems": [
+            "string"
+          ],
+          "certificationItems2": [
+            {
+              "CertificationCode": "string",
+              "Description": "string",
+              "ExpiryDate": "2025-05-10T01:00:40.720Z",
+              "ExpiryDate_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "GOUserId2": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "IssuedDate": "2025-05-10T01:00:40.720Z",
+              "IssuedDate_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Issuer": "string",
+              "Name": "string",
+              "Status": 0,
+              "Timestamp": "2025-05-10T01:00:40.720Z",
+              "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "_gOUser2_NewObjectId": 0,
+              "goUser2": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "checklistAnswerItems": [
+            "string"
+          ],
+          "feedbackItems": [
+            {
+              "Comment": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Rating": 0,
+              "_gOUser_NewObjectId": 0,
+              "goUser": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "incidentItems": [
+            {
+              "Description": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+              "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "IncidentType": 0,
+              "LocationCoordinates": "string",
+              "LocationDetails": "string",
+              "SeverityLevel": 0,
+              "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Status": 0,
+              "Weather": "string",
+              "_gOUser_NewObjectId": 0,
+              "_site_NewObjectId": 0,
+              "goUser": "string",
+              "incidentMultimediaItems": [
+                {
+                  "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.720Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_incident_NewObjectId": 0,
+                  "incident": "string",
+                  "userMultimediaItems": [
+                    {
+                      "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "CreatedAt": "2025-05-10T01:00:40.720Z",
+                      "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                      "Description": "string",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Image": "string",
+                      "ImageFileSize": 0,
+                      "ImageInternalName": "string",
+                      "_gOUser_NewObjectId": 0,
+                      "_multimedia_NewObjectId": 0,
+                      "goUser": "string",
+                      "multimedia": {
+                        "CreatedAt": "2025-05-10T01:00:40.720Z",
+                        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                        "Description": "string",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Image": "string",
+                        "ImageFileSize": 0,
+                        "ImageInternalName": "string",
+                        "userMultimediaItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      },
+                      "userMultimediaItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "site": {
+                "Address": "string",
+                "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "_business_NewObjectId": 0,
+                "_country_NewObjectId": 0,
+                "_stateProvince_NewObjectId": 0,
+                "_timezone_NewObjectId": 0,
+                "business": "string",
+                "country": {
+                  "Code": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "businessItems": [
+                    "string"
+                  ],
+                  "countryStateItems": [
+                    {
+                      "Code": "string",
+                      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "_country_NewObjectId": 0,
+                      "businessItems": [
+                        "string"
+                      ],
+                      "country": "string",
+                      "siteItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "incidentItems": [
+                  "string"
+                ],
+                "stateProvince": {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "timezone": {
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "Offset": "string",
+                  "businessConfiguration": "string",
+                  "site": "string",
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "vehicleItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "notificationItems": [
+            {
+              "CreatedAt": "2025-05-10T01:00:40.720Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Data": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "IsRead": true,
+              "Message": "string",
+              "Priority": 0,
+              "Title": "string",
+              "Type": "string",
+              "_gOUser_NewObjectId": 0,
+              "goUser": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userBusinesses": [
+            {
+              "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_business_NewObjectId": 0,
+              "_gOUser_NewObjectId": 0,
+              "business": {
+                "BusinessConfigurationId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "Status": 0,
+                "_businessConfiguration_NewObjectId": 0,
+                "_country_NewObjectId": 0,
+                "_stateProvince_NewObjectId": 0,
+                "businessConfiguration": {
+                  "BusinessLogo": "string",
+                  "BusinessLogoFileSize": 0,
+                  "BusinessLogoInternalName": "string",
+                  "EmailNotificationsEnabled": true,
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "OperatingHours": "string",
+                  "PrimaryColor": "string",
+                  "PushNotificationsEnabled": true,
+                  "SecondaryColor": "string",
+                  "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "WorkWeekDefinition": "string",
+                  "_timezone_NewObjectId": 0,
+                  "business": "string",
+                  "timezone": {
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "Offset": "string",
+                    "businessConfiguration": "string",
+                    "site": "string",
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "country": {
+                  "Code": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "businessItems": [
+                    "string"
+                  ],
+                  "countryStateItems": [
+                    {
+                      "Code": "string",
+                      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "_country_NewObjectId": 0,
+                      "businessItems": [
+                        "string"
+                      ],
+                      "country": "string",
+                      "siteItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    }
+                  ],
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "siteItems": [
+                  {
+                    "Address": "string",
+                    "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "_business_NewObjectId": 0,
+                    "_country_NewObjectId": 0,
+                    "_stateProvince_NewObjectId": 0,
+                    "_timezone_NewObjectId": 0,
+                    "business": "string",
+                    "country": {
+                      "Code": "string",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "businessItems": [
+                        "string"
+                      ],
+                      "countryStateItems": [
+                        {
+                          "Code": "string",
+                          "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "Name": "string",
+                          "_country_NewObjectId": 0,
+                          "businessItems": [
+                            "string"
+                          ],
+                          "country": "string",
+                          "siteItems": [
+                            "string"
+                          ],
+                          "isMarkedForDeletion": true,
+                          "isDirty": false,
+                          "isNew": false,
+                          "internalObjectId": 0
+                        }
+                      ],
+                      "siteItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    },
+                    "incidentItems": [
+                      "string"
+                    ],
+                    "stateProvince": {
+                      "Code": "string",
+                      "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "_country_NewObjectId": 0,
+                      "businessItems": [
+                        "string"
+                      ],
+                      "country": "string",
+                      "siteItems": [
+                        "string"
+                      ],
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    },
+                    "timezone": {
+                      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      "Name": "string",
+                      "Offset": "string",
+                      "businessConfiguration": "string",
+                      "site": "string",
+                      "isMarkedForDeletion": true,
+                      "isDirty": false,
+                      "isNew": false,
+                      "internalObjectId": 0
+                    },
+                    "vehicleItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "stateProvince": {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "userBusinesses": [
+                  "string"
+                ],
+                "vehicleItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "goUser": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userChecklistItems": [
+            {
+              "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_checklist_NewObjectId": 0,
+              "_gOUser_NewObjectId": 0,
+              "checklist": "string",
+              "goUser": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userCollisionIncidentItems": [
+            {
+              "CollisionIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_collisionIncident_NewObjectId": 0,
+              "_gOUser_NewObjectId": 0,
+              "collisionIncident": {
+                "CollisionType": [
+                  0
+                ],
+                "CommonCauses": [
+                  0
+                ],
+                "ContributingFactors": [
+                  0
+                ],
+                "DamageOccurrence": [
+                  0
+                ],
+                "EnvironmentalImpact": [
+                  0
+                ],
+                "ImmediateAction": [
+                  0
+                ],
+                "ImmediateCause": [
+                  0
+                ],
+                "InjuryLocation": [
+                  0
+                ],
+                "InjurySeverity": 0,
+                "IsLoadCarried": true,
+                "LoadBeingCarried": "string",
+                "LoadWeight": 0,
+                "LongTermSolution": [
+                  0
+                ],
+                "OthersInvolved": "string",
+                "Description": "string",
+                "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+                "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                "IncidentType": 0,
+                "LocationCoordinates": "string",
+                "LocationDetails": "string",
+                "SeverityLevel": 0,
+                "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Status": 0,
+                "Weather": "string",
+                "userCollisionIncidentItems": [
+                  "string"
+                ],
+                "vehicleCollisionIncidentItems": [
+                  "string"
+                ],
+                "_gOUser_NewObjectId": 0,
+                "_site_NewObjectId": 0,
+                "goUser": "string",
+                "incidentMultimediaItems": [
+                  {
+                    "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "CreatedAt": "2025-05-10T01:00:40.720Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "_incident_NewObjectId": 0,
+                    "incident": "string",
+                    "userMultimediaItems": [
+                      {
+                        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "CreatedAt": "2025-05-10T01:00:40.720Z",
+                        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                        "Description": "string",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Image": "string",
+                        "ImageFileSize": 0,
+                        "ImageInternalName": "string",
+                        "_gOUser_NewObjectId": 0,
+                        "_multimedia_NewObjectId": 0,
+                        "goUser": "string",
+                        "multimedia": {
+                          "CreatedAt": "2025-05-10T01:00:40.720Z",
+                          "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                          "Description": "string",
+                          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "Image": "string",
+                          "ImageFileSize": 0,
+                          "ImageInternalName": "string",
+                          "userMultimediaItems": [
+                            "string"
+                          ],
+                          "isMarkedForDeletion": true,
+                          "isDirty": false,
+                          "isNew": false,
+                          "internalObjectId": 0
+                        },
+                        "userMultimediaItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      }
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "site": {
+                  "Address": "string",
+                  "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "_business_NewObjectId": 0,
+                  "_country_NewObjectId": 0,
+                  "_stateProvince_NewObjectId": 0,
+                  "_timezone_NewObjectId": 0,
+                  "business": "string",
+                  "country": {
+                    "Code": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "businessItems": [
+                      "string"
+                    ],
+                    "countryStateItems": [
+                      {
+                        "Code": "string",
+                        "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Name": "string",
+                        "_country_NewObjectId": 0,
+                        "businessItems": [
+                          "string"
+                        ],
+                        "country": "string",
+                        "siteItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      }
+                    ],
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "incidentItems": [
+                    "string"
+                  ],
+                  "stateProvince": {
+                    "Code": "string",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "_country_NewObjectId": 0,
+                    "businessItems": [
+                      "string"
+                    ],
+                    "country": "string",
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "timezone": {
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "Offset": "string",
+                    "businessConfiguration": "string",
+                    "site": "string",
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "vehicleItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "goUser": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userGroupItems": [
+            {
+              "GOGroupName": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_group_NewObjectId": 0,
+              "_user_NewObjectId": 0,
+              "group": {
+                "Description": "string",
+                "DisplayName": "string",
+                "IsSpecialGroup": true,
+                "Name": "string",
+                "SpecialGroup": 0,
+                "groupRoleItems": [
+                  {
+                    "GOGroupName": "string",
+                    "GORoleName": "string",
+                    "_group_NewObjectId": 0,
+                    "_role_NewObjectId": 0,
+                    "group": "string",
+                    "role": "string",
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "userGroupItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "user": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userMultimediaItems": [
+            {
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CreatedAt": "2025-05-10T01:00:40.720Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Description": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Image": "string",
+              "ImageFileSize": 0,
+              "ImageInternalName": "string",
+              "_gOUser_NewObjectId": 0,
+              "_multimedia_NewObjectId": 0,
+              "goUser": "string",
+              "multimedia": {
+                "CreatedAt": "2025-05-10T01:00:40.720Z",
+                "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                "Description": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Image": "string",
+                "ImageFileSize": 0,
+                "ImageInternalName": "string",
+                "userMultimediaItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "userMultimediaItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userNearMissIncidentItems": [
+            {
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "NearMissIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_gOUser_NewObjectId": 0,
+              "_nearMissIncident_NewObjectId": 0,
+              "goUser": "string",
+              "nearMissIncident": {
+                "ContributingFactors": [
+                  0
+                ],
+                "ImmediateActions": [
+                  0
+                ],
+                "ImmediateCause": [
+                  0
+                ],
+                "IsLoadCarried": true,
+                "LoadBeingCarried": "string",
+                "LoadWeight": 0,
+                "LongTermSolutions": [
+                  0
+                ],
+                "NearMissType": [
+                  0
+                ],
+                "OthersInvolved": "string",
+                "Description": "string",
+                "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+                "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                "IncidentType": 0,
+                "LocationCoordinates": "string",
+                "LocationDetails": "string",
+                "SeverityLevel": 0,
+                "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Status": 0,
+                "Weather": "string",
+                "userNearMissIncidentItems": [
+                  "string"
+                ],
+                "vehicleNearMissIncidentItems": [
+                  "string"
+                ],
+                "_gOUser_NewObjectId": 0,
+                "_site_NewObjectId": 0,
+                "goUser": "string",
+                "incidentMultimediaItems": [
+                  {
+                    "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "CreatedAt": "2025-05-10T01:00:40.720Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "_incident_NewObjectId": 0,
+                    "incident": "string",
+                    "userMultimediaItems": [
+                      {
+                        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "CreatedAt": "2025-05-10T01:00:40.720Z",
+                        "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                        "Description": "string",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Image": "string",
+                        "ImageFileSize": 0,
+                        "ImageInternalName": "string",
+                        "_gOUser_NewObjectId": 0,
+                        "_multimedia_NewObjectId": 0,
+                        "goUser": "string",
+                        "multimedia": {
+                          "CreatedAt": "2025-05-10T01:00:40.720Z",
+                          "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                          "Description": "string",
+                          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                          "Image": "string",
+                          "ImageFileSize": 0,
+                          "ImageInternalName": "string",
+                          "userMultimediaItems": [
+                            "string"
+                          ],
+                          "isMarkedForDeletion": true,
+                          "isDirty": false,
+                          "isNew": false,
+                          "internalObjectId": 0
+                        },
+                        "userMultimediaItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      }
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "site": {
+                  "Address": "string",
+                  "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "_business_NewObjectId": 0,
+                  "_country_NewObjectId": 0,
+                  "_stateProvince_NewObjectId": 0,
+                  "_timezone_NewObjectId": 0,
+                  "business": "string",
+                  "country": {
+                    "Code": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "businessItems": [
+                      "string"
+                    ],
+                    "countryStateItems": [
+                      {
+                        "Code": "string",
+                        "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                        "Name": "string",
+                        "_country_NewObjectId": 0,
+                        "businessItems": [
+                          "string"
+                        ],
+                        "country": "string",
+                        "siteItems": [
+                          "string"
+                        ],
+                        "isMarkedForDeletion": true,
+                        "isDirty": false,
+                        "isNew": false,
+                        "internalObjectId": 0
+                      }
+                    ],
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "incidentItems": [
+                    "string"
+                  ],
+                  "stateProvince": {
+                    "Code": "string",
+                    "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "_country_NewObjectId": 0,
+                    "businessItems": [
+                      "string"
+                    ],
+                    "country": "string",
+                    "siteItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "timezone": {
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Name": "string",
+                    "Offset": "string",
+                    "businessConfiguration": "string",
+                    "site": "string",
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "vehicleItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "userRoleItems": [
+            {
+              "GORoleName": "string",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "_role_NewObjectId": 0,
+              "_user_NewObjectId": 0,
+              "role": {
+                "Description": "string",
+                "DisplayName": "string",
+                "Name": "string",
+                "PasswordExpiry": 0,
+                "PasswordPolicySummary": "string",
+                "PasswordRegEx": "string",
+                "groupRoleItems": [
+                  {
+                    "GOGroupName": "string",
+                    "GORoleName": "string",
+                    "_group_NewObjectId": 0,
+                    "_role_NewObjectId": 0,
+                    "group": "string",
+                    "role": "string",
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  }
+                ],
+                "userRoleItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              },
+              "user": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "vehicleSessionItems": [
+            {
+              "ClosedBy": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "EndLocationCoordinates": "string",
+              "EndTime": "2025-05-10T01:00:40.720Z",
+              "EndTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "StartLocationCoordinates": "string",
+              "StartTime": "2025-05-10T01:00:40.720Z",
+              "StartTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Status": 0,
+              "Timestamp": "2025-05-10T01:00:40.720Z",
+              "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "VehicleSessionClosedMethod": 0,
+              "_gOUser_NewObjectId": 0,
+              "_vehicle_NewObjectId": 0,
+              "checklistAnswer": "string",
+              "goUser": "string",
+              "vehicle": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "incidentMultimediaItems": [
+          {
+            "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CreatedAt": "2025-05-10T01:00:40.720Z",
+            "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+            "Description": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Image": "string",
+            "ImageFileSize": 0,
+            "ImageInternalName": "string",
+            "_incident_NewObjectId": 0,
+            "incident": "string",
+            "userMultimediaItems": [
+              {
+                "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "CreatedAt": "2025-05-10T01:00:40.720Z",
+                "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                "Description": "string",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Image": "string",
+                "ImageFileSize": 0,
+                "ImageInternalName": "string",
+                "_gOUser_NewObjectId": 0,
+                "_multimedia_NewObjectId": 0,
+                "goUser": "string",
+                "multimedia": {
+                  "CreatedAt": "2025-05-10T01:00:40.720Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "userMultimediaItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                },
+                "userMultimediaItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          }
+        ],
+        "site": {
+          "Address": "string",
+          "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Name": "string",
+          "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "_business_NewObjectId": 0,
+          "_country_NewObjectId": 0,
+          "_stateProvince_NewObjectId": 0,
+          "_timezone_NewObjectId": 0,
+          "business": "string",
+          "country": {
+            "Code": "string",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "businessItems": [
+              "string"
+            ],
+            "countryStateItems": [
+              {
+                "Code": "string",
+                "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "Name": "string",
+                "_country_NewObjectId": 0,
+                "businessItems": [
+                  "string"
+                ],
+                "country": "string",
+                "siteItems": [
+                  "string"
+                ],
+                "isMarkedForDeletion": true,
+                "isDirty": false,
+                "isNew": false,
+                "internalObjectId": 0
+              }
+            ],
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "incidentItems": [
+            "string"
+          ],
+          "stateProvince": {
+            "Code": "string",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "_country_NewObjectId": 0,
+            "businessItems": [
+              "string"
+            ],
+            "country": "string",
+            "siteItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "timezone": {
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "Offset": "string",
+            "businessConfiguration": "string",
+            "site": "string",
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "vehicleItems": [
+            "string"
+          ],
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "vehicleNearMissIncidentItems": [
+      {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "NearMissIncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "_nearMissIncident_NewObjectId": 0,
+        "_vehicle_NewObjectId": 0,
+        "nearMissIncident": {
+          "ContributingFactors": [
+            0
+          ],
+          "ImmediateActions": [
+            0
+          ],
+          "ImmediateCause": [
+            0
+          ],
+          "IsLoadCarried": true,
+          "LoadBeingCarried": "string",
+          "LoadWeight": 0,
+          "LongTermSolutions": [
+            0
+          ],
+          "NearMissType": [
+            0
+          ],
+          "OthersInvolved": "string",
+          "Description": "string",
+          "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "IncidentDateTime": "2025-05-10T01:00:40.720Z",
+          "IncidentDateTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+          "IncidentType": 0,
+          "LocationCoordinates": "string",
+          "LocationDetails": "string",
+          "SeverityLevel": 0,
+          "SiteId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          "Status": 0,
+          "Weather": "string",
+          "userNearMissIncidentItems": [
+            "string"
+          ],
+          "vehicleNearMissIncidentItems": [
+            "string"
+          ],
+          "_gOUser_NewObjectId": 0,
+          "_site_NewObjectId": 0,
+          "goUser": "string",
+          "incidentMultimediaItems": [
+            {
+              "IncidentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "CreatedAt": "2025-05-10T01:00:40.720Z",
+              "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+              "Description": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Image": "string",
+              "ImageFileSize": 0,
+              "ImageInternalName": "string",
+              "_incident_NewObjectId": 0,
+              "incident": "string",
+              "userMultimediaItems": [
+                {
+                  "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "MultimediaId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "CreatedAt": "2025-05-10T01:00:40.720Z",
+                  "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                  "Description": "string",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Image": "string",
+                  "ImageFileSize": 0,
+                  "ImageInternalName": "string",
+                  "_gOUser_NewObjectId": 0,
+                  "_multimedia_NewObjectId": 0,
+                  "goUser": "string",
+                  "multimedia": {
+                    "CreatedAt": "2025-05-10T01:00:40.720Z",
+                    "CreatedAt_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+                    "Description": "string",
+                    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "Image": "string",
+                    "ImageFileSize": 0,
+                    "ImageInternalName": "string",
+                    "userMultimediaItems": [
+                      "string"
+                    ],
+                    "isMarkedForDeletion": true,
+                    "isDirty": false,
+                    "isNew": false,
+                    "internalObjectId": 0
+                  },
+                  "userMultimediaItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            }
+          ],
+          "site": {
+            "Address": "string",
+            "BusinessId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "CountryStateId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "Name": "string",
+            "TimezoneId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "_business_NewObjectId": 0,
+            "_country_NewObjectId": 0,
+            "_stateProvince_NewObjectId": 0,
+            "_timezone_NewObjectId": 0,
+            "business": "string",
+            "country": {
+              "Code": "string",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "businessItems": [
+                "string"
+              ],
+              "countryStateItems": [
+                {
+                  "Code": "string",
+                  "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "Name": "string",
+                  "_country_NewObjectId": 0,
+                  "businessItems": [
+                    "string"
+                  ],
+                  "country": "string",
+                  "siteItems": [
+                    "string"
+                  ],
+                  "isMarkedForDeletion": true,
+                  "isDirty": false,
+                  "isNew": false,
+                  "internalObjectId": 0
+                }
+              ],
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "incidentItems": [
+              "string"
+            ],
+            "stateProvince": {
+              "Code": "string",
+              "CountryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "_country_NewObjectId": 0,
+              "businessItems": [
+                "string"
+              ],
+              "country": "string",
+              "siteItems": [
+                "string"
+              ],
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "timezone": {
+              "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+              "Name": "string",
+              "Offset": "string",
+              "businessConfiguration": "string",
+              "site": "string",
+              "isMarkedForDeletion": true,
+              "isDirty": false,
+              "isNew": false,
+              "internalObjectId": 0
+            },
+            "vehicleItems": [
+              "string"
+            ],
+            "isMarkedForDeletion": true,
+            "isDirty": false,
+            "isNew": false,
+            "internalObjectId": 0
+          },
+          "isMarkedForDeletion": true,
+          "isDirty": false,
+          "isNew": false,
+          "internalObjectId": 0
+        },
+        "vehicle": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "vehicleSessionItems": [
+      {
+        "ClosedBy": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "EndLocationCoordinates": "string",
+        "EndTime": "2025-05-10T01:00:40.720Z",
+        "EndTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "StartLocationCoordinates": "string",
+        "StartTime": "2025-05-10T01:00:40.720Z",
+        "StartTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "Status": 0,
+        "Timestamp": "2025-05-10T01:00:40.720Z",
+        "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+        "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "VehicleSessionClosedMethod": 0,
+        "_gOUser_NewObjectId": 0,
+        "_vehicle_NewObjectId": 0,
+        "checklistAnswer": "string",
+        "goUser": "string",
+        "vehicle": "string",
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      }
+    ],
+    "vehicleType": {
+      "ChecklistId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "Name": "string",
+      "RequiresCertification": true,
+      "VehicleCategoryId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "_checklist_NewObjectId": 0,
+      "_vehicleCategory_NewObjectId": 0,
+      "checklist": "string",
+      "vehicleCategory": {
+        "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "Name": "string",
+        "vehicleItems": [
+          "string"
+        ],
+        "vehicleTypeItems": [
+          "string"
+        ],
+        "isMarkedForDeletion": true,
+        "isDirty": false,
+        "isNew": false,
+        "internalObjectId": 0
+      },
+      "vehicleItems": [
+        "string"
+      ],
+      "isMarkedForDeletion": true,
+      "isDirty": false,
+      "isNew": false,
+      "internalObjectId": 0
+    },
+    "isMarkedForDeletion": true,
+    "isDirty": false,
+    "isNew": false,
+    "internalObjectId": 0
+  },
+  "vehicleSession": {
+    "ClosedBy": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "EndLocationCoordinates": "string",
+    "EndTime": "2025-05-10T01:00:40.720Z",
+    "EndTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+    "GOUserId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "Id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "StartLocationCoordinates": "string",
+    "StartTime": "2025-05-10T01:00:40.720Z",
+    "StartTime_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+    "Status": 0,
+    "Timestamp": "2025-05-10T01:00:40.720Z",
+    "Timestamp_WithTimezoneOffset": "2025-05-10T01:00:40.720Z",
+    "VehicleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "VehicleSessionClosedMethod": 0,
+    "_gOUser_NewObjectId": 0,
+    "_vehicle_NewObjectId": 0,
+    "checklistAnswer": "string",
+    "goUser": "string",
+    "vehicle": "string",
+    "isMarkedForDeletion": true,
+    "isDirty": false,
+    "isNew": false,
+    "internalObjectId": 0
+  },
+  "isMarkedForDeletion": true,
+  "isDirty": false,
+  "isNew": false,
+  "internalObjectId": 0
+}

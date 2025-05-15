@@ -130,7 +130,7 @@ class AddVehicleViewModel @Inject constructor(
     }
 
     fun selectVehicleType(type: VehicleType) {
-        if (type.categoryId == _state.value.selectedCategory?.id) {
+        if (type.VehicleCategoryId == _state.value.selectedCategory?.id) {
             _state.update { it.copy(selectedType = type) }
         }
     }

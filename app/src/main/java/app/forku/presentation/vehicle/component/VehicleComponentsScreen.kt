@@ -16,11 +16,13 @@ import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.data.api.dto.vehicle.VehicleComponentDto
 import app.forku.presentation.common.components.BaseScreen
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun VehicleComponentsScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: VehicleComponentViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -33,7 +35,8 @@ fun VehicleComponentsScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Vehicle Components",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Column(
             modifier = Modifier

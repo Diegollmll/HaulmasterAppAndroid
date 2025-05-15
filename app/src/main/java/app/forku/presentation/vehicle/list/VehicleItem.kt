@@ -17,6 +17,9 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextStyle
+import app.forku.core.Constants.BASE_URL
+import app.forku.domain.model.checklist.CheckStatus
+import app.forku.domain.model.checklist.ChecklistAnswer
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.getPreShiftStatusColor
 import app.forku.domain.model.checklist.getPreShiftStatusText
@@ -28,7 +31,8 @@ import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.toColor
 import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.presentation.common.utils.parseDateTime
-import java.time.ZoneId
+import app.forku.presentation.vehicle.components.VehicleImage
+import coil.ImageLoader
 
 data class TextConfig(
     val fontSize: Int,
@@ -118,6 +122,8 @@ fun VehicleItem(
     statusChipConfig: StatusChipConfig = StatusChipConfig(),
     textConfigs: VehicleItemTextConfigs = VehicleItemTextConfigs(),
     lastPreShiftCheck: PreShiftCheck? = null,
+    imageLoader: ImageLoader,
+    checklistAnswer: ChecklistAnswer? = null,
     onClick: () -> Unit = {}
 ) {
     Row(
@@ -141,12 +147,12 @@ fun VehicleItem(
                 .fillMaxWidth()
                 .padding(horizontal = 0.dp)
         ) {
-            AsyncImage(
-                model = vehicle.photoModel,
-                contentDescription = "Vehicle image",
+            VehicleImage(
+                vehicleId = vehicle.id,
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(8.dp)),
+                imageLoader = imageLoader,
                 contentScale = ContentScale.Inside
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -191,7 +197,7 @@ fun VehicleItem(
                 }
 
                 Text(
-                    text = vehicle.type.name,
+                    text = vehicle.type.Name,
                     style = TextStyle(
                         fontSize = textConfigs.vehicleType.fontSize.sp,
                         lineHeight = textConfigs.vehicleType.lineHeight.sp,
@@ -200,8 +206,12 @@ fun VehicleItem(
                     modifier = Modifier.padding(0.dp)
                 )
 
-                // Last PreShift Check
-                lastPreShiftCheck?.let { check ->
+                // After displaying vehicle type/name, add checklist status if available
+                if (checklistAnswer != null) {
+                    val statusEnum = CheckStatus.values().getOrNull(checklistAnswer.status)
+                    val statusText = statusEnum?.toFriendlyString() ?: "Unknown"
+                    val statusColor = app.forku.domain.model.checklist.getPreShiftStatusColor(statusEnum?.name ?: "PENDING")
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Start,
@@ -216,14 +226,16 @@ fun VehicleItem(
                         )
                         Spacer(Modifier.width(3.dp))
                         Text(
-                            text = "${getPreShiftStatusText(check.status)}",
+                            text = "$statusText",
                             style = TextStyle(
                                 fontSize = textConfigs.preshiftCheck.fontSize.sp,
                                 lineHeight = textConfigs.preshiftCheck.lineHeight.sp,
-                                color = getPreShiftStatusColor(check.status)
+                                color = statusColor
                             )
                         )
                     }
+
+
                 }
 
                 if (sessionInfo?.sessionStartTime != null) {
@@ -275,7 +287,7 @@ fun VehicleItem(
                         modifier = Modifier.padding(0.dp)
                     )
                     Text(
-                        text = sessionInfo.operatorName,
+                        text = sessionInfo.operatorName.ifBlank { "Sin nombre" },
                         style = TextStyle(
                             fontSize = textConfigs.operatorName.fontSize.sp,
                             lineHeight = textConfigs.operatorName.lineHeight.sp,

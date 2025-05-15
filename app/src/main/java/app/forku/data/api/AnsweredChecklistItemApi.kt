@@ -20,8 +20,19 @@ interface AnsweredChecklistItemApi {
     @GET("dataset/api/answeredchecklistitem/count")
     suspend fun getCount(): Response<Int>
 
-    @POST("dataset/api/answeredchecklistitem")
-    suspend fun save(@Body item: AnsweredChecklistItemDto): Response<AnsweredChecklistItemDto>
+    @FormUrlEncoded
+    @POST("api/answeredchecklistitem")
+    @Headers(
+        "Content-Type: application/x-www-form-urlencoded",
+        "Accept: application/json, text/javascript, */*; q=0.01"
+    )
+    suspend fun save(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
+        @Field("entity") entity: String,
+        @Field("include") include: String = "",
+        @Field("dateformat") dateformat: String = "ISO8601"
+    ): Response<AnsweredChecklistItemDto>
 
     @DELETE("dataset/api/answeredchecklistitem")
     suspend fun delete(@Body item: AnsweredChecklistItemDto): Response<Unit>

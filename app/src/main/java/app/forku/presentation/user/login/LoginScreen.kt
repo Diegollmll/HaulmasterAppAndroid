@@ -1,5 +1,6 @@
 package app.forku.presentation.user.login
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -17,6 +18,8 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.user.User
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.navigation.Screen
+import app.forku.core.auth.TokenErrorHandler
+import app.forku.core.auth.AuthenticationState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,15 +27,26 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel(),
     onLoginSuccess: (User) -> Unit,
     networkManager: NetworkConnectivityManager,
-    navController: NavController
+    navController: NavController,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    // Reset state when entering screen
+    LaunchedEffect(Unit) {
+        viewModel.resetState()
+    }
+
+    // Handle login success
     LaunchedEffect(state) {
         if (state is LoginState.Success) {
-            onLoginSuccess((state as LoginState.Success).user)
+            val user = (state as LoginState.Success).user
+            Log.d("LoginScreen", "Login successful, navigating to dashboard")
+            // Ensure we're in a clean state before navigation
+            tokenErrorHandler.resetAuthenticationState()
+            onLoginSuccess(user)
         }
     }
 
@@ -78,7 +92,8 @@ fun LoginScreen(
                     cursorColor = Color(0xFFFFA726),
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-                )
+                ),
+                enabled = state !is LoginState.Loading
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -98,8 +113,12 @@ fun LoginScreen(
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
+                enabled = state !is LoginState.Loading,
                 trailingIcon = {
-                    TextButton(onClick = { /* TODO: Handle forgot password */ }) {
+                    TextButton(
+                        onClick = { /* TODO: Handle forgot password */ },
+                        enabled = state !is LoginState.Loading
+                    ) {
                         Text("Forgot?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -108,7 +127,10 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { viewModel.login(username, password) },
+                onClick = { 
+                    Log.d("LoginScreen", "Login button clicked for user: $username")
+                    viewModel.login(username, password)
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFFFA726),
@@ -141,7 +163,8 @@ fun LoginScreen(
                     onClick = { navController.navigate(Screen.Register.route) },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = Color(0xFFFFA726)
-                    )
+                    ),
+                    enabled = state !is LoginState.Loading
                 ) {
                     Text("Register")
                 }

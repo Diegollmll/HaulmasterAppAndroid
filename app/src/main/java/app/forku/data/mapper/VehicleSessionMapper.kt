@@ -31,59 +31,47 @@ object VehicleSessionMapper {
 
     fun toDomain(dto: VehicleSessionDto): VehicleSession {
         return VehicleSession(
-            id = dto.id,
-            vehicleId = dto.vehicleId,
-            userId = dto.userId,
-            checkId = dto.checkId,
-            startTime = dto.startTime,
-            endTime = dto.endTime,
-            status = when (dto.status.uppercase()) {
-                "OPERATING" -> VehicleSessionStatus.OPERATING
-                else -> VehicleSessionStatus.NOT_OPERATING
-            },
-            startLocationCoordinates = dto.startLocationCoordinates,
-            endLocationCoordinates = dto.endLocationCoordinates,
-            durationMinutes = calculateDuration(dto.startTime, dto.endTime),
-            timestamp = dto.timestamp,
-            closeMethod = mapCloseMethod(dto.closeMethod),
-            closedBy = dto.closedBy,
-            notes = dto.notes
+            id = dto.Id,
+            vehicleId = dto.VehicleId,
+            userId = dto.GOUserId,
+            checkId = dto.ChecklistAnswerId,
+            startTime = dto.StartTime,
+            endTime = dto.EndTime,
+            status = if (dto.Status == 0) VehicleSessionStatus.OPERATING else VehicleSessionStatus.NOT_OPERATING,
+            startLocationCoordinates = dto.StartLocationCoordinates,
+            endLocationCoordinates = dto.EndLocationCoordinates,
+            durationMinutes = calculateDuration(dto.StartTime, dto.EndTime),
+            timestamp = dto.Timestamp,
+            closeMethod = mapCloseMethod(dto.VehicleSessionClosedMethod),
+            closedBy = dto.ClosedBy,
+            notes = null // Not present in new DTO
         )
     }
 
     fun toDto(domain: VehicleSession): VehicleSessionDto {
         return VehicleSessionDto(
-            id = domain.id,
-            vehicleId = domain.vehicleId,
-            userId = domain.userId,
-            checkId = domain.checkId,
-            startTime = domain.startTime,
-            endTime = domain.endTime,
-            status = domain.status.name,
-            startLocationCoordinates = domain.startLocationCoordinates,
-            endLocationCoordinates = domain.endLocationCoordinates,
-            timestamp = domain.timestamp,
-            closeMethod = domain.closeMethod?.name,
-            closedBy = domain.closedBy,
-            notes = domain.notes
+            Id = domain.id,
+            ChecklistAnswerId = domain.checkId,
+            GOUserId = domain.userId,
+            VehicleId = domain.vehicleId,
+            StartTime = domain.startTime,
+            EndTime = domain.endTime,
+            Status = if (domain.status == VehicleSessionStatus.OPERATING) 0 else 1,
+            StartLocationCoordinates = domain.startLocationCoordinates,
+            EndLocationCoordinates = domain.endLocationCoordinates,
+            Timestamp = domain.timestamp,
+            VehicleSessionClosedMethod = domain.closeMethod?.toBackendValue()?.toString(),
+            ClosedBy = domain.closedBy,
+            IsDirty = true,
+            IsNew = true,
+            IsMarkedForDeletion = false
         )
     }
 
-    fun toVehicleSessionDto(domain: VehicleSession): VehicleSessionDto {
-        return VehicleSessionDto(
-            id = domain.id,
-            vehicleId = domain.vehicleId,
-            userId = domain.userId,
-            checkId = domain.checkId,
-            startTime = domain.startTime,
-            endTime = domain.endTime,
-            timestamp = domain.timestamp,
-            status = domain.status.toString(),
-            closeMethod = domain.closeMethod?.toString(),
-            closedBy = domain.closedBy,
-            startLocationCoordinates = domain.startLocationCoordinates,
-            endLocationCoordinates = domain.endLocationCoordinates,
-            notes = domain.notes
-        )
+    fun VehicleSessionClosedMethod.toBackendValue(): Int = when (this) {
+        VehicleSessionClosedMethod.USER_CLOSED -> 0
+        VehicleSessionClosedMethod.ADMIN_CLOSED -> 1
+        VehicleSessionClosedMethod.TIMEOUT_CLOSED -> 2
+        VehicleSessionClosedMethod.GEOFENCE_CLOSED -> 3
     }
 } 

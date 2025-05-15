@@ -12,15 +12,9 @@ import app.forku.domain.repository.vehicle.VehicleRepository
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import dagger.hilt.android.scopes.ViewModelScoped
-import java.util.UUID
 import app.forku.data.api.dto.vehicle.VehicleDto
-import app.forku.data.api.dto.vehicle.VehicleTypeDto
-import app.forku.data.api.dto.vehicle.toDto
-import app.forku.domain.model.vehicle.MaintenanceStatus
 import javax.inject.Inject
 import javax.inject.Singleton
 import app.forku.domain.usecase.checklist.ValidateChecklistUseCase
@@ -28,6 +22,21 @@ import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import android.util.Log
 import app.forku.data.mapper.toDto
 import app.forku.domain.repository.vehicle.VehicleTypeRepository
+import app.forku.data.service.GOServicesManager
+import app.forku.domain.model.vehicle.EnergySourceEnum
+import app.forku.core.auth.HeaderManager
+import app.forku.data.api.dto.error.AuthErrorDto
+import com.google.gson.Gson
+import retrofit2.HttpException
+import app.forku.data.api.dto.ApiResponse
+import app.forku.data.api.dto.toApiResponse
+import app.forku.data.mapper.toFormMap
+import app.forku.data.api.dto.vehicle.UpdateVehicleDto
+import app.forku.data.api.dto.vehicle.VehicleObjectData
+import app.forku.data.api.dto.vehicle.ObjectsDataSet
+import app.forku.data.api.dto.vehicle.VehicleObjectsDataSet
+import app.forku.data.mapper.toJsonObject
+import app.forku.data.mapper.toUpdateDto
 
 @Singleton
 class VehicleRepositoryImpl @Inject constructor(
@@ -35,10 +44,13 @@ class VehicleRepositoryImpl @Inject constructor(
     private val authDataStore: AuthDataStore,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
     private val vehicleStatusRepository: VehicleStatusRepository,
-    private val vehicleTypeRepository: VehicleTypeRepository
+    private val vehicleTypeRepository: VehicleTypeRepository,
+    private val goServicesManager: GOServicesManager,
+    private val headerManager: HeaderManager
 ) : VehicleRepository {
     private val cache = ConcurrentHashMap<String, CachedVehicle>()
     private val mutex = Mutex()
+    private val gson = Gson()
     
     private data class CachedVehicle(
         val vehicle: Vehicle,
@@ -47,6 +59,7 @@ class VehicleRepositoryImpl @Inject constructor(
 
     companion object {
         private const val CACHE_DURATION_MS = 30_000L // 30 seconds
+        private const val TAG = "appflow VehicleRepo"
     }
 
     private fun isCacheValid(cachedVehicle: CachedVehicle): Boolean {
@@ -54,11 +67,28 @@ class VehicleRepositoryImpl @Inject constructor(
         return (now - cachedVehicle.timestamp) < CACHE_DURATION_MS
     }
 
+    private suspend fun getAuthHeaders(): Pair<String, String> {
+        // Get fresh CSRF token and cookie
+        val csrfTokenResult = goServicesManager.getCsrfToken(forceRefresh = true)
+        if (csrfTokenResult.isFailure) {
+            throw Exception("Failed to get CSRF token")
+        }
+
+        val csrfToken = csrfTokenResult.getOrNull()
+        val antiforgeryCookie = authDataStore.getAntiforgeryCookie()
+
+        if (csrfToken == null || antiforgeryCookie == null) {
+            throw Exception("Missing CSRF token or cookie")
+        }
+
+        return Pair(csrfToken, antiforgeryCookie)
+    }
+
     // Cache handling functions
     private fun getFromCache(id: String): Vehicle? {
         return cache[id]?.let { cached ->
             if (isCacheValid(cached)) {
-                Log.d("VehicleRepo", "Using cached vehicle: ${cached.vehicle.codename}")
+                Log.d(TAG, "Using cached vehicle: ${cached.vehicle.codename}")
                 cached.vehicle
             } else null
         }
@@ -66,15 +96,23 @@ class VehicleRepositoryImpl @Inject constructor(
     
     private fun updateCache(id: String, vehicle: Vehicle) {
         cache[id] = CachedVehicle(vehicle, System.currentTimeMillis())
-        Log.d("VehicleRepo", "Vehicle cached: ${vehicle.codename}")
+        Log.d(TAG, "Vehicle cached: ${vehicle.codename}")
     }
     
     // API access functions
     private suspend fun fetchVehicleFromGlobalList(id: String): Vehicle {
-        Log.d("VehicleRepo", "Fetching vehicle $id from global list")
-        val response = api.getVehicleById(id)
+        Log.d(TAG, "Fetching vehicle $id from global list")
+        val (csrfToken, cookie) = getAuthHeaders()
+        
+        val response = api.getVehicleById(
+            id = id,
+            csrfToken = csrfToken,
+            cookie = cookie
+        )
+        
+
         if (!response.isSuccessful) {
-            throw Exception("Failed to fetch vehicle: "+response.code())
+            throw Exception("Failed to fetch vehicle: ${response.code()}")
         }
         return response.body()?.toDomain() ?: throw Exception("Vehicle not found")
     }
@@ -90,18 +128,18 @@ class VehicleRepositoryImpl @Inject constructor(
     private suspend fun enrichVehicleWithTypeInfo(vehicle: Vehicle): Vehicle {
         try {
             // Solo intentar obtener más información si tenemos el ID del tipo de vehículo
-            if (vehicle.type.id.isNotEmpty()) {
+            if (vehicle.type.Id.isNotEmpty()) {
                 // Intentar obtener el tipo de vehículo completo
                 try {
-                    val fullType = vehicleTypeRepository.getVehicleTypeById(vehicle.type.id)
+                    val fullType = vehicleTypeRepository.getVehicleTypeById(vehicle.type.Id)
                     // Devolver vehículo con tipo completo
                     return vehicle.copy(type = fullType)
                 } catch (e: Exception) {
-                    Log.d("VehicleRepo", "Could not load full vehicle type data for ID: ${vehicle.type.id}. Using placeholder.")
+                    Log.d(TAG, "Could not load full vehicle type data for ID: ${vehicle.type.Id}. Using placeholder.")
                 }
             }
         } catch (e: Exception) {
-            Log.e("VehicleRepo", "Error enriching vehicle with type data", e)
+            Log.e(TAG, "Error enriching vehicle with type data", e)
         }
         
         // En caso de fallo, devolver el vehículo original sin cambios
@@ -112,16 +150,25 @@ class VehicleRepositoryImpl @Inject constructor(
         id: String,
         businessId: String
     ): Vehicle = withContext(Dispatchers.IO) {
+        Log.d(TAG, "getVehicle called with id=$id, businessId=$businessId")
         mutex.withLock {
             getFromCache(id)?.let { return@withContext it }
             try {
-                var vehicle = fetchVehicleFromGlobalList(id)
+                val (csrfToken, cookie) = getAuthHeaders()
+                Log.d(TAG, "Calling api.getVehicleById with id=$id, csrfToken=${csrfToken.take(8)}..., cookie=${cookie.take(8)}...")
+                var vehicle = api.getVehicleById(id, csrfToken, cookie)
+                    .body()?.toDomain() ?: run {
+                        Log.e(TAG, "Vehicle not found for id=$id")
+                        throw Exception("Vehicle not found")
+                    }
+                Log.d(TAG, "Vehicle fetched from API: $vehicle")
                 vehicle = enrichVehicleWithTypeInfo(vehicle)
                 updateCache(id, vehicle)
                 vehicle
             } catch (e: Exception) {
+                Log.e(TAG, "Error fetching vehicle for id=$id, businessId=$businessId: ${e.message}", e)
                 getFromCache(id)?.let { 
-                    Log.d("VehicleRepo", "Returning cached vehicle as fallback after error")
+                    Log.d(TAG, "Returning cached vehicle as fallback after error")
                     return@withContext it 
                 }
                 throw e
@@ -135,8 +182,16 @@ class VehicleRepositoryImpl @Inject constructor(
         businessId: String?
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
+            // Get fresh CSRF token and cookie
+            val (csrfToken, cookie) = getAuthHeaders()
+            
             // Treat QR code as vehicle ID
-            val response = api.getVehicleById(code)
+            val response = api.getVehicleById(
+                id = code,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
+            
             if (!response.isSuccessful) {
                 when (response.code()) {
                     404 -> throw Exception("Vehículo no encontrado")
@@ -156,7 +211,7 @@ class VehicleRepositoryImpl @Inject constructor(
             }
             vehicle
         } catch (e: Exception) {
-            android.util.Log.e("VehicleRepo", "Error getting vehicle by QR $code", e)
+            android.util.Log.e(TAG, "Error getting vehicle by QR $code", e)
             throw Exception("Vehículo no encontrado o no disponible: ${e.message}")
         }
     }
@@ -166,36 +221,69 @@ class VehicleRepositoryImpl @Inject constructor(
         siteId: String?
     ): List<Vehicle> = withContext(Dispatchers.IO) {
         try {
-            val response = api.getAllVehicles()
-            if (!response.isSuccessful) {
-                throw Exception("Failed to get vehicles: "+response.code())
+            Log.d(TAG, "Fetching vehicles for business: $businessId")
+            
+            val headersResult = headerManager.getHeaders()
+            if (headersResult.isFailure) {
+                val error = headersResult.exceptionOrNull()
+                Log.e(TAG, "Failed to get auth headers", error)
+                throw error ?: Exception("Failed to get auth headers")
             }
-            val vehicles = response.body()?.map { it.toDomain() }
-                ?: throw Exception("Failed to get vehicles: Empty response body")
-            val enrichedVehicles = vehicles.map { enrichVehicleWithTypeInfo(it) }
-            enrichedVehicles.forEach { vehicle ->
-                cache[vehicle.id] = CachedVehicle(vehicle, System.currentTimeMillis())
+            
+            val headers = headersResult.getOrNull()!!
+            Log.d(TAG, "Got auth headers, making API call")
+            
+            val response = api.getAllVehicles(
+                csrfToken = headers.csrfToken,
+                cookie = headers.cookie
+            )
+
+            when (val apiResponse = response.toApiResponse()) {
+                is ApiResponse.Success -> {
+                    val vehicles = apiResponse.data.mapNotNull { dto ->
+                        try {
+                            dto.toDomain()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error mapping vehicle: ${dto.id}, Name: ${dto.codename}", e)
+                            null
+                        }
+                    }
+
+                    // Enrich vehicles with type info
+                    val enrichedVehicles = vehicles.map { enrichVehicleWithTypeInfo(it) }
+                    
+                    // Filter by businessId if provided
+                    val filteredVehicles = if (businessId.isNotEmpty() && businessId != "0") {
+                        enrichedVehicles.filter { it.businessId == businessId }
+                    } else {
+                        enrichedVehicles
+                    }
+                    
+                    // Cache the vehicles
+                    filteredVehicles.forEach { vehicle ->
+                        cache[vehicle.id] = CachedVehicle(vehicle, System.currentTimeMillis())
+                    }
+
+                    Log.d(TAG, "Successfully fetched ${filteredVehicles.size} vehicles")
+                    filteredVehicles
+                }
+                is ApiResponse.AuthError -> {
+                    Log.e(TAG, "Authentication error: ${apiResponse.error.detail}")
+                    throw HttpException(response)
+                }
+                is ApiResponse.Error -> {
+                    Log.e(TAG, "Error fetching vehicles", apiResponse.exception)
+                    throw apiResponse.exception
+                }
             }
-            enrichedVehicles
         } catch (e: Exception) {
-            android.util.Log.e("VehicleRepo", "Error fetching vehicles", e)
+            Log.e(TAG, "Error fetching vehicles", e)
             throw e
         }
     }
 
     override suspend fun getAllVehicles(): List<Vehicle> {
-        try {
-            val response = api.getAllVehicles()
-            if (!response.isSuccessful) {
-                throw Exception("Failed to get all vehicles: "+response.code())
-            }
-            val vehicles = response.body()?.map { it.toDomain() }
-                ?: throw Exception("Failed to get vehicles: Empty response body")
-            return vehicles.map { enrichVehicleWithTypeInfo(it) }
-        } catch (e: Exception) {
-            android.util.Log.e("VehicleRepo", "Error fetching all vehicles", e)
-            throw e
-        }
+        return getVehicles("0") // Use "0" as businessId to get all vehicles
     }
 
     override suspend fun getVehicleStatus(
@@ -205,31 +293,58 @@ class VehicleRepositoryImpl @Inject constructor(
         return vehicleStatusRepository.getVehicleStatus(vehicleId, businessId)
     }
 
-    override suspend fun updateVehicleStatus(
-        vehicleId: String,
-        status: VehicleStatus,
-        businessId: String
-    ): Vehicle = withContext(Dispatchers.IO) {
+    override suspend fun updateVehicleStatus(vehicleId: String, status: VehicleStatus, businessId: String): Vehicle = withContext(Dispatchers.IO) {
         try {
-            // Fetch the current vehicle
-            val currentResponse = api.getVehicleById(vehicleId)
-            if (!currentResponse.isSuccessful) {
-                throw Exception("Failed to fetch vehicle: ${currentResponse.code()}")
+            Log.d(TAG, """
+                Updating vehicle status:
+                - Vehicle ID: $vehicleId
+                - New Status: $status
+                - Business ID: $businessId
+            """.trimIndent())
+            
+            // Get current vehicle data first
+            val currentVehicle = getVehicle(vehicleId, businessId)
+            if (currentVehicle == null) {
+                Log.e(TAG, "Vehicle not found: $vehicleId")
+                throw Exception("Vehicle not found")
             }
-            val currentVehicleDto = currentResponse.body() ?: throw Exception("Vehicle not found")
-            // Update the status (PascalCase field)
-            val updatedVehicleDto = currentVehicleDto.copy(status = status.name)
-            // Save the updated vehicle
-            val response = api.saveVehicle(updatedVehicleDto)
+            Log.d(TAG, "Current vehicle data: ${currentVehicle.codename}, Status: ${currentVehicle.status}")
+
+            // Get headers for the request
+            val headers = headerManager.getHeaders().getOrThrow()
+            Log.d(TAG, "Got auth headers - CSRF Token: ${headers.csrfToken.take(10)}...")
+
+            // Convert to JsonObject with new status
+            val vehicleJson = currentVehicle.toDto().toJsonObject(newStatus = status)
+            
+            // Make the API call
+            Log.d(TAG, "Making API call to update vehicle...")
+            val response = api.saveVehicle(
+                updateDto = vehicleJson,
+                csrfToken = headers.csrfToken,
+                cookie = headers.cookie
+            )
+
             if (!response.isSuccessful) {
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, """
+                    API call failed:
+                    - Code: ${response.code()}
+                    - Error: $errorBody
+                    - Headers: ${response.headers()}
+                """.trimIndent())
                 throw Exception("Failed to update vehicle status: ${response.code()}")
             }
-            val result = response.body()?.toDomain() ?: throw Exception("No vehicle data in response")
-            cache[vehicleId] = CachedVehicle(result, System.currentTimeMillis())
-            result
+
+            Log.d(TAG, "API call successful, processing response...")
+            val resultVehicle = response.body()?.toDomain() 
+                ?: throw Exception("Vehicle data missing in response")
+            
+            Log.d(TAG, "Vehicle status updated successfully to: ${resultVehicle.status}")
+            resultVehicle
         } catch (e: Exception) {
-            android.util.Log.e("VehicleRepo", "Error updating vehicle status", e)
-            throw Exception("Error updating vehicle status: ${e.message}")
+            Log.e(TAG, "Error updating vehicle status", e)
+            throw e
         }
     }
 
@@ -240,33 +355,44 @@ class VehicleRepositoryImpl @Inject constructor(
         description: String,
         bestSuitedFor: String,
         photoModel: String,
-        energyType: String,
+        energySource: String,
         nextService: String,
         businessId: String?,
         serialNumber: String
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
+            val (csrfToken, cookie) = getAuthHeaders()
+            
             val vehicleDto = VehicleDto(
                 codename = codename,
                 model = model,
-                vehicleTypeId = type.id,
-                categoryId = type.categoryId,
+                vehicleTypeId = type.Id,
+                categoryId = type.VehicleCategoryId,
                 description = description,
                 bestSuitedFor = bestSuitedFor,
                 photoModel = photoModel,
-                energyType = energyType,
-                nextService = nextService,
+                energySource = EnergySourceEnum.fromString(energySource).apiValue,
+                nextServiceDateTime = nextService,
                 businessId = businessId,
-                serialNumber = serialNumber
+                serialNumber = serialNumber,
+                status = VehicleStatus.AVAILABLE.toInt()
             )
-            val response = api.saveVehicle(vehicleDto)
+            
+            val vehicleJson = vehicleDto.toJsonObject()
+            
+            val response = api.saveVehicle(
+                updateDto = vehicleJson,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
+            
             if (!response.isSuccessful) {
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Failed to create vehicle (Code: ${response.code()}): $errorBody")
             }
             response.body()?.toDomain() ?: throw Exception("Vehicle data missing in response body")
         } catch (e: Exception) {
-            Log.e("VehicleRepo", "Error creating vehicle", e)
+            Log.e(TAG, "Error creating vehicle", e)
             throw Exception("Failed to create vehicle: ${e.message}")
         }
     }
@@ -276,8 +402,14 @@ class VehicleRepositoryImpl @Inject constructor(
         updatedVehicle: Vehicle
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
-            val vehicleDto = updatedVehicle.toDto()
-            val response = api.saveVehicle(vehicleDto)
+            val (csrfToken, cookie) = getAuthHeaders()
+            
+            val vehicleJson = updatedVehicle.toDto().toJsonObject()
+            val response = api.saveVehicle(
+                updateDto = vehicleJson,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
             if (!response.isSuccessful) {
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Failed to update vehicle (Code: ${response.code()}): $errorBody")
@@ -287,7 +419,7 @@ class VehicleRepositoryImpl @Inject constructor(
             cache[vehicleId] = CachedVehicle(result, System.currentTimeMillis())
             result
         } catch (e: Exception) {
-            Log.e("VehicleRepo", "Error in updateVehicleGlobally", e)
+            Log.e(TAG, "Error in updateVehicleGlobally", e)
             throw Exception("Failed to update vehicle: ${e.message}")
         }
     }
@@ -298,8 +430,14 @@ class VehicleRepositoryImpl @Inject constructor(
         updatedVehicle: Vehicle
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
-            val vehicleDto = updatedVehicle.toDto()
-            val response = api.saveVehicle(vehicleDto)
+            val (csrfToken, cookie) = getAuthHeaders()
+            
+            val vehicleJson = updatedVehicle.toDto().toJsonObject()
+            val response = api.saveVehicle(
+                updateDto = vehicleJson,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
             if (!response.isSuccessful) {
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Failed to update vehicle (Code: ${response.code()}): $errorBody")
@@ -309,7 +447,7 @@ class VehicleRepositoryImpl @Inject constructor(
             cache[vehicleId] = CachedVehicle(result, System.currentTimeMillis())
             result
         } catch (e: Exception) {
-            Log.e("VehicleRepo", "Error in updateVehicle", e)
+            Log.e(TAG, "Error in updateVehicle", e)
             throw Exception("Failed to update vehicle: ${e.message}")
         }
     }

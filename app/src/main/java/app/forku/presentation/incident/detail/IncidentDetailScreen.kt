@@ -20,6 +20,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
@@ -27,7 +28,8 @@ fun IncidentDetailScreen(
     incidentId: String,
     viewModel: IncidentDetailViewModel = hiltViewModel(),
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -46,6 +48,7 @@ fun IncidentDetailScreen(
         showTopBar = true,
         topBarTitle = "Incident Details",
         networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(
                 modifier = Modifier

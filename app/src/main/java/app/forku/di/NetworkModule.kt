@@ -1,18 +1,12 @@
 package app.forku.di
 
 import app.forku.core.Constants
-
-import app.forku.data.api.UserApi
-import app.forku.data.api.VehicleApi
-import app.forku.data.api.CertificationApi
-import app.forku.data.api.FeedbackApi
-import app.forku.data.api.WeatherApi
+import app.forku.core.auth.HeaderManager
+import app.forku.data.api.*
 import app.forku.data.api.interceptor.AuthInterceptor
 import app.forku.data.api.interceptor.RetryInterceptor
 import app.forku.domain.repository.weather.WeatherRepository
 import app.forku.data.repository.weather.WeatherRepositoryImpl
-import app.forku.data.api.VehicleSessionApi
-import app.forku.data.service.GOServicesManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -25,161 +19,14 @@ import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 import java.util.concurrent.TimeUnit
 import android.content.Context
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
-import app.forku.data.api.BusinessApi
 import javax.inject.Named
-import javax.inject.Provider
-import app.forku.data.api.IncidentApi
-import app.forku.data.api.ChecklistApi
-import app.forku.data.api.SessionApi
-import app.forku.data.api.NotificationApi
-
-import app.forku.data.api.CountryApi
-import app.forku.data.api.CountryStateApi
-
-import app.forku.data.api.VehicleTypeApi
-import app.forku.data.api.EnergySourceApi
-import app.forku.data.api.SiteApi
-import app.forku.data.api.VehicleCategoryApi
-import app.forku.data.api.VehicleComponentApi
-import app.forku.data.datastore.AuthDataStore
-import app.forku.data.api.GOFileUploaderApi
-import app.forku.data.api.GOGroupApi
-import app.forku.data.api.GOGroupRoleApi
-import app.forku.data.api.GOUserRoleApi
-import app.forku.data.api.UserBusinessApi
-import app.forku.data.api.BusinessConfigurationApi
-
-//import app.forku.data.api.CicoHistoryApi
-
+import app.forku.data.api.interceptor.FormUrlEncodedInterceptor
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    @Provides
-    @Singleton
-    fun provideUserApi(retrofit: Retrofit): UserApi = retrofit.create(UserApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideVehicleApi(retrofit: Retrofit): VehicleApi = retrofit.create(VehicleApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideVehicleCategoryApi(retrofit: Retrofit): VehicleCategoryApi =
-        retrofit.create(VehicleCategoryApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideVehicleTypeApi(retrofit: Retrofit): VehicleTypeApi = 
-        retrofit.create(VehicleTypeApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideIncidentApi(retrofit: Retrofit): IncidentApi = retrofit.create(IncidentApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideChecklistApi(retrofit: Retrofit): ChecklistApi = retrofit.create(ChecklistApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideSessionApi(retrofit: Retrofit): SessionApi = retrofit.create(SessionApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideNotificationApi(retrofit: Retrofit): NotificationApi = retrofit.create(NotificationApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideCertificationApi(retrofit: Retrofit): CertificationApi = retrofit.create(CertificationApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideFeedbackApi(retrofit: Retrofit): FeedbackApi = retrofit.create(FeedbackApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideWeatherApi(retrofit: Retrofit): WeatherApi = retrofit.create(WeatherApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideVehicleSessionApi(retrofit: Retrofit): VehicleSessionApi = 
-        retrofit.create(VehicleSessionApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideBusinessApi(retrofit: Retrofit): BusinessApi {
-        return retrofit.create(BusinessApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideBusinessConfigurationApi(retrofit: Retrofit): BusinessConfigurationApi =
-        retrofit.create(BusinessConfigurationApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideUserBusinessApi(retrofit: Retrofit): UserBusinessApi {
-        return retrofit.create(UserBusinessApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideCountryApi(retrofit: Retrofit): CountryApi =
-        retrofit.create(CountryApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideStateApi(retrofit: Retrofit): CountryStateApi =
-        retrofit.create(CountryStateApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideEnergySourceApi(retrofit: Retrofit): EnergySourceApi =
-        retrofit.create(EnergySourceApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideSiteApi(retrofit: Retrofit): SiteApi {
-        return retrofit.create(SiteApi::class.java)
-    }
-
-//    @Provides
-//    @Singleton
-//    fun provideCicoHistoryApi(retrofit: Retrofit): CicoHistoryApi =
-//        retrofit.create(CicoHistoryApi::class.java)
-
-    @Provides
-    @Singleton
-    fun provideVehicleComponentApi(retrofit: Retrofit): VehicleComponentApi {
-        return retrofit.create(VehicleComponentApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGOFileUploaderApi(retrofit: Retrofit): GOFileUploaderApi {
-        return retrofit.create(GOFileUploaderApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGOGroupApi(retrofit: Retrofit): GOGroupApi {
-        return retrofit.create(GOGroupApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGOGroupRoleApi(retrofit: Retrofit): GOGroupRoleApi {
-        return retrofit.create(GOGroupRoleApi::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideGOUserRoleApi(retrofit: Retrofit): GOUserRoleApi {
-        return retrofit.create(GOUserRoleApi::class.java)
-    }
-
     @Provides
     @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
@@ -190,22 +37,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(
-        authDataStore: AuthDataStore,
-        goServicesManagerProvider: Provider<GOServicesManager>
-    ): AuthInterceptor {
-        return AuthInterceptor(authDataStore, goServicesManagerProvider)
-    }
-
-    @Provides
-    @Singleton
-    fun provideOkHttpClient(
+    @Named("baseClient")
+    fun provideBaseOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        authInterceptor: AuthInterceptor,
         retryInterceptor: RetryInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
             .addInterceptor(retryInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -216,7 +53,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    @Named("baseRetrofit")
+    fun provideBaseRetrofit(@Named("baseClient") okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(Constants.BASE_URL)
             .client(okHttpClient)
@@ -225,20 +63,168 @@ object NetworkModule {
     }
 
     @Provides
-    @Named("baseUrl")
-    fun provideBaseUrl(): String = Constants.BASE_URL
-
-    @Provides
-    @Named("apiKey")
-    fun provideApiKey(): String = ""
+    @Singleton
+    fun provideAuthInterceptor(
+        headerManager: HeaderManager,
+        tokenErrorHandler: TokenErrorHandler
+    ): AuthInterceptor {
+        return AuthInterceptor(headerManager, tokenErrorHandler)
+    }
 
     @Provides
     @Singleton
-    fun provideWeatherRepository(
-        weatherApi: WeatherApi
-    ): WeatherRepository {
-        return WeatherRepositoryImpl(weatherApi)
+    @Named("authenticatedClient")
+    fun provideAuthenticatedOkHttpClient(
+        loggingInterceptor: HttpLoggingInterceptor,
+        authInterceptor: AuthInterceptor,
+        retryInterceptor: RetryInterceptor,
+        formUrlEncodedInterceptor: FormUrlEncodedInterceptor
+    ): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(retryInterceptor)
+            .addInterceptor(formUrlEncodedInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
     }
+
+    @Provides
+    @Singleton
+    @Named("authenticatedRetrofit")
+    fun provideAuthenticatedRetrofit(@Named("authenticatedClient") okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(Constants.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserApi(@Named("authenticatedRetrofit") retrofit: Retrofit): UserApi = 
+        retrofit.create(UserApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleApi(@Named("authenticatedRetrofit") retrofit: Retrofit): VehicleApi = 
+        retrofit.create(VehicleApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleCategoryApi(@Named("authenticatedRetrofit") retrofit: Retrofit): VehicleCategoryApi =
+        retrofit.create(VehicleCategoryApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleTypeApi(@Named("authenticatedRetrofit") retrofit: Retrofit): VehicleTypeApi = 
+        retrofit.create(VehicleTypeApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideIncidentApi(@Named("authenticatedRetrofit") retrofit: Retrofit): IncidentApi = 
+        retrofit.create(IncidentApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideChecklistApi(@Named("authenticatedRetrofit") retrofit: Retrofit): ChecklistApi = 
+        retrofit.create(ChecklistApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSessionApi(@Named("authenticatedRetrofit") retrofit: Retrofit): SessionApi = 
+        retrofit.create(SessionApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideNotificationApi(@Named("authenticatedRetrofit") retrofit: Retrofit): NotificationApi = 
+        retrofit.create(NotificationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCertificationApi(@Named("authenticatedRetrofit") retrofit: Retrofit): CertificationApi = 
+        retrofit.create(CertificationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFeedbackApi(@Named("authenticatedRetrofit") retrofit: Retrofit): FeedbackApi = 
+        retrofit.create(FeedbackApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideWeatherApi(@Named("authenticatedRetrofit") retrofit: Retrofit): WeatherApi = 
+        retrofit.create(WeatherApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleSessionApi(@Named("authenticatedRetrofit") retrofit: Retrofit): VehicleSessionApi = 
+        retrofit.create(VehicleSessionApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBusinessApi(@Named("authenticatedRetrofit") retrofit: Retrofit): BusinessApi =
+        retrofit.create(BusinessApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBusinessConfigurationApi(@Named("authenticatedRetrofit") retrofit: Retrofit): BusinessConfigurationApi =
+        retrofit.create(BusinessConfigurationApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserBusinessApi(@Named("authenticatedRetrofit") retrofit: Retrofit): UserBusinessApi =
+        retrofit.create(UserBusinessApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCountryApi(@Named("authenticatedRetrofit") retrofit: Retrofit): CountryApi =
+        retrofit.create(CountryApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideStateApi(@Named("authenticatedRetrofit") retrofit: Retrofit): CountryStateApi =
+        retrofit.create(CountryStateApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideEnergySourceApi(@Named("authenticatedRetrofit") retrofit: Retrofit): EnergySourceApi =
+        retrofit.create(EnergySourceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSiteApi(@Named("authenticatedRetrofit") retrofit: Retrofit): SiteApi =
+        retrofit.create(SiteApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVehicleComponentApi(@Named("authenticatedRetrofit") retrofit: Retrofit): VehicleComponentApi =
+        retrofit.create(VehicleComponentApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGOFileUploaderApi(@Named("authenticatedRetrofit") retrofit: Retrofit): GOFileUploaderApi =
+        retrofit.create(GOFileUploaderApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGOGroupApi(@Named("authenticatedRetrofit") retrofit: Retrofit): GOGroupApi =
+        retrofit.create(GOGroupApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGOGroupRoleApi(@Named("authenticatedRetrofit") retrofit: Retrofit): GOGroupRoleApi =
+        retrofit.create(GOGroupRoleApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideGOUserRoleApi(@Named("authenticatedRetrofit") retrofit: Retrofit): GOUserRoleApi =
+        retrofit.create(GOUserRoleApi::class.java)
+
+    @Provides
+    @Named("baseUrl")
+    fun provideBaseUrl(): String = Constants.BASE_URL
 
     @Provides
     @Singleton
@@ -246,5 +232,13 @@ object NetworkModule {
         @ApplicationContext context: Context
     ): NetworkConnectivityManager {
         return NetworkConnectivityManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(authInterceptor: AuthInterceptor): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .build()
     }
 }

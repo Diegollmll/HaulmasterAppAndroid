@@ -22,6 +22,7 @@ import app.forku.presentation.navigation.Screen
 import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import app.forku.core.auth.TokenErrorHandler
 
 data class TourPage(
     val title: String,
@@ -33,13 +34,15 @@ data class TourPage(
 @Composable
 fun TourScreen(
     navController: NavController,
-    viewModel: TourViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
+    viewModel: TourViewModel = hiltViewModel()
 ) {
     BaseScreen(
         navController = navController,
         showTopBar = false,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         val state by viewModel.state.collectAsState()
         val scope = rememberCoroutineScope()

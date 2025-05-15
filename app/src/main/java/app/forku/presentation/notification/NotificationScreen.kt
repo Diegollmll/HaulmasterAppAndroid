@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.notification.Notification
 import app.forku.domain.model.notification.NotificationPriority
@@ -36,8 +37,9 @@ import app.forku.presentation.common.utils.getRelativeTimeSpanString
 @Composable
 fun NotificationScreen(
     navController: NavController,
-    viewModel: NotificationViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
+    viewModel: NotificationViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     
@@ -53,7 +55,8 @@ fun NotificationScreen(
         showBottomBar = false,
         onRefresh = { viewModel.loadNotifications(true) },
         showLoadingOnRefresh = false,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

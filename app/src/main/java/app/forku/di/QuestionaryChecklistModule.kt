@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import javax.inject.Singleton
+import javax.inject.Named
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -16,7 +17,9 @@ object QuestionaryChecklistModule {
     
     @Provides
     @Singleton
-    fun provideQuestionaryChecklistApi(retrofit: Retrofit): QuestionaryChecklistApi {
+    fun provideQuestionaryChecklistApi(
+        @Named("authenticatedRetrofit") retrofit: Retrofit
+    ): QuestionaryChecklistApi {
         return retrofit.create(QuestionaryChecklistApi::class.java)
     }
     

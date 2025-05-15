@@ -36,7 +36,7 @@ fun Incident.toDto(): IncidentDto {
         othersInvolved = othersInvolved,
         injuries = injuries,
         injuryLocations = injuryLocations,
-        vehicleType = vehicleType?.name,
+        vehicleType = vehicleType?.Name,
         vehicleName = vehicleName,
         checkId = checkId,
         isLoadCarried = isLoadCarried,
@@ -70,11 +70,12 @@ fun IncidentDto.toDomain(): Incident {
         injuryLocations = injuryLocations,
         vehicleType = vehicleType?.let { type ->
             VehicleType(
-                id = type,
-                name = type,
-                categoryId = "",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
+                Id = type,
+                Name = type,
+                RequiresCertification = false,
+                VehicleCategoryId = "",
+                IsMarkedForDeletion = false,
+                InternalObjectId = 0
             )
         },
         vehicleName = vehicleName,

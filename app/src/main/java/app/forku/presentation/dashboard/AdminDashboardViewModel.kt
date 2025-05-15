@@ -8,6 +8,7 @@ import app.forku.domain.model.session.VehicleSessionInfo
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
@@ -24,17 +25,33 @@ import javax.inject.Inject
 import app.forku.presentation.common.utils.parseDateTime
 import kotlinx.coroutines.flow.update
 import java.time.OffsetDateTime
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import app.forku.core.Constants
+import app.forku.data.datastore.AuthDataStore
+import app.forku.data.service.GOServicesManager
+import app.forku.data.api.VehicleSessionApi
+import app.forku.domain.model.session.VehicleSessionStatus
 
-
+sealed class AuthEvent {
+    object NavigateToLogin : AuthEvent()
+}
 
 @HiltViewModel
 class AdminDashboardViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
     private val incidentRepository: IncidentRepository,
     private val checklistRepository: ChecklistRepository,
+    private val checklistAnswerRepository: ChecklistAnswerRepository,
     private val userRepository: UserRepository,
-    private val vehicleSessionRepository: VehicleSessionRepository
+    private val vehicleSessionRepository: VehicleSessionRepository,
+    private val authDataStore: AuthDataStore,
+    private val goServicesManager: GOServicesManager,
+    private val vehicleSessionApi: VehicleSessionApi
 ) : ViewModel() {
+
+    private val _authEvent = MutableSharedFlow<AuthEvent>()
+    val authEvent = _authEvent.asSharedFlow()
 
     private val _state = MutableStateFlow(AdminDashboardState())
     val state: StateFlow<AdminDashboardState> = _state.asStateFlow()
@@ -42,9 +59,13 @@ class AdminDashboardViewModel @Inject constructor(
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
+    private val _checklistAnswers = MutableStateFlow<Map<String, app.forku.domain.model.checklist.ChecklistAnswer>>(emptyMap())
+    val checklistAnswers: StateFlow<Map<String, app.forku.domain.model.checklist.ChecklistAnswer>> = _checklistAnswers.asStateFlow()
+
     init {
         loadCurrentUser()
         loadDashboardData()
+        loadOperatingVehiclesCount() // Automatically load operating vehicles count
     }
 
     private fun loadCurrentUser() {
@@ -90,7 +111,7 @@ class AdminDashboardViewModel @Inject constructor(
             VehicleSessionInfo(
                 vehicle = vehicle,
                 vehicleId = vehicle.id,
-                vehicleType = vehicle.type.name,
+                vehicleType = vehicle.type.Name,
                 codename = vehicle.codename,
                 vehicleImage = vehicle.photoModel,
                 session = session,
@@ -130,61 +151,88 @@ class AdminDashboardViewModel @Inject constructor(
 
     fun loadDashboardData() {
         viewModelScope.launch {
+            android.util.Log.d("AdminDashboard", "[loadDashboardData] Iniciando carga de dashboard data...")
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
-                
-                if (businessId == null) {
-                    _state.value = _state.value.copy(
-                        error = "No business context available",
-                        isLoading = false
-                    )
-                    return@launch
-                }
+                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
 
-                // Get all vehicles with error handling
-                val vehicles = try {
-                    vehicleRepository.getVehicles(businessId)
-                } catch (e: Exception) {
-                    android.util.Log.e("AdminDashboard", "Error getting vehicles", e)
-                    emptyList()
+                // Obtener sesiones activas directamente de la API
+                val sessionResponse = vehicleSessionApi.getAllSessions(businessId)
+                val sessionDtos = if (sessionResponse.isSuccessful) sessionResponse.body() ?: emptyList() else emptyList()
+                val activeSessionDtos = sessionDtos.filter { it.Status == 0 && it.EndTime == null }
+
+                // Obtener ChecklistAnswers para cada sesión activa
+                val checklistAnswers = coroutineScope {
+                    activeSessionDtos.map { dto ->
+                        async {
+                            val answer = try { checklistAnswerRepository.getById(dto.ChecklistAnswerId) } catch (e: Exception) { null }
+                            dto.ChecklistAnswerId to answer
+                        }
+                    }.awaitAll().filter { it.second != null }.associate { it.first to it.second!! }
                 }
-                
-                // Get active sessions with rate limiting protection
+                _checklistAnswers.value = checklistAnswers
+
+                // Mapear a VehicleSessionInfo
                 val activeSessions = coroutineScope {
-                    vehicles.map { vehicle ->
+                    activeSessionDtos.map { dto ->
                         async {
                             try {
-                                delay(100) // Add small delay between requests to prevent rate limiting
-                                val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, businessId)
-                                session?.let { 
-                                    val operator = userRepository.getUserById(it.userId)
-                                    val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"
-                                    
-                                    // Calculate session progress
-                                    val startTime = parseDateTime(it.startTime)
-                                    val now = OffsetDateTime.now()
-                                    val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
-                                    val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
-                                    
-                                    VehicleSessionInfo(
-                                        session = it,
-                                        sessionStartTime = it.startTime,
-                                        operator = operator,
-                                        operatorName = operator?.let { user -> "${user.firstName.first()}. ${user.lastName}" } ?: "Unknown",
-                                        operatorImage = operator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
-                                        vehicle = vehicle,
-                                        vehicleId = vehicle.id,
-                                        vehicleType = vehicle.type.name,
-                                        progress = progress,
-                                        vehicleImage = vehicle.photoModel,
-                                        codename = vehicle.codename
-                                    )
+                                val vehicle = vehicleRepository.getVehicle(dto.VehicleId, businessId)
+                                val operator = userRepository.getUserById(dto.GOUserId)
+                                val operatorFullName = when {
+                                    !operator?.firstName.isNullOrBlank() || !operator?.lastName.isNullOrBlank() ->
+                                        listOfNotNull(operator?.firstName, operator?.lastName).joinToString(" ").trim()
+                                    !operator?.username.isNullOrBlank() -> operator?.username ?: "Sin nombre"
+                                    else -> "Sin nombre"
                                 }
+                                val username = operator?.username
+                                val initials = when {
+                                    !operator?.firstName.isNullOrBlank() -> operator?.firstName?.first().toString()
+                                    !username.isNullOrBlank() -> username.first().toString()
+                                    else -> "?"
+                                } + when {
+                                    !operator?.lastName.isNullOrBlank() -> operator?.lastName?.first().toString()
+                                    !username.isNullOrBlank() && username.length > 1 -> username[1].toString()
+                                    else -> "?"
+                                }
+                                val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${initials}&background=random"
+                                val startTime = parseDateTime(dto.StartTime)
+                                val now = OffsetDateTime.now()
+                                val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
+                                val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
+                                VehicleSessionInfo(
+                                    vehicle = vehicle,
+                                    vehicleId = vehicle.id,
+                                    vehicleType = vehicle.type.Name,
+                                    codename = vehicle.codename,
+                                    vehicleImage = vehicle.photoModel,
+                                    session = VehicleSession(
+                                        id = dto.Id,
+                                        vehicleId = dto.VehicleId,
+                                        userId = dto.GOUserId,
+                                        checkId = dto.ChecklistAnswerId,
+                                        startTime = dto.StartTime,
+                                        endTime = dto.EndTime,
+                                        status = if (dto.Status == 0) VehicleSessionStatus.OPERATING else VehicleSessionStatus.NOT_OPERATING,
+                                        startLocationCoordinates = dto.StartLocationCoordinates,
+                                        endLocationCoordinates = dto.EndLocationCoordinates,
+                                        durationMinutes = null, // No hay campo directo en el DTO
+                                        timestamp = dto.Timestamp,
+                                        closeMethod = null, // Mapear si es necesario
+                                        closedBy = dto.ClosedBy,
+                                        notes = null
+                                    ),
+                                    operator = operator,
+                                    operatorName = operatorFullName,
+                                    operatorImage = operator?.photoUrl ?: defaultAvatarUrl,
+                                    sessionStartTime = dto.StartTime,
+                                    userRole = operator?.role ?: UserRole.OPERATOR,
+                                    progress = progress
+                                )
                             } catch (e: Exception) {
-                                android.util.Log.e("AdminDashboard", "Error getting session info for vehicle ${vehicle.id}", e)
+                                android.util.Log.e("AdminDashboard", "Error mapping VehicleSessionInfo", e)
                                 null
                             }
                         }
@@ -210,10 +258,22 @@ class AdminDashboardViewModel @Inject constructor(
                 // Get active operators with error handling
                 val activeOperators = activeSessions.mapNotNull { session ->
                     try {
+                        if (session.operator == null) {
+                            android.util.Log.e("AdminDashboard", "[activeOperators] session.operator is null for sessionId=${session.session.id}, userId=${session.session.userId}")
+                        } else {
+                            android.util.Log.d("AdminDashboard", "[activeOperators] session.operator: id=${session.operator.id}, firstName='${session.operator.firstName}', lastName='${session.operator.lastName}', username='${session.operator.username}', photoUrl='${session.operator.photoUrl}'")
+                        }
                         session.operator?.let { operator ->
-                            val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator.firstName.first()}+${operator.lastName.first()}&background=random"
+                            val firstInitial = operator.firstName?.firstOrNull()?.toString() ?: "?"
+                            val lastInitial = operator.lastName?.firstOrNull()?.toString() ?: "?"
+                            val displayName = listOfNotNull(operator.firstName, operator.lastName)
+                                .filter { it.isNotBlank() }
+                                .joinToString(" ")
+                                .ifBlank { operator.username ?: "Sin nombre" }
+                            val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${firstInitial}${lastInitial}&background=random"
+                            android.util.Log.d("AdminDashboard", "[activeOperators] Adding OperatorSessionInfo: name='$displayName', userId=${operator.id}, sessionStartTime=${session.sessionStartTime}")
                             OperatorSessionInfo(
-                                name = "${operator.firstName.first()}. ${operator.lastName}",
+                                name = displayName,
                                 image = operator.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
                                 isActive = true, // They have an active session
                                 userId = operator.id,
@@ -222,7 +282,7 @@ class AdminDashboardViewModel @Inject constructor(
                             )
                         }
                     } catch (e: Exception) {
-                        android.util.Log.e("AdminDashboard", "Error creating operator info for session ${session.session.id}", e)
+                        android.util.Log.e("AdminDashboard", "[activeOperators] Error creating operator info for session ${session.session.id}", e)
                         null
                     }
                 }
@@ -250,7 +310,7 @@ class AdminDashboardViewModel @Inject constructor(
                 }.size
 
                 _state.value = _state.value.copy(
-                    operatingVehiclesCount = activeSessions.size,
+                    operatingVehiclesCount = _state.value.operatingVehiclesCount,
                     totalIncidentsCount = incidents.size,
                     safetyAlertsCount = safetyAlertsCount,
                     activeVehicleSessions = activeSessions,
@@ -259,6 +319,8 @@ class AdminDashboardViewModel @Inject constructor(
                     isLoading = false,
                     error = null
                 )
+                android.util.Log.d("AdminDashboard", "[loadDashboardData] Estado actualizado, activeVehicleSessions: ${activeSessions.size}")
+                loadOperatingVehiclesCount()
             } catch (e: Exception) {
                 android.util.Log.e("AdminDashboard", "Error in loadDashboardData", e)
                 _state.value = _state.value.copy(
@@ -273,17 +335,19 @@ class AdminDashboardViewModel @Inject constructor(
         _state.value = _state.value.copy(error = null)
     }
 
-    // Refresh silencioso (sin loading) cuando volvemos a la pantalla
-    fun refresh() {
+    // Refresh con loading para pull-to-refresh o acciones explícitas del usuario
+    fun refreshWithLoading() {
         viewModelScope.launch {
+            android.util.Log.d("AdminDashboard", "[refreshWithLoading] Iniciando refresh con loading...")
+            _state.value = _state.value.copy(isLoading = true)
             loadDashboardData()
         }
     }
 
-    // Refresh con loading para pull-to-refresh o acciones explícitas del usuario
-    fun refreshWithLoading() {
+    // Refresh silencioso (sin loading) cuando volvemos a la pantalla
+    fun refresh() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
+            android.util.Log.d("AdminDashboard", "[refresh] Iniciando refresh...")
             loadDashboardData()
         }
     }
@@ -311,6 +375,49 @@ class AdminDashboardViewModel @Inject constructor(
                 _state.update { it.copy(
                     error = "Failed to submit feedback: ${e.message}"
                 )}
+            }
+        }
+    }
+
+    // Nuevo método para obtener el conteo de vehículos en operación usando el endpoint optimizado
+    fun loadOperatingVehiclesCount() {
+        viewModelScope.launch {
+            android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] Llamando a la API de conteo de vehículos operando...")
+            try {
+                var csrfToken = authDataStore.getCsrfToken()
+                if (csrfToken == null) {
+                    android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] CSRF token is null, forcing refresh from backend...")
+                    goServicesManager.getCsrfToken(forceRefresh = true)
+                    csrfToken = authDataStore.getCsrfToken()
+                }
+                val cookie = authDataStore.getAntiforgeryCookieSuspend()
+                val response = vehicleSessionApi.getOperatingSessionsCount(
+                    filter = "Status == 0",
+                    csrfToken = csrfToken ?: "",
+                    cookie = cookie ?: ""
+                )
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] Respuesta de la API: isSuccessful=${response.isSuccessful}, body=${response.body()}")
+                if (response.isSuccessful) {
+                    val count = response.body() ?: 0
+                    android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] Conteo recibido de API: $count")
+                    _state.value = _state.value.copy(
+                        operatingVehiclesCount = count,
+                        isLoading = false,
+                        error = null
+                    )
+                } else {
+                    android.util.Log.e("AdminDashboard", "[loadOperatingVehiclesCount] Error en respuesta: ${response.code()}")
+                    _state.value = _state.value.copy(
+                        error = "Error loading operating vehicles count: ${response.code()}",
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("AdminDashboard", "[loadOperatingVehiclesCount] Error general: ${e.message}", e)
+                _state.value = _state.value.copy(
+                    error = "Error loading operating vehicles count: ${e.message}",
+                    isLoading = false
+                )
             }
         }
     }

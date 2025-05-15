@@ -23,6 +23,18 @@ enum class CheckStatus {
             NOT_STARTED -> "Not Started"
         }
     }
+
+    fun toApiInt(): Int {
+        return when (this) {
+            PENDING -> 0
+            IN_PROGRESS -> 1
+            COMPLETED_PASS -> 2
+            COMPLETED_FAIL -> 3
+            EXPIRED -> 4
+            OVERDUE -> 5
+            NOT_STARTED -> 6
+        }
+    }
 }
 
 @Composable

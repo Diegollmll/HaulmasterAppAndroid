@@ -29,88 +29,121 @@ import okhttp3.Response as OkHttpResponse
 import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import app.forku.data.service.GOServicesManager
+
+private const val TAG = "GOSecurityProvider"
 
 @Singleton
 class GOSecurityProviderRepository @Inject constructor(
     private val api: GOSecurityProviderApi,
     private val authDataStore: AuthDataStore,
-    private val okHttpClient: OkHttpClient,
-    private val retrofit: Retrofit
+    private val goServicesManager: GOServicesManager
 ) : IGOSecurityProviderRepository {
 
-    override suspend fun authenticate(username: String, password: String): Result<User> = withContext(Dispatchers.IO) {
-        try {
-            Log.d("GOSecurityProvider", "Authenticating with GO Security Provider...")
+    override suspend fun authenticate(username: String, password: String): Result<User> {
+        return try {
+            Log.d(TAG, "Starting authentication for user: $username")
+            
+            // Get fresh CSRF token and cookie
+            Log.d(TAG, "Getting fresh CSRF token and cookie...")
+            val csrfTokenResult = goServicesManager.getCsrfToken(forceRefresh = true)
+            if (csrfTokenResult.isFailure) {
+                Log.e(TAG, "Failed to get CSRF token")
+                return Result.failure(Exception("Failed to get CSRF token"))
+            }
 
-            // Get CSRF token and cookie
-            val csrfToken = authDataStore.getCsrfToken()
+            val csrfToken = csrfTokenResult.getOrNull()
             val antiforgeryCookie = authDataStore.getAntiforgeryCookie()
 
             if (csrfToken == null || antiforgeryCookie == null) {
-                Log.e("GOSecurityProvider", "CSRF token or cookie is missing. Cannot authenticate.")
-                return@withContext Result.failure(Exception("Authentication failed: Missing CSRF token or cookie"))
+                Log.e(TAG, "CSRF token or cookie is missing. Token: ${csrfToken != null}, Cookie: ${antiforgeryCookie != null}")
+                return Result.failure(Exception("Missing CSRF token or cookie"))
             }
 
-            // Create request bodies for multipart
-            val mediaType = "text/plain".toMediaType()
-            val usernameBody = username.toRequestBody(mediaType)
-            val passwordBody = password.toRequestBody(mediaType)
-            val useCookiesBody = "true".toRequestBody(mediaType)
+            Log.d(TAG, """
+                Got authentication credentials:
+                - CSRF Token: ${csrfToken.take(10)}...
+                - Cookie: ${antiforgeryCookie.take(20)}...
+            """.trimIndent())
 
-            // Call the API method (Retrofit will handle multipart)
-            val response = api.authenticate(usernameBody, passwordBody, useCookiesBody)
+            // Create form data parts
+            val mediaType = "text/plain".toMediaType()
+            val usernamePart = username.toRequestBody(mediaType)
+            val passwordPart = password.toRequestBody(mediaType)
+            val useCookiesPart = "true".toRequestBody(mediaType)
+
+            Log.d(TAG, """
+                Sending authentication request with form data:
+                - Username: $username
+                - Password: $password
+                - UseCookies: true
+                - CSRF Token: ${csrfToken.take(10)}...
+                - Cookie: ${antiforgeryCookie.take(20)}...
+            """.trimIndent())
+
+            val response = api.authenticate(
+                csrfToken = csrfToken,
+                cookie = antiforgeryCookie,
+                username = usernamePart,
+                password = passwordPart,
+                useCookies = useCookiesPart
+            )
 
             if (response.isSuccessful) {
+                Log.d(TAG, "Authentication successful")
                 val authResponse = response.body()
-                val applicationToken = authResponse?.getApplicationToken()
+                if (authResponse != null) {
+                    Log.d(TAG, "Processing authentication response...")
+                    val applicationToken = authResponse.getApplicationToken()
+                    val authenticationToken = authResponse.getAuthenticationToken()
 
-                if (applicationToken != null) {
-                    Log.d("GOSecurityProvider", "Authentication successful")
+                    if (applicationToken != null && authenticationToken != null) {
+                        // Save tokens
+                        authDataStore.saveApplicationToken(applicationToken)
+                        authDataStore.saveAuthenticationToken(authenticationToken)
+                        Log.d(TAG, "Tokens saved successfully")
 
-                    // Parse the JWT token to extract user information
-                    val tokenClaims = TokenParser.parseJwtToken(applicationToken)
-
-                    // Create user from token claims
-                    val user = User(
-                        id = tokenClaims.userId,
-                        email = username,
-                        username = tokenClaims.username,
-                        firstName = tokenClaims.username,
-                        lastName = tokenClaims.familyName.ifEmpty { "" },
-                        token = applicationToken,
-                        refreshToken = authResponse.getAuthenticationToken() ?: "",
-                        photoUrl = null,
-                        role = tokenClaims.role,
-                        password = password,
-                        certifications = emptyList(),
-                        lastMedicalCheck = null,
-                        lastLogin = System.currentTimeMillis().toString(),
-                        isActive = true,
-                        isApproved = true,
-                        businessId = null,
-                        siteId = null,
-                        systemOwnerId = null
-                    )
-
-                    // Store tokens and user
-                    authDataStore.saveApplicationToken(applicationToken)
-                    authResponse.getAuthenticationToken()?.let {
-                        authDataStore.saveAuthenticationToken(it)
+                        // Parse user from token
+                        val tokenClaims = TokenParser.parseJwtToken(applicationToken)
+                        val user = User(
+                            id = tokenClaims.userId,
+                            email = username,
+                            username = tokenClaims.username,
+                            firstName = tokenClaims.username,
+                            lastName = tokenClaims.familyName.ifEmpty { "" },
+                            token = applicationToken,
+                            refreshToken = authenticationToken,
+                            photoUrl = null,
+                            role = tokenClaims.role,
+                            password = password,
+                            certifications = emptyList(),
+                            lastMedicalCheck = null,
+                            lastLogin = System.currentTimeMillis().toString(),
+                            isActive = true,
+                            isApproved = true,
+                            businessId = null,
+                            siteId = null,
+                            systemOwnerId = null
+                        )
+                        
+                        Log.d(TAG, "User parsed from token: ${user.username}, role: ${user.role}")
+                        authDataStore.setCurrentUser(user)
+                        Result.success(user)
+                    } else {
+                        Log.e(TAG, "No tokens found in response")
+                        Result.failure(Exception("No tokens found in response"))
                     }
-                    authDataStore.setCurrentUser(user)
-
-                    Result.success(user)
                 } else {
-                    Log.e("GOSecurityProvider", "Authentication token is null")
-                    Result.failure(Exception("Authentication token is null"))
+                    Log.e(TAG, "Empty response body")
+                    Result.failure(Exception("Empty response body"))
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                Log.e("GOSecurityProvider", "Authentication failed: ${response.code()}, error: $errorBody")
+                Log.e(TAG, "Authentication failed. Status: ${response.code()}, Error: $errorBody")
                 Result.failure(Exception("Authentication failed: ${response.code()} - $errorBody"))
             }
         } catch (e: Exception) {
-            Log.e("GOSecurityProvider", "Exception during authentication", e)
+            Log.e(TAG, "Exception during authentication", e)
             Result.failure(e)
         }
     }

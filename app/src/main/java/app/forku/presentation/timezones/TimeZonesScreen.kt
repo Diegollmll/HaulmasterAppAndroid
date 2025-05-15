@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import java.time.ZoneId
@@ -23,6 +24,7 @@ import java.time.ZoneId
 fun TimeZonesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: TimeZonesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -33,7 +35,8 @@ fun TimeZonesScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Time Zones",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Column(
             modifier = Modifier

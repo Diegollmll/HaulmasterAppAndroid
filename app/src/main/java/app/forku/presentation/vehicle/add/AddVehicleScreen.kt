@@ -15,11 +15,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.user.UserRole
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun AddVehicleScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: AddVehicleViewModel = hiltViewModel()
 ) {
     var codename by remember { mutableStateOf("") }
@@ -49,7 +51,8 @@ fun AddVehicleScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Add Vehicle",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -156,7 +159,7 @@ fun AddVehicleScreen(
                         onExpandedChange = { expanded = it }
                     ) {
                         OutlinedTextField(
-                            value = state.selectedType?.name ?: "",
+                            value = state.selectedType?.Name ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Vehicle Type") },
@@ -174,7 +177,7 @@ fun AddVehicleScreen(
                                         viewModel.selectVehicleType(type)
                                         expanded = false
                                     },
-                                    text = { Text(type.name) }
+                                    text = { Text(type.Name) }
                                 )
                             }
                         }

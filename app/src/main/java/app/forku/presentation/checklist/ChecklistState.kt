@@ -9,25 +9,27 @@ import app.forku.domain.model.checklist.Answer
 
 data class ChecklistState(
     val vehicle: Vehicle? = null,
+    val vehicleId: String = "",
+    val vehicleStatus: VehicleStatus = VehicleStatus.AVAILABLE,
     val checkItems: List<ChecklistItem> = emptyList(),
-    val rotationRules: RotationRules? = null,
-    val isLoading: Boolean = false,
-    val isSubmitting: Boolean = false,
+    val checklistId: String? = null,
+    val checklistAnswerId: String? = null,
+    val checkStatus: String = CheckStatus.NOT_STARTED.toString(),
     val isCompleted: Boolean = false,
     val isSubmitted: Boolean = false,
-    val vehicleBlocked: Boolean = false,
-    val error: String? = null,
-    val checkId: String? = null,
-    val vehicleId: String = "",
-    val showErrorModal: Boolean = false,
-    val errorModalMessage: String? = null,
-    val vehicleStatus: VehicleStatus,
-    val message: String? = null,
-    val lastSavedAt: String? = null,
-    val checkStatus: String,
     val isReadOnly: Boolean = false,
     val startDateTime: String? = null,
-    val elapsedTime: Long = 0L
+    val elapsedTime: Long = 0L,
+    val error: String? = null,
+    val isLoading: Boolean = false,
+    val hasUnsavedChanges: Boolean = false,
+    val syncErrors: Map<String, String> = emptyMap(),
+    val lastSyncedItemId: String? = null,
+    val showErrorModal: Boolean = false,
+    val errorModalMessage: String? = null,
+    val isSubmitting: Boolean = false,
+    val vehicleBlocked: Boolean = false,
+    val message: String? = null
 ) {
     val isEmpty: Boolean
         get() = checkItems.isEmpty()
@@ -43,8 +45,18 @@ data class ChecklistState(
             item.isCritical && item.userAnswer == Answer.FAIL 
         }
 
+    val canSubmitFinal: Boolean
+        get() = !isReadOnly && 
+                !isSubmitting && 
+                allAnswered && 
+                !hasUnsavedChanges &&
+                checkStatus == CheckStatus.IN_PROGRESS.toString()
+
     val showSubmitButton: Boolean
-        get() = !isReadOnly && checkStatus == CheckStatus.IN_PROGRESS.toString()
+        get() = !isSubmitted && !isReadOnly
+
+    val needsSync: Boolean
+        get() = hasUnsavedChanges || syncErrors.isNotEmpty()
         
     val formattedElapsedTime: String
         get() {

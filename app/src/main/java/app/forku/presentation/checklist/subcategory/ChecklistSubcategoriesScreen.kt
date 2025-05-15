@@ -19,11 +19,13 @@ import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategor
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun ChecklistSubcategoriesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: QuestionaryChecklistItemCategoryViewModel = hiltViewModel()
 ) {
     // Use the category viewModel to get the list of categories
@@ -39,7 +41,8 @@ fun ChecklistSubcategoriesScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Select Category for Subcategories",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

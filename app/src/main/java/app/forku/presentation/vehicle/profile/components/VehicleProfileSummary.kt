@@ -37,6 +37,8 @@ import app.forku.presentation.common.utils.formatDateTime
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 import app.forku.presentation.common.components.UserDateTimer
 import app.forku.presentation.common.utils.parseDateTime
+import coil.ImageLoader
+import app.forku.presentation.vehicle.components.VehicleImage
 
 @Composable
 fun VehicleProfileSummary(
@@ -48,6 +50,7 @@ fun VehicleProfileSummary(
     showVehicleDetails: Boolean = true,
     modifier: Modifier = Modifier,
     containerColor: Color = Color.Transparent,
+    imageLoader: ImageLoader,
     viewModel: VehicleProfileViewModel = hiltViewModel()
 ) {
     Card(
@@ -66,26 +69,32 @@ fun VehicleProfileSummary(
         ) {
             Row {
                 Column {
-                    Text(
-                        text = vehicle?.codename ?: "No vehicle name",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Text(
-                        text = vehicle?.type?.name ?: "Unknown type",
-                        color = Color.Gray,
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                    Row {
+                        Text(
+                            text = vehicle?.codename ?: "No vehicle name",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Column {
+                            VehicleStatusIndicator(status = status)
+                        }
+
+                    }
+                    Row {
+                        Text(
+                            text = vehicle?.type?.Name ?: "Unknown type",
+                            color = Color.Gray,
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
 
-                Column {
-                    VehicleStatusIndicator(status = status)
-                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -98,7 +107,8 @@ fun VehicleProfileSummary(
                 showOperatorDetails = showOperatorDetails,
                 showVehicleDetails = showVehicleDetails,
                 status = status,
-                viewModel = viewModel
+                viewModel = viewModel,
+                imageLoader = imageLoader
             )
         }
     }
@@ -163,7 +173,8 @@ fun VehicleDetailsSection(
     showOperatorDetails: Boolean = true,
     showVehicleDetails: Boolean = true,
     status: VehicleStatus,
-    viewModel: VehicleProfileViewModel
+    viewModel: VehicleProfileViewModel,
+    imageLoader: ImageLoader
 ) {
     val scope = rememberCoroutineScope()
     var lastCheck = remember { mutableStateOf<PreShiftCheck?>(null) }
@@ -182,13 +193,17 @@ fun VehicleDetailsSection(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.Top
     ) {
-        AsyncImage(
-            model = vehicle?.photoModel,
-            contentDescription = "Vehicle image",
-            modifier = Modifier
-                .size(136.dp),
-            contentScale = ContentScale.Fit
-        )
+
+        if (vehicle != null) {
+            VehicleImage(
+                vehicleId = vehicle.id,
+                modifier = Modifier
+                    .size(140.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                imageLoader = imageLoader,
+                contentScale = ContentScale.Fit
+            )
+        }
 
         Divider(
             modifier = Modifier
@@ -261,6 +276,15 @@ fun VehicleDetailsSection(
                                 role = "Last ${lastOperator.role.name}"
                             )
                         }
+                        viewModel.state.value.lastChecklistOperator != null -> {
+                            val lastChecklistOperator = viewModel.state.value.lastChecklistOperator!!
+                            OperatorProfile(
+                                name = lastChecklistOperator.fullName,
+                                imageUrl = lastChecklistOperator.photoUrl,
+                                modifier = Modifier.padding(0.dp, 8.dp),
+                                role = "Last Operator"
+                            )
+                        }
                         else -> {
                             Text(
                                 text = "No operator history",
@@ -285,8 +309,8 @@ fun VehicleDetailsSection(
                     Spacer(modifier = Modifier.width(3.dp))
                     Column {
                         Text(
-                            text = getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
-                            color = getPreShiftStatusColor(status = lastCheck?.value?.status ?: ""),
+                            text = viewModel.state.value.lastChecklistAnswer?.let { getPreShiftStatusText(status = it.status.toString()) } ?: getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
+                            color = viewModel.state.value.lastChecklistAnswer?.let { getPreShiftStatusColor(status = it.status.toString()) } ?: getPreShiftStatusColor(status = lastCheck?.value?.status ?: ""),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -295,7 +319,9 @@ fun VehicleDetailsSection(
                 }
                 Row {
                     Text(
-                        text = lastCheck?.value?.startDateTime?.let {
+                        text = viewModel.state.value.lastChecklistAnswer?.endDateTime?.takeIf { it.isNotBlank() }?.let {
+                            getRelativeTimeSpanString(it)
+                        } ?: lastCheck?.value?.startDateTime?.let {
                             getRelativeTimeSpanString(it)
                         } ?: "No checks found.",
                         color = Color.Gray,

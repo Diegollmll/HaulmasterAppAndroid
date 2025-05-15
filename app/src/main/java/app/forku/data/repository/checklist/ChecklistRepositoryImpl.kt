@@ -36,18 +36,22 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun getChecklistItems(vehicleId: String): List<Checklist> {
         try {
-            val response = api.getList()
-            android.util.Log.d("Checklist", "Raw API response: ${response.body()}")
+            android.util.Log.d("ChecklistRepositoryImpl", "Llamando a api.getList() para vehicleId=$vehicleId")
+            val response = api.getList(include = "ChecklistChecklistQuestionItems")
+            android.util.Log.d("ChecklistRepositoryImpl", "Respuesta cruda del API: ${response.body()}")
             
             if (!response.isSuccessful) {
+                android.util.Log.e("ChecklistRepositoryImpl", "Fallo al obtener checklist: code=${response.code()}")
                 throw Exception("Failed to get checklist: ${response.code()}")
             }
-            
-            return response.body()?.map { dto -> 
+            val mapped = response.body()?.map { dto ->
+                android.util.Log.d("ChecklistRepositoryImpl", "Mapeando ChecklistDto a dominio: $dto")
                 dto.toDomain()
             } ?: throw Exception("Failed to get checklist items: Empty response")
+            android.util.Log.d("ChecklistRepositoryImpl", "Total checklists mapeados: ${mapped.size}")
+            return mapped
         } catch (e: Exception) {
-            android.util.Log.e("Checklist", "Error fetching checklist", e)
+            android.util.Log.e("ChecklistRepositoryImpl", "Error fetching checklist", e)
             throw e
         }
     }
@@ -62,19 +66,23 @@ class ChecklistRepositoryImpl @Inject constructor(
                 val response = api.getList()
                 
                 if (response.isSuccessful && response.body() != null) {
+                    val currentDateTime = java.time.Instant.now()
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+                        
                     // Convert ChecklistDto to PreShiftCheck and filter by vehicleId
                     return response.body()
-                        ?.filter { it.items.any { item -> item.vehicleType.contains(vehicleId) } }
+                        ?.filter { (it.ChecklistChecklistQuestionItems ?: emptyList()).any { item -> item.VehicleComponent.toString() == vehicleId } }
                         ?.map { dto ->
                             PreShiftCheck(
-                                id = dto.id,
+                                id = dto.Id,
                                 userId = "", // We don't have this in ChecklistDto
                                 vehicleId = vehicleId,
-                                items = dto.items.map { it.toDomain() },
+                                items = (dto.ChecklistChecklistQuestionItems ?: emptyList()).map { it.toDomain() },
                                 status = CheckStatus.IN_PROGRESS.toString(),
-                                startDateTime = dto.createdAt,
+                                startDateTime = currentDateTime,
                                 endDateTime = null,
-                                lastCheckDateTime = dto.updatedAt,
+                                lastCheckDateTime = currentDateTime,
                                 locationCoordinates = null
                             )
                         }
@@ -167,17 +175,21 @@ class ChecklistRepositoryImpl @Inject constructor(
                 val response = api.getList()
                 
                 if (response.isSuccessful && response.body() != null) {
+                    val currentDateTime = java.time.Instant.now()
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+                        
                     val allChecks = response.body()!!
                         .map { dto ->
                             PreShiftCheck(
-                                id = dto.id,
+                                id = dto.Id,
                                 userId = "", // We don't have this in ChecklistDto
-                                vehicleId = dto.items.firstOrNull()?.vehicleType?.firstOrNull() ?: "",
-                                items = dto.items.map { it.toDomain() },
+                                vehicleId = (dto.ChecklistChecklistQuestionItems ?: emptyList()).firstOrNull()?.VehicleComponent?.toString() ?: "",
+                                items = (dto.ChecklistChecklistQuestionItems ?: emptyList()).map { it.toDomain() },
                                 status = CheckStatus.IN_PROGRESS.toString(),
-                                startDateTime = dto.createdAt,
+                                startDateTime = currentDateTime,
                                 endDateTime = null,
-                                lastCheckDateTime = dto.updatedAt,
+                                lastCheckDateTime = currentDateTime,
                                 locationCoordinates = null
                             )
                         }
@@ -212,29 +224,45 @@ class ChecklistRepositoryImpl @Inject constructor(
         val response = api.getById(checkId)
         if (!response.isSuccessful) return null
         
+        val currentDateTime = java.time.Instant.now()
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+            
         return response.body()?.let { dto ->
             PreShiftCheck(
-                id = dto.id,
+                id = dto.Id,
                 userId = "", // We don't have this in ChecklistDto
-                vehicleId = dto.items.firstOrNull()?.vehicleType?.firstOrNull() ?: "",
-                items = dto.items.map { it.toDomain() },
+                vehicleId = (dto.ChecklistChecklistQuestionItems ?: emptyList()).firstOrNull()?.VehicleComponent?.toString() ?: "",
+                items = (dto.ChecklistChecklistQuestionItems ?: emptyList()).map { it.toDomain() },
                 status = CheckStatus.IN_PROGRESS.toString(),
-                startDateTime = dto.createdAt,
+                startDateTime = currentDateTime,
                 endDateTime = null,
-                lastCheckDateTime = dto.updatedAt,
+                lastCheckDateTime = currentDateTime,
                 locationCoordinates = null
             )
         }
     }
 
     override suspend fun createGlobalCheck(check: PreShiftCheck): PreShiftCheck {
+        val currentDateTime = java.time.Instant.now()
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+            
         val dto = ChecklistDto(
-            id = check.id,
-            title = "Pre-shift Check",
-            description = "Vehicle pre-shift check",
-            items = check.items.map { it.toDto() },
-            createdAt = check.startDateTime ?: "",
-            updatedAt = check.lastCheckDateTime ?: ""
+            `$type` = "ChecklistDataObject",
+            Id = check.id,
+            Title = "Pre-shift Check",
+            Description = "Vehicle pre-shift check",
+            ChecklistChecklistQuestionItems = check.items.map { it.toDto() },
+            CriticalityLevels = emptyList(),
+            CriticalQuestionMinimum = 0,
+            EnergySources = 0,
+            IsDefault = false,
+            MaxQuestionsPerCheck = 0,
+            RotationGroups = 0,
+            StandardQuestionMaximum = 0,
+            IsMarkedForDeletion = false,
+            InternalObjectId = 0
         )
         
         val response = api.save(dto)
@@ -242,27 +270,39 @@ class ChecklistRepositoryImpl @Inject constructor(
         
         return response.body()?.let { savedDto ->
             PreShiftCheck(
-                id = savedDto.id,
+                id = savedDto.Id,
                 userId = check.userId,
                 vehicleId = check.vehicleId,
-                items = savedDto.items.map { it.toDomain() },
+                items = (savedDto.ChecklistChecklistQuestionItems ?: emptyList()).map { it.toDomain() },
                 status = check.status,
-                startDateTime = savedDto.createdAt,
+                startDateTime = currentDateTime,
                 endDateTime = check.endDateTime,
-                lastCheckDateTime = savedDto.updatedAt,
+                lastCheckDateTime = currentDateTime,
                 locationCoordinates = check.locationCoordinates
             )
         } ?: throw Exception("Failed to save global check: Empty response")
     }
 
     override suspend fun updateGlobalCheck(checkId: String, check: PreShiftCheck): PreShiftCheck {
+        val currentDateTime = java.time.Instant.now()
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+            
         val dto = ChecklistDto(
-            id = checkId,
-            title = "Pre-shift Check",
-            description = "Vehicle pre-shift check",
-            items = check.items.map { it.toDto() },
-            createdAt = check.startDateTime ?: "",
-            updatedAt = check.lastCheckDateTime ?: ""
+            `$type` = "ChecklistDataObject",
+            Id = checkId,
+            Title = "Pre-shift Check",
+            Description = "Vehicle pre-shift check",
+            ChecklistChecklistQuestionItems = check.items.map { it.toDto() },
+            CriticalityLevels = emptyList(),
+            CriticalQuestionMinimum = 0,
+            EnergySources = 0,
+            IsDefault = false,
+            MaxQuestionsPerCheck = 0,
+            RotationGroups = 0,
+            StandardQuestionMaximum = 0,
+            IsMarkedForDeletion = false,
+            InternalObjectId = 0
         )
         
         val response = api.save(dto)
@@ -270,14 +310,14 @@ class ChecklistRepositoryImpl @Inject constructor(
         
         return response.body()?.let { savedDto ->
             PreShiftCheck(
-                id = savedDto.id,
+                id = savedDto.Id,
                 userId = check.userId,
                 vehicleId = check.vehicleId,
-                items = savedDto.items.map { it.toDomain() },
+                items = (savedDto.ChecklistChecklistQuestionItems ?: emptyList()).map { it.toDomain() },
                 status = check.status,
-                startDateTime = savedDto.createdAt,
+                startDateTime = currentDateTime,
                 endDateTime = check.endDateTime,
-                lastCheckDateTime = savedDto.updatedAt,
+                lastCheckDateTime = currentDateTime,
                 locationCoordinates = check.locationCoordinates
             )
         } ?: throw Exception("Failed to update global check: Empty response")

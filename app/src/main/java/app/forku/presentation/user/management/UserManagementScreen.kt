@@ -27,19 +27,22 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.dashboard.SystemOwnerDashboardState
 import app.forku.presentation.navigation.Screen
 import app.forku.presentation.navigation.Screen.Companion.withOperatorId
 
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun UserManagementScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
-    viewModel: UserManagementViewModel = hiltViewModel(),
-    showAddUserDialogByDefault: Boolean = false
+    showAddUserDialogByDefault: Boolean = false,
+    tokenErrorHandler: TokenErrorHandler,
+    viewModel: UserManagementViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.collectAsState()
     val currentUser = viewModel.currentUser.collectAsState()
@@ -65,7 +68,8 @@ fun UserManagementScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "User Management",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

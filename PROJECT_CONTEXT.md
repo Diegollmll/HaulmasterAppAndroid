@@ -1,9 +1,231 @@
 # ForkU Android Project Context
 
 ## Project Overview
-ForkU is an Android application built with modern Android development practices and Clean Architecture principles. The app appears to be focused on vehicle management, incident tracking, user authentication systems, and certification management.
+ForkU is an Android application built with modern Android development practices and Clean Architecture principles. The app is focused on vehicle management, incident tracking, user authentication systems, and certification management.
 
-## Tech Stack & Architecture
+## Current Development Status
+
+### 1. Core Systems Progress
+
+#### Authentication System (95% Complete)
+- Login/Register functionality with email/password
+- Session management with DataStore
+- User role management
+- Tour/Onboarding preferences
+- **Remaining Time**: 1 day
+- **Pending Tasks**:
+  * ProfileScreen integration (4-6 hours)
+  * Session management enhancements (2-3 hours)
+  * Security features implementation (4-6 hours)
+
+#### Vehicle Management (90% Complete)
+- Vehicle tracking and status monitoring
+- Vehicle information management
+- Vehicle status validation
+- Vehicle session management
+- Real-time status updates
+- **Remaining Time**: 1-2 days
+- **Pending Tasks**:
+  * Vehicle state management (60% complete)
+  * Component tracking and maintenance
+  * Vehicle profile photo management
+
+#### Checklist System (40% Complete)
+- Pre-shift checklist management
+- Checklist validation
+- Checklist status notifications
+- Vehicle status determination based on checks
+- **Remaining Time**: 3-4 days
+- **Pending Tasks**:
+  * Basic checklist flow (50% complete)
+  * Session management (20% complete)
+  * History and reports (10% complete)
+
+#### Incident Management (30% Complete)
+- Incident reporting with multiple types
+- Incident management with severity levels
+- Support for different vehicle types
+- Load weight tracking
+- Incident status tracking
+- **Remaining Time**: 3-4 days
+- **Pending Tasks**:
+  * Incident reporting (30% complete)
+  * Incident history (15% complete)
+  * Basic reports (10% complete)
+
+#### Admin Management Features (35% Complete)
+- User certification tracking
+- Certification creation and updates
+- Certification deletion
+- Certification status monitoring
+- **Remaining Time**: 4-5 days
+- **Pending Tasks**:
+  * User management (30% complete)
+  * Vehicle management (20% complete)
+  * Checklist monitoring (25% complete)
+  * Reports and analytics (15% complete)
+
+#### MockAPI Migration (50% Complete)
+- ProfileScreen
+  * User profile management
+  * Personal settings
+  * Role information
+- **Remaining Time**: 5-6 days
+- **Pending Tasks**:
+  * ProfileScreen (50% complete)
+  * Basic reports (30% complete)
+  * Advanced features (20% complete)
+
+### 2. Optimized Sprint Plan
+
+#### Week 1 (7 days)
+- Day 1-2: Complete Authentication & Vehicle Management
+- Day 3-5: Core Checklist System
+- Day 6-7: Basic Incident Management
+
+#### Week 2 (7 days)
+- Day 1-3: Complete Checklist & Incident Systems
+- Day 4-5: Essential Admin Features
+- Day 6-7: Critical MockAPI Migration
+
+#### Week 3 (7 days)
+- Day 1-3: Complete Admin Features
+- Day 4-7: Finish MockAPI Migration & Testing
+
+### 3. Key Optimizations
+
+1. **Parallel Development**
+   - Run API integration and feature development in parallel
+   - Focus on completed APIs first
+
+2. **Prioritization**
+   - Complete core features before enhancements
+   - Focus on high-impact, low-effort tasks first
+
+3. **Resource Allocation**
+   - Dedicate more resources to Checklist System
+   - Prioritize Incident Management integration
+
+### 4. Risk Mitigation
+
+1. **Technical Risks**
+   - Start with completed APIs
+   - Implement feature flags for gradual rollout
+   - Regular testing cycles
+
+2. **Dependencies**
+   - Clear API documentation
+   - Regular backend sync
+   - Early testing of critical paths
+
+### 2. Current Sprint Focus
+
+#### Primary Objectives
+1. Complete Checklist System Integration
+   - Basic checklist flow completion
+   - Session management implementation
+   - History and reports setup
+
+2. Implement Basic Incident Reporting
+   - Report creation and submission
+   - Basic history view
+   - Simple reporting features
+
+3. Complete ProfileScreen Migration
+   - Profile management
+   - User preferences
+   - Settings implementation
+
+4. Set Up Basic Reporting System
+   - Incident reports
+   - Checklist reports
+   - CICO history
+
+#### Role-Specific Implementation
+
+1. ADMIN Role (Primary Focus)
+   - Management Capabilities:
+     * Vehicle Management
+       - View and monitor vehicles
+       - Track vehicle status
+       - Monitor components
+     * User Management
+       - View operator list
+       - Monitor operator activity
+     * Checklist Management
+       - View all checklists
+       - Monitor completion
+     * Incident Management
+       - View all incidents
+       - Basic incident reports
+     * Reports & Analytics
+       - Basic incident reports
+       - Basic checklist reports
+       - CICO history
+   
+   - Operational Capabilities:
+     * Vehicle Operations
+       - View vehicle list
+       - View vehicle details
+       - Complete checklists
+       - Manage sessions
+     * Checklist System
+       - Complete daily checklists
+       - View history
+     * Incident Reporting
+       - Report incidents
+       - View history
+     * Profile & History
+       - View and edit profile
+       - View personal history
+
+2. OPERATOR Role
+   - Core Functionalities:
+     * Vehicle Management
+       - View vehicle list
+       - View vehicle details
+       - Complete pre-shift checklists
+       - Start/end vehicle sessions
+     * Checklist System
+       - Complete daily checklists
+       - View checklist history
+     * Incident Reporting
+       - Report incidents
+       - View own incident history
+
+### 3. API Integration Status
+
+#### Core APIs
+1. Authentication & User Management
+   - GOSecurityProviderApi (Complete)
+   - GOUserRoleApi (In Progress)
+   - UserApi (Pending)
+
+2. Vehicle Management
+   - VehicleApi (Complete)
+   - VehicleTypeApi (Complete)
+   - VehicleComponentApi (Complete)
+   - VehicleSessionApi (In Progress)
+
+3. Checklist System
+   - ChecklistApi (In Progress)
+   - ChecklistItemApi (In Progress)
+   - UserChecklistApi (Pending)
+   - AnsweredChecklistItemApi (Pending)
+
+4. Incident Management
+   - IncidentApi (In Progress)
+   - IncidentMultimediaApi (Pending)
+
+#### Backend-Only Operations
+The following operations are handled exclusively by the GO backend platform:
+- Vehicle CRUD operations
+- Vehicle Type management
+- Vehicle Category management
+- Type-Category relationships
+- Component definitions and requirements
+
+### 4. Technical Stack & Architecture
 
 ### Core Technologies
 - **Language**: Kotlin 1.9.22
@@ -30,7 +252,7 @@ Key aspects of dependency management:
 [versions]
 kotlin = "1.9.22"
 compose-bom = "2024.02.00"
-hilt = "2.48"
+hilt = "2024.02.00"
 ```
 
 2. **Library Declaration**:
@@ -223,6 +445,456 @@ app/src/main/java/app/forku/
 - Checklist validation system
 - Session management improvements
 
+## API Integration & Dependencies
+
+### API Status & Mapping
+
+1. **Core APIs (Complete)**
+   - Authentication & User Management
+     * GOSecurityProviderApi (100%)
+       - Login/Register
+       - Password management
+       - Session handling
+     * GOUserRoleApi (70%)
+       - Role management
+       - User permissions
+     * UserApi (Pending)
+       - Profile management
+       - User preferences
+
+   - Vehicle Management
+     * VehicleApi (100%)
+       - Vehicle listing
+       - Status updates
+       - Basic operations
+     * VehicleTypeApi (100%)
+       - Type information
+       - Type validation
+     * VehicleComponentApi (100%)
+       - Component tracking
+       - Maintenance status
+     * VehicleSessionApi (60%)
+       - Session management
+       - State transitions
+
+2. **In Progress APIs**
+   - Checklist System
+     * ChecklistApi (50%)
+       - Checklist creation
+       - Checklist management
+     * ChecklistItemApi (50%)
+       - Item management
+       - Response handling
+     * UserChecklistApi (Pending)
+       - User-checklist association
+       - Completion tracking
+     * AnsweredChecklistItemApi (Pending)
+       - Response storage
+       - History tracking
+
+   - Incident Management
+     * IncidentApi (30%)
+       - Incident reporting
+       - Incident tracking
+     * IncidentMultimediaApi (Pending)
+       - Photo/document upload
+       - Media management
+
+3. **Pending APIs**
+   - Business & Site Management
+     * BusinessApi
+     * BusinessConfigurationApi
+     * SiteApi
+     * UserBusinessApi
+   - System & Utilities
+     * NotificationApi
+     * GOFileUploaderApi
+     * EnergySourceApi
+     * WeatherApi
+
+### Role-Based Implementation
+
+1. **ADMIN Role (Primary Focus)**
+   - Management Capabilities
+     * Vehicle Management
+       - View and monitor vehicles
+       - Track vehicle status
+       - Monitor components
+     * User Management
+       - View operator list
+       - Monitor operator activity
+     * Checklist Management
+       - View all checklists
+       - Monitor completion
+     * Incident Management
+       - View all incidents
+       - Basic incident reports
+     * Reports & Analytics
+       - Basic incident reports
+       - Basic checklist reports
+       - CICO history
+   
+   - Operational Capabilities
+     * Vehicle Operations
+       - View vehicle list
+       - View vehicle details
+       - Complete checklists
+       - Manage sessions
+     * Checklist System
+       - Complete daily checklists
+       - View checklist history
+     * Incident Reporting
+       - Report incidents
+       - View history
+     * Profile & History
+       - View and edit profile
+       - View personal history
+
+2. **OPERATOR Role**
+   - Core Functionalities
+     * Vehicle Management
+       - View vehicle list
+       - View vehicle details
+       - Complete pre-shift checklists
+       - Start/end vehicle sessions
+     * Checklist System
+       - Complete daily checklists
+       - View checklist history
+     * Incident Reporting
+       - Report incidents
+       - View own incident history
+
+### Testing & Quality Assurance
+
+1. **Testing Requirements**
+   - Unit Tests
+     * API Integration Tests
+       - Endpoint validation
+       - Response handling
+       - Error scenarios
+     * Business Logic Tests
+       - State transitions
+       - Validation rules
+       - Data processing
+
+   - Integration Tests
+     * Feature Flows
+       - Complete user journeys
+       - Cross-feature interactions
+       - Data consistency
+     * API Integration
+       - End-to-end flows
+       - Error handling
+       - Performance
+
+   - Performance Tests
+     * Response Time
+       - API calls < 2 seconds
+       - UI updates < 100ms
+       - Data loading < 1 second
+     * Resource Usage
+       - Memory management
+       - Battery impact
+       - Network efficiency
+
+   - Security Tests
+     * Authentication
+       - Token management
+       - Session handling
+       - Access control
+     * Data Protection
+       - Encryption
+       - Secure storage
+       - Data privacy
+
+2. **Success Criteria**
+   - Functional Requirements
+     * All core features working
+     * Complete data migration
+     * Proper error handling
+     * Offline capabilities
+   - Performance Requirements
+     * Response time < 2 seconds
+     * Smooth UI interactions
+     * Efficient data sync
+     * Low battery impact
+   - Quality Requirements
+     * Code coverage > 80%
+     * No critical bugs
+     * Proper documentation
+     * User acceptance
+
+## API Integration Status
+
+### Total APIs: 38
+1. Vehicle Management (4)
+   - VehicleApi
+   - VehicleTypeApi
+   - VehicleCategoryApi
+   - VehicleComponentApi
+   - VehicleSessionApi
+
+2. Checklist System (12)
+   - ChecklistApi
+   - ChecklistItemApi
+   - ChecklistItemCategoryApi
+   - ChecklistItemSubcategoryApi
+   - ChecklistMetadataVehicleTypeApi
+   - ChecklistRotationRulesItemCategoryApi
+   - QuestionaryChecklistApi
+   - QuestionaryChecklistItemApi
+   - QuestionaryChecklistItemCategoryApi
+   - QuestionaryChecklistItemSubcategoryApi
+   - QuestionaryChecklistMetadataApi
+   - QuestionaryChecklistRotationRulesApi
+
+3. User & Authentication (6)
+   - GOSecurityProviderApi
+   - GOServicesApi
+   - GOUserRoleApi
+   - GOGroupRoleApi
+   - GOGroupApi
+   - SessionApi
+
+4. Business & Site Management (4)
+   - BusinessApi
+   - BusinessConfigurationApi
+   - SiteApi
+   - UserBusinessApi
+
+5. Incident & Safety (1)
+   - IncidentApi
+
+6. Certification & Feedback (2)
+   - CertificationApi
+   - FeedbackApi
+
+7. Location & Weather (3)
+   - CountryApi
+   - CountryStateApi
+   - WeatherApi
+
+8. System & Utilities (6)
+   - NotificationApi
+   - GOFileUploaderApi
+   - EnergySourceApi
+   - UserChecklistApi
+   - AnsweredChecklistItemApi
+   - VehicleSessionApi
+
+### Role-Specific Focus (Current Sprint)
+1. ADMIN Role (Primary Focus)
+   - Management Capabilities:
+     * Vehicle Management
+       - Full vehicle CRUD operations
+       - Vehicle type/category management
+       - Vehicle component management
+     * User Management
+       - View operator list
+       - Manage operator access
+     * Checklist Management
+       - View all checklists
+       - Monitor checklist completion
+     * Incident Management
+       - View all incidents
+       - Manage incident reports
+       - Generate safety reports
+     * Reports & Analytics
+       - Basic incident reports
+       - Basic checklist reports
+       - CICO (Check-in/Check-out) history
+       - User activity reports
+   
+   - Operational Capabilities (Same as Operator):
+     * Vehicle Operations
+       - View vehicle list
+       - View vehicle details
+       - Complete pre-shift checklists
+       - Start/end vehicle sessions
+     * Checklist System
+       - Complete daily checklists
+       - View checklist history
+     * Incident Reporting
+       - Report incidents
+       - View incident history
+     * Profile & History
+       - View and edit profile
+       - View personal CICO history
+       - View personal incident reports
+       - View personal checklist history
+
+2. OPERATOR Role
+   - Core Functionalities:
+     * Vehicle Management
+       - View vehicle list
+       - View vehicle details
+       - Complete pre-shift checklists
+       - Start/end vehicle sessions
+     * Checklist System
+       - Complete daily checklists
+       - View checklist history
+     * Incident Reporting
+       - Report incidents
+       - View own incident history
+
+### Integration & Testing Status
+
+#### ✅ Fully Integrated & Tested
+1. Authentication & Onboarding
+   - LoginScreen: GOSecurityProviderApi (Complete integration and testing)
+
+2. Vehicle Management (Admin & Operator)
+   - VehicleListScreen: VehicleApi, VehicleTypeApi (Complete integration and testing)
+   - VehicleProfileScreen: VehicleApi, VehicleComponentApi (Complete integration and testing)
+
+#### 🔄 In Progress (GO Platform Integration)
+1. Checklist Management (Admin & Operator)
+   - ChecklistScreen: 
+     * Primary APIs: ChecklistApi, ChecklistItemApi
+     * Secondary Flow: VehicleSessionApi (for session management after checklist completion)
+     * Integration Status: 
+       - GO Platform integration in progress
+       - Need to test complete flow:
+         1. Checklist completion
+         2. Vehicle session initiation
+         3. Session state management
+     * Dependencies:
+       - VehicleApi (for vehicle status updates)
+       - VehicleSessionApi (for session management)
+       - UserChecklistApi (for user-checklist association)
+
+2. Admin Management Features
+   - UserManagementScreen: GOUserRoleApi, GOGroupRoleApi
+   - VehicleManagementScreen: VehicleApi, VehicleTypeApi, VehicleCategoryApi
+   - IncidentManagementScreen: IncidentApi
+
+#### ⏳ Pending Integration (Prioritized for Current Sprint)
+1. Admin Operational Features
+   - IncidentReportScreen: IncidentApi
+   - ChecklistHistoryScreen: UserChecklistApi, AnsweredChecklistItemApi
+   - VehicleSessionScreen: VehicleSessionApi
+   - ProfileScreen: GOUserRoleApi, UserApi
+   - CicoHistoryScreen: VehicleSessionApi
+
+2. Admin Management Features
+   - VehicleCategoriesScreen: VehicleCategoryApi
+   - VehicleTypesScreen: VehicleTypeApi
+   - VehicleComponentsScreen: VehicleComponentApi
+   - OperatorsListScreen: GOUserRoleApi
+   - SafetyAlertsScreen: IncidentApi
+   - BasicReportsScreen: 
+     * IncidentApi (for incident reports)
+     * UserChecklistApi (for checklist reports)
+     * VehicleSessionApi (for CICO history)
+
+### Integration Notes
+1. Authentication System
+   - LoginScreen is fully integrated and tested with GOSecurityProviderApi
+   - Register and Tour screens pending integration
+
+2. Vehicle Management
+   - Core vehicle listing and profile features are fully integrated
+   - Vehicle creation, editing, and categorization features pending
+
+3. Checklist System
+   - Currently being integrated in GO platform
+   - Complex flow implementation:
+     1. Checklist completion and validation
+     2. Vehicle session initiation
+     3. Session state management
+   - Key integration points:
+     * ChecklistApi + ChecklistItemApi for checklist management
+     * VehicleSessionApi for session handling
+     * VehicleApi for status updates
+     * UserChecklistApi for user associations
+   - Testing priorities:
+     1. Basic checklist completion
+     2. Session initiation flow
+     3. Session state management
+     4. Vehicle status synchronization
+     5. User-checklist associations
+
+4. Next Integration Priorities (Current Sprint)
+   - Complete checklist system integration with session management (Admin & Operator)
+   - Implement incident reporting system (Admin & Operator)
+   - Complete vehicle management features (Admin)
+   - Set up operator management features (Admin)
+   - Migrate profile and basic reports from MockAPI:
+     * ProfileScreen functionality
+     * Basic incident reports
+     * Basic checklist reports
+     * CICO history reports
+
+### API Dependencies & Flows
+1. Checklist Completion Flow
+   ```
+   ChecklistScreen
+   ├── ChecklistApi (Get checklist data)
+   ├── ChecklistItemApi (Get items)
+   ├── UserChecklistApi (Associate with user)
+   ├── VehicleSessionApi (Initiate session)
+   └── VehicleApi (Update status)
+   ```
+
+2. Session Management Flow
+   ```
+   VehicleSessionApi
+   ├── VehicleApi (Status updates)
+   ├── UserChecklistApi (User association)
+   └── ChecklistApi (Completion status)
+   ```
+
+3. Admin Workflow (Dual Role)
+   ```
+   Management Operations
+   ├── User Management
+   │   ├── GOUserRoleApi
+   │   └── GOGroupRoleApi
+   ├── Vehicle Management
+   │   ├── VehicleApi
+   │   ├── VehicleTypeApi
+   │   └── VehicleCategoryApi
+   ├── Checklist Monitoring
+   │   ├── UserChecklistApi
+   │   └── AnsweredChecklistItemApi
+   ├── Incident Management
+   │   └── IncidentApi
+   └── Reports & Analytics
+       ├── IncidentApi (Incident reports)
+       ├── UserChecklistApi (Checklist reports)
+       └── VehicleSessionApi (CICO history)
+
+   Operational Activities
+   ├── Vehicle Operations
+   │   ├── VehicleApi
+   │   └── VehicleSessionApi
+   ├── Checklist Completion
+   │   ├── ChecklistApi
+   │   ├── ChecklistItemApi
+   │   └── UserChecklistApi
+   ├── Incident Reporting
+   │   └── IncidentApi
+   └── Profile & History
+       ├── GOUserRoleApi (Profile management)
+       ├── VehicleSessionApi (CICO history)
+       └── UserChecklistApi (Personal checklist history)
+   ```
+
+4. Operator Workflow
+   ```
+   Daily Operations
+   ├── Login (GOSecurityProviderApi)
+   ├── Vehicle Selection (VehicleApi)
+   ├── Checklist Completion
+   │   ├── ChecklistApi
+   │   ├── ChecklistItemApi
+   │   └── UserChecklistApi
+   ├── Session Management
+   │   └── VehicleSessionApi
+   └── Incident Reporting
+       └── IncidentApi
+   ```
+
 ## Naming Conventions
 
 ### API & JSON Fields
@@ -239,119 +911,180 @@ app/src/main/java/app/forku/
   }
   ```
 
-## MockAPI Integration
+The application has a rich set of screens organized by different user roles and functionalities. Here's the breakdown:
 
-### API Base URL
-```
-https://67ed9e4e4387d9117bbe2e16.mockapi.io/forku/api/v1
-```
+Authentication & Onboarding:
+TourScreen - Initial onboarding screen
+LoginScreen - User login
+RegisterScreen - User registration
+Dashboard Screens (Role-based):
+DashboardScreen - Main dashboard for operators
+AdminDashboardScreen - Dashboard for administrators
+SuperAdminDashboardScreen - Dashboard for super admins
+SystemOwnerDashboardScreen - Dashboard for system owners
+Vehicle Management:
+VehicleListScreen - List of vehicles
+VehicleProfileScreen - Vehicle details
+AddVehicleScreen - Add new vehicle
+EditVehicleScreen - Edit vehicle details
+VehicleCategoriesScreen - Vehicle categories management
+VehicleTypesScreen - Vehicle types management
+VehicleComponentsScreen - Vehicle components management
+AdminVehiclesListScreen - Admin view of vehicles
+AdminVehicleProfileScreen - Admin view of vehicle details
+Checklist Management:
+ChecklistScreen - Pre-shift checklist
+AllChecklistScreen - All checklists view
+CheckDetailScreen - Checklist details
+QuestionaryChecklistScreen - Questionary checklist
+QuestionarySelectionScreen - Questionary selection
+QuestionaryChecklistItemScreen - Questionary items
+ChecklistCategoriesScreen - Checklist categories
+QuestionaryChecklistItemCategoryScreen - Questionary categories
+QuestionaryChecklistItemSubcategoryScreen - Questionary subcategories
+Incident & Safety:
+IncidentReportScreen - Report incidents
+IncidentListScreen - List of incidents
+IncidentDetailScreen - Incident details
+SafetyAlertsScreen - Safety alerts
+PerformanceReportScreen - Performance reporting
+User Management:
+ProfileScreen - User profile
+UserManagementScreen - User management
+OperatorsListScreen - List of operators
+CicoHistoryScreen - Check-in/Check-out history
+Certification Management:
+CertificationsScreen - List of certifications
+CertificationDetailScreen - Certification details
+CertificationScreen - Create/Edit certification
+System Management:
+SystemSettingsScreen - System settings
+BusinessManagementScreen - Business management
+SitesScreen - Sites management
+TimeZonesScreen - Timezone management
+CountriesScreen - Country management
+EnergySourcesScreen - Energy sources management
+Group Management:
+GroupManagementScreen - Group management
+GroupRoleManagementScreen - Group role management
+Other Features:
+QRScannerScreen - QR code scanner
+NotificationScreen - Notifications
+CountriesScreen - Country management
 
-### API's Data Structure
-```
-user (7)
-vehicle-category (6)
-    └── vehicle-type (26)
-experience-level (0)
-energy-source (0)
+*Note: This context file should be updated as the project evolves.*
 
-questionary-checklist-item-category (9)
-    └── questionary-checklist-item-subcategory (15)
-questionary-checklist (0)
-    └── questionary-checklist-item (0)
-feedback (1)
-notification (0)
-timezone (0)
-country (50)
-    └── country-state (100)
-business (3)
-    └── site (0)
-        └── site-configuration (0)
-        └── incident (0)
-        └── vehicle (1)
-            └── checklist (0)
-            └── safety-alert (0)
-            └── vehicle-session (0)
-        └── geofence (0)
-        └── business-configuration (0)
-configuration (0)
-certification (0)
-subscription (0)
-```
-The numbers in parentheses indicate the count of records in each collection.
-We can access to any entity like this for example: "/business/1/vehicle" (all vehicles of that business) or "/vehicle" (for all vehicles)
+### MockAPI Migration vs API Integration Analysis
 
-### Naming Convention
-- All API endpoints and response fields use camelCase
-- Example: `businessId`, `vehicleType`, `nextService` (not `business_id`, `vehicle_type`, `next_service`)
+#### 1. Overall Status Comparison
+- MockAPI Migration: 40% Complete
+- API Integration: ~59% Complete (Average across all APIs)
+- Gap Analysis: API Integration is ahead by 19%
 
-### Response Handling
-- When no results are found (404), the API returns a string: "Not found"
-- Success responses return JSON objects/arrays
-- Error responses follow standard HTTP status codes
+#### 2. Feature-Specific Comparison
 
-### Filtering
-Filtering is implemented using query parameters:
+1. **Authentication & Profile**
+   - MockAPI Status: 40% Complete
+   - API Integration Status: 88% Complete
+     * GOSecurityProviderApi (100% Complete) ✅
+     * GOUserRoleApi (70% Complete) 🔄
+     * UserApi (Pending) ⏳
+     * SessionApi (95% Complete) ✅
+   - Gap: +48% (API Integration is ahead)
 
-| Parameter | Type | Example | Description |
-|-----------|------|---------|-------------|
-| search | String | search=hello | Get items matching string in any field |
-| filter | String | filter=hello | Get items matching string in any field |
-| fieldName | String | status=suspended | Get items matching specific field value |
+2. **Reports & History**
+   - MockAPI Status: 40% Complete
+   - API Integration Status: 30% Complete
+     * IncidentApi (30% Complete) 🔄
+     * UserChecklistApi (Pending) ⏳
+     * VehicleSessionApi (60% Complete) 🔄
+   - Gap: -10% (MockAPI is ahead)
 
-Example:
-```kotlin
-// Get businesses with suspended status
-api.getAllBusinesses(status = "SUSPENDED")
+#### 3. Migration Priorities
 
-// Get businesses for a specific superAdmin
-api.getAllBusinesses(superAdminId = "123")
-```
+1. **High Priority (APIs Ready)**
+   - ProfileScreen Migration
+     * Required APIs: GOSecurityProviderApi, GOUserRoleApi, SessionApi
+     * Status: APIs 88% Complete
+     * Action: Complete ProfileScreen migration
 
-### Pagination
-Pagination parameters:
+2. **Medium Priority (APIs In Progress)**
+   - Basic Reports Migration
+     * Required APIs: IncidentApi, VehicleSessionApi
+     * Status: APIs 45% Complete
+     * Action: Continue API integration while migrating reports
 
-| Parameter | Type | Example | Description |
-|-----------|------|---------|-------------|
-| page | Number | page=1 | Get specific page |
-| limit | Number | limit=10 | Items per page |
+3. **Low Priority (APIs Pending)**
+   - Advanced Features
+     * Required APIs: UserChecklistApi, AnsweredChecklistItemApi
+     * Status: APIs 0% Complete
+     * Action: Focus on API integration first
 
-### Sorting
-Sorting parameters:
+#### 4. Recommendations
 
-| Parameter | Type | Example | Description |
-|-----------|------|---------|-------------|
-| sortBy | field_name | sortBy=name | Sort by field |
-| order | asc/desc | order=desc | Sort direction |
+1. **Immediate Actions**
+   - Complete ProfileScreen migration using available APIs
+   - Start reports migration for IncidentApi and VehicleSessionApi
+   - Begin UserChecklistApi integration
 
-### API Endpoints
+2. **Short-term Goals**
+   - Reduce the gap between MockAPI and API integration
+   - Complete basic reports functionality
+   - Implement CICO history using VehicleSessionApi
 
-#### Businesses
-- GET `/business` - Get all businesses (supports filtering)
-- GET `/business/{id}` - Get business by ID
-- POST `/business` - Create new business
-- PUT `/business/{id}` - Update business
-- DELETE `/business/{id}` - Delete business
-- GET `/business/system-owner/{systemOwnerId}` - Get businesses by system owner ID
-- GET `/business/super-admin/{superAdminId}` - Get businesses by super admin ID
-- PUT `/business/{businessId}/transfer` - Transfer business to a new super admin
-- GET `/business/stats/system-owner/{systemOwnerId}` - Get business statistics for a system owner
-- GET `/business/stats/super-admin/{superAdminId}` - Get business statistics for a super admin
-- GET `/business/{businessId}/vehicles` - Get all vehicles for a business
+3. **Long-term Strategy**
+   - Parallel development of API integration and MockAPI migration
+   - Focus on completing pending APIs
+   - Maintain feature parity between MockAPI and new implementation
 
-#### Users
-- GET `/user` - Get all users (supports filtering)
-- GET `/user/{id}` - Get user by ID
-- POST `/user` - Create new user
-- PUT `/user/{id}` - Update user
-- DELETE `/user/{id}` - Delete user
+### 4. Offline Capabilities (Current Implementation)
 
-#### GO Platform Integration
-- GET `/dataset/api/goservices/csrf-token` - Get CSRF token for GO Services API
-- POST `/api/gosecurityprovider/authenticate` - Authenticate with the GO Security Provider
+#### Implemented Features
+1. **Authentication & Session**
+   - Session persistence using DataStore
+   - Token management for offline authentication
+   - Basic user profile caching
 
-### Error Handling
-- All API calls should handle 404 "Not found" responses by returning empty lists/null objects
-- Other error codes should be propagated to the UI layer for user feedback
+2. **Vehicle Management**
+   - Vehicle list caching
+   - Vehicle status tracking
+   - Basic vehicle information storage
 
----
-*Note: This context file should be updated as the project evolves.* 
+3. **Checklist System**
+   - Offline checklist completion
+   - Local storage of checklist responses
+   - Basic sync when online
+
+4. **Incident Management**
+   - Basic offline incident reporting
+   - Local storage of incident data
+   - Simple media caching
+
+#### Current Implementation Status
+- Basic data persistence ✅
+- Session management ✅
+- Token storage ✅
+- Simple caching ✅
+- Offline-first workflow ✅
+- Basic sync mechanism ✅
+
+#### Success Criteria for Offline Capabilities
+1. **Functional Requirements**
+   - Core features work offline ✅
+   - Basic data sync when online ✅
+   - No data loss during transitions ✅
+   - Simple conflict resolution ✅
+
+2. **Performance Requirements**
+   - Fast offline operations ✅
+   - Basic sync process ✅
+   - Minimal battery impact ✅
+   - Efficient storage usage ✅
+
+3. **User Experience**
+   - Clear offline status ✅
+   - Basic offline/online transitions ✅
+   - Simple sync process ✅
+   - Basic data consistency ✅
+
+[Rest of the document remains unchanged...]

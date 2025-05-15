@@ -19,5 +19,7 @@ data class VehicleProfileState(
     val checkId: String? = null,
     val canStartCheck: Boolean = false,
     val navigateToChecklist: Boolean = false,
-    val currentUserRole: UserRole? = null
+    val currentUserRole: UserRole? = null,
+    val lastChecklistAnswer: app.forku.domain.model.checklist.ChecklistAnswer? = null,
+    val lastChecklistOperator: app.forku.domain.model.user.User? = null
 ) 

@@ -11,7 +11,9 @@ interface ChecklistApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getList(): Response<List<ChecklistDto>>
+    suspend fun getList(
+        @Query("include") include: String? = null
+    ): Response<List<ChecklistDto>>
 
     @GET("api/checklist/byid/{id}")
     @Headers(

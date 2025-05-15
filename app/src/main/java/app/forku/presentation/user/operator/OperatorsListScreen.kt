@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.ErrorScreen
@@ -39,7 +40,8 @@ import coil.compose.AsyncImage
 fun OperatorsListScreen(
     navController: NavController,
     viewModel: OperatorsListViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     
@@ -55,7 +57,8 @@ fun OperatorsListScreen(
         showBottomBar = false,
         onRefresh = { viewModel.loadOperators(true) },
         showLoadingOnRefresh = false,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

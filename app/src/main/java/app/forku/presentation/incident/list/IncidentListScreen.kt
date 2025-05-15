@@ -22,19 +22,21 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.components.IncidentCard
 import app.forku.domain.model.incident.IncidentStatus
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun IncidentListScreen(
-    viewModel: IncidentListViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToReport: () -> Unit,
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     userId: String? = null,
-    source: String? = null
+    source: String? = null,
+    tokenErrorHandler: TokenErrorHandler,
+    viewModel: IncidentListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -54,6 +56,8 @@ fun IncidentListScreen(
             userId != null -> "User Incidents"
             else -> "Incidents List"
         },
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(
                 modifier = Modifier
@@ -105,7 +109,6 @@ fun IncidentListScreen(
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
             }
-        },
-        networkManager = networkManager
+        }
     )
 } 

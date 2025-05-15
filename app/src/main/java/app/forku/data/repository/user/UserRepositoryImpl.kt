@@ -11,6 +11,7 @@ import app.forku.data.datastore.AuthDataStore
 import app.forku.data.mapper.toDto
 import app.forku.domain.model.user.UserRole
 import app.forku.data.local.TourPreferences
+import app.forku.core.auth.RoleConverter
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +20,11 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import app.forku.data.repository.BaseRepository
 import app.forku.core.auth.TokenErrorHandler
+import app.forku.data.api.GOSecurityProviderApi
+import app.forku.core.auth.HeaderManager
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import app.forku.data.api.GOServicesApi
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
@@ -26,8 +32,13 @@ class UserRepositoryImpl @Inject constructor(
     private val goUserRoleApi: GOUserRoleApi,
     authDataStore: AuthDataStore,
     private val tourPreferences: TourPreferences,
-    tokenErrorHandler: TokenErrorHandler
+    tokenErrorHandler: TokenErrorHandler,
+    private val securityApi: GOSecurityProviderApi,
+    private val headerManager: HeaderManager,
+    private val goServicesApi: GOServicesApi
 ) : UserRepository, BaseRepository(authDataStore, tokenErrorHandler) {
+    
+    private val TAG = "appflow UserRepository"
     
     private suspend fun getUserRoleFromGOApi(userId: String): UserRole {
         try {
@@ -41,14 +52,7 @@ class UserRepositoryImpl @Inject constructor(
             val userRole = userRoles.find { it.GOUserId == userId }?.role?.Name
                 ?: return UserRole.OPERATOR
 
-            return when (userRole.lowercase()) {
-                "administrator" -> UserRole.SYSTEM_OWNER
-                "admin" -> UserRole.ADMIN
-                "operator" -> UserRole.OPERATOR
-                "superadmin" -> UserRole.SUPERADMIN
-                "systemowner", "system_owner" -> UserRole.SYSTEM_OWNER
-                else -> UserRole.OPERATOR
-            }
+            return RoleConverter.fromString(userRole)
         } catch (e: Exception) {
             Log.e("UserRepository", "Error getting user role: ${e.message}")
             return UserRole.OPERATOR
@@ -76,70 +80,86 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun login(email: String, password: String): Result<User> = withContext(Dispatchers.IO) {
         try {
-            // Obtener todos los usuarios
-            val response = api.getUsers()
-            if (!response.isSuccessful) {
-                android.util.Log.e("appflow UserRepository", "Server error: ${response.code()}")
-                return@withContext Result.failure(Exception("Error de servidor. Por favor intenta más tarde"))
+            // 1. Fetch CSRF token and antiforgery cookie from GOServicesApi
+            val csrfResponse = goServicesApi.getCsrfToken()
+            if (!csrfResponse.isSuccessful) {
+                Log.e(TAG, "Failed to fetch CSRF token: ${csrfResponse.code()}")
+                return@withContext Result.failure(Exception("No se pudo obtener el token CSRF. Intenta de nuevo."))
             }
-
-            // Log the response for debugging
-            android.util.Log.d("appflow UserRepository", "Users response: ${response.body()}")
-
-            // Primero verificar si existe el email
-            val userWithEmail = response.body()?.find { it.email == email }
-            if (userWithEmail == null) {
-                android.util.Log.e("appflow UserRepository", "User not found with email: $email")
-                return@withContext Result.failure(Exception("El correo electrónico no está registrado"))
+            val csrfToken = csrfResponse.body()?.csrfToken
+            val cookieHeader = csrfResponse.headers()["Set-Cookie"]
+            if (csrfToken.isNullOrBlank() || cookieHeader.isNullOrBlank()) {
+                Log.e(TAG, "CSRF token or antiforgery cookie missing in response")
+                return@withContext Result.failure(Exception("No se pudo obtener el token CSRF o la cookie antiforgery."))
             }
+            authDataStore.saveCsrfToken(csrfToken)
+            authDataStore.saveAntiforgeryCookie(cookieHeader)
 
-            // Log user found
-            android.util.Log.d("appflow UserRepository", "Found user: $userWithEmail")
+            // 2. Prepare multipart form data
+            val usernamePart = email.toRequestBody("text/plain".toMediaType())
+            val passwordPart = password.toRequestBody("text/plain".toMediaType())
+            val useCookiesPart = "true".toRequestBody("text/plain".toMediaType())
 
-            // Luego verificar la contraseña
-            val user = response.body()?.find { 
-                it.email == email && it.password == password 
-            }?.toDomain()
-            
-            if (user == null) {
-                android.util.Log.e("appflow UserRepository", "Invalid password for email: $email")
-                return@withContext Result.failure(Exception("Contraseña incorrecta"))
-            }
-
-            // Verificar si el usuario está activo
-            if (!user.isActive) {
-                android.util.Log.e("appflow UserRepository", "User account is inactive: $email")
-                return@withContext Result.failure(Exception("Tu cuenta está desactivada. Contacta al administrador"))
-            }
-
-            // Verificar si el usuario está aprobado
-            if (!user.isApproved) {
-                android.util.Log.e("appflow UserRepository", "User account is not approved: $email")
-                return@withContext Result.failure(Exception("Tu cuenta está pendiente de aprobación. Por favor espera a que un administrador la apruebe."))
-            }
-
-            // Update lastLogin timestamp
-            val updatedUser = user.copy(
-                lastLogin = java.time.Instant.now()
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+            // 3. Use the freshly fetched CSRF token and cookie
+            val response = securityApi.authenticate(
+                csrfToken = csrfToken,
+                cookie = cookieHeader,
+                username = usernamePart,
+                password = passwordPart,
+                useCookies = useCookiesPart
             )
 
-            // Update user in API
-            val updateResponse = api.saveUser( updatedUser.toDto())
-            if (!updateResponse.isSuccessful) {
-                android.util.Log.e("appflow UserRepository", "Failed to update lastLogin timestamp")
+            if (response.isSuccessful) {
+                val authResponse = response.body()
+                if (authResponse != null) {
+                    val applicationToken = authResponse.getApplicationToken()
+                    val authenticationToken = authResponse.getAuthenticationToken()
+
+                    if (applicationToken != null && authenticationToken != null) {
+                        // Save tokens
+                        authDataStore.saveApplicationToken(applicationToken)
+                        authDataStore.saveAuthenticationToken(authenticationToken)
+
+                        // Parse user from token
+                        val tokenClaims = app.forku.data.api.auth.TokenParser.parseJwtToken(applicationToken)
+                        val user = app.forku.domain.model.user.User(
+                            id = tokenClaims.userId,
+                            email = email,
+                            username = tokenClaims.username,
+                            firstName = tokenClaims.username,
+                            lastName = tokenClaims.familyName.ifEmpty { "" },
+                            token = applicationToken,
+                            refreshToken = authenticationToken,
+                            photoUrl = null,
+                            role = tokenClaims.role,
+                            password = password,
+                            certifications = emptyList(),
+                            lastMedicalCheck = null,
+                            lastLogin = System.currentTimeMillis().toString(),
+                            isActive = true,
+                            isApproved = true,
+                            businessId = null,
+                            siteId = null,
+                            systemOwnerId = null
+                        )
+                        authDataStore.setCurrentUser(user)
+                        tokenErrorHandler.resetAuthenticationState()
+                        Result.success(user)
+                    } else {
+                        Log.e(TAG, "No tokens found in response")
+                        Result.failure(Exception("No tokens found in response"))
+                    }
+                } else {
+                    Log.e(TAG, "Empty response body")
+                    Result.failure(Exception("Empty response body"))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "Authentication failed. Status: "+response.code()+", Error: "+errorBody)
+                Result.failure(Exception("Authentication failed: "+response.code()+" - "+errorBody))
             }
-
-            // Log successful login
-            android.util.Log.d("appflow UserRepository", "Successful login for user: ${updatedUser.email}")
-
-            // Guardar usuario en AuthDataStore y actualizar presencia
-            authDataStore.setCurrentUser(updatedUser)
-            updatePresence(true)
-            
-            Result.success(updatedUser)
         } catch (e: Exception) {
+            Log.e(TAG, "Login failed", e)
             Result.failure(e)
         }
     }

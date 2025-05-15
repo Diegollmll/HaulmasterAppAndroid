@@ -22,6 +22,7 @@ import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun AdminVehicleProfileScreen(
@@ -29,6 +30,7 @@ fun AdminVehicleProfileScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     userRole: UserRole,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: AdminVehicleProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -42,7 +44,8 @@ fun AdminVehicleProfileScreen(
         showTopBar = true,
         topBarTitle = "Admin - Vehicle Profile" + (state.vehicle?.codename?.let { " - $it" } ?: ""),
         showBackButton = true,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -161,7 +164,7 @@ private fun VehicleDetailsContent(
                 
                 InfoRow("Model", vehicle.model)
                 InfoRow("Serial Number", vehicle.serialNumber)
-                InfoRow("Type", vehicle.type.name)
+                InfoRow("Type", vehicle.type.Name)
                 InfoRow("Category ID", vehicle.categoryId)
                 InfoRow("Business", vehicle.businessId ?: "Unassigned")
                 InfoRow("Energy Type", vehicle.energyType)

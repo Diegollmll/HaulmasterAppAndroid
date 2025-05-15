@@ -16,12 +16,14 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.BaseScreen
 import android.util.Log
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditVehicleScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: EditVehicleViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -64,7 +66,7 @@ fun EditVehicleScreen(
             Log.d("EditVehicleScreen", "Initializing dropdowns for vehicle: ${vehicle.codename}, Business ID: ${vehicle.businessId}")
             
             // Pre-select dropdowns with existing data
-            vehicle.type.categoryId?.let { categoryId ->
+            vehicle.type.VehicleCategoryId?.let { categoryId ->
                 state.vehicleCategories.find { it.id == categoryId }?.let { category ->
                     viewModel.selectCategory(category)
                 }
@@ -73,8 +75,8 @@ fun EditVehicleScreen(
             // Check if vehicle types are loaded and try to select the vehicle type
             if (state.vehicleTypes.isNotEmpty()) {
                 // Find the matching vehicle type in the loaded types
-                state.vehicleTypes.find { it.id == vehicle.type.id }?.let { matchingType ->
-                    Log.d("EditVehicleScreen", "Found matching vehicle type: ${matchingType.name}")
+                state.vehicleTypes.find { it.Id == vehicle.type.Id }?.let { matchingType ->
+                    Log.d("EditVehicleScreen", "Found matching vehicle type: ${matchingType.Name}")
                     viewModel.selectVehicleType(matchingType)
                 } ?: run {
                     Log.d("EditVehicleScreen", "Vehicle type not found in loaded types. Using original type.")
@@ -110,7 +112,8 @@ fun EditVehicleScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Edit Vehicle" + (state.initialVehicle?.codename?.let { " - $it" } ?: ""),
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -226,7 +229,7 @@ fun EditVehicleScreen(
                             onExpandedChange = { typeExpanded = it }
                         ) {
                              OutlinedTextField(
-                                value = state.selectedType?.name ?: "",
+                                value = state.selectedType?.Name ?: "",
                                 onValueChange = { },
                                 readOnly = true,
                                 label = { Text("Vehicle Type") },
@@ -240,7 +243,7 @@ fun EditVehicleScreen(
                             ) {
                                 state.vehicleTypes.forEach { type ->
                                     DropdownMenuItem(
-                                        text = { Text(type.name) },
+                                        text = { Text(type.Name) },
                                         onClick = {
                                             viewModel.selectVehicleType(type)
                                             typeExpanded = false

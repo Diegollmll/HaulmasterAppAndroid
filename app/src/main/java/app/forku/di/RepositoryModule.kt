@@ -17,6 +17,7 @@ import app.forku.data.repository.vehicle.*
 import app.forku.data.repository.vehicle_session.*
 import app.forku.data.service.VehicleStatusDeterminerImpl
 import app.forku.data.service.VehicleValidationServiceImpl
+import app.forku.data.service.GOServicesManager
 import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
@@ -46,6 +47,9 @@ import app.forku.domain.repository.gogroup.*
 import app.forku.data.api.UserBusinessApi
 import app.forku.data.repository.user.UserBusinessRepositoryImpl
 import app.forku.domain.repository.user.UserBusinessRepository
+import app.forku.data.repository.weather.WeatherRepositoryImpl
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
+import app.forku.domain.repository.weather.WeatherRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -121,6 +125,12 @@ abstract class RepositoryModule {
     abstract fun bindGOFileUploaderRepository(
         repository: GOFileUploaderRepositoryImpl
     ): GOFileUploaderRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWeatherRepository(
+        repository: WeatherRepositoryImpl
+    ): WeatherRepository
 }
 
 @Module
@@ -142,8 +152,14 @@ object RepositoryProvidersModule {
     @Provides
     @Singleton
     fun provideVehicleStatusUpdater(
-        api: VehicleApi
-    ): VehicleStatusUpdater = VehicleStatusUpdaterImpl(api)
+        api: VehicleApi,
+        goServicesManager: GOServicesManager,
+        authDataStore: AuthDataStore
+    ): VehicleStatusUpdater = VehicleStatusUpdaterImpl(
+        api = api,
+        goServicesManager = goServicesManager,
+        authDataStore = authDataStore
+    )
 
     @Provides
     @Singleton
@@ -212,13 +228,13 @@ object RepositoryProvidersModule {
         api: VehicleSessionApi,
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
-        checklistRepository: ChecklistRepository,
+        checklistAnswerRepository: ChecklistAnswerRepository,
         locationManager: LocationManager
     ): VehicleSessionRepository = VehicleSessionRepositoryImpl(
         api = api,
         authDataStore = authDataStore,
         vehicleStatusRepository = vehicleStatusRepository,
-        checklistRepository = checklistRepository,
+        checklistAnswerRepository = checklistAnswerRepository,
         locationManager = locationManager
     )
 

@@ -31,43 +31,61 @@ import app.forku.domain.model.user.UserRole
 import app.forku.presentation.vehicle.list.VehicleItem
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
+import coil.ImageLoader
+import app.forku.core.auth.TokenErrorHandler
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.util.Log
 
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun AdminDashboardScreen(
-    navController: NavController? = null,
-    onNavigate: (String) -> Unit = {},
-    viewModel: AdminDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    navController: NavController,
+    viewModel: AdminDashboardViewModel = hiltViewModel(),
+    networkManager: NetworkConnectivityManager,
+    imageLoader: ImageLoader,
+    tokenErrorHandler: TokenErrorHandler
 ) {
-    val currentUser by viewModel.currentUser.collectAsState()
-    val dashboardState by viewModel.state.collectAsState()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    Log.d("AdminDashboardScreen", "UI muestra operatingVehiclesCount: ${state.operatingVehiclesCount}")
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
 
-    val regularDashboardState = DashboardState(
-        isLoading = dashboardState.isLoading,
-        error = dashboardState.error,
-        user = currentUser,
-        isAuthenticated = true
-    )
+    LaunchedEffect(Unit) {
+        viewModel.authEvent.collect { event ->
+            when (event) {
+                is AuthEvent.NavigateToLogin -> {
+                    navController.navigate("login") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        }
+    }
 
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = dashboardState.isLoading,
-        onRefresh = { viewModel.loadDashboardData() }
-    )
-    
     BaseScreen(
-        navController = navController ?: return,
-        showBottomBar = true,
+        navController = navController,
         showTopBar = false,
-        showBackButton = false,
-        dashboardState = regularDashboardState,
-        networkManager = networkManager
+        showBottomBar = true,
+        dashboardState = DashboardState(user = currentUser),
+        topBarTitle = "Admin Dashboard",
+        onRefresh = { viewModel.refreshWithLoading() },
+        showLoadingOnRefresh = true,
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .pullRefresh(pullRefreshState),
+                .pullRefresh(rememberPullRefreshState(
+                    refreshing = state.isLoading,
+                    onRefresh = { viewModel.loadDashboardData() }
+                )),
             contentAlignment = Alignment.TopCenter
         ) {
             Box(
@@ -85,15 +103,15 @@ fun AdminDashboardScreen(
                     item { 
                         DashboardHeader(
                             userName = currentUser?.firstName ?: "",
-                            onNotificationClick = { navController?.navigate(Screen.Notifications.route) }
+                            onNotificationClick = { navController.navigate(Screen.Notifications.route) }
                         )
                     }
                     
-                    item { OperationStatusSection(dashboardState, navController) }
+                    item { OperationStatusSection(state, navController) }
                     
-                    item { VehicleSessionSection(dashboardState, navController) }
+                    item { VehicleSessionSection(state, navController, imageLoader, checklistAnswers) }
                     
-                    item { OperatorsInSessionSection(dashboardState, navController) }
+                    item { OperatorsInSessionSection(state, navController) }
                     
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -104,7 +122,7 @@ fun AdminDashboardScreen(
                         )
                         
                         // Show success message when feedback is submitted
-                        if (dashboardState.feedbackSubmitted) {
+                        if (state.feedbackSubmitted) {
                             Snackbar(
                                 modifier = Modifier.padding(16.dp),
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -120,8 +138,11 @@ fun AdminDashboardScreen(
             }
 
             PullRefreshIndicator(
-                refreshing = dashboardState.isLoading,
-                state = pullRefreshState,
+                refreshing = state.isLoading,
+                state = rememberPullRefreshState(
+                    refreshing = state.isLoading,
+                    onRefresh = { viewModel.loadDashboardData() }
+                ),
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
@@ -235,7 +256,9 @@ fun StatusItem(
 @Composable
 private fun VehicleSessionSection(
     state: AdminDashboardState,
-    navController: NavController
+    navController: NavController,
+    imageLoader: ImageLoader,
+    checklistAnswers: Map<String, app.forku.domain.model.checklist.ChecklistAnswer>
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -295,6 +318,8 @@ private fun VehicleSessionSection(
                             sessionInfo = vehicleSessionInfo,
                             showStatus = false,
                             lastPreShiftCheck = state.lastPreShiftChecks[vehicleSessionInfo.vehicle.id],
+                            imageLoader = imageLoader,
+                            checklistAnswer = checklistAnswers[vehicleSessionInfo.session.checkId],
                             onClick = {
                                 navController.navigate(Screen.VehicleProfile.route.replace("{vehicleId}", vehicleSessionInfo.vehicle.id))
                             }

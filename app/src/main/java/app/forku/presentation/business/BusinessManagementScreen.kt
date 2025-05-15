@@ -31,6 +31,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
+import app.forku.core.auth.TokenErrorHandler
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -38,6 +39,7 @@ import app.forku.domain.model.user.UserRole
 fun BusinessManagementScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: BusinessManagementViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.collectAsState()
@@ -61,7 +63,8 @@ fun BusinessManagementScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Business Management",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

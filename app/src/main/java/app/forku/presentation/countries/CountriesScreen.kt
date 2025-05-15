@@ -17,11 +17,13 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.domain.model.country.Country
 import app.forku.domain.model.country.CountryState
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun CountriesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: CountriesViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -32,7 +34,8 @@ fun CountriesScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Countries & States Management",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Column(
             modifier = Modifier

@@ -31,8 +31,12 @@ import app.forku.presentation.navigation.Screen
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
 import app.forku.presentation.common.components.LocationPermissionHandler
 import app.forku.core.location.LocationManager
+import coil.ImageLoader
+import app.forku.core.auth.TokenErrorHandler
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +45,9 @@ fun ChecklistScreen(
     navController: NavController,
     onBackPressed: () -> Unit,
     networkManager: NetworkConnectivityManager,
-    locationManager: LocationManager
+    locationManager: LocationManager,
+    imageLoader: ImageLoader,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     Log.d("QRFlow", "ChecklistScreen Composable started")
     
@@ -55,6 +61,8 @@ fun ChecklistScreen(
     // Remember the last answered question index and description states
     val lastAnsweredIndex = remember { mutableStateOf(-1) }
     val descriptionStates = remember { mutableMapOf<Int, Boolean>() }
+    
+    val categoryNameMap by viewModel.categoryNameMap.collectAsState()
     
     // Add LocationPermissionHandler
     LocationPermissionHandler(
@@ -116,15 +124,13 @@ fun ChecklistScreen(
                 viewModel.resetNavigation()
             }
             is NavigationEvent.AfterSubmit -> {
-                Log.d("QRFlow", "ChecklistScreen - Navigating after submit, isAdmin: ${event.isAdmin}")
-                if (event.isAdmin) {
-                    navController.navigate(Screen.AdminDashboard.route) {
-                        popUpTo(Screen.AdminDashboard.route) { inclusive = true }
-                    }
-                } else {
-                    navController.navigate(Screen.Dashboard.route) {
-                        popUpTo(Screen.Dashboard.route) { inclusive = true }
-                    }
+                Log.d("QRFlow", "ChecklistScreen - Navigating after submit, role: ${event.role}")
+                when (event.role?.lowercase()) {
+                    "admin", "administrator" -> navController.navigate(Screen.AdminDashboard.route)
+                    "superadmin" -> navController.navigate(Screen.SuperAdminDashboard.route)
+                    "system_owner" -> navController.navigate(Screen.SystemOwnerDashboard.route)
+                    "operator" -> navController.navigate(Screen.Dashboard.route)
+                    else -> navController.navigate(Screen.Dashboard.route)
                 }
                 viewModel.resetNavigation()
             }
@@ -157,6 +163,7 @@ fun ChecklistScreen(
         topBarTitle = "Pre-Shift Checklist",
         networkManager = networkManager,
         onRefresh = { viewModel.loadChecklistData() },
+        tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val currentState = state) {
@@ -177,117 +184,135 @@ fun ChecklistScreen(
                             )
                         }
                         
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(padding)
-                                .verticalScroll(scrollState)
-                        ) {
-                            // Keep VehicleProfileSummary
-                            currentState.vehicle?.let { vehicle ->
-                                VehicleProfileSummary(
-                                    vehicle = vehicle,
-                                    status = vehicle.status
-                                )
-                            }
-
-                            // Add Timer Display
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Time Elapsed:",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = currentState.formattedElapsedTime,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            Divider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            )
-
-                            // Add padding to the questionary section
+                        // Use checkItems instead of checklists
+                        if (currentState.checkItems.isNotEmpty()) {
                             Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
+                                    .fillMaxSize()
+                                    .padding(padding)
+                                    .verticalScroll(scrollState)
                             ) {
-                                // Group items by category
-                                val groupedItems = currentState.checkItems?.groupBy { it.category }
-                                var totalIndex = 0
-                                
-                                groupedItems?.forEach { (category, items) ->
-                                    CategoryHeader(
-                                        categoryName = category,
-                                        modifier = Modifier.padding(bottom = 1.dp)
+                                // Keep VehicleProfileSummary
+                                currentState.vehicle?.let { vehicle ->
+                                    VehicleProfileSummary(
+                                        vehicle = vehicle,
+                                        status = vehicle.status,
+                                        imageLoader = imageLoader
                                     )
+                                }
 
-                                    items.forEach { item ->
-                                        val currentIndex = totalIndex
-                                        
-                                        ChecklistQuestionItem(
-                                            question = item,
-                                            onResponseChanged = { itemId, answer ->
-                                                viewModel.updateItemResponse(itemId, answer)
-                                                // Always scroll after answering
-                                                lastAnsweredIndex.value = currentIndex
-                                                // Add a small delay to ensure the UI updates first
-                                                scope.launch {
-                                                    kotlinx.coroutines.delay(100)
-                                                    scrollToNextQuestion(currentIndex, currentState.checkItems?.size ?: 0)
-                                                }
-                                            },
-                                            onDescriptionToggled = { isVisible ->
-                                                descriptionStates[currentIndex] = isVisible
-                                                if (isVisible) {
-                                                    scope.launch {
-                                                        kotlinx.coroutines.delay(100)
-                                                        scrollToNextQuestion(currentIndex, currentState.checkItems?.size ?: 0)
-                                                    }
-                                                }
-                                            },
+                                // Add Timer Display
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Time Elapsed:",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = currentState.formattedElapsedTime,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Divider(
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                )
+
+                                // Add padding to the questionary section
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                ) {
+                                    // Group items by category
+                                    val groupedItems = currentState.checkItems.groupBy { it.category }
+                                    var totalIndex = 0
+                                    
+                                    groupedItems.forEach { (category, items) ->
+                                        // Only show the category name, never the ID. If not found, show a placeholder.
+
+                                        val displayCategoryName = categoryNameMap[category] ?: "Unknown Category"
+                                        Log.d("ChecklistScreen", "Rendering category: $category, mapped name: $displayCategoryName")
+                                        CategoryHeader(
+                                            categoryName = displayCategoryName,
                                             modifier = Modifier.padding(bottom = 1.dp)
                                         )
-                                        totalIndex++
+
+                                        items.forEach { item ->
+                                            val currentIndex = totalIndex
+                                            
+                                            ChecklistQuestionItem(
+                                                question = item,
+                                                onResponseChanged = { itemId, answer ->
+                                                    viewModel.updateItemResponse(itemId, answer)
+                                                    lastAnsweredIndex.value = currentIndex
+                                                    scope.launch {
+                                                        kotlinx.coroutines.delay(100)
+                                                        scrollToNextQuestion(currentIndex, currentState.checkItems.size)
+                                                    }
+                                                },
+                                                onDescriptionToggled = { isVisible ->
+                                                    descriptionStates[currentIndex] = isVisible
+                                                    if (isVisible) {
+                                                        scope.launch {
+                                                            kotlinx.coroutines.delay(100)
+                                                            scrollToNextQuestion(currentIndex, currentState.checkItems.size)
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.padding(bottom = 1.dp)
+                                            )
+                                            totalIndex++
+                                        }
+                                    }
+
+                                    // Only show submit button when all items are answered
+                                    if (currentState.showSubmitButton && currentState.allAnswered) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Button(
+                                            onClick = { viewModel.saveChecklistAnswer() },
+                                            enabled = currentState.showSubmitButton && currentState.allAnswered,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(56.dp)
+                                                .padding(horizontal = 16.dp, vertical = 3.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondary
+                                            )
+                                        ) {
+                                            Text("Save Checklist Progress")
+                                        }
                                     }
                                 }
 
-                                // Only show submit button when all items are answered
-                                if (currentState.showSubmitButton && currentState.allAnswered) {
-                                    Spacer(Modifier.height(4.dp))
-                                    Button(
-                                        onClick = { showConfirmationDialog = true },
-                                        enabled = currentState.showSubmitButton && currentState.allAnswered,
+                                currentState.message?.let { message ->
+                                    Snackbar(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(56.dp)
-                                            .padding(horizontal = 16.dp, vertical = 3.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary
-                                        )
+                                            .padding(16.dp)
                                     ) {
-                                        Text("Submit Checklist")
+                                        Text(message)
                                     }
                                 }
                             }
-
-                            currentState.message?.let { message ->
-                                Snackbar(
-                                    modifier = Modifier
-                                        .padding(16.dp)
-                                ) {
-                                    Text(message)
-                                }
+                        } else {
+                            // Show a message if no checklist items are available
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Este checklist no tiene preguntas configuradas.",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    textAlign = TextAlign.Center
+                                )
                             }
                         }
                     }
@@ -298,6 +323,7 @@ fun ChecklistScreen(
                     AppModal(
                         onDismiss = { showConfirmationDialog = false },
                         onConfirm = {
+                            android.util.Log.d("ChecklistScreen", "Confirming checklist submission...")
                             showConfirmationDialog = false
                             viewModel.submitCheck()
                         },

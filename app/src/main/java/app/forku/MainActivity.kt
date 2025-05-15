@@ -41,6 +41,7 @@ import androidx.navigation.compose.rememberNavController
 import app.forku.core.auth.AuthenticationState
 import app.forku.core.auth.TokenErrorHandler
 import kotlinx.coroutines.flow.collectLatest
+import coil.ImageLoader
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -58,6 +59,9 @@ class MainActivity : ComponentActivity() {
     
     @Inject
     lateinit var tokenErrorHandler: TokenErrorHandler
+
+    @Inject
+    lateinit var imageLoader: ImageLoader
 
     private val loginViewModel: LoginViewModel by viewModels()
 
@@ -151,7 +155,9 @@ class MainActivity : ComponentActivity() {
                             locationManager = locationManager,
                             userRole = userRole ?: UserRole.OPERATOR,
                             isAuthenticated = isAuthenticated,
-                            tourCompleted = tourCompleted
+                            tourCompleted = tourCompleted,
+                            tokenErrorHandler = tokenErrorHandler,
+                            imageLoader = imageLoader
                         )
                     }
                 }

@@ -15,12 +15,14 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.vehicle.VehicleType
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleTypeScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: VehicleTypeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -31,7 +33,8 @@ fun VehicleTypeScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Vehicle Types",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -104,12 +107,12 @@ fun VehicleTypeScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(state.types) { type ->
-                            val category = state.categories.find { it.id == type.categoryId }
+                            val category = state.categories.find { it.id == type.VehicleCategoryId }
                             TypeCard(
                                 type = type,
                                 categoryName = if (category != null) "Category: ${category.name}" else "No Category",
                                 onEdit = { viewModel.showEditDialog(type) },
-                                onDelete = { viewModel.deleteType(type.id) }
+                                onDelete = { viewModel.deleteType(type.Id) }
                             )
                         }
                     }
@@ -149,9 +152,9 @@ fun VehicleTypeScreen(
                         } else {
                             state.selectedType?.let {
                                 viewModel.updateType(it.copy(
-                                    name = name,
-                                    categoryId = categoryId,
-                                    requiresCertification = requiresCertification
+                                    Name = name,
+                                    VehicleCategoryId = categoryId,
+                                    RequiresCertification = requiresCertification
                                 ))
                             }
                         }
@@ -187,7 +190,7 @@ private fun TypeCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = type.name,
+                        text = type.Name,
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 2
                     )
@@ -227,7 +230,7 @@ private fun TypeCard(
                     }
                 }
             }
-            if (type.requiresCertification) {
+            if (type.RequiresCertification) {
                 Spacer(modifier = Modifier.height(8.dp))
                 AssistChip(
                     onClick = { },
@@ -253,9 +256,9 @@ private fun TypeDialog(
     onDismiss: () -> Unit,
     onSave: (String, String, Boolean) -> Unit
 ) {
-    var name by remember { mutableStateOf(type?.name ?: "") }
-    var selectedCategoryId by remember { mutableStateOf(type?.categoryId ?: categories.firstOrNull()?.id ?: "") }
-    var requiresCertification by remember { mutableStateOf(type?.requiresCertification ?: false) }
+    var name by remember { mutableStateOf(type?.Name ?: "") }
+    var selectedCategoryId by remember { mutableStateOf(type?.VehicleCategoryId ?: categories.firstOrNull()?.id ?: "") }
+    var requiresCertification by remember { mutableStateOf(type?.RequiresCertification ?: false) }
     var showCategoryDropdown by remember { mutableStateOf(false) }
 
     AlertDialog(

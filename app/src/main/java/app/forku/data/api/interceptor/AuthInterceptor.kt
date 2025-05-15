@@ -1,27 +1,27 @@
 package app.forku.data.api.interceptor
 
 import android.util.Log
-import app.forku.data.api.dto.goservices.CsrfTokenDto
+import app.forku.core.auth.HeaderManager
 import app.forku.data.datastore.AuthDataStore
-import app.forku.data.service.GOServicesManager
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
-import javax.inject.Provider
 import javax.inject.Singleton
 import okhttp3.Request
-import java.util.Base64
-import org.json.JSONObject
 import kotlinx.coroutines.runBlocking
 import com.google.gson.Gson
 import okhttp3.Protocol
 import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.MediaType.Companion.toMediaType
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 import app.forku.core.utils.ApiUtils
+import app.forku.core.auth.TokenErrorHandler
+import app.forku.data.api.dto.error.AuthErrorDto
+import retrofit2.HttpException
+import app.forku.data.api.dto.toApiResponse
+import app.forku.data.api.dto.ApiResponse
 
-private const val TAG = "AuthInterceptor"
+private const val TAG = "appflow AuthInterceptor"
 
 /**
  * Error response body format for token-related errors
@@ -43,205 +43,10 @@ private object TokenErrors {
 
 @Singleton
 class AuthInterceptor @Inject constructor(
-    private val authDataStore: AuthDataStore,
-    private val goServicesManagerProvider: Provider<GOServicesManager>
+    private val headerManager: HeaderManager,
+    private val tokenErrorHandler: TokenErrorHandler
 ) : Interceptor {
     private val gson = Gson()
-    private var lastKeepAliveTime = 0L
-    private val keepAliveIntervalMillis = TimeUnit.MINUTES.toMillis(5) // Keep-alive every 5 minutes
-
-    private fun isTokenExpired(token: String): Boolean {
-        try {
-            val parts = token.split(".")
-            if (parts.size != 3) {
-                Log.d(TAG, "Token format invalid - parts count: ${parts.size}")
-                return true
-            }
-            
-            val payload = String(Base64.getUrlDecoder().decode(parts[1]))
-            val json = JSONObject(payload)
-            val exp = json.getLong("exp")
-            val now = System.currentTimeMillis()
-            val expMillis = exp * 1000
-            
-            Log.d(TAG, """
-                Token expiration check:
-                - Current time: $now
-                - Expiration time: $expMillis
-                - Time until expiration: ${expMillis - now} ms
-                - Is expired: ${(expMillis <= now + 30000)}
-            """.trimIndent())
-            
-            return (expMillis <= now + 30000)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking token expiration", e)
-            return true
-        }
-    }
-
-    private fun buildCookieString(
-        applicationToken: String?,
-        bearerToken: String?,
-        antiforgeryCookie: String? // Use the actual cookie value
-    ): String {
-        val cookies = mutableListOf<String>()
-        
-        Log.d(TAG, """
-            Building cookie string with:
-            - Application token present: ${applicationToken != null}
-            - Bearer token present: ${bearerToken != null}
-            - Antiforgery cookie present: ${antiforgeryCookie != null}
-        """.trimIndent())
-        
-        // Add ApplicationToken cookie first
-        applicationToken?.let {
-            cookies.add("ApplicationToken=$it")
-        }
-        
-        // Add BearerToken cookie second
-        bearerToken?.let {
-            cookies.add("BearerToken=$it")
-        }
-        
-        // Add Antiforgery cookie last (as obtained from server)
-        antiforgeryCookie?.let {
-            if (!it.contains(";") && !it.contains(",")) {
-                cookies.add(it)
-            } else {
-                Log.w(TAG, "Potentially invalid Antiforgery cookie format: $it")
-                val firstPart = it.split(";").firstOrNull()?.split(",")?.firstOrNull()
-                firstPart?.let { validPart -> cookies.add(validPart) }
-            }
-        }
-        
-        return cookies.joinToString("; ").also {
-            Log.d(TAG, "Final cookie string: ${it.take(50)}...")
-        }
-    }
-
-    // Return Pair<CsrfToken, AntiforgeryCookieValue>
-    private suspend fun getCsrfTokenAndCookie(): Pair<String?, String?> {
-        Log.d(TAG, "Attempting to get new CSRF token and cookie via GOServicesManager...")
-        
-        val goServicesManager = goServicesManagerProvider.get()
-        return try {
-            // GOServicesManager handles fetching and saving both internally now
-            val tokenResult = goServicesManager.getCsrfToken(forceRefresh = true)
-            
-            if (tokenResult.isSuccess) {
-                val token = tokenResult.getOrNull()
-                val cookie = authDataStore.getAntiforgeryCookie() // Get the potentially updated cookie
-            if (token != null && cookie != null) {
-                 Log.d(TAG, "Successfully obtained new CSRF token and cookie")
-                 Pair(token, cookie)
-            } else {
-                     Log.e(TAG, "GOServicesManager succeeded but token or cookie is still null. Token: ${token != null}, Cookie: ${cookie != null}")
-                     Pair(null, null) // Indicate failure if either is null
-                }
-            } else {
-                 Log.e(TAG, "Failed to get CSRF token/cookie via GOServicesManager: ${tokenResult.exceptionOrNull()?.message}")
-                 Pair(null, null) // Explicitly return nulls on failure
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Exception during getCsrfTokenAndCookie", e)
-            Pair(null, null) // Return nulls on exception
-        }
-    }
-
-    /**
-     * Attempts to perform a session keep-alive call
-     * @return true if successful, false otherwise
-     */
-    private suspend fun performKeepAlive(chain: Interceptor.Chain, csrfToken: String, antiforgeryCookie: String): Boolean {
-        Log.d(TAG, "Performing session keep-alive")
-        
-        val currentTime = System.currentTimeMillis()
-        // Only do keep-alive if it's been at least 5 minutes since the last one
-        if (currentTime - lastKeepAliveTime < keepAliveIntervalMillis) {
-            Log.d(TAG, "Skipping keep-alive as one was performed recently (${(currentTime - lastKeepAliveTime) / 1000} seconds ago)")
-            return true
-        }
-        
-        try {
-            val originalRequest = chain.request()
-            val keepAliveUrl = ApiUtils.buildApiUrl(
-                originalRequest.url.scheme,
-                originalRequest.url.host,
-                "gosecurityprovider/keepalive"
-            )
-            
-            // Create keep-alive request with CSRF token and cookie
-            val keepAliveRequest = Request.Builder()
-                .url(keepAliveUrl)
-                .header("Content-Type", "application/json")
-                .header("Accept", "*/*")
-                .header("X-CSRF-TOKEN", csrfToken)
-                .header("Cookie", antiforgeryCookie)
-                .build()
-            
-            val keepAliveResponse = chain.proceed(keepAliveRequest)
-            
-            Log.d(TAG, "Keep-alive response: ${keepAliveResponse.code}")
-            
-            val successful = keepAliveResponse.isSuccessful
-            if (successful) {
-                lastKeepAliveTime = currentTime
-            }
-            
-            // Always close the response
-            keepAliveResponse.close()
-            
-            return successful
-        } catch (e: Exception) {
-            Log.e(TAG, "Error performing keep-alive", e)
-            return false
-        }
-    }
-
-    /**
-     * Creates a standardized 401 response with error details in the body
-     */
-    private fun createAuthErrorResponse(
-        request: Request, 
-        errorCode: String, 
-        errorMessage: String
-    ): Response {
-        Log.w(TAG, "Creating auth error response: $errorCode - $errorMessage")
-        
-        val errorBody = TokenErrorResponse(errorCode, errorMessage)
-        val jsonBody = gson.toJson(errorBody)
-        
-        return Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_1_1)
-            .code(401) // Unauthorized
-            .message("Authentication Required")
-            .body(jsonBody.toResponseBody("application/json".toMediaType()))
-            .header("Content-Type", "application/json")
-            .build()
-    }
-
-    private fun buildErrorResponse(request: Request, errorCode: Int, errorMessage: String): Response {
-        val errorJson = JSONObject().apply {
-            put("code", errorCode)
-            put("message", errorMessage)
-        }.toString()
-
-        val errorUrl = ApiUtils.buildApiUrl(
-            request.url.scheme,
-            request.url.host,
-            "error"
-        )
-
-        return Response.Builder()
-            .request(request)
-            .protocol(Protocol.HTTP_1_1)
-            .code(errorCode)
-            .message(errorMessage)
-            .body(errorJson.toResponseBody("application/json".toMediaType()))
-            .request(Request.Builder().url(errorUrl).build())
-            .build()
-    }
 
     override fun intercept(chain: Interceptor.Chain): Response = runBlocking {
         val originalRequest = chain.request()
@@ -262,165 +67,148 @@ class AuthInterceptor @Inject constructor(
             return@runBlocking chain.proceed(originalRequest)
         }
 
-        // Get all tokens from storage
-        val applicationToken = authDataStore.getApplicationToken()
-        val bearerToken = authDataStore.getAuthenticationToken()
-        val csrfToken = authDataStore.getCsrfToken()
-        val antiforgeryCookie = authDataStore.getAntiforgeryCookie()
-        
-        // --- Token Validation ---
-        
-        // Check for missing application token
-        if (applicationToken == null) {
-            Log.w(TAG, "Application token is null")
-            authDataStore.clearAuth() // Clean up any stale data
+        // Get headers from HeaderManager
+        val headersResult = headerManager.getHeaders()
+        if (headersResult.isFailure) {
+            val exception = headersResult.exceptionOrNull()
+            Log.e(TAG, "Failed to get headers: ${exception?.message}")
             return@runBlocking createAuthErrorResponse(
                 originalRequest,
-                TokenErrors.NULL_TOKEN,
-                "Authentication token not found. Please log in."
+                "authError",
+                exception?.message ?: "Authentication error"
             )
         }
-        
-        // Check for expired token
-        if (isTokenExpired(applicationToken)) {
-            Log.w(TAG, "Application token has expired")
-            authDataStore.clearAuth() // Clean up stale token
-            return@runBlocking createAuthErrorResponse(
-                originalRequest,
-                TokenErrors.EXPIRED_TOKEN,
-                "Your session has expired. Please log in again."
-            )
-        }
-        
-        // Check for missing CSRF token or cookie
-        if (csrfToken == null || antiforgeryCookie == null) {
-            Log.w(TAG, "CSRF token or Antiforgery cookie is missing. Attempting to fetch.")
-            val (newCsrfToken, newAntiforgeryCookie) = getCsrfTokenAndCookie()
 
-            if (newCsrfToken == null || newAntiforgeryCookie == null) {
-                 Log.e(TAG, "Failed to obtain necessary CSRF token/cookie")
-                 authDataStore.clearAuth() // Could indicate session issues, clear auth
-                 return@runBlocking createAuthErrorResponse(
-                     originalRequest,
-                     TokenErrors.MISSING_CSRF,
-                     "Security token missing. Please log in again."
-                 )
-            }
-            
-            // Continue with the newly fetched tokens
-            val keepAliveSuccess = performKeepAlive(chain, newCsrfToken, newAntiforgeryCookie)
-            if (!keepAliveSuccess) {
-                Log.w(TAG, "Keep-alive failed after fetching new CSRF token")
-                // We still proceed with the original request, as the keep-alive is just preventive
-            }
-            
-            // --- Build Request with Valid Credentials ---
-            val requestBuilder = originalRequest.newBuilder()
-                .header("Content-Type", "application/json")
-                .header("Accept", "text/plain")
-                .header("X-CSRF-TOKEN", newCsrfToken)
-            
-            // Build cookie header
-            val cookieString = buildCookieString(applicationToken, bearerToken, newAntiforgeryCookie)
-            if (cookieString.isNotEmpty()) {
-                requestBuilder.header("Cookie", cookieString)
-            }
-            
-            val response = chain.proceed(requestBuilder.build())
-            
-            // Handle 403 responses by attempting to refresh tokens
-            if (response.code == 403) {
-                Log.w(TAG, "Received 403 response, attempting to refresh tokens")
-                response.close()
-                
-                // Try to get new tokens
-                val (refreshedCsrfToken, refreshedCookie) = getCsrfTokenAndCookie()
-                if (refreshedCsrfToken != null && refreshedCookie != null) {
-                    // Build new request with refreshed tokens
-                    val refreshedRequestBuilder = originalRequest.newBuilder()
-                        .header("Content-Type", "application/json")
-                        .header("Accept", "text/plain")
-                        .header("X-CSRF-TOKEN", refreshedCsrfToken)
-                    
-                    val refreshedCookieString = buildCookieString(applicationToken, bearerToken, refreshedCookie)
-                    if (refreshedCookieString.isNotEmpty()) {
-                        refreshedRequestBuilder.header("Cookie", refreshedCookieString)
-                    }
-                    
-                    return@runBlocking chain.proceed(refreshedRequestBuilder.build())
-                }
-                
-                // If refresh failed, return 401 to trigger re-authentication
-                return@runBlocking createAuthErrorResponse(
-                    originalRequest,
-                    TokenErrors.EXPIRED_TOKEN,
-                    "Your session has expired. Please log in again."
-                )
-            }
-            
-            return@runBlocking response
-        }
+        val headers = headersResult.getOrNull()!!
         
-        // --- Session Maintenance via Keep-Alive ---
-        
-        // Try keep-alive occasionally to maintain session, but don't fail if it doesn't work
-        val shouldPerformKeepAlive = System.currentTimeMillis() - lastKeepAliveTime >= keepAliveIntervalMillis
-        if (shouldPerformKeepAlive) {
-            try {
-                performKeepAlive(chain, csrfToken, antiforgeryCookie)
-            } catch (e: Exception) {
-                Log.w(TAG, "Keep-alive attempt failed, continuing with original request", e)
-                // Continue with the original request regardless
-            }
-        }
-        
-        // --- Build Request with Valid Credentials ---
+        // Build request with headers
         val requestBuilder = originalRequest.newBuilder()
             .header("Content-Type", "application/json")
             .header("Accept", "text/plain")
-            .header("X-CSRF-TOKEN", csrfToken)
+            .header("X-CSRF-TOKEN", headers.csrfToken)
+
+        // Build cookie string
+        val cookieString = buildCookieString(
+            applicationToken = headers.applicationToken,
+            antiforgeryCookie = headers.cookie
+        )
         
-        // Build cookie header
-        val cookieString = buildCookieString(applicationToken, bearerToken, antiforgeryCookie)
         if (cookieString.isNotEmpty()) {
             requestBuilder.header("Cookie", cookieString)
-        } else {
-            Log.w(TAG, "Cookie string is empty despite having credentials. Check cookie building logic.")
         }
-        
-        Log.d(TAG, "Proceeding with authenticated request to ${originalRequest.url}")
+
+        // Make the request
         val response = chain.proceed(requestBuilder.build())
-        
-        // Handle 403 responses by attempting to refresh tokens
-        if (response.code == 403) {
-            Log.w(TAG, "Received 403 response, attempting to refresh tokens")
-            response.close()
-            
-            // Try to get new tokens
-            val (refreshedCsrfToken, refreshedCookie) = getCsrfTokenAndCookie()
-            if (refreshedCsrfToken != null && refreshedCookie != null) {
-                // Build new request with refreshed tokens
-                val refreshedRequestBuilder = originalRequest.newBuilder()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "text/plain")
-                    .header("X-CSRF-TOKEN", refreshedCsrfToken)
-                
-                val refreshedCookieString = buildCookieString(applicationToken, bearerToken, refreshedCookie)
-                if (refreshedCookieString.isNotEmpty()) {
-                    refreshedRequestBuilder.header("Cookie", refreshedCookieString)
+
+        // Handle auth errors
+        if (response.code == 401 || response.code == 403) {
+            val errorBody = response.body?.string()
+            if (errorBody != null) {
+                try {
+                    val authError = gson.fromJson(errorBody, AuthErrorDto::class.java)
+                    if (authError.isTokenExpired() || authError.isAuthError()) {
+                        // Clear auth and notify TokenErrorHandler
+                        headerManager.clearAuth()
+                        tokenErrorHandler.processError(
+                            HttpException(retrofit2.Response.error<Any>(
+                                response.code,
+                                errorBody.toResponseBody("application/json".toMediaType())
+                            ))
+                        )
+                        
+                        // Return error response
+                        return@runBlocking createAuthErrorResponse(
+                            originalRequest,
+                            "tokenExpired",
+                            authError.detail ?: "Session expired. Please log in again"
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse error as AuthErrorDto", e)
                 }
-                
-                return@runBlocking chain.proceed(refreshedRequestBuilder.build())
             }
             
-            // If refresh failed, return 401 to trigger re-authentication
+            // For other 401/403 errors, try refresh token
+            if (response.code == 403) {
+                val refreshedHeadersResult = headerManager.getHeaders(forceRefresh = true)
+                if (refreshedHeadersResult.isSuccess) {
+                    val refreshedHeaders = refreshedHeadersResult.getOrNull()!!
+                    val refreshedRequest = originalRequest.newBuilder()
+                        .header("Content-Type", "application/json")
+                        .header("Accept", "text/plain")
+                        .header("X-CSRF-TOKEN", refreshedHeaders.csrfToken)
+                        .header("Cookie", buildCookieString(
+                            applicationToken = refreshedHeaders.applicationToken,
+                            antiforgeryCookie = refreshedHeaders.cookie
+                        ))
+                        .build()
+                    return@runBlocking chain.proceed(refreshedRequest)
+                }
+            }
+            
+            // If we get here, authentication failed
+            headerManager.clearAuth()
+            tokenErrorHandler.processError(
+                HttpException(retrofit2.Response.error<Any>(
+                    response.code,
+                    (errorBody ?: "Authentication failed").toResponseBody("application/json".toMediaType())
+                ))
+            )
             return@runBlocking createAuthErrorResponse(
                 originalRequest,
-                TokenErrors.EXPIRED_TOKEN,
-                "Your session has expired. Please log in again."
+                "unauthorized",
+                "Please log in again"
             )
         }
+
+        response
+    }
+
+    private fun buildCookieString(
+        applicationToken: String?,
+        antiforgeryCookie: String?
+    ): String {
+        val cookies = mutableListOf<String>()
         
-        return@runBlocking response
+        // Add ApplicationToken
+        applicationToken?.let {
+            cookies.add("ApplicationToken=$it")
+            // Also add BearerToken with same value but different expiration
+            cookies.add("BearerToken=$it")
+        }
+        
+        // Add Antiforgery cookie
+        antiforgeryCookie?.let {
+            if (!it.contains(";") && !it.contains(",")) {
+                cookies.add(it)
+            } else {
+                Log.w(TAG, "Invalid Antiforgery cookie format: $it")
+                val firstPart = it.split(";").firstOrNull()?.split(",")?.firstOrNull()
+                firstPart?.let { validPart -> cookies.add(validPart) }
+            }
+        }
+        
+        return cookies.joinToString("; ")
+    }
+
+    private fun createAuthErrorResponse(
+        request: Request,
+        code: String,
+        message: String
+    ): Response {
+        val authError = AuthErrorDto(
+            title = code,
+            detail = message,
+            status = if (code == "unauthorized") 401 else 403
+        )
+        val jsonBody = gson.toJson(authError)
+        
+        return Response.Builder()
+            .request(request)
+            .protocol(Protocol.HTTP_1_1)
+            .code(if (code == "unauthorized") 401 else 403)
+            .message("Authentication Required")
+            .body(jsonBody.toResponseBody("application/json".toMediaType()))
+            .build()
     }
 } 

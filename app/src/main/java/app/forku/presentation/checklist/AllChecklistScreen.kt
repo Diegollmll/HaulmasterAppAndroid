@@ -27,12 +27,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun AllChecklistScreen(
     navController: NavController,
     viewModel: AllChecklistViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
@@ -58,6 +60,7 @@ fun AllChecklistScreen(
         showBottomBar = false,
         topBarTitle = "All Checks",
         networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         onRefresh = { viewModel.loadChecks() }
     ) { padding ->
         Box(

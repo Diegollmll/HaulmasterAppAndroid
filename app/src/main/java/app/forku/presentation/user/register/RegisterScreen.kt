@@ -27,13 +27,14 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.core.utils.hideKeyboardOnTapOutside
 import app.forku.presentation.common.components.LoadingScreen
 import app.forku.presentation.navigation.Screen
-
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun RegisterScreen(
     navController: NavController,
     viewModel: RegisterViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
     val focusManager = LocalFocusManager.current

@@ -15,71 +15,88 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.gogroup.GOGroup
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorBanner
+import app.forku.presentation.common.components.BaseScreen
+import app.forku.core.auth.TokenErrorHandler
+import app.forku.core.network.NetworkConnectivityManager
+import androidx.navigation.NavController
 
 @Composable
 fun GroupManagementScreen(
     viewModel: GroupManagementViewModel = hiltViewModel(),
-    onNavigateToRoles: (String) -> Unit
+    onNavigateToRoles: (String) -> Unit,
+    navController: NavController,
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Group Management",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+    BaseScreen(
+        navController = navController,
+        showBottomBar = false,
+        showTopBar = true,
+        showBackButton = true,
+        topBarTitle = "Group Management",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Group Management",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-            if (state.error != null) {
-                ErrorBanner(
-                    error = state.error!!,
-                    onDismiss = viewModel::clearError
+                if (state.error != null) {
+                    ErrorBanner(
+                        error = state.error!!,
+                        onDismiss = viewModel::clearError
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(state.groups) { group ->
+                        GroupCard(
+                            group = group,
+                            onUpdateGroup = { description, isActive ->
+                                viewModel.updateGroup(group, description, isActive)
+                            },
+                            onViewRoles = { onNavigateToRoles(group.name) }
+                        )
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Group")
+                }
+            }
+
+            if (showAddDialog) {
+                AddGroupDialog(
+                    onDismiss = { showAddDialog = false },
+                    onConfirm = { name, description ->
+                        viewModel.createGroup(name, description)
+                        showAddDialog = false
+                    }
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.groups) { group ->
-                    GroupCard(
-                        group = group,
-                        onUpdateGroup = { description, isActive ->
-                            viewModel.updateGroup(group, description, isActive)
-                        },
-                        onViewRoles = { onNavigateToRoles(group.name) }
-                    )
-                }
+            if (state.isLoading) {
+                LoadingOverlay()
             }
-
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.End)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Group")
-            }
-        }
-
-        if (showAddDialog) {
-            AddGroupDialog(
-                onDismiss = { showAddDialog = false },
-                onConfirm = { name, description ->
-                    viewModel.createGroup(name, description)
-                    showAddDialog = false
-                }
-            )
-        }
-
-        if (state.isLoading) {
-            LoadingOverlay()
         }
     }
 }

@@ -4,6 +4,7 @@ import app.forku.data.api.dto.gosecurityprovider.*
 import retrofit2.Response
 import retrofit2.http.*
 import okhttp3.RequestBody
+import okhttp3.MultipartBody
 
 /**
  * API interface for GO Security Provider endpoints.
@@ -17,11 +18,17 @@ interface GOSecurityProviderApi {
      * @param username User's email or username
      * @param password User's password
      * @param useCookies Whether to use cookies for session management
+     * @param csrfToken CSRF token for request validation
      * @return Authentication response containing tokens
      */
     @Multipart
     @POST("api/gosecurityprovider/authenticate")
+    @Headers(
+        "Accept: */*"
+    )
     suspend fun authenticate(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
         @Part("username") username: RequestBody,
         @Part("password") password: RequestBody,
         @Part("useCookies") useCookies: RequestBody

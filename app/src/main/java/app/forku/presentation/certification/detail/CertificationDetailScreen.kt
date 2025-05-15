@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.certification.CertificationStatus
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.ErrorScreen
@@ -27,7 +28,8 @@ fun CertificationDetailScreen(
     viewModel: CertificationDetailViewModel = hiltViewModel(),
     certificationId: String,
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -69,6 +71,8 @@ fun CertificationDetailScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = "Certification Details",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         topBarActions = {
             IconButton(onClick = {
                 navController.navigate(
@@ -156,8 +160,7 @@ fun CertificationDetailScreen(
                     }
                 }
             }
-        },
-        networkManager = networkManager
+        }
     )
 }
 

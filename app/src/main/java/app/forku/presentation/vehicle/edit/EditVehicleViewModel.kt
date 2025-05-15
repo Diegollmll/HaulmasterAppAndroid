@@ -79,13 +79,13 @@ class EditVehicleViewModel @Inject constructor(
                 Log.d("EditVehicleViewModel", "Loaded vehicle: ${vehicle.codename}, businessId: ${vehicle.businessId}")
 
                 // 4. Load Vehicle Types based on the vehicle's category
-                loadVehicleTypes(vehicle.type.categoryId)
+                loadVehicleTypes(vehicle.type.VehicleCategoryId)
 
                 // 5. Update State with loaded data
                 _state.update { currentState ->
                     currentState.copy(
                         initialVehicle = vehicle,
-                        selectedCategory = currentState.vehicleCategories.find { it.id == vehicle.type.categoryId },
+                        selectedCategory = currentState.vehicleCategories.find { it.id == vehicle.type.VehicleCategoryId },
                         selectedType = vehicle.type,
                         selectedEnergySourceEnum = EnergySourceEnum.valueOf(vehicle.energyType.uppercase()),
                         selectedBusinessId = vehicle.businessId, // Store the actual businessId from the vehicle
@@ -132,10 +132,10 @@ class EditVehicleViewModel @Inject constructor(
             
             // If we have an initial vehicle type, try to match it in the loaded types
             _state.value.initialVehicle?.let { vehicle ->
-                if (vehicle.type.categoryId == categoryId) {
+                if (vehicle.type.VehicleCategoryId == categoryId) {
                     // Find matching type in loaded types
-                    types.find { it.id == vehicle.type.id }?.let { matchingType ->
-                        Log.d("EditVehicleViewModel", "Auto-selecting matching type: ${matchingType.name}")
+                    types.find { it.Id == vehicle.type.Id }?.let { matchingType ->
+                        Log.d("EditVehicleViewModel", "Auto-selecting matching type: ${matchingType.Name}")
                         _state.update { it.copy(selectedType = matchingType) }
                     }
                 }
@@ -149,7 +149,7 @@ class EditVehicleViewModel @Inject constructor(
     fun selectCategory(category: VehicleCategory) {
         viewModelScope.launch {
             // Store current selected type to check if we need to reselect it
-            val currentTypeId = _state.value.selectedType?.id
+            val currentTypeId = _state.value.selectedType?.Id
             val currentType = _state.value.selectedType
             
             _state.update { it.copy(
@@ -174,13 +174,13 @@ class EditVehicleViewModel @Inject constructor(
         val currentCategoryId = _state.value.selectedCategory?.id
         
         // If we have a selected category, ensure the type belongs to it
-        if (currentCategoryId != null && type.categoryId != currentCategoryId) {
-            Log.w("EditVehicleViewModel", "Type ${type.name} (category: ${type.categoryId}) does not match selected category: $currentCategoryId")
+        if (currentCategoryId != null && type.VehicleCategoryId != currentCategoryId) {
+            Log.w("EditVehicleViewModel", "Type ${type.Name} (category: ${type.VehicleCategoryId}) does not match selected category: $currentCategoryId")
             // Don't update the type if it doesn't match the category
             return
         }
         
-        Log.d("EditVehicleViewModel", "Setting selected type to: ${type.name}")
+        Log.d("EditVehicleViewModel", "Setting selected type to: ${type.Name}")
         _state.update { it.copy(selectedType = type) }
     }
 

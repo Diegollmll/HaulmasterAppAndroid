@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.checklist.PreShiftCheck
@@ -26,7 +27,8 @@ import app.forku.presentation.common.utils.getRelativeTimeSpanString
 fun SafetyAlertsScreen(
     navController: NavController,
     viewModel: SafetyAlertsViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -36,7 +38,8 @@ fun SafetyAlertsScreen(
         showTopBar = true,
         topBarTitle = "Safety Alerts",
         showBackButton = true,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

@@ -15,12 +15,14 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.vehicle.VehicleCategory
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleCategoryScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: VehicleCategoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -31,7 +33,8 @@ fun VehicleCategoryScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Vehicle Categories",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

@@ -39,7 +39,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.business.BusinessStatus
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -47,7 +49,8 @@ fun SuperAdminDashboardScreen(
     navController: NavController? = null,
     onNavigate: (String) -> Unit = {},
     viewModel: SuperAdminDashboardViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     val dashboardState by viewModel.state.collectAsState()
@@ -70,7 +73,8 @@ fun SuperAdminDashboardScreen(
         showTopBar = false,
         showBackButton = false,
         dashboardState = regularDashboardState,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

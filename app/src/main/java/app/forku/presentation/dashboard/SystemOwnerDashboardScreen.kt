@@ -25,14 +25,17 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import app.forku.presentation.navigation.Screen
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
+import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun SystemOwnerDashboardScreen(
     navController: NavController? = null,
     onNavigate: (String) -> Unit = {},
-    viewModel: SystemOwnerDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    viewModel: SystemOwnerDashboardViewModel = hiltViewModel(),
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     val dashboardState by viewModel.state.collectAsState()
@@ -55,7 +58,8 @@ fun SystemOwnerDashboardScreen(
         showTopBar = false,
         showBackButton = false,
         dashboardState = regularDashboardState,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

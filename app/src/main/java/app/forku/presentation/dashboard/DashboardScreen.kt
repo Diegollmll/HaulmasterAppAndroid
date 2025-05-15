@@ -35,12 +35,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
-import androidx.compose.foundation.lazy.items
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.session.SessionViewModel
-import app.forku.domain.model.vehicle.Vehicle
-import app.forku.presentation.common.components.LoadingOverlay
+import app.forku.domain.model.session.VehicleSessionClosedMethod
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -49,7 +49,8 @@ fun DashboardScreen(
     onNavigate: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
     networkManager: NetworkConnectivityManager,
-    sessionViewModel: SessionViewModel = hiltViewModel()
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val dashboardState by viewModel.state.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -106,7 +107,8 @@ fun DashboardScreen(
         currentCheckId = dashboardState.lastPreShiftCheck?.id,
         dashboardState = dashboardState,
         networkManager = networkManager,
-        onRefresh = null  // Explicitly set to null to prevent auto-refresh on resume
+        onRefresh = null,  // Explicitly set to null to prevent auto-refresh on resume
+        tokenErrorHandler = tokenErrorHandler
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -284,7 +286,7 @@ private fun CurrentUserSession(
             onEndSession = { sessionId ->
                 sessionViewModel.endSession(
                     sessionId = sessionId,
-                    isAdminClosure = currentUser?.role == UserRole.ADMIN
+                    closeMethod = if (currentUser?.role == UserRole.ADMIN) VehicleSessionClosedMethod.ADMIN_CLOSED else VehicleSessionClosedMethod.USER_CLOSED
                 )
             }
         )

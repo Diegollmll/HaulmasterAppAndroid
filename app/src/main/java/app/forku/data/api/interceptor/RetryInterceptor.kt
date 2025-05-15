@@ -6,49 +6,80 @@ import okhttp3.Response
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import app.forku.data.api.dto.error.AuthErrorDto
+import com.google.gson.Gson
+import java.net.HttpURLConnection
+import okhttp3.ResponseBody
+import okio.Buffer
+import okio.BufferedSource
+
+private const val MAX_RETRIES = 3
+private const val INITIAL_BACKOFF_DELAY = 1000L // 1 second
 
 @Singleton
 class RetryInterceptor @Inject constructor() : Interceptor {
-    companion object {
-        private const val MAX_RETRIES = 3
-        private const val INITIAL_BACKOFF_DELAY = 1000L // 1 second
-    }
+    private val gson = Gson()
+    private val TAG = "RetryInterceptor"
 
     override fun intercept(chain: Interceptor.Chain): Response {
         var retryCount = 0
-        var response: Response? = null
-        var exception: IOException? = null
-        
-        while (retryCount < MAX_RETRIES) {
+        var currentDelay = INITIAL_BACKOFF_DELAY
+
+        while (true) {
             try {
-                // If this isn't the first attempt, and we had a previous response, close it
-                response?.close()
+                val response = chain.proceed(chain.request())
                 
-                response = chain.proceed(chain.request())
-                
-                // If the response is successful, return it
-                if (response.isSuccessful) {
-                    return response
+                // Don't retry on authentication errors (let AuthInterceptor handle them)
+                if (response.code == HttpURLConnection.HTTP_UNAUTHORIZED || 
+                    response.code == HttpURLConnection.HTTP_FORBIDDEN) {
+                    
+                    // Check if it's a token expiry error without consuming the response body
+                    val source = response.body?.source()
+                    if (source != null) {
+                        // Buffer the source so we can read it multiple times
+                        val bufferedSource = source.buffer.clone()
+                        val errorBody = bufferedSource.readUtf8()
+                        
+                        try {
+                            val authError = gson.fromJson(errorBody, AuthErrorDto::class.java)
+                            if (authError?.isTokenExpired() == true || authError?.isAuthError() == true) {
+                                Log.d(TAG, "Auth error detected, letting AuthInterceptor handle it")
+                                // Create a new response with the buffered body
+                                return response.newBuilder()
+                                    .body(ResponseBody.create(
+                                        response.body?.contentType(),
+                                        errorBody
+                                    ))
+                                    .build()
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed to parse error response as AuthErrorDto")
+                        }
+                    }
+                }
+
+                // For other error codes, attempt retry
+                if (!response.isSuccessful && retryCount < MAX_RETRIES) {
+                    response.close()
+                    retryCount++
+                    Log.d(TAG, "Request failed (${response.code}), attempt $retryCount of $MAX_RETRIES")
+                    Thread.sleep(currentDelay)
+                    currentDelay *= 2 // Exponential backoff
+                    continue
                 }
                 
-                // If the response wasn't successful, close it and prepare for retry
-                response.close()
-                
+                return response
             } catch (e: IOException) {
-                exception = e
-                Log.w("RetryInterceptor", "Attempt ${retryCount + 1} failed", e)
-            }
-            
-            retryCount++
-            
-            if (retryCount < MAX_RETRIES) {
-                val backoffDelay = INITIAL_BACKOFF_DELAY * (1 shl (retryCount - 1))
-                Log.d("RetryInterceptor", "Retrying in $backoffDelay ms")
-                Thread.sleep(backoffDelay)
+                if (retryCount >= MAX_RETRIES) {
+                    Log.e(TAG, "Max retries reached, throwing last error", e)
+                    throw e
+                }
+                
+                retryCount++
+                Log.d(TAG, "Request failed with IOException, attempt $retryCount of $MAX_RETRIES", e)
+                Thread.sleep(currentDelay)
+                currentDelay *= 2 // Exponential backoff
             }
         }
-        
-        // If we got here, all retries failed
-        throw exception ?: IOException("Request failed after $MAX_RETRIES retries")
     }
 } 

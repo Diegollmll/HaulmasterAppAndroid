@@ -18,11 +18,13 @@ import app.forku.data.api.dto.EnergySourceDto
 import app.forku.presentation.common.components.BaseScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun EnergySourcesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: EnergySourceViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -35,7 +37,8 @@ fun EnergySourcesScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Energy Sources",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Column(
             modifier = Modifier

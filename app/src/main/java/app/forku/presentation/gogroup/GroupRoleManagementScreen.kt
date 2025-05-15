@@ -15,11 +15,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.domain.model.gogroup.GOGroupRole
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorBanner
+import app.forku.presentation.common.components.BaseScreen
+import app.forku.core.auth.TokenErrorHandler
+import app.forku.core.network.NetworkConnectivityManager
+import androidx.navigation.NavController
 
 @Composable
 fun GroupRoleManagementScreen(
     groupName: String,
-    viewModel: GroupRoleManagementViewModel = hiltViewModel()
+    viewModel: GroupRoleManagementViewModel = hiltViewModel(),
+    navController: NavController,
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
@@ -28,64 +35,74 @@ fun GroupRoleManagementScreen(
         viewModel.loadRolesForGroup(groupName)
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Roles for Group: $groupName",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+    BaseScreen(
+        navController = navController,
+        showBottomBar = false,
+        showTopBar = true,
+        showBackButton = true,
+        topBarTitle = "Roles for Group: $groupName",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = "Roles for Group: $groupName",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-            if (state.error != null) {
-                ErrorBanner(
-                    error = state.error!!,
-                    onDismiss = viewModel::clearError
+                if (state.error != null) {
+                    ErrorBanner(
+                        error = state.error!!,
+                        onDismiss = viewModel::clearError
+                    )
+                }
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(state.roles) { role ->
+                        RoleCard(
+                            role = role,
+                            onUpdateStatus = { isActive ->
+                                viewModel.updateRoleStatus(role, isActive)
+                            },
+                            onRemove = {
+                                viewModel.removeRoleFromGroup(role.groupName, role.roleName)
+                            }
+                        )
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.End)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Role")
+                }
+            }
+
+            if (showAddDialog) {
+                AddRoleDialog(
+                    onDismiss = { showAddDialog = false },
+                    onConfirm = { roleName ->
+                        viewModel.assignRoleToGroup(groupName, roleName)
+                        showAddDialog = false
+                    }
                 )
             }
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.roles) { role ->
-                    RoleCard(
-                        role = role,
-                        onUpdateStatus = { isActive ->
-                            viewModel.updateRoleStatus(role, isActive)
-                        },
-                        onRemove = {
-                            viewModel.removeRoleFromGroup(role.groupName, role.roleName)
-                        }
-                    )
-                }
+            if (state.isLoading) {
+                LoadingOverlay()
             }
-
-            FloatingActionButton(
-                onClick = { showAddDialog = true },
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.End)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Role")
-            }
-        }
-
-        if (showAddDialog) {
-            AddRoleDialog(
-                onDismiss = { showAddDialog = false },
-                onConfirm = { roleName ->
-                    viewModel.assignRoleToGroup(groupName, roleName)
-                    showAddDialog = false
-                }
-            )
-        }
-
-        if (state.isLoading) {
-            LoadingOverlay()
         }
     }
 }

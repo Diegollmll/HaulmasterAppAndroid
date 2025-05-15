@@ -20,11 +20,13 @@ import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 
 import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun SystemSettingsScreen(
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     BaseScreen(
         navController = navController,
@@ -32,7 +34,8 @@ fun SystemSettingsScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "System Settings",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         LazyColumn(
             modifier = Modifier

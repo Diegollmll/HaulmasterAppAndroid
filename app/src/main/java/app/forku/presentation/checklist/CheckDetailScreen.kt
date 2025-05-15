@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
@@ -23,7 +24,8 @@ fun CheckDetailScreen(
     checkId: String,
     navController: NavController,
     viewModel: CheckDetailViewModel = hiltViewModel(),
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -36,7 +38,8 @@ fun CheckDetailScreen(
         showTopBar = true,
         showBottomBar = false,
         topBarTitle = "Check Details",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

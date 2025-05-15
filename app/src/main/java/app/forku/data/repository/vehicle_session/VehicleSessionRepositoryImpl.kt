@@ -13,22 +13,27 @@ import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.getErrorMessage
 import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.session.VehicleSessionRepository
-import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
 import app.forku.core.location.LocationManager
 import javax.inject.Inject
+import com.google.gson.Gson
+import app.forku.core.Constants
+import java.util.UUID
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 class VehicleSessionRepositoryImpl @Inject constructor(
     private val api: VehicleSessionApi,
     private val authDataStore: AuthDataStore,
     private val vehicleStatusRepository: VehicleStatusRepository,
-    private val checklistRepository: ChecklistRepository,
+    private val checklistAnswerRepository: ChecklistAnswerRepository,
     private val locationManager: LocationManager
 ) : VehicleSessionRepository {
     override suspend fun getCurrentSession(): VehicleSession? {
         val currentUser = authDataStore.getCurrentUser() ?: return null
         try {
-            val response = api.getAllSessions(currentUser.businessId ?: return null)
+            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
             if (response.isSuccessful) {
                 val sessions = response.body()?.let { dtos ->
                     dtos.map { dto -> VehicleSessionMapper.toDomain(dto) }
@@ -53,19 +58,18 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         // Get vehicle status using VehicleStatusRepository instead
         val vehicleStatus = vehicleStatusRepository.getVehicleStatus(
             vehicleId = vehicleId,
-            businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+            businessId = currentUser.businessId ?: Constants.BUSINESS_ID
         )
 
         if (!vehicleStatus.isAvailable()) {
             throw Exception(vehicleStatus.getErrorMessage())
         }
 
-        // Get check using the new global endpoint
-        val check = checklistRepository.getCheckById(checkId) 
-            ?: throw Exception("Check not found")
-            
-        if (check.status != CheckStatus.COMPLETED_PASS.toString()) {
-            throw Exception("Check is not approved. Current status: ${check.status}")
+        // Get checklist answer using ChecklistAnswerRepository
+        val checklistAnswer = checklistAnswerRepository.getById(checkId)
+            ?: throw Exception("ChecklistAnswer not found")
+        if (checklistAnswer.status != CheckStatus.COMPLETED_PASS.ordinal) {
+            throw Exception("ChecklistAnswer is not approved. Current status: ${checklistAnswer.status}")
         }
 
         // Check if there's already an active session
@@ -79,12 +83,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             vehicleStatusRepository.updateVehicleStatus(
                 vehicleId = vehicleId,
                 status = VehicleStatus.IN_USE,
-                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
             )
             
-            val currentDateTime = java.time.Instant.now()
-                .atZone(java.time.ZoneId.systemDefault())
-                .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+            // Use OffsetDateTime to avoid [America/Bogota] in the string
+            val currentDateTime = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
             // Get current location
             val locationState = locationManager.locationState.value
@@ -93,8 +96,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             } else null
             
             // Create session
+            val sessionId = UUID.randomUUID().toString()
             val newSession = VehicleSession(
-                id = "", // Let backend assign
+                id = sessionId, // Always a valid GUID for new sessions
                 vehicleId = vehicleId,
                 userId = currentUser.id,
                 checkId = checkId,
@@ -109,27 +113,29 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 closedBy = null,
                 notes = null
             )
-            val response = api.saveSession(VehicleSessionMapper.toVehicleSessionDto(newSession))
-
+            val dto = VehicleSessionMapper.toDto(newSession)
+            val gson = Gson()
+            val entityJson = gson.toJson(dto)
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+            val response = api.saveSession(csrfToken, cookie, entityJson)
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session creation fails
                 vehicleStatusRepository.updateVehicleStatus(
                     vehicleId = vehicleId,
                     status = VehicleStatus.AVAILABLE,
-                    businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                    businessId = currentUser.businessId ?: Constants.BUSINESS_ID
                 )
                 throw Exception("Failed to create session: ${response.code()}")
             }
-
             return response.body()?.let { VehicleSessionMapper.toDomain(it) }
                 ?: throw Exception("Failed to start session: Empty response")
-                
         } catch (e: Exception) {
             // Revert vehicle status on failure
             vehicleStatusRepository.updateVehicleStatus(
                 vehicleId = vehicleId,
                 status = VehicleStatus.AVAILABLE,
-                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
             )
             throw e
         }
@@ -174,12 +180,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             vehicleStatusRepository.updateVehicleStatus(
                 vehicleId = existingSession.vehicleId,
                 status = VehicleStatus.AVAILABLE,
-                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
             )
             
-            val currentDateTime = java.time.Instant.now()
-                .atZone(java.time.ZoneId.systemDefault())
-                .format(java.time.format.DateTimeFormatter.ISO_DATE_TIME)
+            // Use OffsetDateTime to avoid [America/Bogota] in the string
+            val currentDateTime = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 
             // Get current location for end coordinates
             val locationState = locationManager.locationState.value
@@ -197,14 +202,22 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 endLocationCoordinates = locationCoordinates
             )
             
-            val response = api.saveSession(VehicleSessionMapper.toVehicleSessionDto(updatedSession))
+            // Antes de enviar el DTO para cerrar sesión, asegúrate de que IsNew=false
+            val dto = VehicleSessionMapper.toDto(updatedSession).copy(IsNew = false)
+            val gson = Gson()
+            val entityJson = gson.toJson(dto)
+            android.util.Log.d("VehicleSessionRepo", "[endSession] Payload JSON enviado a la API: $entityJson")
+            android.util.Log.d("VehicleSessionRepo", "[endSession] Campos clave: Id=${dto.Id}, Status=${dto.Status}, EndTime=${dto.EndTime}, VehicleSessionClosedMethod=${dto.VehicleSessionClosedMethod}, ClosedBy=${dto.ClosedBy}, IsNew=${dto.IsNew}")
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+            val response = api.saveSession(csrfToken, cookie, entityJson)
 
             if (!response.isSuccessful) {
                 // Rollback vehicle status if session update fails
                 vehicleStatusRepository.updateVehicleStatus(
                     vehicleId = existingSession.vehicleId,
                     status = VehicleStatus.IN_USE,
-                    businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                    businessId = currentUser.businessId ?: Constants.BUSINESS_ID
                 )
                 throw Exception("Failed to end session: ${response.code()}")
             }
@@ -216,7 +229,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             vehicleStatusRepository.updateVehicleStatus(
                 vehicleId = existingSession.vehicleId,
                 status = VehicleStatus.IN_USE,
-                businessId = currentUser.businessId ?: throw Exception("User has no associated business")
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
             )
             throw e
         }
@@ -260,7 +273,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getSessionsByUserId(userId: String): List<VehicleSession> {
         val currentUser = authDataStore.getCurrentUser() ?: return emptyList()
         return try {
-            val response = api.getAllSessions(currentUser.businessId ?: return emptyList())
+            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
             if (response.isSuccessful) {
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions.filter { it.userId == userId }
@@ -275,7 +288,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getLastCompletedSessionForVehicle(vehicleId: String): VehicleSession? {
         val currentUser = authDataStore.getCurrentUser() ?: return null
         return try {
-            val response = api.getAllSessions(currentUser.businessId ?: return null)
+            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
             if (response.isSuccessful) {
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions
@@ -297,7 +310,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getSessions(): List<VehicleSession> {
         val currentUser = authDataStore.getCurrentUser() ?: return emptyList()
         return try {
-            val response = api.getAllSessions(currentUser.businessId ?: return emptyList())
+            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.map { VehicleSessionMapper.toDomain(it) }
             } else {
@@ -306,6 +319,26 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             android.util.Log.e("VehicleSessionRepo", "Error getting all sessions", e)
             emptyList()
+        }
+    }
+
+    // Nuevo método: obtener el conteo de vehículos en operación usando el endpoint optimizado
+    override suspend fun getOperatingSessionsCount(businessId: String): Int {
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] A:")
+        val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] B:")
+        val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] C:")
+        // BusinessId For future use "&& BusinessId == \"$businessId\""
+        val filter = "Status == 0" 
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] Filtro usado: $filter")
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] Llamando a /dataset/api/vehiclesession/count ...")
+        val response = api.getOperatingSessionsCount(filter = filter, csrfToken = csrfToken, cookie = cookie)
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] Respuesta: isSuccessful=${response.isSuccessful}, code=${response.code()}, body=${response.body()}")
+        if (response.isSuccessful) {
+            return response.body() ?: 0
+        } else {
+            throw Exception("Failed to get operating sessions count: ${response.code()}")
         }
     }
 } 

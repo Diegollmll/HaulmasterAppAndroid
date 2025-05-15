@@ -22,6 +22,7 @@ import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.core.network.NetworkConnectivityManager
 import androidx.navigation.NavController
 import app.forku.presentation.navigation.Screen
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +30,7 @@ fun CertificationsScreen(
     viewModel: CertificationsViewModel = hiltViewModel(),
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     userId: String? = null
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -41,6 +43,8 @@ fun CertificationsScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = if (userId != null) "User Certifications" else "All Certifications",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         topBarActions = {
             FloatingActionButton(
                 onClick = { navController.navigate(Screen.CertificationCreate.route) }
@@ -97,8 +101,7 @@ fun CertificationsScreen(
                     LoadingOverlay()
                 }
             }
-        },
-        networkManager = networkManager
+        }
     )
 }
 

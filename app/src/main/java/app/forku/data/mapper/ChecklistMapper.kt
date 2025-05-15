@@ -5,36 +5,21 @@ import app.forku.domain.model.checklist.*
 import app.forku.domain.model.vehicle.*
 import app.forku.data.api.dto.checklist.ChecklistDto
 
-fun ChecklistResponseDtoElement.toDomain(): Checklist {
-    return Checklist(
-        items = items.map { it.toDomain() },
-        metadata = metadata.toDomain() ?: throw Exception("Checklist metadata is required"),
-        rotationRules = rotationRules.toDomain() ?: throw Exception("Rotation rules are required")
-    )
-}
-
 fun ChecklistItemDto.toDomain(): ChecklistItem {
     return ChecklistItem(
-        id = id,
-        expectedAnswer = Answer.valueOf(expectedAnswer),
-        rotationGroup = rotationGroup,
-        userAnswer = userAnswer?.let { Answer.valueOf(it.toString()) },
-        category = category ?: "",
-        subCategory = subCategory ?: "",
-        energySourceEnum = (energySource ?: emptyList()).map { EnergySourceEnum.valueOf(it) },
-        vehicleType = (vehicleType ?: emptyList()).map { type -> 
-            VehicleType(
-                id = type,
-                name = type,
-                categoryId = "",
-                createdAt = System.currentTimeMillis(),
-                updatedAt = System.currentTimeMillis()
-            )
-        },
-        component = component ?: "",
-        question = question,
-        description = description ?: "",
-        isCritical = isCritical ?: false
+        id = Id,
+        checklistId = ChecklistId,
+        expectedAnswer = Answer.values()[ExpectedAnswer],
+        rotationGroup = RotationGroup,
+        userAnswer = userAnswer?.let { Answer.values()[it] },
+        category = ChecklistItemCategoryId,
+        subCategory = ChecklistItemSubcategoryId,
+        energySourceEnum = EnergySource.map { EnergySourceEnum.values()[it] },
+        vehicleType = emptyList(), // TODO: Map vehicle types
+        component = VehicleComponent.toString(),
+        question = Question,
+        description = Description,
+        isCritical = IsCritical
     )
 }
 
@@ -107,18 +92,21 @@ fun PreShiftCheckDto?.toDomain(): PreShiftCheck? {
 
 fun ChecklistItem.toDto(): ChecklistItemDto {
     return ChecklistItemDto(
-        id = id,
-        category = category,
-        subCategory = subCategory,
-        energySource = energySourceEnum.map { it.name },
-        vehicleType = vehicleType.map { it.name },
-        component = component,
-        question = question,
-        description = description,
-        expectedAnswer = expectedAnswer.name,
-        userAnswer = userAnswer,
-        rotationGroup = rotationGroup,
-        isCritical = isCritical
+        `$type` = "ChecklistItemDataObject",
+        ChecklistId = checklistId,
+        ChecklistItemCategoryId = category,
+        ChecklistItemSubcategoryId = subCategory,
+        Description = description,
+        EnergySource = energySourceEnum.map { it.ordinal },
+        ExpectedAnswer = expectedAnswer.ordinal,
+        Id = id,
+        IsCritical = isCritical,
+        Question = question,
+        RotationGroup = rotationGroup,
+        VehicleComponent = component.toIntOrNull() ?: 0,
+        IsMarkedForDeletion = false,
+        InternalObjectId = 0,
+        userAnswer = userAnswer?.ordinal
     )
 }
 
@@ -133,55 +121,68 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
         status = status,
         items = items.map { 
             ChecklistItem(
-                id = it.id,
-                expectedAnswer = Answer.valueOf(it.expectedAnswer.uppercase()),
+                id = it.Id,
+                checklistId = it.ChecklistId,
+                expectedAnswer = Answer.values()[it.ExpectedAnswer],
                 userAnswer = it.userAnswer?.let { answer -> 
                     try {
-                        Answer.valueOf(answer.name.uppercase())
+                        Answer.values()[answer]
                     } catch (e: IllegalArgumentException) {
                         null
                     }
                 },
-                category = it.category ?: "",
-                subCategory = it.subCategory ?: "",
-                energySourceEnum = it.energySource?.map { source ->
-                    EnergySourceEnum.valueOf(source.uppercase())
-                } ?: emptyList(),
-                vehicleType = it.vehicleType?.map { type ->
-                    VehicleType(
-                        id = type,
-                        name = type,
-                        categoryId = "",
-                        createdAt = System.currentTimeMillis(),
-                        updatedAt = System.currentTimeMillis()
-                    )
-                } ?: emptyList(),
-                component = it.component ?: "",
-                question = it.question,
-                description = it.description ?: "",
-                isCritical = it.isCritical ?: false,
-                rotationGroup = it.rotationGroup ?: 0
+                category = it.ChecklistItemCategoryId,
+                subCategory = it.ChecklistItemSubcategoryId,
+                energySourceEnum = it.EnergySource.map { source ->
+                    EnergySourceEnum.values()[source]
+                },
+                vehicleType = emptyList(), // TODO: Map vehicle types
+                component = it.VehicleComponent.toString(),
+                question = it.Question,
+                description = it.Description,
+                isCritical = it.IsCritical,
+                rotationGroup = it.RotationGroup
             )
         }
     )
 }
 
 fun ChecklistDto.toDomain(): Checklist {
+    android.util.Log.d("ChecklistMapper", "Entrando a ChecklistDto.toDomain() con DTO: $this")
     return Checklist(
-        items = items.map { it.toDomain() },
-        metadata = ChecklistMetadata(
-            version = "",
-            lastUpdated = "",
-            totalQuestions = items.size,
-            rotationGroups = 0,
-            questionsPerCheck = 0,
-            energySourceEnums = emptyList()
-        ),
-        rotationRules = RotationRules(
-            maxQuestionsPerCheck = 0,
-            requiredCategories = emptyList(),
-            criticalQuestionMinimum = 0,
-            standardQuestionMaximum = 0
-        )
+        id = Id,
+        title = Title,
+        description = Description,
+        items = (ChecklistChecklistQuestionItems ?: emptyList()).map { 
+            it.toDomain().copy(checklistId = Id)
+        },
+        criticalityLevels = CriticalityLevels,
+        criticalQuestionMinimum = CriticalQuestionMinimum,
+        energySources = EnergySources,
+        isDefault = IsDefault,
+        maxQuestionsPerCheck = MaxQuestionsPerCheck,
+        rotationGroups = RotationGroups,
+        standardQuestionMaximum = StandardQuestionMaximum,
+        isMarkedForDeletion = IsMarkedForDeletion,
+        internalObjectId = InternalObjectId
+    )
+}
+
+fun Checklist.toDto(): ChecklistDto {
+    return ChecklistDto(
+        `$type` = "ChecklistDataObject",
+        Id = id,
+        Title = title,
+        Description = description,
+        ChecklistChecklistQuestionItems = items.map { it.toDto() },
+        CriticalityLevels = criticalityLevels,
+        CriticalQuestionMinimum = criticalQuestionMinimum,
+        EnergySources = energySources,
+        IsDefault = isDefault,
+        MaxQuestionsPerCheck = maxQuestionsPerCheck,
+        RotationGroups = rotationGroups,
+        StandardQuestionMaximum = standardQuestionMaximum,
+        IsMarkedForDeletion = isMarkedForDeletion,
+        InternalObjectId = internalObjectId
     )
 }

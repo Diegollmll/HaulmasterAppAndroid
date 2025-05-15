@@ -28,6 +28,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import app.forku.domain.repository.checklist.ChecklistItemCategoryRepository
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
+import app.forku.domain.repository.checklist.AnsweredChecklistItemRepository
+import app.forku.domain.model.checklist.ChecklistAnswer
+import app.forku.domain.model.checklist.AnsweredChecklistItem
+import app.forku.domain.usecase.session.StartVehicleSessionUseCase
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -40,6 +46,10 @@ class ChecklistViewModel @Inject constructor(
     private val checklistRepository: ChecklistRepository,
     private val vehicleSessionRepository: VehicleSessionRepository,
     private val locationManager: LocationManager,
+    private val checklistItemCategoryRepository: ChecklistItemCategoryRepository,
+    private val checklistAnswerRepository: ChecklistAnswerRepository,
+    private val answeredChecklistItemRepository: AnsweredChecklistItemRepository,
+    private val startVehicleSessionUseCase: StartVehicleSessionUseCase,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -55,6 +65,10 @@ class ChecklistViewModel @Inject constructor(
     val navigationEvent = _navigationEvent.asStateFlow()
 
     private var timerJob: kotlinx.coroutines.Job? = null
+
+    // Category name map (id -> name)
+    private val _categoryNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val categoryNameMap = _categoryNameMap.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -179,14 +193,19 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun loadChecklistData() {
+        android.util.Log.d("ChecklistViewModel", "loadChecklistData A: start")
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                android.util.Log.d("ChecklistViewModel", "Iniciando carga de checklist para vehicleId=$vehicleId")
                 // Get current user's business ID
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
+                android.util.Log.d("ChecklistViewModel", "Usuario actual: $currentUser")
+                val businessId = currentUser?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                android.util.Log.d("ChecklistViewModel", "businessId resolved: $businessId")
                 
                 if (businessId == null) {
                     withContext(Dispatchers.Main) {
+                        android.util.Log.d("ChecklistViewModel", "No business context available para vehicleId=$vehicleId")
                         _state.value = ChecklistState(
                             vehicleId = vehicleId.toString(),
                             vehicleStatus = VehicleStatus.AVAILABLE,
@@ -197,17 +216,52 @@ class ChecklistViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Fetch all categories and build the map
+                val categories = checklistItemCategoryRepository.getAllCategories()
+                val categoryMap = categories.associate { it.id to it.name }
+                android.util.Log.d("ChecklistViewModel", "Category map: $categoryMap")
+                _categoryNameMap.value = categoryMap
+
                 // 1. Obtener datos del checklist
+                android.util.Log.d("ChecklistViewModel", "Llamando a getChecklistUseCase con vehicleId=$vehicleId")
                 val checklists = getChecklistUseCase(vehicleId.toString())
-                val firstChecklist = checklists.first()
+                android.util.Log.d("ChecklistViewModel", "checklists.size=${checklists.size}")
+                val firstChecklist = checklists.firstOrNull()
+                if (firstChecklist == null) {
+                    android.util.Log.d("ChecklistViewModel", "No se encontró ningún checklist para vehicleId=$vehicleId")
+                }
                 val allItems = checklists.flatMap { it.items }
-                val selectedItems = selectQuestionsForRotation(
+                android.util.Log.d("ChecklistViewModel", "Total de items obtenidos: ${allItems.size}")
+                android.util.Log.d("ChecklistViewModel", "All item categories: ${allItems.map { it.category }}")
+                val selectedItems = if (firstChecklist != null) selectQuestionsForRotation(
                     allItems,
-                    firstChecklist.rotationRules
-                )
+                    firstChecklist.criticalQuestionMinimum,
+                    firstChecklist.maxQuestionsPerCheck,
+                    firstChecklist.standardQuestionMaximum
+                ) else emptyList()
+                android.util.Log.d("ChecklistViewModel", "Items seleccionados para rotación: ${selectedItems.size}")
+
+                // Fetch vehicle for summary display
+                android.util.Log.d("ChecklistViewModel", "Llamando a getVehicleUseCase con vehicleId=$vehicleId")
+                val vehicle = try {
+                    getVehicleUseCase(vehicleId.toString()).also {
+                        android.util.Log.d("ChecklistViewModel", "Vehicle fetched: $it")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("ChecklistViewModel", "Error fetching vehicle: ${e.message}", e)
+                    null
+                }
 
                 // 2. Crear o recuperar el check
-                val lastCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId)
+                android.util.Log.d("ChecklistViewModel", "Llamando a getLastPreShiftCheck para vehicleId=$vehicleId, businessId=$businessId")
+                val lastCheck = try {
+                    checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId).also {
+                        android.util.Log.d("ChecklistViewModel", "lastCheck: $it")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("ChecklistViewModel", "Error fetching last pre-shift check: ${e.message}", e)
+                    null
+                }
                 
                 // Get current time in ISO format
                 val currentDateTime = java.time.Instant.now().toString()
@@ -215,48 +269,25 @@ class ChecklistViewModel @Inject constructor(
 
                 val checkId = if (lastCheck?.status == CheckStatus.IN_PROGRESS.toString()) {
                     lastCheck.id
-                } else {
-                    // Get current location before creating new check
-                    val locationState = locationManager.locationState.value
-                    android.util.Log.d("ChecklistViewModel", "Location state during check creation: $locationState")
-                    
-                    // Request a single location update if we don't have location
-                    if (locationState.location == null) {
-                        android.util.Log.w("ChecklistViewModel", "Location is null during check creation, requesting update")
-                        locationManager.requestSingleUpdate()
-                    }
-
-                    val initialCheck = submitChecklistUseCase(
-                        vehicleId = vehicleId.toString(),
-                        items = selectedItems,
-                        location = locationState.location,
-                        locationCoordinates = locationState.location
-                    )
-                    initialCheck.id
-                }
-
-                // 3. Obtener datos del vehículo
-                val vehicle = getVehicleUseCase(vehicleId.toString())
+                } else null
 
                 withContext(Dispatchers.Main) {
+                    android.util.Log.d("ChecklistViewModel", "Setting ChecklistState with vehicle: $vehicle, checkItems: ${selectedItems.size}, checklistAnswerId: $checkId")
                     _state.value = ChecklistState(
                         vehicle = vehicle,
                         vehicleId = vehicleId.toString(),
                         vehicleStatus = VehicleStatus.AVAILABLE,
-                        checkItems = if (lastCheck?.status == CheckStatus.IN_PROGRESS.toString())
-                            lastCheck.items else selectedItems,
-                        rotationRules = firstChecklist.rotationRules,
-                        checkId = checkId,
-                        checkStatus = CheckStatus.IN_PROGRESS.toString(),
-                        startDateTime = lastCheck?.startDateTime ?: currentDateTime
+                        checkStatus = CheckStatus.NOT_STARTED.toString(),
+                        checkItems = selectedItems,
+                        checklistAnswerId = checkId,
+                        checklistId = selectedItems.firstOrNull()?.checklistId,
+                        startDateTime = currentDateTime
                     )
-                    
-                    // Start timer after state is set
-                    startTimer()
+                    android.util.Log.d("ChecklistViewModel", "ChecklistState actualizado: ${_state.value}")
                 }
-
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    android.util.Log.e("ChecklistViewModel", "Error al cargar checklist: ${e.message}", e)
                     _state.value = ChecklistState(
                         vehicleId = vehicleId.toString(),
                         vehicleStatus = VehicleStatus.AVAILABLE,
@@ -270,31 +301,19 @@ class ChecklistViewModel @Inject constructor(
 
     private fun selectQuestionsForRotation(
         allItems: List<ChecklistItem>,
-        rules: RotationRules
+        criticalQuestionMinimum: Int,
+        maxQuestionsPerCheck: Int,
+        standardQuestionMaximum: Int
     ): List<ChecklistItem> {
         val selectedQuestions = mutableListOf<ChecklistItem>()
-        
         // Get critical questions
         val criticalQuestions = allItems
             .filter { it.isCritical }
             .shuffled()
-            .take(rules.criticalQuestionMinimum)
+            .take(criticalQuestionMinimum)
         selectedQuestions.addAll(criticalQuestions)
-
-        // Get required category questions
-        rules.requiredCategories.forEach { categoryName ->
-            val categoryQuestions = allItems
-                .filter { 
-                    it.category == categoryName &&
-                    !selectedQuestions.contains(it) 
-                }
-                .shuffled()
-                .take(1)
-            selectedQuestions.addAll(categoryQuestions)
-        }
-
         // Fill remaining slots with standard questions
-        val remainingSlots = rules.maxQuestionsPerCheck - selectedQuestions.size
+        val remainingSlots = maxQuestionsPerCheck - selectedQuestions.size
         if (remainingSlots > 0) {
             val standardQuestions = allItems
                 .filter { 
@@ -302,81 +321,184 @@ class ChecklistViewModel @Inject constructor(
                     !selectedQuestions.contains(it) 
                 }
                 .shuffled()
-                .take(minOf(remainingSlots, rules.standardQuestionMaximum))
+                .take(minOf(remainingSlots, standardQuestionMaximum))
             selectedQuestions.addAll(standardQuestions)
         }
-
-        return selectedQuestions.shuffled()
+        return selectedQuestions
     }
 
     fun updateItemResponse(id: String, isYes: Boolean) {
         if (state.value?.isReadOnly == true) {
-            return // Don't allow updates if check is read-only
+            android.util.Log.d("ChecklistViewModel", "Attempt to update readonly checklist - operation cancelled")
+            return
         }
+
         viewModelScope.launch {
             try {
                 val currentItems = state.value?.checkItems?.toMutableList() ?: mutableListOf()
                 val itemIndex = currentItems.indexOfFirst { it.id == id }
-                
+
                 if (itemIndex != -1) {
                     val item = currentItems[itemIndex]
                     val newAnswer = if (isYes) Answer.PASS else Answer.FAIL
                     currentItems[itemIndex] = item.copy(userAnswer = newAnswer)
-                    
-                    // Update local state first for immediate UI feedback
+
+                    // Update local state for UI feedback
                     val validation = validateChecklistUseCase(currentItems)
                     _state.update { currentState ->
                         currentState?.copy(
                             checkItems = currentItems,
                             isCompleted = validation.isComplete,
-                            vehicleBlocked = validation.isBlocked
+                            vehicleBlocked = validation.isBlocked,
+                            hasUnsavedChanges = true,
+                            lastSyncedItemId = null
                         )
                     }
 
-                    // Submit to API with current timestamp
-                    try {
-                        // Get current location
-                        val locationState = locationManager.locationState.value
-                        android.util.Log.d("ChecklistViewModel", "Location state during update: $locationState")
-                        android.util.Log.d("ChecklistViewModel", "Location string: ${locationState.location}")
-                        android.util.Log.d("ChecklistViewModel", "Latitude: ${locationState.latitude}")
-                        android.util.Log.d("ChecklistViewModel", "Longitude: ${locationState.longitude}")
-                        
-                        // Verify we have location before proceeding
-                        if (locationState.location == null) {
-                            android.util.Log.w("ChecklistViewModel", "Location is null during update")
-                            // Request a single location update
-                            locationManager.requestSingleUpdate()
-                            // Don't block the UI, continue with null location
+                    // --- AUTOMATIC CHECKLISTANSWER CREATION ---
+                    var checklistAnswerId = state.value?.checklistAnswerId
+                    if (checklistAnswerId == null) {
+                        // Create and save ChecklistAnswer
+                        val checklistAnswer = createOrUpdateChecklistAnswer(validation.status)
+                        val savedAnswer = checklistAnswerRepository.save(checklistAnswer)
+                        checklistAnswerId = savedAnswer.id
+                        _state.update { currentState ->
+                            currentState?.copy(
+                                checklistAnswerId = savedAnswer.id,
+                                checklistId = savedAnswer.checklistId
+                            )
                         }
-
-                        // Use the location string directly from the state
-                        val locationCoordinates = locationState.location
-
-                        android.util.Log.d("ChecklistViewModel", "Submitting update with location coordinates: $locationCoordinates")
-
-                        checklistRepository.submitPreShiftCheck(
-                            vehicleId = state.value?.vehicleId ?: "",
-                            checkItems = currentItems,
-                            checkId = state.value?.checkId ?: "",
-                            locationCoordinates = locationCoordinates
-                        )
-                    } catch (e: Exception) {
-                        // Log error but don't disrupt user experience
-                        android.util.Log.e("Checklist", "Failed to sync answer", e)
-                        _state.update { it?.copy(
-                            errorModalMessage = "Changes saved locally but failed to sync: ${e.message}",
-                            showErrorModal = true
-                        ) }
                     }
+
+                    // --- ALWAYS SAVE THE ANSWEREDCHECKLISTITEM ---
+                    // Check if an AnsweredChecklistItem already exists for this checklistAnswerId and checklistItemId
+                    val existingAnsweredItem = try {
+                        answeredChecklistItemRepository.getAll().find {
+                            it.checklistAnswerId == (checklistAnswerId ?: "") && it.checklistItemId == item.id
+                        }
+                    } catch (e: Exception) { null }
+                    val answeredItem = AnsweredChecklistItem(
+                        id = existingAnsweredItem?.id ?: java.util.UUID.randomUUID().toString(),
+                        checklistId = item.checklistId,
+                        checklistAnswerId = checklistAnswerId ?: "",
+                        checklistItemId = item.id,
+                        question = item.question,
+                        answer = newAnswer.name,
+                        userId = userRepository.getCurrentUser()?.id ?: "",
+                        createdAt = java.time.Instant.now().toString(),
+                        isNew = existingAnsweredItem == null,
+                        isDirty = true
+                    )
+                    answeredChecklistItemRepository.save(answeredItem)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("ChecklistViewModel", "Error updating item response: ${e.message}", e)
                 _state.update { it?.copy(
                     error = "Failed to update answer: ${e.message}",
                     showErrorModal = true
                 ) }
             }
         }
+    }
+
+    private suspend fun syncItemChange(itemId: String, items: List<ChecklistItem>) {
+        android.util.Log.d("ChecklistViewModel", "syncItemChange: Starting sync for item $itemId")
+        try {
+            // Get current location
+            val locationState = locationManager.locationState.value
+            android.util.Log.d("ChecklistViewModel", "syncItemChange: Location state - $locationState")
+            
+            // Verify we have location before proceeding
+            if (locationState.location == null) {
+                android.util.Log.w("ChecklistViewModel", "syncItemChange: Location is null, requesting update")
+                locationManager.requestSingleUpdate()
+            }
+
+            val locationCoordinates = locationState.location
+            android.util.Log.d("ChecklistViewModel", "syncItemChange: Using coordinates - $locationCoordinates")
+
+            // Add validation for current items
+            val validation = validateChecklistUseCase(items)
+            // Create or update ChecklistAnswer
+            val checklistAnswer = createOrUpdateChecklistAnswer(validation.status)
+            android.util.Log.d("ChecklistViewModel", "syncItemChange: Created/Updated checklist answer with ID: ${checklistAnswer.id}")
+            android.util.Log.d("ChecklistViewModel", "syncItemChange: checklistAnswer.checklistId: ${checklistAnswer.checklistId}")
+
+            // Save ChecklistAnswer
+            val savedAnswer = checklistAnswerRepository.save(checklistAnswer)
+            android.util.Log.d("ChecklistViewModel", "syncItemChange: Saved checklist answer with ID: ${savedAnswer.id}")
+
+            // Update state with new checklistAnswerId and ensure checklistId is preserved
+            _state.update { currentState ->
+                currentState?.copy(
+                    checklistAnswerId = savedAnswer.id,
+                    checklistId = savedAnswer.checklistId // Mantener el ID de la plantilla
+                )
+            }
+
+            // Save individual answer
+            val item = items.find { it.id == itemId }
+            if (item?.userAnswer != null) {
+                android.util.Log.d("ChecklistViewModel", "syncItemChange: Creating AnsweredChecklistItem for item $itemId with answer ${item.userAnswer}")
+                // Check if an AnsweredChecklistItem already exists for this checklistAnswerId and checklistItemId
+                val existingAnsweredItem = try {
+                    answeredChecklistItemRepository.getAll().find {
+                        it.checklistAnswerId == savedAnswer.id && it.checklistItemId == item.id
+                    }
+                } catch (e: Exception) { null }
+                val answeredItem = AnsweredChecklistItem(
+                    id = existingAnsweredItem?.id ?: java.util.UUID.randomUUID().toString(),
+                    checklistId = item.checklistId, // ID de la plantilla
+                    checklistAnswerId = savedAnswer.id, // ID de la instancia de respuesta
+                    checklistItemId = item.id, // Set checklistItemId to ChecklistItem's id
+                    question = item.question,
+                    answer = item.userAnswer.name,
+                    userId = userRepository.getCurrentUser()?.id ?: "",
+                    createdAt = java.time.Instant.now().toString(),
+                    isNew = existingAnsweredItem == null,
+                    isDirty = true
+                )
+                android.util.Log.d("ChecklistViewModel", "syncItemChange: Saving AnsweredChecklistItem - id: ${answeredItem.id}, checklistAnswerId: ${answeredItem.checklistAnswerId}, checklistId: ${answeredItem.checklistId}")
+                answeredChecklistItemRepository.save(answeredItem)
+                android.util.Log.d("ChecklistViewModel", "syncItemChange: AnsweredChecklistItem saved successfully")
+            } else {
+                android.util.Log.w("ChecklistViewModel", "syncItemChange: Item $itemId not found or has no answer")
+            }
+
+            // Update sync state
+            _state.update { currentState ->
+                currentState?.copy(
+                    hasUnsavedChanges = false,
+                    syncErrors = currentState.syncErrors - itemId,
+                    lastSyncedItemId = itemId
+                )
+            }
+            android.util.Log.d("ChecklistViewModel", "syncItemChange: Sync completed successfully for item $itemId")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistViewModel", "syncItemChange: Error syncing item $itemId - ${e.message}", e)
+            throw e
+        }
+    }
+
+    private suspend fun syncAllPendingChanges() {
+        android.util.Log.d("ChecklistViewModel", "syncAllPendingChanges: Starting")
+        val currentItems = state.value?.checkItems ?: return
+        val itemsWithErrors = state.value?.syncErrors?.keys ?: emptySet()
+        
+        android.util.Log.d("ChecklistViewModel", "syncAllPendingChanges: Found ${itemsWithErrors.size} items with errors")
+        
+        for (itemId in itemsWithErrors) {
+            try {
+                android.util.Log.d("ChecklistViewModel", "syncAllPendingChanges: Attempting to sync item $itemId")
+                syncItemChange(itemId, currentItems)
+                android.util.Log.d("ChecklistViewModel", "syncAllPendingChanges: Successfully synced item $itemId")
+            } catch (e: Exception) {
+                android.util.Log.e("ChecklistViewModel", "syncAllPendingChanges: Error syncing item $itemId - ${e.message}")
+                throw Exception("Failed to sync item $itemId: ${e.message}")
+            }
+        }
+        android.util.Log.d("ChecklistViewModel", "syncAllPendingChanges: Completed successfully")
     }
 
     fun clearItemResponse(id: String) {
@@ -431,15 +553,75 @@ class ChecklistViewModel @Inject constructor(
         _navigationEvent.value = null
     }
 
+    private suspend fun createOrUpdateChecklistAnswer(status: CheckStatus): ChecklistAnswer {
+        android.util.Log.d("ChecklistViewModel", "Creating/Updating checklist answer")
+        val now = java.time.Instant.now().toString()
+        val userId = userRepository.getCurrentUser()?.id ?: ""
+        val locationCoordinates = locationManager.locationState.value.location
+        val currentVehicleId = state.value?.vehicleId ?: ""
+
+        // Obtener el ID del checklist actual (plantilla)
+        val currentChecklistId = state.value?.checklistId 
+            ?: state.value?.checkItems?.firstOrNull()?.checklistId
+            ?: throw Exception("No checklist ID found")
+        android.util.Log.d("ChecklistViewModel", "Current checklist ID (plantilla): $currentChecklistId")
+
+        // Intentar obtener el ChecklistAnswer existente si hay un answerId
+        val existingAnswerId = state.value?.checklistAnswerId
+        android.util.Log.d("ChecklistViewModel", "Existing checklist answer ID: $existingAnswerId")
+
+        if (existingAnswerId != null) {
+            try {
+                android.util.Log.d("ChecklistViewModel", "Attempting to get existing checklist answer with ID: $existingAnswerId")
+                val existingAnswer = checklistAnswerRepository.getById(existingAnswerId)
+                if (existingAnswer != null) {
+                    android.util.Log.d("ChecklistViewModel", "Found existing checklist answer, updating it")
+                    return existingAnswer.copy(
+                        endDateTime = now,
+                        status = status.toApiInt(),
+                        checklistId = currentChecklistId,
+                        locationCoordinates = locationCoordinates,
+                        lastCheckDateTime = now,
+                        vehicleId = currentVehicleId
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ChecklistViewModel", "Error getting existing checklist answer: ${e.message}")
+                // Si hay error al obtener el existente, continuamos creando uno nuevo
+            }
+        }
+
+        // Si no existe o hubo error, creamos uno nuevo
+        android.util.Log.d("ChecklistViewModel", "Creating new checklist answer")
+        return ChecklistAnswer(
+            id = java.util.UUID.randomUUID().toString(),
+            checklistId = currentChecklistId,
+            goUserId = userId,
+            startDateTime = state.value?.startDateTime ?: now,
+            endDateTime = now,
+            status = status.toApiInt(),
+            locationCoordinates = locationCoordinates,
+            isDirty = true,
+            isNew = true,
+            isMarkedForDeletion = false,
+            lastCheckDateTime = now,
+            vehicleId = currentVehicleId
+        )
+    }
+
     fun submitCheck() {
         if (state.value?.isReadOnly == true) {
-            return // Don't allow submission if check is read-only
+            android.util.Log.w("ChecklistViewModel", "Attempt to submit readonly checklist - operation cancelled")
+            return
         }
+
         viewModelScope.launch {
             try {
                 _state.update { it?.copy(isSubmitting = true) }
                 
                 val currentItems = state.value?.checkItems ?: mutableListOf()
+                
+                // Validate checklist
                 val validation = validateChecklistUseCase(items = currentItems)
                 
                 if (!validation.isComplete) {
@@ -453,13 +635,29 @@ class ChecklistViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Check for unsaved changes or sync errors
+                if (state.value?.needsSync == true) {
+                    try {
+                        syncAllPendingChanges()
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChecklistViewModel", "Failed to sync pending changes: ${e.message}", e)
+                        _state.update {
+                            it?.copy(
+                                isSubmitting = false,
+                                showErrorModal = true,
+                                errorModalMessage = "Error al sincronizar cambios pendientes: ${e.message}"
+                            )
+                        }
+                        return@launch
+                    }
+                }
+
                 // Get current location
                 val locationState = locationManager.locationState.value
-                android.util.Log.d("ChecklistViewModel", "Location state: $locationState")
                 
                 // Verify we have location before proceeding
                 if (locationState.location == null) {
-                    android.util.Log.w("ChecklistViewModel", "Location is null, cannot proceed with submission")
+                    locationManager.requestSingleUpdate()
                     _state.update { 
                         it?.copy(
                             showErrorModal = true,
@@ -470,32 +668,54 @@ class ChecklistViewModel @Inject constructor(
                     return@launch
                 }
 
-                val locationCoordinates = if (locationState.latitude != null && locationState.longitude != null) {
-                    "${locationState.latitude},${locationState.longitude}"
-                } else null
+                val locationCoordinates = locationState.location
 
-                android.util.Log.d("ChecklistViewModel", "Location coordinates: $locationCoordinates")
-                android.util.Log.d("ChecklistViewModel", "Location state latitude: ${locationState.latitude}")
-                android.util.Log.d("ChecklistViewModel", "Location state longitude: ${locationState.longitude}")
+                // Create or update ChecklistAnswer with correct status
+                val checklistAnswer = createOrUpdateChecklistAnswer(validation.status)
+                android.util.Log.d("ChecklistViewModel", "Saving checklist answer with ID: ${checklistAnswer.id}")
+                
+                val savedChecklistAnswer = checklistAnswerRepository.save(checklistAnswer)
+                android.util.Log.d("ChecklistViewModel", "Successfully saved checklist answer with ID: ${savedChecklistAnswer.id}")
 
-                // Determine final status based on validation and completion
+                // Actualizar el estado con el nuevo checklistAnswerId y mantener el checklistId
+                _state.update { currentState ->
+                    currentState?.copy(
+                        checklistAnswerId = savedChecklistAnswer.id,
+                        checklistId = savedChecklistAnswer.checklistId
+                    )
+                }
+
+                // Submit final checklist
                 val updatedCheck = submitChecklistUseCase(
                     vehicleId = vehicleId.toString(),
                     items = currentItems,
-                    checkId = state.value?.checkId ?: "",
+                    checkId = savedChecklistAnswer.id,
                     status = validation.status.name,
                     location = locationState.location,
                     locationCoordinates = locationCoordinates
                 )
 
-                // If checklist passed, start the session
+                // Start vehicle session if checklist passed
                 if (validation.canStartSession) {
                     try {
-                        vehicleSessionRepository.startSession(
-                            vehicleId = vehicleId.toString(),
-                            checkId = updatedCheck.id
-                        )
+                        val result = startVehicleSessionUseCase(vehicleId.toString(), updatedCheck.id)
+                        result.onSuccess {
+                            android.util.Log.d("ChecklistViewModel", "Vehicle session started successfully via use case.")
+                            val currentUser = userRepository.getCurrentUser()
+                            val role = currentUser?.role?.name ?: "operator"
+                            android.util.Log.d("ChecklistViewModel", "Emitting navigation event to dashboard for role: $role")
+                            _navigationEvent.value = NavigationEvent.AfterSubmit(role = role)
+                        }.onFailure { e ->
+                            android.util.Log.e("ChecklistViewModel", "Error starting vehicle session via use case: ${e.message}", e)
+                            _state.update {
+                                it?.copy(
+                                    showErrorModal = true,
+                                    errorModalMessage = "Check completado pero no se pudo iniciar sesión: ${e.message}"
+                                )
+                            }
+                        }
                     } catch (e: Exception) {
+                        android.util.Log.e("ChecklistViewModel", "Error starting vehicle session: ${e.message}", e)
                         _state.update {
                             it?.copy(
                                 showErrorModal = true,
@@ -505,24 +725,21 @@ class ChecklistViewModel @Inject constructor(
                     }
                 }
 
-                // Get current user to determine navigation
-                val currentUser = userRepository.getCurrentUser()
-                val isAdmin = currentUser?.role == UserRole.ADMIN
-
+                // Update final state and navigate
                 _state.update { 
                     it?.copy(
                         isSubmitting = false,
                         isCompleted = true,
                         checkItems = updatedCheck.items,
                         checkStatus = updatedCheck.status,
-                        isSubmitted = true
+                        isSubmitted = true,
+                        hasUnsavedChanges = false,
+                        syncErrors = emptyMap()
                     )
                 }
 
-                // Trigger navigation based on user role
-                _navigationEvent.value = NavigationEvent.AfterSubmit(isAdmin)
-
             } catch (e: Exception) {
+                android.util.Log.e("ChecklistViewModel", "Error in submitCheck: ${e.message}", e)
                 _state.update {
                     it?.copy(
                         isSubmitting = false,
@@ -546,7 +763,8 @@ class ChecklistViewModel @Inject constructor(
                         vehicleId = vehicleId.toString(),
                         vehicleStatus = VehicleStatus.IN_USE,
                         checkItems = it.items,
-                        checkId = it.id,
+                        checklistAnswerId = it.id,
+                        checklistId = it.items.firstOrNull()?.checklistId,
                         checkStatus = it.status,
                         isCompleted = it.status != CheckStatus.IN_PROGRESS.toString(),
                         isSubmitted = it.status != CheckStatus.IN_PROGRESS.toString(),
@@ -564,9 +782,55 @@ class ChecklistViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Saves the current ChecklistAnswer to the backend using the repository.
+     * Updates state with loading, error, and success as appropriate.
+     */
+    fun saveChecklistAnswer() {
+        viewModelScope.launch {
+            _state.update { it?.copy(isLoading = true, error = null, message = null) }
+            try {
+                val currentItems = state.value?.checkItems ?: emptyList()
+                val validation = validateChecklistUseCase(currentItems)
+                val checklistAnswer = createOrUpdateChecklistAnswer(validation.status)
+                val savedAnswer = checklistAnswerRepository.save(checklistAnswer)
+                _state.update { currentState ->
+                    currentState?.copy(
+                        checklistAnswerId = savedAnswer.id,
+                        checklistId = savedAnswer.checklistId,
+                        isLoading = false,
+                        message = "Checklist answer saved successfully"
+                    )
+                }
+                // --- NUEVO: Iniciar sesión si el checklist está aprobado ---
+                if (validation.status == CheckStatus.COMPLETED_PASS) {
+                    try {
+                        android.util.Log.d("ChecklistViewModel", "Checklist is COMPLETED_PASS, starting vehicle session via use case...")
+                        val result = startVehicleSessionUseCase(state.value?.vehicleId ?: "", savedAnswer.id)
+                        result.onSuccess {
+                            android.util.Log.d("ChecklistViewModel", "Vehicle session started successfully via use case.")
+                            val currentUser = userRepository.getCurrentUser()
+                            val role = currentUser?.role?.name ?: "operator"
+                            android.util.Log.d("ChecklistViewModel", "Emitting navigation event to dashboard for role: $role")
+                            _navigationEvent.value = NavigationEvent.AfterSubmit(role = role)
+                        }.onFailure { e ->
+                            android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session via use case: ${e.message}", e)
+                            _state.update { it?.copy(message = "Checklist saved, but failed to start vehicle session: ${e.message}") }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session: ${e.message}", e)
+                        _state.update { it?.copy(message = "Checklist saved, but failed to start vehicle session: ${e.message}") }
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { it?.copy(isLoading = false, error = e.message ?: "Failed to save checklist answer") }
+            }
+        }
+    }
 }
 
 sealed class NavigationEvent {
     object Back : NavigationEvent()
-    data class AfterSubmit(val isAdmin: Boolean) : NavigationEvent()
+    data class AfterSubmit(val role: String) : NavigationEvent()
 }

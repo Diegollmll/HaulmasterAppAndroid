@@ -1,0 +1,17 @@
+Type,ID,Item Description,Sprint,Force Rank,Required,Desired,As a,I want to,So that,Status,Created On,Story Points,Estimation (hours)
+User Story,APP-002,Session Management Enhancements,Current Sprint,1,Yes,Yes,User,restore my session,avoid losing progress,To-do,,3,12
+User Story,APP-003,Vehicle State Management,Current Sprint,2,Yes,Yes,Operator/Admin,change vehicle state,reflect real-time status,To-do,,3,12
+User Story,APP-005,Basic Checklist Flow,Current Sprint,3,Yes,Yes,Operator,complete checklist,ensure safety,To-do,,5,20
+User Story,APP-006,Checklist Session Management,Current Sprint,4,Yes,Yes,Operator/Admin,manage checklist sessions,track progress,To-do,,5,20
+User Story,APP-008,Incident Reporting,Current Sprint,5,Yes,Yes,Operator/Admin,report incidents,improve safety,To-do,,3,12
+User Story,APP-001,ProfileScreen Integration,Current Sprint,6,Yes,Yes,User,edit my profile,my information is up to date,To-do,,2,8
+User Story,APP-004,Vehicle Profile Photo Management,Current Sprint,7,Yes,Yes,Operator/Admin,upload vehicle photo,vehicle is easily identified,To-do,,2,8
+User Story,APP-007,Checklist History & Reports,Current Sprint,8,Yes,Yes,Operator/Admin,view checklist history,review past checks,To-do,,3,12
+User Story,APP-009,Incident History,Current Sprint,9,Yes,Yes,Operator/Admin,view incident history,review past incidents,To-do,,2,8
+User Story,APP-010,Incident Reports,Current Sprint,10,Yes,Yes,Operator/Admin,view incident reports,analyze trends,To-do,,3,12
+User Story,APP-011,User Management (Admin),Current Sprint,11,Yes,Yes,Admin,manage users,control access,To-do,,3,12
+User Story,APP-012,Vehicle Management (Admin),Current Sprint,12,Yes,Yes,Admin,manage vehicles,keep fleet updated,To-do,,3,12
+User Story,APP-013,Checklist Monitoring (Admin),Current Sprint,13,Yes,Yes,Admin,monitor checklists,ensure compliance,To-do,,2,8
+User Story,APP-014,Reports & Analytics (Admin),Current Sprint,14,Yes,Yes,Admin,view analytics,make decisions,To-do,,3,12
+User Story,APP-015,MockAPI ProfileScreen Migration,Current Sprint,15,Yes,Yes,User,see real profile data,improve accuracy,To-do,,2,8
+User Story,APP-016,MockAPI Basic Reports Migration,Current Sprint,16,Yes,Yes,User,see real reports,improve accuracy,To-do,,2,8 

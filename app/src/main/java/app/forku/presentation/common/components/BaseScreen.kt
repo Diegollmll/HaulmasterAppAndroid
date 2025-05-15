@@ -24,6 +24,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.material3.surfaceColorAtElevation
 import app.forku.domain.model.user.UserRole
+import app.forku.core.auth.TokenErrorHandler
+import app.forku.core.auth.AuthenticationState
+import app.forku.presentation.navigation.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +45,7 @@ fun BaseScreen(
     showLoadingOnRefresh: Boolean = false,
     networkManager: NetworkConnectivityManager,
     topBarActions: @Composable (() -> Unit)? = null,
+    tokenErrorHandler: TokenErrorHandler,
     content: @Composable (PaddingValues) -> Unit
 ) {
     // Lifecycle observer for refresh
@@ -55,6 +59,17 @@ fun BaseScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Observe authentication state for global session expiration
+    val authState by tokenErrorHandler.authenticationState.collectAsState()
+    LaunchedEffect(authState) {
+        if (authState is AuthenticationState.RequiresAuthentication) {
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
 

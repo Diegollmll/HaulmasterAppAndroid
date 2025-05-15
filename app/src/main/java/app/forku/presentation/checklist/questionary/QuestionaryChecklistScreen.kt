@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.core.network.NetworkConnectivityManager
+import app.forku.core.auth.TokenErrorHandler
 
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
@@ -38,6 +39,7 @@ import kotlinx.coroutines.delay
 fun QuestionaryChecklistScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: QuestionaryChecklistViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -75,7 +77,8 @@ fun QuestionaryChecklistScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Questionary Checklists",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -1024,8 +1027,8 @@ private fun QuestionaryFormDialog(
                     
                     // Available vehicle types
                     uiState.vehicleTypes.forEach { vehicleType ->
-                        val typeId = vehicleType.id
-                        val typeName = vehicleType.name
+                        val typeId = vehicleType.Id
+                        val typeName = vehicleType.Name
                         if (typeId != null && typeName != "ALL") {
                             Row(
                                 modifier = Modifier
@@ -1186,41 +1189,53 @@ private fun QuestionaryFormDialog(
 @Composable
 fun QuestionarySelectionScreen(
     navController: NavController,
-    viewModel: QuestionaryChecklistViewModel = hiltViewModel()
+    viewModel: QuestionaryChecklistViewModel = hiltViewModel(),
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val questionaries by viewModel.uiState.collectAsStateWithLifecycle()
     var expanded by remember { mutableStateOf(false) }
     var selectedQuestionary by remember { mutableStateOf<QuestionaryChecklistDto?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column {
-            Text("Select a Questionary Checklist", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // Dropdown for selecting a questionary
-            Box {
-                Text(
-                    text = selectedQuestionary?.title ?: "Select Questionary",
-                    modifier = Modifier
-                        .clickable { expanded = true }
-                        .padding(16.dp)
-                        .background(MaterialTheme.colorScheme.surface)
-                )
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    questionaries.questionaries.forEach { questionary ->
-                        DropdownMenuItem(
-                            text = { Text(text = questionary.title ?: "No Title") },
-                            onClick = {
-                                selectedQuestionary = questionary
-                                expanded = false
-                                questionary.id?.let { id ->
-                                    navController.navigate(Screen.QuestionaryItems.createRoute(id))
+    BaseScreen(
+        navController = navController,
+        showBottomBar = false,
+        showTopBar = true,
+        showBackButton = true,
+        topBarTitle = "Select Questionary",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Column {
+                Text("Select a Questionary Checklist", style = MaterialTheme.typography.titleLarge)
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Dropdown for selecting a questionary
+                Box {
+                    Text(
+                        text = selectedQuestionary?.title ?: "Select Questionary",
+                        modifier = Modifier
+                            .clickable { expanded = true }
+                            .padding(16.dp)
+                            .background(MaterialTheme.colorScheme.surface)
+                    )
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        questionaries.questionaries.forEach { questionary ->
+                            DropdownMenuItem(
+                                text = { Text(text = questionary.title ?: "No Title") },
+                                onClick = {
+                                    selectedQuestionary = questionary
+                                    expanded = false
+                                    questionary.id?.let { id ->
+                                        navController.navigate(Screen.QuestionaryItems.createRoute(id))
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }

@@ -17,14 +17,15 @@ import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.domain.model.Site
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun SitesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     businessId: String,
-    businessName: String,
-    viewModel: SitesViewModel = hiltViewModel()
+    viewModel: SitesViewModel = hiltViewModel(),
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -37,8 +38,9 @@ fun SitesScreen(
         showBottomBar = false,
         showTopBar = true,
         showBackButton = true,
-        topBarTitle = "Sites - $businessName",
-        networkManager = networkManager
+        topBarTitle = "Sites Management",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

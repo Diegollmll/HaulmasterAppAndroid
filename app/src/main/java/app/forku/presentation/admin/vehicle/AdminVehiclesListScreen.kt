@@ -18,12 +18,17 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
+import app.forku.presentation.vehicle.list.VehicleItem
+import coil.ImageLoader
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun AdminVehiclesListScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     userRole: UserRole,
+    imageLoader: ImageLoader,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: AdminVehiclesListViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -33,7 +38,8 @@ fun AdminVehiclesListScreen(
         showTopBar = true,
         topBarTitle = "Admin - All Vehicles",
         showBackButton = true,
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -70,35 +76,14 @@ fun AdminVehiclesListScreen(
                                 },
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = vehicle.codename,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = vehicle.status.name,
-                                        color = when(vehicle.status.name) {
-                                            "AVAILABLE" -> MaterialTheme.colorScheme.primary
-                                            "OUT_OF_SERVICE" -> MaterialTheme.colorScheme.error
-                                            else -> MaterialTheme.colorScheme.onSurface
-                                        }
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(text = "Model: ${vehicle.model}")
-                                Text(text = "Type: ${vehicle.type.name}")
-                                Text(
-                                    text = "Business: ${vehicle.businessId ?: "Unassigned"}",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Box(modifier = Modifier.padding(12.dp)) {
+                                VehicleItem(
+                                    vehicle = vehicle,
+                                    userRole = userRole,
+                                    imageLoader = imageLoader,
+                                    onClick = { 
+                                        navController.navigate(Screen.AdminVehicleProfile.createRoute(vehicle.id))
+                                    }
                                 )
                             }
                         }

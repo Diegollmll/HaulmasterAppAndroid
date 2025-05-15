@@ -37,6 +37,8 @@ import java.net.SocketTimeoutException
 import app.forku.domain.model.session.VehicleSessionClosedMethod
 import app.forku.domain.model.vehicle.toDisplayString
 import android.util.Log
+import app.forku.core.Constants
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -47,6 +49,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val getVehicleStatusUseCase: GetVehicleStatusUseCase,
     private val checklistRepository: ChecklistRepository,
     private val userRepository: UserRepository,
+    private val checklistAnswerRepository: ChecklistAnswerRepository,
     savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -110,11 +113,8 @@ class VehicleProfileViewModel @Inject constructor(
 
                 // Determine the businessId to use for fetching based on role and nav args
                 val effectiveBusinessId = when (userRole) {
-                    UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> navBusinessId ?: "0" // Use nav arg or placeholder '0'
-                    else -> currentUser.businessId ?: run {
-                        _state.update { it.copy(isLoading = false, error = "No business context available") }
-                        return@launch
-                    }
+                    UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> navBusinessId ?: Constants.BUSINESS_ID
+                    else -> currentUser.businessId ?: Constants.BUSINESS_ID
                 }
                 Log.d("VehicleProfileVM_Debug", "Determined effectiveBusinessId: $effectiveBusinessId based on Role=$userRole")
 
@@ -132,6 +132,14 @@ class VehicleProfileViewModel @Inject constructor(
                 if (actualBusinessId != null) {
                     loadActiveSession(vehicle.id, actualBusinessId)
                     loadLastPreShiftCheck(vehicle.id, actualBusinessId)
+                    val lastChecklistAnswer = checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
+                    val lastChecklistOperator = lastChecklistAnswer?.goUserId?.takeIf { it.isNotBlank() }?.let { userRepository.getUserById(it) }
+                    _state.update {
+                        it.copy(
+                            lastChecklistAnswer = lastChecklistAnswer,
+                            lastChecklistOperator = lastChecklistOperator
+                        )
+                    }
                 } else {
                     Log.w("VehicleProfileVM", "Vehicle ${vehicle.id} has no businessId, skipping session/check load.")
                 }
@@ -283,7 +291,7 @@ class VehicleProfileViewModel @Inject constructor(
                 
                 // Get current user and business context
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
+                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
                 
                 if (businessId == null) {
                     _state.update { 
@@ -404,7 +412,7 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
+                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
                 
                 if (businessId == null) {
                     _state.update { 
@@ -416,7 +424,7 @@ class VehicleProfileViewModel @Inject constructor(
                     return@launch
                 }
                 
-                if (currentUser.role != UserRole.ADMIN) {
+                if (currentUser?.role != UserRole.ADMIN) {
                     _state.update { 
                         it.copy(
                             error = "Only administrators can end sessions",
@@ -470,7 +478,7 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
+                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
                 
                 if (businessId == null) {
                     _state.update { 
@@ -482,7 +490,7 @@ class VehicleProfileViewModel @Inject constructor(
                     return@launch
                 }
                 
-                if (currentUser.role != UserRole.ADMIN) {
+                if (currentUser?.role != UserRole.ADMIN) {
                     _state.update { 
                         it.copy(
                             error = "Only administrators can change vehicle status",

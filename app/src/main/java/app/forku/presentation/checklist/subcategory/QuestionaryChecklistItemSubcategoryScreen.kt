@@ -25,12 +25,14 @@ import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun QuestionaryChecklistItemSubcategoryScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     categoryId: String,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: QuestionaryChecklistItemSubcategoryViewModel = hiltViewModel()
 ) {
     // Set categoryId when the screen is first created
@@ -55,7 +57,8 @@ fun QuestionaryChecklistItemSubcategoryScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Checklist Subcategories",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

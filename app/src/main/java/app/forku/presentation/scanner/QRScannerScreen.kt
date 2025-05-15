@@ -35,6 +35,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 
@@ -46,7 +47,8 @@ fun QRScannerScreen(
     onNavigateBack: () -> Unit,
     viewModel: QRScannerViewModel = hiltViewModel(),
     networkManager: NetworkConnectivityManager,
-    navController: NavController
+    navController: NavController,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -137,6 +139,7 @@ fun QRScannerScreen(
         showBackButton = true,
         topBarTitle = "Scan Vehicle QR",
         networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(
                 modifier = Modifier

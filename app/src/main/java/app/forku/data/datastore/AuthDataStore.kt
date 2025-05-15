@@ -104,10 +104,9 @@ class AuthDataStore @Inject constructor(
         android.util.Log.d("AuthDataStore", "Saved CSRF token: ${token.take(10)}...")
     }
     
-    fun getCsrfToken(): String? {
-        return cachedCsrfToken
-    }
-    
+    // Non-suspend, for interceptors (returns only cached value)
+    fun getCsrfToken(): String? = cachedCsrfToken
+
     // Antiforgery Cookie methods
     suspend fun saveAntiforgeryCookie(cookie: String) {
         context.dataStore.edit { preferences ->
@@ -117,7 +116,23 @@ class AuthDataStore @Inject constructor(
         android.util.Log.d("AuthDataStore", "Saved Antiforgery cookie: ${cookie.take(20)}...")
     }
     
-    fun getAntiforgeryCookie(): String? {
+    // Non-suspend, for interceptors (returns only cached value)
+    fun getAntiforgeryCookie(): String? = cachedAntiforgeryCookie
+
+    // Suspend, for ViewModels/repos (loads from DataStore if needed)
+    suspend fun getCsrfTokenSuspend(): String? {
+        if (cachedCsrfToken == null) {
+            val preferences = context.dataStore.data.first()
+            cachedCsrfToken = preferences[PreferencesKeys.CSRF_TOKEN]
+        }
+        return cachedCsrfToken
+    }
+
+    suspend fun getAntiforgeryCookieSuspend(): String? {
+        if (cachedAntiforgeryCookie == null) {
+            val preferences = context.dataStore.data.first()
+            cachedAntiforgeryCookie = preferences[PreferencesKeys.ANTIFORGERY_COOKIE]
+        }
         return cachedAntiforgeryCookie
     }
 

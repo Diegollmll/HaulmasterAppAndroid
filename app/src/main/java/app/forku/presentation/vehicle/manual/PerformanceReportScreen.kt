@@ -9,29 +9,31 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun PerformanceReportScreen(
     navController: NavController,
     pdfUrl: String = "https://drive.google.com/file/d/1UXNMsRFqJH4fPfjtDvbvX-N57tGu-uUJ/preview",
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     BaseScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = "Performance Report",
-        content = { padding ->
-            AndroidView(
-                factory = { context ->
-                    WebView(context).apply {
-                        webViewClient = WebViewClient()
-                        settings.javaScriptEnabled = true
-                        loadUrl(pdfUrl)
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-        },
-        networkManager = networkManager
-    )
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
+    ) { padding ->
+        AndroidView(
+            factory = { context ->
+                WebView(context).apply {
+                    webViewClient = WebViewClient()
+                    settings.javaScriptEnabled = true
+                    loadUrl(pdfUrl)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 } 

@@ -1,10 +1,22 @@
 package app.forku.data.api.dto.checklist
 
+import com.google.gson.annotations.SerializedName
+
 data class AnsweredChecklistItemDto(
+    @SerializedName("Id")
     val id: String = "",
-    val checklistId: String = "",
-    val question: String = "",
-    val answer: String = "",
-    val userId: String = "",
-    val createdAt: String = ""
+    @SerializedName("ChecklistAnswerId")
+    val checklistAnswerId: String = "",
+    @SerializedName("ChecklistItemId")
+    val checklistItemId: String = "",
+    @SerializedName("GOUserId")
+    val goUserId: String = "",
+    @SerializedName("UserAnswer")
+    val userAnswer: Int = 0,
+    @SerializedName("IsDirty")
+    val isDirty: Boolean = true,
+    @SerializedName("IsNew")
+    val isNew: Boolean = true,
+    @SerializedName("IsMarkedForDeletion")
+    val isMarkedForDeletion: Boolean = false
 ) 

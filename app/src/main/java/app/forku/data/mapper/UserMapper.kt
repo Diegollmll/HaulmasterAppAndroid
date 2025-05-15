@@ -4,6 +4,7 @@ import app.forku.data.api.dto.user.UserDto
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import android.util.Log
+import app.forku.core.Constants
 
 fun UserDto.toDomain(roleOverride: UserRole? = null): User {
     // Determine role from userRoleItems if available, else use override, else default to OPERATOR
@@ -14,6 +15,9 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
         Log.w("UserMapper", "Could not map user role from userRoleItems, defaulting to OPERATOR: "+e.message)
         UserRole.OPERATOR
     }
+
+    // Use default businessId if not present
+    val resolvedBusinessId = this.userBusinesses?.firstOrNull()?.toString() ?: Constants.BUSINESS_ID
 
     return User(
         id = id ?: "",
@@ -31,7 +35,7 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
         isActive = !(blocked ?: false),
         isApproved = userValidated ?: false,
         password = password ?: "",
-        businessId = null, // Not present in UserDto
+        businessId = resolvedBusinessId,
         siteId = null, // Not present in UserDto
         systemOwnerId = null // Not present in UserDto
     )

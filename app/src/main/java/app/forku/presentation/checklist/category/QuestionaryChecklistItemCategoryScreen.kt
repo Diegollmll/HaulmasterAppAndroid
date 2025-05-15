@@ -17,11 +17,13 @@ import app.forku.data.api.dto.QuestionaryChecklistItemCategoryDto
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import androidx.navigation.NavController
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun QuestionaryChecklistItemCategoryScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: QuestionaryChecklistItemCategoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -32,7 +34,8 @@ fun QuestionaryChecklistItemCategoryScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Questionary Checklist Categories",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier

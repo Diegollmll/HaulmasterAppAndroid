@@ -17,6 +17,7 @@ import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.DatePickerDialog
 import app.forku.core.utils.hideKeyboardOnTapOutside
 import app.forku.core.utils.keyboardAwareScroll
+import app.forku.core.auth.TokenErrorHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,7 +25,8 @@ fun CertificationScreen(
     viewModel: CertificationViewModel = hiltViewModel(),
     certificationId: String? = null,
     navController: NavController,
-    networkManager: NetworkConnectivityManager
+    networkManager: NetworkConnectivityManager,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showIssueDatePicker by remember { mutableStateOf(false) }
@@ -67,6 +69,8 @@ fun CertificationScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = if (certificationId != null) "Edit Certification" else "Create Certification",
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(
                 modifier = Modifier
@@ -158,7 +162,6 @@ fun CertificationScreen(
                     }
                 }
             }
-        },
-        networkManager = networkManager
+        }
     )
 } 

@@ -9,11 +9,8 @@ data class Vehicle(
     val codename: String,
     val type: VehicleType,
     val status: VehicleStatus,
-    val manufacturer: String,
     val model: String,
     val serialNumber: String,
-    val year: Int,
-    val lastMaintenanceDate: String? = null,
     val description: String,
     val bestSuitedFor: String,
     val photoModel: String,
@@ -21,11 +18,15 @@ data class Vehicle(
     val energyType: String,
     val nextService: String,
     val hasIssues: Boolean = false,
-    val maintenanceStatus: MaintenanceStatus = MaintenanceStatus.UP_TO_DATE,
     val businessId: String? = null
 ) {
-    val needsMaintenance: Boolean
-        get() = maintenanceStatus != MaintenanceStatus.UP_TO_DATE
+
+    fun getPictureUrl(baseUrl: String, lastEditedTime: String? = "%LASTEDITEDTIME%"): String {
+        val timeParam = lastEditedTime?.let { "?t=$it" } ?: ""
+        val url = "$baseUrl" + "api/vehicle/file/$id/Picture$timeParam"
+        android.util.Log.d("VehicleImage", "Generated vehicle image URL: $url")
+        return url
+    }
 }
 
 enum class MaintenanceStatus {
@@ -33,3 +34,4 @@ enum class MaintenanceStatus {
     DUE_SOON,
     OVERDUE
 }
+

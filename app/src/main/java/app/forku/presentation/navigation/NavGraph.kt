@@ -78,6 +78,10 @@ import app.forku.presentation.sites.SitesScreen
 import app.forku.presentation.vehicle.component.VehicleComponentsScreen
 import app.forku.presentation.gogroup.GroupManagementScreen
 import app.forku.presentation.gogroup.GroupRoleManagementScreen
+import app.forku.core.auth.TokenErrorHandler
+import app.forku.core.auth.AuthenticationState
+import coil.ImageLoader
+import javax.inject.Inject
 
 
 @Composable
@@ -88,12 +92,29 @@ fun NavGraph(
     locationManager: LocationManager,
     userRole: UserRole,
     isAuthenticated: Boolean,
-    tourCompleted: Boolean
+    tourCompleted: Boolean,
+    tokenErrorHandler: TokenErrorHandler,
+    imageLoader: ImageLoader
 ) {
     val viewModel = hiltViewModel<DashboardViewModel>()
     val tourCompletedState by viewModel.tourCompleted.collectAsState()
     val loginState by viewModel.loginState.collectAsState()
     val hasToken by viewModel.hasToken.collectAsState()
+    val authState by tokenErrorHandler.authenticationState.collectAsState()
+
+    LaunchedEffect(authState) {
+        if (authState is AuthenticationState.RequiresAuthentication) {
+            val currentRoute = navController.currentDestination?.route
+            if (currentRoute != null && 
+                !currentRoute.contains(Screen.Login.route) && 
+                !currentRoute.contains(Screen.Register.route)) {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -113,21 +134,24 @@ fun NavGraph(
                     }
                 },
                 networkManager = networkManager,
-                navController = navController
+                navController = navController,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.Register.route) {
             RegisterScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.Tour.route) {
             TourScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -137,17 +161,17 @@ fun NavGraph(
                 onNavigate = { route ->
                     navController.navigate(route)
                 },
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.AdminDashboard.route) {
             AdminDashboardScreen(
                 navController = navController,
-                onNavigate = { route ->
-                    navController.navigate(route)
-                },
-                networkManager = networkManager
+                networkManager = networkManager,
+                imageLoader = imageLoader,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -163,7 +187,9 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 networkManager = networkManager,
-                navController = navController
+                navController = navController,
+                viewModel = hiltViewModel(),
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -200,7 +226,9 @@ fun NavGraph(
                     }
                 },
                 networkManager = networkManager,
-                locationManager = locationManager
+                locationManager = locationManager,
+                imageLoader = imageLoader,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -219,7 +247,9 @@ fun NavGraph(
                     )
                 },
                 networkManager = networkManager,
-                userRole = currentUser?.role ?: UserRole.OPERATOR
+                userRole = currentUser?.role ?: UserRole.OPERATOR,
+                imageLoader = imageLoader,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -230,11 +260,11 @@ fun NavGraph(
                 navArgument("businessId") { 
                     type = NavType.StringType 
                     nullable = true
-                } 
+                }
             )
-        ) { entry ->
-            val vehicleId = entry.arguments?.getString("vehicleId") ?: return@composable
-            val businessId = entry.arguments?.getString("businessId")
+        ) { backStackEntry ->
+            val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: return@composable
+            val businessId = backStackEntry.arguments?.getString("businessId")
             val viewModel: VehicleProfileViewModel = hiltViewModel()
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
             val currentUser by dashboardViewModel.currentUser.collectAsState()
@@ -251,7 +281,9 @@ fun NavGraph(
                 },
                 navController = navController,
                 networkManager = networkManager,
-                userRole = currentUser?.role ?: UserRole.OPERATOR
+                userRole = userRole,
+                imageLoader = imageLoader,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -272,7 +304,8 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() },
                 viewModel = viewModel,
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -287,7 +320,6 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val operatorId = backStackEntry.arguments?.getString("operatorId")
-            android.util.Log.e("appflow", "NavGraph composable(route = Screen.Profile.route, operatorId: $operatorId")
             ProfileScreen(
                 navController = navController,
                 onNavigateBack = { navController.navigateUp() },
@@ -295,7 +327,8 @@ fun NavGraph(
                     navController.navigate(Screen.OperatorsCICOHistory.createRoute(operatorId))
                 },
                 networkManager = networkManager,
-                operatorId = operatorId
+                operatorId = operatorId,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -316,13 +349,13 @@ fun NavGraph(
         ) { backStackEntry ->
             val operatorId = backStackEntry.arguments?.getString("operatorId")
             val source = backStackEntry.arguments?.getString("source")
-            android.util.Log.e("appflow", "NavGraph composable(route = Screen.OperatorsCICOHistory.route operatorId: $operatorId, source: $source")
             CicoHistoryScreen(
                 onNavigateBack = { navController.navigateUp() },
                 navController = navController,
                 networkManager = networkManager,
                 operatorId = operatorId,
-                source = source
+                source = source,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -350,14 +383,17 @@ fun NavGraph(
                 navController = navController,
                 networkManager = networkManager,
                 userId = userId,
-                source = source
+                source = source,
+                tokenErrorHandler = tokenErrorHandler,
+                viewModel = hiltViewModel()
             )
         }
 
         composable(Screen.PerformanceReport.route) {
             PerformanceReportScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -369,29 +405,32 @@ fun NavGraph(
             IncidentDetailScreen(
                 incidentId = incidentId,
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
-
 
         composable(Screen.OperatorsList.route) {
             OperatorsListScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.Notifications.route) {
             NotificationScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.AllChecklist.route) {
             AllChecklistScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -405,14 +444,16 @@ fun NavGraph(
             CheckDetailScreen(
                 checkId = checkId,
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.SafetyAlerts.route) {
             SafetyAlertsScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -431,6 +472,7 @@ fun NavGraph(
             CertificationsScreen(
                 navController = navController,
                 networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler,
                 userId = userId
             )
         }
@@ -448,7 +490,8 @@ fun NavGraph(
             CertificationDetailScreen(
                 certificationId = certificationId,
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -465,14 +508,16 @@ fun NavGraph(
             CertificationScreen(
                 certificationId = certificationId,
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.CertificationCreate.route) {
             CertificationScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -482,7 +527,8 @@ fun NavGraph(
                 onNavigate = { route ->
                     navController.navigate(route)
                 },
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -492,7 +538,8 @@ fun NavGraph(
                 onNavigate = { route ->
                     navController.navigate(route)
                 },
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -500,14 +547,17 @@ fun NavGraph(
         composable(Screen.UserManagement.route) {
             UserManagementScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                showAddUserDialogByDefault = false,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.BusinessManagement.route) {
             BusinessManagementScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -523,7 +573,8 @@ fun NavGraph(
             UserManagementScreen(
                 navController = navController,
                 networkManager = networkManager,
-                showAddUserDialogByDefault = true
+                showAddUserDialogByDefault = true,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -534,7 +585,8 @@ fun NavGraph(
         composable(Screen.AddVehicle.route) {
             AddVehicleScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -550,7 +602,8 @@ fun NavGraph(
         ) {
             EditVehicleScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -565,7 +618,8 @@ fun NavGraph(
         composable(Screen.SystemSettings.route) {
             SystemSettingsScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -576,7 +630,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 EnergySourcesScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -592,14 +647,16 @@ fun NavGraph(
         composable(Screen.TimeZones.route) {
             TimeZonesScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
         composable(Screen.Countries.route) {
             CountriesScreen(
                 navController = navController,
-                networkManager = networkManager
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -610,7 +667,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 VehicleCategoryScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -626,7 +684,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 VehicleTypeScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -642,7 +701,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 VehicleComponentsScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -656,7 +716,9 @@ fun NavGraph(
             AdminVehiclesListScreen(
                 navController = navController,
                 networkManager = networkManager,
-                userRole = userRole
+                userRole = userRole,
+                imageLoader = imageLoader,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
         composable(
@@ -669,7 +731,8 @@ fun NavGraph(
                      vehicleId = vehicleId,
                      navController = navController,
                      networkManager = networkManager,
-                     userRole = userRole
+                     userRole = userRole,
+                     tokenErrorHandler = tokenErrorHandler
                  )
              } else {
                  Text("Error: Vehicle ID missing")
@@ -684,7 +747,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 QuestionaryChecklistItemCategoryScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -707,7 +771,8 @@ fun NavGraph(
                 QuestionaryChecklistItemSubcategoryScreen(
                     navController = navController,
                     networkManager = networkManager,
-                    categoryId = categoryId
+                    categoryId = categoryId,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -723,7 +788,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 ChecklistSubcategoriesScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -740,7 +806,8 @@ fun NavGraph(
             if (currentUser?.role == UserRole.SYSTEM_OWNER) {
                 QuestionaryChecklistScreen(
                     navController = navController,
-                    networkManager = networkManager
+                    networkManager = networkManager,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -770,12 +837,15 @@ fun NavGraph(
                     QuestionaryChecklistItemScreen(
                         navController = navController,
                         networkManager = networkManager,
-                        checklistId = questionaryId
+                        checklistId = questionaryId,
+                        tokenErrorHandler = tokenErrorHandler
                     )
                 } else {
                     QuestionarySelectionScreen(
                         navController = navController,
-                        viewModel = questionaryChecklistViewModel
+                        viewModel = questionaryChecklistViewModel,
+                        networkManager = networkManager,
+                        tokenErrorHandler = tokenErrorHandler
                     )
                 }
             } else {
@@ -801,7 +871,8 @@ fun NavGraph(
                 SitesScreen(
                     navController = navController,
                     networkManager = networkManager,
-                    businessId = businessId
+                    businessId = businessId,
+                    tokenErrorHandler = tokenErrorHandler
                 )
             } else {
                 LaunchedEffect(Unit) {
@@ -814,7 +885,10 @@ fun NavGraph(
             GroupManagementScreen(
                 onNavigateToRoles = { groupName ->
                     navController.navigate(Screen.GroupRoleManagement.createRoute(groupName))
-                }
+                },
+                navController = navController,
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
             )
         }
 
@@ -827,7 +901,12 @@ fun NavGraph(
             )
         ) { entry ->
             val groupName = entry.arguments?.getString(Screen.GroupRoleManagement.GROUP_NAME_ARG) ?: return@composable
-            GroupRoleManagementScreen(groupName = groupName)
+            GroupRoleManagementScreen(
+                groupName = groupName,
+                navController = navController,
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
+            )
         }
     }
 }

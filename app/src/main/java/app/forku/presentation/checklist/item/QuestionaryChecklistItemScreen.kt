@@ -29,6 +29,7 @@ import app.forku.presentation.common.components.BaseScreen
 import androidx.navigation.NavController
 import app.forku.data.api.dto.vehicle.VehicleComponentDto
 import kotlinx.coroutines.delay
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun QuestionaryChecklistItemScreen(
@@ -36,6 +37,7 @@ fun QuestionaryChecklistItemScreen(
     networkManager: NetworkConnectivityManager,
     checklistId: String,
     questionaryTitle: String? = null,
+    tokenErrorHandler: TokenErrorHandler,
     viewModel: QuestionaryChecklistItemViewModel = hiltViewModel()
 ) {
     // Set checklistId when the screen is first created
@@ -80,7 +82,8 @@ fun QuestionaryChecklistItemScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = questionaryTitle?.let { "Items: $it" } ?: "Questionary Items",
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
@@ -794,7 +797,7 @@ private fun QuestionaryChecklistItemFormDialog(
                             }
 
                             // Then show other vehicle types
-                            uiState.availableVehicleTypes.map { it.name }.filter { it != "ALL" }.forEach { type ->
+                            uiState.availableVehicleTypes.map { it.Name }.filter { it != "ALL" }.forEach { type ->
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()

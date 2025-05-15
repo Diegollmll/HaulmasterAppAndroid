@@ -36,6 +36,9 @@ import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.domain.model.vehicle.getDescription
 import app.forku.presentation.navigation.Screen
 import android.util.Log
+import app.forku.core.auth.TokenErrorHandler
+import coil.ImageLoader
+import app.forku.presentation.common.components.BaseScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,10 +50,17 @@ fun VehicleProfileScreen(
     onScanQrCode: () -> Unit,
     navController: NavController,
     networkManager: NetworkConnectivityManager,
-    userRole: UserRole  // Removed default ADMIN value to force proper injection
+    userRole: UserRole,
+    imageLoader: ImageLoader,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showStatusDialog by remember { mutableStateOf(false) }
+
+    // Debug log for state
+    LaunchedEffect(state.vehicle, state.isLoading, state.error) {
+        Log.d("VehicleProfileScreenDebug", "vehicle=${state.vehicle}, isLoading=${state.isLoading}, error=${state.error}")
+    }
 
     LaunchedEffect(state.checkId) {
         state.checkId?.let { checkId ->
@@ -139,97 +149,86 @@ fun VehicleProfileScreen(
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Vehicle Profile") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    if (state.vehicle != null) {
-                        val vehicle = state.vehicle // Store vehicle in local variable
-                        val isVehicleOutOfService = vehicle?.status == VehicleStatus.OUT_OF_SERVICE
-                        val shouldShowMenu = userRole == UserRole.ADMIN || userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER
+    BaseScreen(
+        navController = navController,
+        showTopBar = true,
+        showBottomBar = false,
+        viewModel = viewModel,
+        topBarTitle = "Vehicle Profile",
+        networkManager = networkManager,
+        onRefresh = { viewModel.loadVehicle() },
+        tokenErrorHandler = tokenErrorHandler,
+        topBarActions = {
+            if (state.vehicle != null) {
+                val vehicle = state.vehicle // Store vehicle in local variable
+                val isVehicleOutOfService = vehicle?.status == VehicleStatus.OUT_OF_SERVICE
+                val shouldShowMenu = userRole == UserRole.ADMIN || userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER
 
-                        if (shouldShowMenu) {
-                            val options = buildList {
-
-                                    // Admin/SuperAdmin/SystemOwner specific options
-                                    if (userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER) {
-                                        add(DropdownMenuOption(
-                                            text = "Edit Vehicle",
-                                            onClick = {
-                                                state.vehicle?.let { v ->
-                                                    navController.navigate(
-                                                        Screen.EditVehicle.createRoute(
-                                                            vehicleId = v.id,
-                                                            // Pass the actual businessId (can be null)
-                                                            businessId = v.businessId
-                                                        )
-                                                    )
-                                                }
-                                            },
-                                            leadingIcon = Icons.Default.Edit,
-                                            enabled = true,
-                                            adminOnly = true // Technically for admins+
-                                        ))
+                if (shouldShowMenu) {
+                    val options = buildList {
+                        // Admin/SuperAdmin/SystemOwner specific options
+                        if (userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER) {
+                            add(DropdownMenuOption(
+                                text = "Edit Vehicle",
+                                onClick = {
+                                    state.vehicle?.let { v ->
+                                        navController.navigate(
+                                            Screen.EditVehicle.createRoute(
+                                                vehicleId = v.id,
+                                                businessId = v.businessId
+                                            )
+                                        )
                                     }
+                                },
+                                leadingIcon = Icons.Default.Edit,
+                                enabled = true,
+                                adminOnly = true
+                            ))
+                        }
 
+                        if (userRole == UserRole.ADMIN) {
+                            add(DropdownMenuOption(
+                                text = "Change Vehicle Status",
+                                onClick = { showStatusDialog = true },
+                                leadingIcon = Icons.Default.Edit,
+                                enabled = true,
+                                adminOnly = true
+                            ))
 
-                                if (userRole == UserRole.ADMIN) {
-                                    add(DropdownMenuOption(
-                                        text = "Change Vehicle Status",
-                                        onClick = { showStatusDialog = true },
-                                        leadingIcon = Icons.Default.Edit, // Maybe change icon? Re-using Edit for now.
-                                        enabled = true,
-                                        adminOnly = true
-                                    ))
+                            add(DropdownMenuOption(
+                                text = "Show QR Code",
+                                onClick = { viewModel.toggleQrCode() },
+                                leadingIcon = Icons.Default.Info,
+                                enabled = true,
+                                adminOnly = true
+                            ))
 
-                                    add(DropdownMenuOption(
-                                        text = "Show QR Code",
-                                        onClick = { viewModel.toggleQrCode() },
-                                        leadingIcon = Icons.Default.Info,
-                                        enabled = true,
-                                        adminOnly = true
-                                    ))
+                            add(DropdownMenuOption(
+                                text = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist",
+                                onClick = { onPreShiftCheck(vehicle?.id ?: "") },
+                                leadingIcon = Icons.Default.CheckCircle,
+                                enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession
+                            ))
 
-// Options available to all users (conditionally enabled)
-                                    add(DropdownMenuOption(
-                                        text = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist",
-                                        onClick = { onPreShiftCheck(vehicle?.id ?: "") },
-                                        leadingIcon = Icons.Default.CheckCircle,
-                                        enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession
-                                    ))
-
-                                    // Add End Session option if there's an active session
-                                    if (state.activeSession != null) {
-                                        add(DropdownMenuOption(
-                                            text = "End Vehicle Session (Admin)",
-                                            onClick = { viewModel.endVehicleSession() },
-                                            leadingIcon = Icons.Default.Stop,
-                                            enabled = true,
-                                            adminOnly = true,
-                                            iconTint = MaterialTheme.colorScheme.error
-                                        ))
-                                    }
-
-
-
-                                }
-
+                            if (state.activeSession != null) {
+                                add(DropdownMenuOption(
+                                    text = "End Vehicle Session (Admin)",
+                                    onClick = { viewModel.endVehicleSession() },
+                                    leadingIcon = Icons.Default.Stop,
+                                    enabled = true,
+                                    adminOnly = true,
+                                    iconTint = MaterialTheme.colorScheme.error
+                                ))
                             }
-
-                            OptionsDropdownMenu(
-                                options = options,
-                                isEnabled = true
-                            )
                         }
                     }
+
+                    OptionsDropdownMenu(
+                        options = options,
+                        isEnabled = true
+                    )
                 }
-            )
+            }
         }
     ) { padding ->
         Box(
@@ -248,7 +247,8 @@ fun VehicleProfileScreen(
                     Box(modifier = Modifier.fillMaxSize()) {
                         VehicleProfileContent(
                             state = state,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            imageLoader = imageLoader
                         )
 
                         if (state.showQrCode && userRole == UserRole.ADMIN) {
@@ -258,7 +258,6 @@ fun VehicleProfileScreen(
                                 onShare = viewModel::shareQrCode
                             )
                         }
-
                     }
                 }
             }
@@ -269,7 +268,8 @@ fun VehicleProfileScreen(
 @Composable
 fun VehicleProfileContent(
     state: VehicleProfileState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    imageLoader: ImageLoader
 ) {
     Box(
         modifier = modifier.fillMaxSize(),
@@ -293,7 +293,9 @@ fun VehicleProfileContent(
                         status = status,
                         activeOperator = state.activeOperator,
                         showOperatorDetails = true,
-                        showPreShiftCheckDetails = true
+                        showPreShiftCheckDetails = true,
+                        showVehicleDetails = true,
+                        imageLoader = imageLoader
                     )
                     
                     Spacer(modifier = Modifier.height(32.dp))

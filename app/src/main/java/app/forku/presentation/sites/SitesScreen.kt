@@ -20,13 +20,15 @@ import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.site.SitesViewModel
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
+import app.forku.core.auth.TokenErrorHandler
 
 @Composable
 fun SitesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     businessId: String,
-    viewModel: SitesViewModel = hiltViewModel()
+    viewModel: SitesViewModel = hiltViewModel(),
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -40,115 +42,117 @@ fun SitesScreen(
         showTopBar = true,
         showBackButton = true,
         topBarTitle = "Sites Management",
-        networkManager = networkManager
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                uiState.error != null -> {
-                    Text(
-                        text = uiState.error ?: "Unknown error",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp)
-                    )
-                }
-                else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-                        // Add Site Button
-                        Button(
-                            onClick = { viewModel.showAddSiteDialog() },
-                            modifier = Modifier.fillMaxWidth()
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
+        content = { padding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                    uiState.error != null -> {
+                        Text(
+                            text = uiState.error ?: "Unknown error",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(16.dp)
+                        )
+                    }
+                    else -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Add New Site")
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Sites List
-                        if (uiState.sites.isEmpty()) {
-                            Text(
-                                text = "No sites found",
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        } else {
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            // Add Site Button
+                            Button(
+                                onClick = { viewModel.showAddSiteDialog() },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                items(uiState.sites) { site ->
-                                    SiteCard(
-                                        site = site,
-                                        onEdit = { viewModel.showEditSiteDialog(it) },
-                                        onDelete = { viewModel.showDeleteConfirmation(it) }
-                                    )
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Add New Site")
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Sites List
+                            if (uiState.sites.isEmpty()) {
+                                Text(
+                                    text = "No sites found",
+                                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            } else {
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(uiState.sites) { site ->
+                                        SiteCard(
+                                            site = site,
+                                            onEdit = { viewModel.showEditSiteDialog(it) },
+                                            onDelete = { viewModel.showDeleteConfirmation(it) }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
 
-        // Add/Edit Site Dialog
-        if (uiState.showDialog) {
-            SiteDialog(
-                site = uiState.selectedSite,
-                onDismiss = { viewModel.hideDialog() },
-                onSave = { site ->
-                    if (uiState.selectedSite != null) {
-                        viewModel.updateSite(businessId, site)
-                    } else {
-                        viewModel.createSite(businessId, site)
-                    }
-                }
-            )
-        }
-
-        // Delete Confirmation Dialog
-        if (uiState.showDeleteConfirmation) {
-            AlertDialog(
-                onDismissRequest = { viewModel.hideDeleteConfirmation() },
-                title = { Text("Delete Site") },
-                text = { Text("Are you sure you want to delete this site?") },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            uiState.selectedSite?.let { site ->
-                                viewModel.deleteSite(businessId, site.id)
-                            }
+            // Add/Edit Site Dialog
+            if (uiState.showDialog) {
+                SiteDialog(
+                    site = uiState.selectedSite,
+                    onDismiss = { viewModel.hideDialog() },
+                    onSave = { site ->
+                        if (uiState.selectedSite != null) {
+                            viewModel.updateSite(businessId, site)
+                        } else {
+                            viewModel.createSite(businessId, site)
                         }
-                    ) {
-                        Text("Delete")
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { viewModel.hideDeleteConfirmation() }) {
-                        Text("Cancel")
+                )
+            }
+
+            // Delete Confirmation Dialog
+            if (uiState.showDeleteConfirmation) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.hideDeleteConfirmation() },
+                    title = { Text("Delete Site") },
+                    text = { Text("Are you sure you want to delete this site?") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                uiState.selectedSite?.let { site ->
+                                    viewModel.deleteSite(businessId, site.id)
+                                }
+                            }
+                        ) {
+                            Text("Delete")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.hideDeleteConfirmation() }) {
+                            Text("Cancel")
+                        }
                     }
-                }
-            )
+                )
+            }
         }
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import com.google.gson.Gson
 import com.google.gson.JsonParseException
 import app.forku.data.datastore.AuthDataStore
+import app.forku.data.api.dto.error.AuthErrorDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +37,7 @@ data class TokenError(
 
 /**
  * Centralized handler for token authentication errors
- * Monitors for 401 errors, parses them, and signals when re-authentication is needed
+ * Monitors for 401/403 errors, parses them, and signals when re-authentication is needed
  */
 @Singleton
 class TokenErrorHandler @Inject constructor(
@@ -75,49 +76,40 @@ class TokenErrorHandler @Inject constructor(
                 return true
             }
             
-            val tokenError = parseTokenError(errorBody)
-            if (tokenError != null) {
-                when (tokenError.code) {
-                    TokenErrors.EXPIRED_TOKEN -> {
-                        Log.d(TAG, "Token expired: ${tokenError.message}")
-                        signalAuthenticationRequired(tokenError.message)
-                    }
-                    TokenErrors.NULL_TOKEN -> {
-                        Log.d(TAG, "Token null: ${tokenError.message}")
-                        signalAuthenticationRequired(tokenError.message)
-                    }
-                    TokenErrors.INVALID_TOKEN -> {
-                        Log.d(TAG, "Token invalid: ${tokenError.message}")
-                        signalAuthenticationRequired(tokenError.message)
-                    }
-                    TokenErrors.MISSING_CSRF -> {
-                        Log.d(TAG, "CSRF token missing: ${tokenError.message}")
-                        signalAuthenticationRequired(tokenError.message)
-                    }
-                    TokenErrors.ACCESS_DENIED -> {
-                        Log.d(TAG, "Access denied: ${tokenError.message}")
-                        signalAuthenticationRequired(tokenError.message)
-                    }
-                    else -> {
-                        // Handle generic 403 errors
-                        if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-                            Log.d(TAG, "Access denied error: ${tokenError.message}")
-                            signalAuthenticationRequired("Access denied: ${tokenError.message}")
-                        } else {
-                            Log.d(TAG, "Other authentication error: ${tokenError.code} - ${tokenError.message}")
-                            signalAuthenticationRequired(tokenError.message)
+            // Try to parse as AuthErrorDto first
+            try {
+                val authError = gson.fromJson(errorBody, AuthErrorDto::class.java)
+                if (authError != null) {
+                    when {
+                        authError.isTokenExpired() -> {
+                            Log.d(TAG, "Token expired: ${authError.detail}")
+                            signalAuthenticationRequired(authError.detail ?: "Session expired")
+                            return true
+                        }
+                        authError.isAuthError() -> {
+                            Log.d(TAG, "Auth error: ${authError.detail}")
+                            signalAuthenticationRequired(authError.detail ?: "Authentication required")
+                            return true
                         }
                     }
                 }
-                return true
-            } else if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
-                // Handle 403 errors without proper error body
-                Log.d(TAG, "Access denied with unparseable error body: $errorBody")
+            } catch (e: Exception) {
+                // Fallback to old parsing if AuthErrorDto fails
+                val tokenError = parseTokenError(errorBody)
+                if (tokenError != null) {
+                    handleTokenError(tokenError)
+                    return true
+                }
+            }
+            
+            // If we get here and it's a 403, treat as auth error
+            if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
+                Log.d(TAG, "Generic 403 error")
                 signalAuthenticationRequired("Access denied: Please log in again")
                 return true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing token error response", e)
+            Log.e(TAG, "Error processing auth error", e)
             if (response.code() == HttpURLConnection.HTTP_FORBIDDEN) {
                 signalAuthenticationRequired("Access denied: Please log in again")
                 return true
@@ -127,13 +119,45 @@ class TokenErrorHandler @Inject constructor(
         return false
     }
     
+    private suspend fun handleTokenError(tokenError: TokenError) {
+        when (tokenError.code) {
+            TokenErrors.EXPIRED_TOKEN -> {
+                Log.d(TAG, "Token expired: ${tokenError.message}")
+                signalAuthenticationRequired(tokenError.message)
+            }
+            TokenErrors.NULL_TOKEN -> {
+                Log.d(TAG, "Token null: ${tokenError.message}")
+                signalAuthenticationRequired(tokenError.message)
+            }
+            TokenErrors.INVALID_TOKEN -> {
+                Log.d(TAG, "Token invalid: ${tokenError.message}")
+                signalAuthenticationRequired(tokenError.message)
+            }
+            TokenErrors.MISSING_CSRF -> {
+                Log.d(TAG, "CSRF token missing: ${tokenError.message}")
+                signalAuthenticationRequired(tokenError.message)
+            }
+            TokenErrors.ACCESS_DENIED -> {
+                Log.d(TAG, "Access denied: ${tokenError.message}")
+                signalAuthenticationRequired(tokenError.message)
+            }
+            else -> {
+                Log.d(TAG, "Other auth error: ${tokenError.code} - ${tokenError.message}")
+                signalAuthenticationRequired(tokenError.message)
+            }
+        }
+    }
+    
     /**
      * Parse a JSON error response into a TokenError object
      */
     private fun parseTokenError(errorBody: String): TokenError? {
         return try {
-            gson.fromJson(errorBody, TokenError::class.java)
-        } catch (e: JsonParseException) {
+            val json = gson.fromJson(errorBody, Map::class.java)
+            val code = json["code"] as? String ?: json["title"] as? String
+            val message = json["message"] as? String ?: json["detail"] as? String ?: ""
+            if (code != null) TokenError(code, message) else null
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to parse error body: $errorBody", e)
             null
         }

@@ -54,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.OptionsDropdownMenu
 import app.forku.presentation.common.components.DropdownMenuOption
@@ -66,7 +67,8 @@ fun ProfileScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     operatorId: String? = null,
-    onNavigateToCicoHistory: () -> Unit
+    onNavigateToCicoHistory: () -> Unit,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -194,6 +196,7 @@ fun ProfileScreen(
             }
         },
         networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler,
         topBarActions = if (operatorId == null) {
             {
                 OptionsDropdownMenu(

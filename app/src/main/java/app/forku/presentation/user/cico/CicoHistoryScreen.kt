@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.DisposableEffect
+import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.utils.formatReadableDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +41,8 @@ fun CicoHistoryScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     operatorId: String? = null,
-    source: String? = null
+    source: String? = null,
+    tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
@@ -189,11 +191,13 @@ fun CicoHistoryScreen(
                 }
             }
         },
-        networkManager = networkManager
+        networkManager = networkManager,
+        tokenErrorHandler = tokenErrorHandler
     )
 }
 
 @Composable
+
 private fun CicoHistoryItem(
     entry: CicoEntry,
     showOperator: Boolean = false
