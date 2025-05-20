@@ -34,6 +34,7 @@ import app.forku.domain.repository.checklist.AnsweredChecklistItemRepository
 import app.forku.domain.model.checklist.ChecklistAnswer
 import app.forku.domain.model.checklist.AnsweredChecklistItem
 import app.forku.domain.usecase.session.StartVehicleSessionUseCase
+import app.forku.domain.repository.vehicle.VehicleStatusUpdater
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -50,6 +51,7 @@ class ChecklistViewModel @Inject constructor(
     private val checklistAnswerRepository: ChecklistAnswerRepository,
     private val answeredChecklistItemRepository: AnsweredChecklistItemRepository,
     private val startVehicleSessionUseCase: StartVehicleSessionUseCase,
+    private val vehicleStatusUpdater: VehicleStatusUpdater,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -140,47 +142,49 @@ class ChecklistViewModel @Inject constructor(
     }
 
     private fun startTimer() {
+        android.util.Log.d("ChecklistViewModel", "startTimer() called")
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (true) {
-                delay(1000) // Update every second
+                delay(1000)
                 _state.value?.let { currentState ->
+                    if (currentState.isCompleted) {
+                        android.util.Log.d("ChecklistViewModel", "Timer stopped: checklist is completed.")
+                        timerJob?.cancel()
+                        timerJob = null
+                        return@launch
+                    }
+                    android.util.Log.d("ChecklistViewModel", "[TIMER] Loop: startDateTime=${currentState.startDateTime}, isCompleted=${currentState.isCompleted}, elapsedTime=${currentState.elapsedTime}")
                     if (!currentState.isCompleted && currentState.startDateTime != null) {
                         try {
                             val startDateTime = currentState.startDateTime
-                            android.util.Log.d("ChecklistViewModel", "Timer - Current startDateTime: $startDateTime")
-                            
+                            android.util.Log.d("ChecklistViewModel", "[TIMER] Parsing startDateTime: $startDateTime")
                             // Parse the date using ZonedDateTime first, then convert to Instant
                             val startTimeMillis = try {
                                 val zonedDateTime = java.time.ZonedDateTime.parse(startDateTime)
                                 zonedDateTime.toInstant().toEpochMilli()
                             } catch (e: Exception) {
-                                android.util.Log.e("ChecklistViewModel", "Failed to parse date: $startDateTime", e)
+                                android.util.Log.e("ChecklistViewModel", "[TIMER] Failed to parse as ZonedDateTime: $startDateTime", e)
                                 // Try parsing as Instant directly if ZonedDateTime fails
                                 try {
                                     val instantStr = startDateTime.substringBefore("[")
                                     java.time.Instant.parse(instantStr).toEpochMilli()
                                 } catch (e2: Exception) {
-                                    android.util.Log.e("ChecklistViewModel", "Failed to parse as Instant: $startDateTime", e2)
+                                    android.util.Log.e("ChecklistViewModel", "[TIMER] Failed to parse as Instant: $startDateTime", e2)
                                     System.currentTimeMillis() // Use current time as fallback
                                 }
                             }
-                            
                             val newElapsedTime = System.currentTimeMillis() - startTimeMillis
-                            android.util.Log.d("ChecklistViewModel", "Timer - Start time millis: $startTimeMillis")
-                            android.util.Log.d("ChecklistViewModel", "Timer - Current time millis: ${System.currentTimeMillis()}")
-                            android.util.Log.d("ChecklistViewModel", "Timer - Calculated elapsed time: $newElapsedTime ms")
-                            
-                            _state.update { state -> 
+                            android.util.Log.d("ChecklistViewModel", "[TIMER] startTimeMillis=$startTimeMillis, now=${System.currentTimeMillis()}, newElapsedTime=$newElapsedTime")
+                            _state.update { state ->
+                                android.util.Log.d("ChecklistViewModel", "[TIMER] Updating state with elapsedTime=${newElapsedTime.coerceAtLeast(0)}")
                                 state?.copy(elapsedTime = newElapsedTime.coerceAtLeast(0))
                             }
                         } catch (e: Exception) {
-                            android.util.Log.e("ChecklistViewModel", "Error updating timer", e)
+                            android.util.Log.e("ChecklistViewModel", "[TIMER] Error updating timer", e)
                         }
                     } else {
-                        android.util.Log.d("ChecklistViewModel", "Timer - Check completed or no start time available")
-                        android.util.Log.d("ChecklistViewModel", "Timer - isCompleted: ${currentState.isCompleted}")
-                        android.util.Log.d("ChecklistViewModel", "Timer - startDateTime: ${currentState.startDateTime}")
+                        android.util.Log.d("ChecklistViewModel", "[TIMER] Timer not running: isCompleted=${currentState.isCompleted}, startDateTime=${currentState.startDateTime}")
                     }
                 }
             }
@@ -190,6 +194,13 @@ class ChecklistViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         timerJob?.cancel()
+    }
+
+    private fun maybeStartTimer() {
+        val s = _state.value
+        if (s?.startDateTime != null && s.isCompleted == false) {
+            startTimer()
+        }
     }
 
     fun loadChecklistData() {
@@ -284,6 +295,7 @@ class ChecklistViewModel @Inject constructor(
                         startDateTime = currentDateTime
                     )
                     android.util.Log.d("ChecklistViewModel", "ChecklistState actualizado: ${_state.value}")
+                    maybeStartTimer()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -566,6 +578,9 @@ class ChecklistViewModel @Inject constructor(
             ?: throw Exception("No checklist ID found")
         android.util.Log.d("ChecklistViewModel", "Current checklist ID (plantilla): $currentChecklistId")
 
+        // Calcular duración en segundos
+        val durationSeconds = ((state.value?.elapsedTime ?: 0L) / 1000).toInt().coerceAtLeast(0)
+
         // Intentar obtener el ChecklistAnswer existente si hay un answerId
         val existingAnswerId = state.value?.checklistAnswerId
         android.util.Log.d("ChecklistViewModel", "Existing checklist answer ID: $existingAnswerId")
@@ -582,7 +597,8 @@ class ChecklistViewModel @Inject constructor(
                         checklistId = currentChecklistId,
                         locationCoordinates = locationCoordinates,
                         lastCheckDateTime = now,
-                        vehicleId = currentVehicleId
+                        vehicleId = currentVehicleId,
+                        duration = durationSeconds
                     )
                 }
             } catch (e: Exception) {
@@ -605,7 +621,8 @@ class ChecklistViewModel @Inject constructor(
             isNew = true,
             isMarkedForDeletion = false,
             lastCheckDateTime = now,
-            vehicleId = currentVehicleId
+            vehicleId = currentVehicleId,
+            duration = durationSeconds
         )
     }
 
@@ -723,6 +740,16 @@ class ChecklistViewModel @Inject constructor(
                             )
                         }
                     }
+                } else if (validation.status == CheckStatus.COMPLETED_FAIL) {
+                    // Bloquear vehículo ya ocurre en repositorio, solo navega y muestra mensaje
+                    _state.update { it?.copy(vehicleBlocked = true, message = "El vehículo ha sido bloqueado por un fallo en el checklist.") }
+                    _navigationEvent.value = NavigationEvent.VehicleBlocked
+                    // Cambiar estado del vehículo a OUT_OF_SERVICE
+                    val vehicleId = state.value?.vehicleId
+                    if (vehicleId != null) {
+                        val businessId = state.value?.vehicle?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                        vehicleStatusUpdater.updateVehicleStatus(vehicleId, VehicleStatus.OUT_OF_SERVICE, businessId)
+                    }
                 }
 
                 // Update final state and navigate
@@ -737,6 +764,7 @@ class ChecklistViewModel @Inject constructor(
                         syncErrors = emptyMap()
                     )
                 }
+                stopTimerIfCompleted()
 
             } catch (e: Exception) {
                 android.util.Log.e("ChecklistViewModel", "Error in submitCheck: ${e.message}", e)
@@ -771,6 +799,7 @@ class ChecklistViewModel @Inject constructor(
                         isReadOnly = it.status != CheckStatus.IN_PROGRESS.toString(),
                         startDateTime = it.startDateTime
                     )
+                    maybeStartTimer()
                 }
             } catch (e: Exception) {
                 _state.value = ChecklistState(
@@ -822,10 +851,29 @@ class ChecklistViewModel @Inject constructor(
                         android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session: ${e.message}", e)
                         _state.update { it?.copy(message = "Checklist saved, but failed to start vehicle session: ${e.message}") }
                     }
+                } else if (validation.status == CheckStatus.COMPLETED_FAIL) {
+                    // Bloquear vehículo ya ocurre en repositorio, solo navega y muestra mensaje
+                    _state.update { it?.copy(vehicleBlocked = true, message = "El vehículo ha sido bloqueado por un fallo en el checklist.") }
+                    _navigationEvent.value = NavigationEvent.VehicleBlocked
+                    // Cambiar estado del vehículo a OUT_OF_SERVICE
+                    val vehicleId = state.value?.vehicleId
+                    if (vehicleId != null) {
+                        val businessId = state.value?.vehicle?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                        vehicleStatusUpdater.updateVehicleStatus(vehicleId, VehicleStatus.OUT_OF_SERVICE, businessId)
+                    }
                 }
             } catch (e: Exception) {
                 _state.update { it?.copy(isLoading = false, error = e.message ?: "Failed to save checklist answer") }
             }
+        }
+    }
+
+    private fun stopTimerIfCompleted() {
+        val s = _state.value
+        if (s?.isCompleted == true) {
+            timerJob?.cancel()
+            timerJob = null
+            android.util.Log.d("ChecklistViewModel", "Timer stopped because checklist is completed.")
         }
     }
 }
@@ -833,4 +881,5 @@ class ChecklistViewModel @Inject constructor(
 sealed class NavigationEvent {
     object Back : NavigationEvent()
     data class AfterSubmit(val role: String) : NavigationEvent()
+    object VehicleBlocked : NavigationEvent()
 }

@@ -10,7 +10,7 @@ data class DashboardState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val user: User? = null,
-    val lastPreShiftCheck: PreShiftCheck? = null,
+    val lastChecklistAnswer: app.forku.domain.model.checklist.ChecklistAnswer? = null,
     val isAuthenticated: Boolean = false,
     val showQrScanner: Boolean = false,
     val currentSession: VehicleSession? = null,

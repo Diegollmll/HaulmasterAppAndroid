@@ -88,9 +88,13 @@ class ChecklistAnswerRepositoryImpl @Inject constructor(
 
     override suspend fun getLastChecklistAnswerForVehicle(vehicleId: String): ChecklistAnswer? {
         return try {
-            getAll()
-                .filter { it.vehicleId == vehicleId }
-                .maxByOrNull { it.endDateTime }
+            val filter = "VehicleId == Guid.Parse(\"$vehicleId\")"
+            val response = api.getListFiltered(filter = filter, sortColumn = "EndDateTime", sortOrder = "desc", pageSize = 1)
+            if (response.isSuccessful && !response.body().isNullOrEmpty()) {
+                response.body()!![0].toDomain()
+            } else {
+                null
+            }
         } catch (e: Exception) {
             null
         }

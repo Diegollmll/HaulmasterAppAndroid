@@ -261,7 +261,15 @@ private fun ProfileHeader(
                                 AsyncImage(
                                     model = ImageRequest.Builder(LocalContext.current)
                                         .data(state.user?.photoUrl?.takeIf { it.isNotEmpty() }
-                                            ?: "https://ui-avatars.com/api/?name=${state.user?.firstName?.first() ?: "U"}+${state.user?.lastName?.first() ?: "U"}&background=random")
+                                            ?: run {
+                                                val firstInitial = state.user?.firstName?.firstOrNull()?.toString()
+                                                    ?: state.user?.username?.firstOrNull()?.toString()
+                                                    ?: "U"
+                                                val lastInitial = state.user?.lastName?.firstOrNull()?.toString()
+                                                    ?: state.user?.username?.drop(1)?.firstOrNull()?.toString()
+                                                    ?: "U"
+                                                "https://ui-avatars.com/api/?name=${firstInitial}+${lastInitial}&background=random"
+                                            })
                                         .crossfade(true)
                                         .placeholder(R.drawable.ic_profile_placeholder)
                                         .error(R.drawable.ic_profile_placeholder)
@@ -314,12 +322,22 @@ private fun ProfileHeader(
                             .padding(start = 16.dp)
                     ) {
                         Text(
+                            text = "Test Admin",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+
+                        Text(
                             text = state.user?.role?.name ?: "Guest",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
                         Text(
-                            text = state.user?.fullName ?: "",
+                            text = when {
+                                !state.user?.fullName.isNullOrBlank() -> state.user?.fullName!!
+                                !state.user?.username.isNullOrBlank() -> state.user?.username!!
+                                else -> "No Name"
+                            },
                             style = MaterialTheme.typography.titleLarge
                         )
 

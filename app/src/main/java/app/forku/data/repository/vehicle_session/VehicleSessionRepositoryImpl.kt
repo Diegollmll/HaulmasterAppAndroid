@@ -88,6 +88,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             
             // Use OffsetDateTime to avoid [America/Bogota] in the string
             val currentDateTime = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+            android.util.Log.d("VehicleSessionRepo", "[startSession] currentDateTime (startTime) to send: $currentDateTime")
 
             // Get current location
             val locationState = locationManager.locationState.value
@@ -128,8 +129,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 )
                 throw Exception("Failed to create session: ${response.code()}")
             }
-            return response.body()?.let { VehicleSessionMapper.toDomain(it) }
-                ?: throw Exception("Failed to start session: Empty response")
+            val createdSession = response.body()?.let { VehicleSessionMapper.toDomain(it) }
+            android.util.Log.d("VehicleSessionRepo", "[startSession] startTime received from backend: ${createdSession?.startTime}")
+            return createdSession ?: throw Exception("Failed to start session: Empty response")
         } catch (e: Exception) {
             // Revert vehicle status on failure
             vehicleStatusRepository.updateVehicleStatus(
@@ -192,6 +194,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 "${locationState.latitude},${locationState.longitude}"
             } else null
             
+            // Calcular duración en minutos
+            val start = java.time.ZonedDateTime.parse(existingSession.startTime).toInstant()
+            val end = java.time.ZonedDateTime.parse(currentDateTime).toInstant()
+            val duration = java.time.Duration.between(start, end).toMinutes().toInt()
+            
             val updatedSession = existingSession.copy(
                 endTime = currentDateTime,
                 timestamp = currentDateTime,
@@ -199,7 +206,8 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 closeMethod = closeMethod,
                 closedBy = closedBy,
                 notes = notes,
-                endLocationCoordinates = locationCoordinates
+                endLocationCoordinates = locationCoordinates,
+                durationMinutes = duration
             )
             
             // Antes de enviar el DTO para cerrar sesión, asegúrate de que IsNew=false
@@ -339,6 +347,20 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             return response.body() ?: 0
         } else {
             throw Exception("Failed to get operating sessions count: ${response.code()}")
+        }
+    }
+
+    override suspend fun getSessionWithChecklistAnswer(sessionId: String): VehicleSession? {
+        return try {
+            val response = api.getSessionById(sessionId, include = "ChecklistAnswer")
+            if (response.isSuccessful) {
+                response.body()?.let { VehicleSessionMapper.toDomain(it) }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VehicleSessionRepo", "Error fetching session with ChecklistAnswer: ${e.message}", e)
+            null
         }
     }
 } 

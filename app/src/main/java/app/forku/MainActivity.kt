@@ -90,47 +90,82 @@ class MainActivity : ComponentActivity() {
             
             // State to track if we're showing an auth error
             val authErrorMessage = remember { mutableStateOf<String?>(null) }
+            val showAuthModal = remember { mutableStateOf(false) }
+            // Helper to filter error messages
+            fun filterAuthErrorMessage(raw: String?): String {
+                if (raw == null) return "Authentication required. Please log in again."
+                val lower = raw.lowercase()
+                return when {
+                    lower.contains("expiredsecuritytoken") || lower.contains("session expired") ->
+                        "Your session has expired. Please log in again."
+                    lower.contains("not authorized") || lower.contains("forbidden access") ->
+                        "You are not authorized to access this resource. Please log in again."
+                    lower.contains("authentication required") || lower.contains("invalid token") ->
+                        "Authentication required. Please log in again."
+                    else -> "Authentication error. Please log in again."
+                }
+            }
             
             // Observe authentication state in composition
             val authState by tokenErrorHandler.authenticationState.collectAsState()
             
             // Watch for authentication events that require logging out
             LaunchedEffect(authState) {
-                when (authState) {
+                when (val state = authState) {
                     is AuthenticationState.RequiresAuthentication -> {
-                        // Set error message and show it
-                        val message = (authState as AuthenticationState.RequiresAuthentication).message
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Session expired: $message. Please log in again.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        
-                        // Clear auth data
-                        authDataStore.clearAuth()
-                        
-                        // Navigate to login screen
+                        // Show toast and redirect to login, no modal
+                        Toast.makeText(this@MainActivity, "Your session has expired. Please log in again.", Toast.LENGTH_LONG).show()
+                        lifecycleScope.launch { authDataStore.clearAuth() }
                         if (navController.currentDestination?.route != Screen.Login.route) {
                             navController.navigate(Screen.Login.route) {
-                                // Pop up to the start destination to clean up the back stack
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = false
-                                }
-                                // Avoid multiple copies of the same destination
+                                popUpTo(navController.graph.startDestinationId) { saveState = false }
                                 launchSingleTop = true
-                                // Restore state when navigating back
                                 restoreState = false
                             }
                         }
                     }
-                    AuthenticationState.Authenticated -> {
-                        // Clear any error message
-                        authErrorMessage.value = null
-                    }
+                    else -> { /* do nothing */ }
                 }
             }
 
             ForkUTheme {
+                // Only show the modal for login errors, not for session expiration
+                if (showAuthModal.value && authErrorMessage.value != null && loginState is LoginState.Error) {
+                    app.forku.presentation.common.components.AppModal(
+                        onDismiss = {
+                            showAuthModal.value = false
+                            authErrorMessage.value = null
+                            // Clear auth data
+                            lifecycleScope.launch { authDataStore.clearAuth() }
+                            // Navigate to login screen
+                            if (navController.currentDestination?.route != Screen.Login.route) {
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = false }
+                                    launchSingleTop = true
+                                    restoreState = false
+                                }
+                            }
+                        },
+                        onConfirm = {
+                            showAuthModal.value = false
+                            authErrorMessage.value = null
+                            // Clear auth data
+                            lifecycleScope.launch { authDataStore.clearAuth() }
+                            // Navigate to login screen
+                            if (navController.currentDestination?.route != Screen.Login.route) {
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = false }
+                                    launchSingleTop = true
+                                    restoreState = false
+                                }
+                            }
+                        },
+                        title = "Authentication Required",
+                        message = authErrorMessage.value ?: "Session expired. Please log in again.",
+                        confirmText = "Go to Login",
+                        dismissText = "Cancel"
+                    )
+                }
                 when (loginState) {
                     is LoginState.Loading -> LoadingScreen()
                     is LoginState.Error -> {

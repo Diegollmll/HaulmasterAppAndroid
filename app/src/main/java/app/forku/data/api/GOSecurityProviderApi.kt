@@ -4,7 +4,7 @@ import app.forku.data.api.dto.gosecurityprovider.*
 import retrofit2.Response
 import retrofit2.http.*
 import okhttp3.RequestBody
-import okhttp3.MultipartBody
+import app.forku.data.api.dto.gosecurityprovider.RegisterRequestDto
 
 /**
  * API interface for GO Security Provider endpoints.
@@ -42,18 +42,25 @@ interface GOSecurityProviderApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun register(@Body request: RegisterRequest): Response<AuthenticationResponse>
+    suspend fun register(@Body request: RegisterRequestDto): Response<AuthenticationResponse>
 
     /**
      * Register a new user with complete information.
      * This endpoint requires additional user details.
      */
+    @Multipart
     @POST("api/gosecurityprovider/registerfull")
     @Headers(
-        "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun registerFull(@Body request: RegisterRequest): Response<AuthenticationResponse>
+    suspend fun registerFullMultipart(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
+        @Part("firstname") firstname: okhttp3.RequestBody,
+        @Part("lastname") lastname: okhttp3.RequestBody,
+        @Part("email") email: okhttp3.RequestBody,
+        @Part("password") password: okhttp3.RequestBody
+    ): retrofit2.Response<Boolean>
 
     /**
      * Register a new user via email verification process.
@@ -63,7 +70,7 @@ interface GOSecurityProviderApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun registerByEmail(@Body request: RegisterRequest): Response<AuthenticationResponse>
+    suspend fun registerByEmail(@Body request: RegisterRequestDto): Response<AuthenticationResponse>
 
     /**
      * Initiate password recovery process.

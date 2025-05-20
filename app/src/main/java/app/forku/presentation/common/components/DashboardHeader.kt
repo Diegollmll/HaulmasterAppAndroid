@@ -20,7 +20,7 @@ fun DashboardHeader(
     onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     showNotifications: Boolean = true,
-    showProfile: Boolean = true,
+    showProfile: Boolean = false,
     greeting: String = "How are you today?"
 ) {
     Row(

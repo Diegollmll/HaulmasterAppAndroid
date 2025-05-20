@@ -67,23 +67,6 @@ class VehicleRepositoryImpl @Inject constructor(
         return (now - cachedVehicle.timestamp) < CACHE_DURATION_MS
     }
 
-    private suspend fun getAuthHeaders(): Pair<String, String> {
-        // Get fresh CSRF token and cookie
-        val csrfTokenResult = goServicesManager.getCsrfToken(forceRefresh = true)
-        if (csrfTokenResult.isFailure) {
-            throw Exception("Failed to get CSRF token")
-        }
-
-        val csrfToken = csrfTokenResult.getOrNull()
-        val antiforgeryCookie = authDataStore.getAntiforgeryCookie()
-
-        if (csrfToken == null || antiforgeryCookie == null) {
-            throw Exception("Missing CSRF token or cookie")
-        }
-
-        return Pair(csrfToken, antiforgeryCookie)
-    }
-
     // Cache handling functions
     private fun getFromCache(id: String): Vehicle? {
         return cache[id]?.let { cached ->
@@ -102,7 +85,7 @@ class VehicleRepositoryImpl @Inject constructor(
     // API access functions
     private suspend fun fetchVehicleFromGlobalList(id: String): Vehicle {
         Log.d(TAG, "Fetching vehicle $id from global list")
-        val (csrfToken, cookie) = getAuthHeaders()
+        val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
         
         val response = api.getVehicleById(
             id = id,
@@ -154,7 +137,7 @@ class VehicleRepositoryImpl @Inject constructor(
         mutex.withLock {
             getFromCache(id)?.let { return@withContext it }
             try {
-                val (csrfToken, cookie) = getAuthHeaders()
+                val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
                 Log.d(TAG, "Calling api.getVehicleById with id=$id, csrfToken=${csrfToken.take(8)}..., cookie=${cookie.take(8)}...")
                 var vehicle = api.getVehicleById(id, csrfToken, cookie)
                     .body()?.toDomain() ?: run {
@@ -183,7 +166,7 @@ class VehicleRepositoryImpl @Inject constructor(
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
             // Get fresh CSRF token and cookie
-            val (csrfToken, cookie) = getAuthHeaders()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             // Treat QR code as vehicle ID
             val response = api.getVehicleById(
@@ -361,7 +344,7 @@ class VehicleRepositoryImpl @Inject constructor(
         serialNumber: String
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
-            val (csrfToken, cookie) = getAuthHeaders()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             val vehicleDto = VehicleDto(
                 codename = codename,
@@ -402,7 +385,7 @@ class VehicleRepositoryImpl @Inject constructor(
         updatedVehicle: Vehicle
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
-            val (csrfToken, cookie) = getAuthHeaders()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             val vehicleJson = updatedVehicle.toDto().toJsonObject()
             val response = api.saveVehicle(
@@ -430,7 +413,7 @@ class VehicleRepositoryImpl @Inject constructor(
         updatedVehicle: Vehicle
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
-            val (csrfToken, cookie) = getAuthHeaders()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             val vehicleJson = updatedVehicle.toDto().toJsonObject()
             val response = api.saveVehicle(

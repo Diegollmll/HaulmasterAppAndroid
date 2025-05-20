@@ -4,6 +4,7 @@ import app.forku.data.api.CertificationApi
 import app.forku.data.repository.certification.CertificationRepositoryImpl
 import app.forku.domain.repository.certification.CertificationRepository
 import app.forku.domain.usecase.certification.*
+import app.forku.data.datastore.AuthDataStore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,9 +19,10 @@ object CertificationsModule {
     @Provides
     @Singleton
     fun provideCertificationRepository(
-        api: CertificationApi
+        api: CertificationApi,
+        authDataStore: AuthDataStore
     ): CertificationRepository {
-        return CertificationRepositoryImpl(api)
+        return CertificationRepositoryImpl(api, authDataStore)
     }
 
     @Provides

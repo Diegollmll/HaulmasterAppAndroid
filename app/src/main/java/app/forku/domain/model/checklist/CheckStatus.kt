@@ -58,3 +58,11 @@ fun getPreShiftStatusText(status: String): String {
         status
     }
 }
+
+fun getPreShiftStatusText(status: Int?): String {
+    return try {
+        CheckStatus.values().firstOrNull { it.toApiInt() == status }?.toFriendlyString() ?: "Unknown"
+    } catch (e: Exception) {
+        "Unknown"
+    }
+}

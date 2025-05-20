@@ -17,6 +17,7 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import app.forku.domain.model.checklist.getPreShiftStatusText
 
 
 @Composable
@@ -80,7 +81,7 @@ fun CheckDetailScreen(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 20.sp
                                         )
-                                        StatusChip(status = check.status)
+                                        StatusChip(status = getPreShiftStatusText(check.status?.toIntOrNull()))
                                     }
 
                                     Divider()

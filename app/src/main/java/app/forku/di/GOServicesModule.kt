@@ -48,9 +48,11 @@ object GOServicesModule {
     fun provideGOSecurityProviderRepository(
         api: GOSecurityProviderApi,
         authDataStore: AuthDataStore,
-        goServicesManager: GOServicesManager
+        goServicesManager: GOServicesManager,
+        userRepository: app.forku.domain.repository.user.UserRepository,
+        headerManager: app.forku.core.auth.HeaderManager
     ): IGOSecurityProviderRepository {
-        return GOSecurityProviderRepository(api, authDataStore, goServicesManager)
+        return GOSecurityProviderRepository(api, authDataStore, goServicesManager, userRepository, headerManager)
     }
 
     @Provides

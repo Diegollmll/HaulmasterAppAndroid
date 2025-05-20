@@ -5,6 +5,8 @@ import app.forku.domain.model.user.UserRole
 
 data class OperatorSessionInfo(
     val name: String,
+    val fullName: String,
+    val username: String,
     val image: String?,
     val isActive: Boolean,
     val userId: String,

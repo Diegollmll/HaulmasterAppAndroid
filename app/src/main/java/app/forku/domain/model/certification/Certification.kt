@@ -11,7 +11,11 @@ data class Certification(
     val issuer: String,
     val certificationCode: String?,
     val documentUrl: String?,
-    val timestamp: String
+    val timestamp: String,
+    val isMarkedForDeletion: Boolean = false,
+    val isDirty: Boolean = false,
+    val isNew: Boolean = false,
+    val internalObjectId: Int = 0
 )
 
 enum class CertificationStatus {

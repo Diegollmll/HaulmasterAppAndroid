@@ -212,6 +212,8 @@ fun NavGraph(
             val checkId = backStackEntry.arguments?.getString("checkId")
             val fromScanner = backStackEntry.arguments?.getBoolean("fromScanner") ?: false
             val viewModel: ChecklistViewModel = hiltViewModel()
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
             
             ChecklistScreen(
                 viewModel = viewModel,
@@ -228,7 +230,8 @@ fun NavGraph(
                 networkManager = networkManager,
                 locationManager = locationManager,
                 imageLoader = imageLoader,
-                tokenErrorHandler = tokenErrorHandler
+                tokenErrorHandler = tokenErrorHandler,
+                userRole = currentUser?.role ?: UserRole.OPERATOR
             )
         }
 
@@ -281,7 +284,7 @@ fun NavGraph(
                 },
                 navController = navController,
                 networkManager = networkManager,
-                userRole = userRole,
+                userRole = currentUser?.role ?: UserRole.OPERATOR,
                 imageLoader = imageLoader,
                 tokenErrorHandler = tokenErrorHandler
             )

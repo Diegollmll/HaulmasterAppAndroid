@@ -40,7 +40,7 @@ object VehicleSessionMapper {
             status = if (dto.Status == 0) VehicleSessionStatus.OPERATING else VehicleSessionStatus.NOT_OPERATING,
             startLocationCoordinates = dto.StartLocationCoordinates,
             endLocationCoordinates = dto.EndLocationCoordinates,
-            durationMinutes = calculateDuration(dto.StartTime, dto.EndTime),
+            durationMinutes = dto.Duration ?: calculateDuration(dto.StartTime, dto.EndTime),
             timestamp = dto.Timestamp,
             closeMethod = mapCloseMethod(dto.VehicleSessionClosedMethod),
             closedBy = dto.ClosedBy,
@@ -64,7 +64,8 @@ object VehicleSessionMapper {
             ClosedBy = domain.closedBy,
             IsDirty = true,
             IsNew = true,
-            IsMarkedForDeletion = false
+            IsMarkedForDeletion = false,
+            Duration = domain.durationMinutes
         )
     }
 

@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.Instant
 import javax.inject.Inject
+import java.util.UUID
 
 @HiltViewModel
 class CertificationViewModel @Inject constructor(
@@ -45,6 +46,10 @@ class CertificationViewModel @Inject constructor(
                         certificationCode = certification?.certificationCode,
                         status = certification?.status,
                         userId = certification?.userId,
+                        isMarkedForDeletion = certification?.isMarkedForDeletion ?: false,
+                        isDirty = certification?.isDirty ?: false,
+                        isNew = certification?.isNew ?: false,
+                        internalObjectId = certification?.internalObjectId ?: 0,
                         isValid = true
                     )
                 }
@@ -142,8 +147,9 @@ class CertificationViewModel @Inject constructor(
                     return@launch
                 }
 
+                val isNew = state.value.id == null
                 val certification = Certification(
-                    id = state.value.id ?: "", // Empty for create, existing ID for update
+                    id = state.value.id ?: UUID.randomUUID().toString(),
                     name = state.value.name,
                     description = state.value.description.takeIf { it.isNotBlank() },
                     issuer = state.value.issuer,
@@ -152,11 +158,14 @@ class CertificationViewModel @Inject constructor(
                     certificationCode = state.value.certificationCode?.takeIf { it.isNotBlank() },
                     status = state.value.status ?: CertificationStatus.ACTIVE,
                     documentUrl = null,
-                    timestamp = Instant.now().toString(),
-                    userId = state.value.userId ?: userId
+                    timestamp = java.time.Instant.now().toString(),
+                    userId = state.value.userId ?: userId,
+                    isMarkedForDeletion = state.value.isMarkedForDeletion,
+                    isDirty = state.value.isDirty,
+                    isNew = isNew,
+                    internalObjectId = state.value.internalObjectId
                 )
-                
-                val result = if (state.value.id != null) {
+                val result = if (!isNew) {
                     updateCertificationUseCase(certification)
                 } else {
                     createCertificationUseCase(certification, userId)
@@ -168,7 +177,7 @@ class CertificationViewModel @Inject constructor(
                     _state.update { 
                         it.copy(
                             isLoading = false,
-                            error = "Failed to ${if (state.value.id != null) "update" else "create"} certification: ${e.message}"
+                            error = "Failed to ${if (!isNew) "update" else "create"} certification: ${e.message}"
                         )
                     }
                 }
@@ -201,5 +210,9 @@ data class CertificationState(
     val expiryDate: String? = null,
     val certificationCode: String? = null,
     val status: CertificationStatus? = null,
-    val userId: String? = null
+    val userId: String? = null,
+    val isMarkedForDeletion: Boolean = false,
+    val isDirty: Boolean = false,
+    val isNew: Boolean = false,
+    val internalObjectId: Int = 0
 ) 

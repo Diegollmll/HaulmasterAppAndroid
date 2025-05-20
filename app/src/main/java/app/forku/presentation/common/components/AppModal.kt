@@ -16,7 +16,7 @@ fun AppModal(
     title: String,
     message: String,
     confirmText: String = "Accept",
-    dismissText: String = "Cancel",
+    dismissText: String? = "Cancel",
     content: @Composable (() -> Unit)? = null
 ) {
     AlertDialog(
@@ -49,10 +49,12 @@ fun AppModal(
                 Text(confirmText)
             }
         },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text(dismissText)
+        dismissButton = if (!dismissText.isNullOrBlank()) {
+            {
+                OutlinedButton(onClick = onDismiss) {
+                    Text(dismissText)
+                }
             }
-        }
+        } else null
     )
 } 

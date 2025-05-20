@@ -134,10 +134,20 @@ class VehicleProfileViewModel @Inject constructor(
                     loadLastPreShiftCheck(vehicle.id, actualBusinessId)
                     val lastChecklistAnswer = checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
                     val lastChecklistOperator = lastChecklistAnswer?.goUserId?.takeIf { it.isNotBlank() }?.let { userRepository.getUserById(it) }
+                    // Fetch last operator if no active session
+                    val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
+                    android.util.Log.d("VehicleProfileVM", "lastSession: ${lastSession?.id}, userId: ${lastSession?.userId}")
+                    val lastOperator = lastSession?.userId?.let { 
+                        val user = userRepository.getUserById(it)
+                        Log.d("VehicleProfileVM", "Fetched lastOperator: id=${user?.id}, firstName=${user?.firstName}, lastName=${user?.lastName}, username=${user?.username}, photoUrl=${user?.photoUrl}")
+                        user
+                    }
+                    android.util.Log.d("VehicleProfileVM", "lastOperator: ${lastOperator?.id} - ${lastOperator?.fullName}")
                     _state.update {
                         it.copy(
                             lastChecklistAnswer = lastChecklistAnswer,
-                            lastChecklistOperator = lastChecklistOperator
+                            lastChecklistOperator = lastChecklistOperator,
+                            lastOperator = lastOperator
                         )
                     }
                 } else {

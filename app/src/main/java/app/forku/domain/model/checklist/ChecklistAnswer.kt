@@ -12,5 +12,6 @@ data class ChecklistAnswer(
     val isNew: Boolean = true,
     val isMarkedForDeletion: Boolean = false,
     val lastCheckDateTime: String = "",
-    val vehicleId: String = ""
+    val vehicleId: String = "",
+    val duration: Int? = null
 ) 

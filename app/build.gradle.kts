@@ -186,4 +186,7 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
+
+    // Secure storage for tokens
+    implementation(libs.androidx.security.crypto)
 }

@@ -68,4 +68,17 @@ class HeaderManager @Inject constructor(
     fun setTokenExpired() {
         _authState.value = AuthState.TokenExpired
     }
+
+    suspend fun getCsrfAndCookie(forceRefresh: Boolean = false): Pair<String, String> {
+        val csrfTokenResult = goServicesManager.getCsrfToken(forceRefresh)
+        if (csrfTokenResult.isFailure) {
+            throw csrfTokenResult.exceptionOrNull() ?: Exception("Failed to get CSRF token")
+        }
+        val csrfToken = csrfTokenResult.getOrNull()
+        val antiforgeryCookie = authDataStore.getAntiforgeryCookie()
+        if (csrfToken == null || antiforgeryCookie == null) {
+            throw Exception("Missing CSRF token or cookie")
+        }
+        return Pair(csrfToken, antiforgeryCookie)
+    }
 } 

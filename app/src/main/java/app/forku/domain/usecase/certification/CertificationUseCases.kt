@@ -8,7 +8,16 @@ class GetUserCertificationsUseCase @Inject constructor(
     private val repository: CertificationRepository
 ) {
     suspend operator fun invoke(userId: String? = null): List<Certification> =
-        repository.getCertifications(userId)
+        if (userId != null) {
+            // Use the new method for GOUserId2
+            if (repository is app.forku.data.repository.certification.CertificationRepositoryImpl) {
+                repository.getCertificationsByGoUserId2(userId)
+            } else {
+                repository.getCertifications(userId)
+            }
+        } else {
+            repository.getCertifications(null)
+        }
 }
 
 class GetCertificationByIdUseCase @Inject constructor(

@@ -16,7 +16,8 @@ fun ChecklistAnswer.toDto() = ChecklistAnswerDto(
     isNew = isNew,
     isMarkedForDeletion = isMarkedForDeletion,
     lastCheckDateTime = lastCheckDateTime,
-    vehicleId = vehicleId
+    vehicleId = vehicleId,
+    duration = duration
 )
 
 fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
@@ -31,7 +32,8 @@ fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
     isNew = isNew,
     isMarkedForDeletion = isMarkedForDeletion,
     lastCheckDateTime = lastCheckDateTime,
-    vehicleId = vehicleId
+    vehicleId = vehicleId,
+    duration = duration
 )
 
 fun ChecklistAnswerDto.toJsonObject(): JsonObject {
@@ -44,12 +46,13 @@ fun ChecklistAnswerDto.toJsonObject(): JsonObject {
         addProperty("GOUserId", goUserId)
         addProperty("Id", id ?: "")
         addProperty("StartDateTime", startDateTime)
-        addProperty("status", status)
+        addProperty("Status", status)
         addProperty("LocationCoordinates", locationCoordinates)
         addProperty("IsDirty", isDirty)
         addProperty("IsNew", isNew)
         addProperty("IsMarkedForDeletion", isMarkedForDeletion)
         addProperty("LastCheckDateTime", lastCheckDateTime)
         addProperty("VehicleId", vehicleId)
+        duration?.let { addProperty("Duration", it) }
     }
 } 

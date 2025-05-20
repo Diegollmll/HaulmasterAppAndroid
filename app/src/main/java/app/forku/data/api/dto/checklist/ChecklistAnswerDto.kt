@@ -1,7 +1,6 @@
 package app.forku.data.api.dto.checklist
 
 import com.google.gson.annotations.SerializedName
-import com.google.gson.annotations.JsonAdapter
 
 // Adjust fields as needed based on the JSON structure
 // Add more fields if required for your use case
@@ -17,7 +16,7 @@ data class ChecklistAnswerDto(
     val id: String? = "",
     @SerializedName("StartDateTime")
     val startDateTime: String,
-    @SerializedName("status")
+    @SerializedName("Status")
     val status: Int,
     @SerializedName("LocationCoordinates")
     val locationCoordinates: String? = null,
@@ -31,6 +30,8 @@ data class ChecklistAnswerDto(
     val lastCheckDateTime: String,
     @SerializedName("VehicleId")
     val vehicleId: String,
+    @SerializedName("Duration")
+    val duration: Int? = null,
     //@SerializedName("\$type")
     //val type: String = "ChecklistAnswerDataObject"
 ) 

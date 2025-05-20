@@ -15,5 +15,6 @@ data class VehicleSessionDto(
     val ClosedBy: String? = null,
     val IsDirty: Boolean = true,
     val IsNew: Boolean = true,
-    val IsMarkedForDeletion: Boolean = false
+    val IsMarkedForDeletion: Boolean = false,
+    val Duration: Int? = null
 )

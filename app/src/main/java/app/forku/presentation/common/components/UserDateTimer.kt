@@ -13,51 +13,43 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import kotlin.math.absoluteValue
+import java.time.Instant
+import java.time.Duration
 
 @Composable
 fun UserDateTimer(
     modifier: Modifier = Modifier,
-    initialDateTime: LocalDateTime = LocalDateTime.now(),
-    sessionStartTime: LocalDateTime? = null,
+    sessionStartInstant: Instant? = null,
     isSessionActive: Boolean = true,
     fontSize: Int = 34
 ) {
-    var dateTime by remember { mutableStateOf(initialDateTime) }
-    var elapsedTime by remember(sessionStartTime, isSessionActive) { mutableStateOf("00:00:00") }
-    
-    LaunchedEffect(sessionStartTime, isSessionActive) {
-        if (sessionStartTime != null && isSessionActive) {
-            while(true) {
+    val currentSessionStartInstant by rememberUpdatedState(sessionStartInstant)
+    val currentIsSessionActive by rememberUpdatedState(isSessionActive)
+    var elapsedTime by remember { mutableStateOf("00:00:00") }
+
+    LaunchedEffect(currentSessionStartInstant, currentIsSessionActive) {
+        if (currentSessionStartInstant != null && currentIsSessionActive) {
+            while (true) {
                 try {
-                    val now = LocalDateTime.now()
-                    val duration = java.time.Duration.between(sessionStartTime, now)
-                    val hours = duration.toHours().absoluteValue
-                    val minutes = duration.toMinutes().absoluteValue % 60
-                    val seconds = duration.seconds.absoluteValue % 60
-                    
-                    elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                    val now = Instant.now()
+                    val start = currentSessionStartInstant
+                    val duration = Duration.between(start, now)
+                    val totalSeconds = duration.seconds
+                    if (totalSeconds >= 0) {
+                        val hours = totalSeconds / 3600
+                        val minutes = (totalSeconds % 3600) / 60
+                        val seconds = totalSeconds % 60
+                        elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                    } else {
+                        elapsedTime = "00:00:00"
+                    }
                     delay(1000)
                 } catch (e: Exception) {
-                    android.util.Log.e("UserDateTimer", "Error calculating duration", e)
                     delay(1000)
                 }
             }
         } else {
-            // If session is not active, calculate final duration
-            if (sessionStartTime != null) {
-                try {
-                    val now = LocalDateTime.now()
-                    val duration = java.time.Duration.between(sessionStartTime, now)
-                    val hours = duration.toHours().absoluteValue
-                    val minutes = duration.toMinutes().absoluteValue % 60
-                    val seconds = duration.seconds.absoluteValue % 60
-                    elapsedTime = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-                } catch (e: Exception) {
-                    android.util.Log.e("UserDateTimer", "Error calculating final duration", e)
-                }
-            } else {
-                elapsedTime = "00:00:00"
-            }
+            elapsedTime = "00:00:00"
         }
     }
 

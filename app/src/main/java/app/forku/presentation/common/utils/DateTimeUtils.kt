@@ -20,39 +20,32 @@ fun formatDateTime(dateTimeString: String): String {
 
 fun getRelativeTimeSpanString(dateTimeStr: String): String {
     return try {
-        val localDateTime = try {
-            // Try parsing as Unix timestamp (milliseconds)
-            val timestamp = dateTimeStr.toLong()
-            LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault())
-        } catch (e: NumberFormatException) {
-            // If not a timestamp, try parsing as formatted datetime string
-            val cleanDateStr = dateTimeStr.substringBefore('[')
-            OffsetDateTime.parse(cleanDateStr).toLocalDateTime()
+        // Parse as OffsetDateTime (ISO8601), fallback to Instant
+        val instant = try {
+            OffsetDateTime.parse(dateTimeStr).toInstant()
+        } catch (e: DateTimeParseException) {
+            Instant.parse(dateTimeStr)
         }
-        
-        val now = LocalDateTime.now()
-        val minutes = ChronoUnit.MINUTES.between(localDateTime, now)
-        val hours = ChronoUnit.HOURS.between(localDateTime, now)
-        val days = ChronoUnit.DAYS.between(localDateTime.toLocalDate(), now.toLocalDate())
-        
+        val now = Instant.now()
+        val duration = Duration.between(instant, now)
+        val minutes = duration.toMinutes()
+        val hours = duration.toHours()
+        val days = duration.toDays()
+
         when {
             minutes < 1 -> "Just now"
-            minutes == 1L -> "1 minute ago"
-            minutes < 60 -> "$minutes minutes ago"
-            hours == 1L -> "1 hour ago"
-            hours < 24 -> "$hours hours ago"
-            days == 0L -> "Today at ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
-            days == 1L -> "Yesterday at ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
-            days == -1L -> "Tomorrow at ${localDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}"
-            days < -1L -> "In ${(-days).toInt()} days"
-            days < 7L -> "${days.toInt()} days ago"
-            days < 30L -> "${(days / 7).toInt()} weeks ago"
-            days < 365L -> "${(days / 30).toInt()} months ago"
-            else -> localDateTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+            minutes == 1L -> "Hace 1 minuto"
+            minutes < 60 -> "Hace $minutes minutos"
+            hours == 1L -> "Hace 1 hora"
+            hours < 24 -> "Hace $hours horas"
+            days == 1L -> "Hace 1 día"
+            days < 7 -> "Hace $days días"
+            days < 30 -> "Hace ${days / 7} semanas"
+            days < 365 -> "Hace ${days / 30} meses"
+            else -> "Hace ${days / 365} años"
         }
     } catch (e: Exception) {
-        android.util.Log.e("DateTimeUtils", "Error parsing datetime: $dateTimeStr", e)
-        dateTimeStr // Return original string if parsing fails
+        "N/A"
     }
 }
 

@@ -29,6 +29,7 @@ class CertificationsViewModel @Inject constructor(
                 _state.update { 
                     it.copy(
                         isLoading = false,
+                        isDeleting = false,
                         certifications = certifications
                     )
                 }
@@ -36,6 +37,7 @@ class CertificationsViewModel @Inject constructor(
                 _state.update { 
                     it.copy(
                         isLoading = false,
+                        isDeleting = false,
                         error = "Failed to load certifications: ${e.message}"
                     )
                 }

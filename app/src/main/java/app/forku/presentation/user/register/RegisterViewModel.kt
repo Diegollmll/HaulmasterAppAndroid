@@ -2,7 +2,7 @@ package app.forku.presentation.user.register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.repository.user.UserRepository
+import app.forku.domain.usecase.security.RegisterFullUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import android.util.Patterns
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val registerFullUseCase: RegisterFullUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RegisterState())
@@ -96,11 +96,11 @@ class RegisterViewModel @Inject constructor(
             try {
                 _state.value = state.copy(isLoading = true)
                 
-                val result = userRepository.register(
-                    firstName = state.firstName,
-                    lastName = state.lastName,
+                val result = registerFullUseCase(
                     email = state.email,
-                    password = state.password
+                    password = state.password,
+                    firstName = state.firstName,
+                    lastName = state.lastName
                 )
 
                 _state.value = when {

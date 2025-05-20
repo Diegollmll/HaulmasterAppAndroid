@@ -12,12 +12,12 @@ object RoleConverter {
      */
     fun fromString(roleString: String?, defaultRole: UserRole = UserRole.OPERATOR): UserRole {
         if (roleString == null) return defaultRole
-        
+        val normalized = roleString.trim().lowercase().replace(" ", "")
         return try {
-            when (roleString.lowercase()) {
-                "systemowner" -> UserRole.SYSTEM_OWNER
-                "superadmin" -> UserRole.SUPERADMIN
-                "administrator" -> UserRole.ADMIN
+            when (normalized) {
+                "systemowner", "system_owner" -> UserRole.SYSTEM_OWNER
+                "superadmin", "super_admin" -> UserRole.SUPERADMIN
+                "admin", "administrator" -> UserRole.ADMIN
                 "operator" -> UserRole.OPERATOR
                 else -> {
                     // Try to parse as enum name directly
@@ -46,6 +46,15 @@ object RoleConverter {
             UserRole.SUPERADMIN -> "superadmin"
             UserRole.ADMIN -> "administrator"
             UserRole.OPERATOR -> "operator"
+        }
+    }
+
+    fun getDashboardRouteForRole(role: UserRole): String {
+        return when (role) {
+            UserRole.SYSTEM_OWNER -> app.forku.presentation.navigation.Screen.SystemOwnerDashboard.route
+            UserRole.SUPERADMIN -> app.forku.presentation.navigation.Screen.SuperAdminDashboard.route
+            UserRole.ADMIN -> app.forku.presentation.navigation.Screen.AdminDashboard.route
+            UserRole.OPERATOR -> app.forku.presentation.navigation.Screen.Dashboard.route
         }
     }
 } 

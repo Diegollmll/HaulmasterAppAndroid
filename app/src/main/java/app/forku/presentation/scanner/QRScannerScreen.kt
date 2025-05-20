@@ -163,36 +163,46 @@ fun QRScannerScreen(
 
                             imageAnalysis.setAnalyzer(executor) { imageProxy ->
                                 if (!isScanning || hasNavigated) {
-                                    Log.d("QRFlow", "Skipping image analysis - isScanning: $isScanning, hasNavigated: $hasNavigated")
+                                    Log.d("QRFlow", "[ImageAnalyzer] Skipping analysis - isScanning: $isScanning, hasNavigated: $hasNavigated")
                                     imageProxy.close()
                                     return@setAnalyzer
                                 }
 
                                 val mediaImage = imageProxy.image
                                 if (mediaImage != null) {
+                                    Log.d("QRFlow", "[ImageAnalyzer] Processing new frame")
                                     val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
                                     val scanner = BarcodeScanning.getClient()
                                     
                                     scanner.process(image)
                                         .addOnSuccessListener { barcodes ->
-                                            barcodes.firstOrNull()?.rawValue?.let { code ->
-                                                Log.d("QRFlow", "QR Code detected: $code")
-                                                // Only process if this code hasn't been scanned before and we're not navigating
-                                                if (lastScannedCode != code && isScanning && !hasNavigated && !isProcessingNavigation) {
-                                                    Log.d("QRFlow", "Processing new QR code - lastScannedCode: $lastScannedCode")
-                                                    lastScannedCode = code
-                                                    isScanning = false
-                                                    viewModel.onQrScanned(code)
-                                                    Log.d("QRFlow", "QR code processed - isScanning: $isScanning, hasNavigated: $hasNavigated")
-                                                } else {
-                                                    Log.d("QRFlow", "Skipping QR code - already processed or navigation in progress")
+                                            if (barcodes.isNotEmpty()) {
+                                                Log.d("QRFlow", "[ImageAnalyzer] Found ${barcodes.size} barcodes")
+                                                barcodes.firstOrNull()?.rawValue?.let { code ->
+                                                    Log.d("QRFlow", "[ImageAnalyzer] QR Code detected: $code")
+                                                    // Only process if this code hasn't been scanned before and we're not navigating
+                                                    if (lastScannedCode != code && isScanning && !hasNavigated && !isProcessingNavigation) {
+                                                        Log.d("QRFlow", "[ImageAnalyzer] Processing new QR code - lastScannedCode: $lastScannedCode")
+                                                        lastScannedCode = code
+                                                        isScanning = false
+                                                        viewModel.onQrScanned(code)
+                                                        Log.d("QRFlow", "[ImageAnalyzer] QR code processed - isScanning: $isScanning, hasNavigated: $hasNavigated")
+                                                    } else {
+                                                        Log.d("QRFlow", "[ImageAnalyzer] Skipping QR code - already processed or navigation in progress")
+                                                    }
                                                 }
+                                            } else {
+                                                Log.d("QRFlow", "[ImageAnalyzer] No barcodes found in frame")
                                             }
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Log.e("QRFlow", "[ImageAnalyzer] Error processing frame", e)
                                         }
                                         .addOnCompleteListener {
                                             imageProxy.close()
                                         }
                                 } else {
+                                    Log.d("QRFlow", "[ImageAnalyzer] No media image available")
                                     imageProxy.close()
                                 }
                             }

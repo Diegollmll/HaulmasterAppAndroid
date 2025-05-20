@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import app.forku.data.service.GOServicesManager
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth")
 
@@ -23,6 +26,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class AuthDataStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+
     private object PreferencesKeys {
         val USER_KEY = stringPreferencesKey("user")
         
@@ -55,83 +59,85 @@ class AuthDataStore @Inject constructor(
     private var lastActiveTime: Long = 0
     private val gson = Gson()
 
+    // --- Secure token storage using EncryptedSharedPreferences (added for security) ---
+    private val masterKey by lazy {
+        MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+    }
+    private val securePrefs by lazy {
+        EncryptedSharedPreferences.create(
+            context,
+            "auth_secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+    // --- End secure token storage ---
+
     // Application Token methods (main JWT token with user claims)
-    val applicationToken: Flow<String?> = context.dataStore.data
-        .map { preferences ->
-            preferences[PreferencesKeys.APPLICATION_TOKEN]
-        }
+    val applicationToken: Flow<String?> = kotlinx.coroutines.flow.flow {
+        emit(securePrefs.getString("application_token", null))
+    }
 
     suspend fun initializeApplicationToken() {
         android.util.Log.d("AuthDataStore", "Initializing application token...")
-        cachedApplicationToken = context.dataStore.data.map { preferences ->
-            preferences[PreferencesKeys.APPLICATION_TOKEN]
-        }.first()
-        android.util.Log.d("AuthDataStore", "Application token initialized: ${cachedApplicationToken?.take(10)}...")
+        cachedApplicationToken = securePrefs.getString("application_token", null)
+        android.util.Log.d("AuthDataStore", "Application token initialized: "+(cachedApplicationToken?.take(10))+"...")
     }
     
     fun getApplicationToken(): String? {
-        android.util.Log.d("AuthDataStore", "Getting cached application token: ${cachedApplicationToken?.take(10)}")
-        return cachedApplicationToken
+        android.util.Log.d("AuthDataStore", "Getting cached application token: "+(cachedApplicationToken?.take(10)))
+        return cachedApplicationToken ?: securePrefs.getString("application_token", null)
     }
     
     suspend fun saveApplicationToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.APPLICATION_TOKEN] = token
-        }
+        securePrefs.edit().putString("application_token", token).apply()
         cachedApplicationToken = token
-        android.util.Log.d("AuthDataStore", "Saved application token: ${token.take(10)}...")
+        android.util.Log.d("AuthDataStore", "Saved application token: "+token.take(10)+"...")
     }
 
     // Authentication Token methods (refresh token)
     suspend fun saveAuthenticationToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.AUTHENTICATION_TOKEN] = token
-        }
+        securePrefs.edit().putString("authentication_token", token).apply()
         cachedAuthenticationToken = token
-        android.util.Log.d("AuthDataStore", "Saved authentication token: ${token.take(10)}...")
+        android.util.Log.d("AuthDataStore", "Saved authentication token: "+token.take(10)+"...")
     }
     
     fun getAuthenticationToken(): String? {
-        return cachedAuthenticationToken
+        return cachedAuthenticationToken ?: securePrefs.getString("authentication_token", null)
     }
 
     // CSRF Token methods
     suspend fun saveCsrfToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.CSRF_TOKEN] = token
-        }
+        securePrefs.edit().putString("csrf_token", token).apply()
         cachedCsrfToken = token
-        android.util.Log.d("AuthDataStore", "Saved CSRF token: ${token.take(10)}...")
+        android.util.Log.d("AuthDataStore", "Saved CSRF token: "+token.take(10)+"...")
     }
     
-    // Non-suspend, for interceptors (returns only cached value)
-    fun getCsrfToken(): String? = cachedCsrfToken
+    fun getCsrfToken(): String? = cachedCsrfToken ?: securePrefs.getString("csrf_token", null)
 
     // Antiforgery Cookie methods
     suspend fun saveAntiforgeryCookie(cookie: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.ANTIFORGERY_COOKIE] = cookie
-        }
+        securePrefs.edit().putString("antiforgery_cookie", cookie).apply()
         cachedAntiforgeryCookie = cookie
-        android.util.Log.d("AuthDataStore", "Saved Antiforgery cookie: ${cookie.take(20)}...")
+        android.util.Log.d("AuthDataStore", "Saved Antiforgery cookie: "+cookie.take(20)+"...")
     }
     
-    // Non-suspend, for interceptors (returns only cached value)
-    fun getAntiforgeryCookie(): String? = cachedAntiforgeryCookie
+    fun getAntiforgeryCookie(): String? = cachedAntiforgeryCookie ?: securePrefs.getString("antiforgery_cookie", null)
 
     // Suspend, for ViewModels/repos (loads from DataStore if needed)
     suspend fun getCsrfTokenSuspend(): String? {
         if (cachedCsrfToken == null) {
-            val preferences = context.dataStore.data.first()
-            cachedCsrfToken = preferences[PreferencesKeys.CSRF_TOKEN]
+            cachedCsrfToken = securePrefs.getString("csrf_token", null)
         }
         return cachedCsrfToken
     }
 
     suspend fun getAntiforgeryCookieSuspend(): String? {
         if (cachedAntiforgeryCookie == null) {
-            val preferences = context.dataStore.data.first()
-            cachedAntiforgeryCookie = preferences[PreferencesKeys.ANTIFORGERY_COOKIE]
+            cachedAntiforgeryCookie = securePrefs.getString("antiforgery_cookie", null)
         }
         return cachedAntiforgeryCookie
     }
@@ -146,12 +152,7 @@ class AuthDataStore @Inject constructor(
     }
     
     suspend fun clearTokens() {
-        context.dataStore.edit { preferences ->
-            preferences.remove(PreferencesKeys.APPLICATION_TOKEN)
-            preferences.remove(PreferencesKeys.AUTHENTICATION_TOKEN)
-            preferences.remove(PreferencesKeys.CSRF_TOKEN)
-            preferences.remove(PreferencesKeys.ANTIFORGERY_COOKIE)
-        }
+        securePrefs.edit().remove("application_token").remove("authentication_token").remove("csrf_token").remove("antiforgery_cookie").apply()
         cachedApplicationToken = null
         cachedAuthenticationToken = null
         cachedCsrfToken = null
@@ -175,7 +176,7 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.USER_KEY] = gson.toJson(user)
             preferences[PreferencesKeys.USER_ID] = user.id
             
-            // Store tokens in their specific keys
+            // Store tokens securely
             preferences[PreferencesKeys.APPLICATION_TOKEN] = user.token
             preferences[PreferencesKeys.AUTHENTICATION_TOKEN] = user.refreshToken
             

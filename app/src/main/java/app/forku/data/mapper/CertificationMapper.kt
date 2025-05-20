@@ -11,12 +11,16 @@ fun CertificationDto.toDomain(): Certification {
         description = description,
         issuedDate = issuedDate,
         expiryDate = expiryDate,
-        status = CertificationStatus.fromString(status),
-        userId = userId,
+        status = CertificationStatus.entries.getOrNull(status) ?: CertificationStatus.PENDING,
+        userId = goUserId2 ?: "",
         issuer = issuer,
         certificationCode = certificationCode,
-        documentUrl = documentUrl,
-        timestamp = timestamp
+        documentUrl = null,
+        timestamp = timestamp,
+        isMarkedForDeletion = isMarkedForDeletion,
+        isDirty = isDirty,
+        isNew = isNew,
+        internalObjectId = internalObjectId
     )
 }
 
@@ -27,11 +31,14 @@ fun Certification.toDto(): CertificationDto {
         description = description,
         issuedDate = issuedDate,
         expiryDate = expiryDate,
-        status = status.name,
-        userId = userId,
+        status = status.ordinal,
+        goUserId2 = userId,
         issuer = issuer,
         certificationCode = certificationCode,
-        documentUrl = documentUrl,
-        timestamp = timestamp
+        timestamp = timestamp,
+        isMarkedForDeletion = isMarkedForDeletion,
+        isDirty = isDirty,
+        isNew = isNew,
+        internalObjectId = internalObjectId
     )
 }

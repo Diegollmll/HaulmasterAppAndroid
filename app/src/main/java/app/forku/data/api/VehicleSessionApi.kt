@@ -11,14 +11,20 @@ interface VehicleSessionApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getAllSessions(@Query("businessId") businessId: String): Response<List<VehicleSessionDto>>
+    suspend fun getAllSessions(
+        @Query("businessId") businessId: String,
+        @Query("include") include: String? = null
+    ): Response<List<VehicleSessionDto>>
 
     @GET("api/vehiclesession/byid/{id}")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getSessionById(@Path("id") id: String): Response<VehicleSessionDto>
+    suspend fun getSessionById(
+        @Path("id") id: String,
+        @Query("include") include: String? = null
+    ): Response<VehicleSessionDto>
 
     @FormUrlEncoded
     @POST("api/vehiclesession")

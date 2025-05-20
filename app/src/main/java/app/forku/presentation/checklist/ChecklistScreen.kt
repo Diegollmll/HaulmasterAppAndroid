@@ -36,6 +36,8 @@ import app.forku.presentation.common.components.LocationPermissionHandler
 import app.forku.core.location.LocationManager
 import coil.ImageLoader
 import app.forku.core.auth.TokenErrorHandler
+import app.forku.core.auth.RoleConverter
+import app.forku.domain.model.user.UserRole
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,11 +49,13 @@ fun ChecklistScreen(
     networkManager: NetworkConnectivityManager,
     locationManager: LocationManager,
     imageLoader: ImageLoader,
-    tokenErrorHandler: TokenErrorHandler
+    tokenErrorHandler: TokenErrorHandler,
+    userRole: UserRole
 ) {
     Log.d("QRFlow", "ChecklistScreen Composable started")
     
     var showConfirmationDialog by remember { mutableStateOf(false) }
+    var showBlockedDialog by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
     val showDiscardDialog by viewModel.showDiscardDialog.collectAsState()
     val navigationEvent by viewModel.navigationEvent.collectAsState()
@@ -125,13 +129,14 @@ fun ChecklistScreen(
             }
             is NavigationEvent.AfterSubmit -> {
                 Log.d("QRFlow", "ChecklistScreen - Navigating after submit, role: ${event.role}")
-                when (event.role?.lowercase()) {
-                    "admin", "administrator" -> navController.navigate(Screen.AdminDashboard.route)
-                    "superadmin" -> navController.navigate(Screen.SuperAdminDashboard.route)
-                    "system_owner" -> navController.navigate(Screen.SystemOwnerDashboard.route)
-                    "operator" -> navController.navigate(Screen.Dashboard.route)
-                    else -> navController.navigate(Screen.Dashboard.route)
-                }
+                val userRole = RoleConverter.fromString(event.role)
+                val route = RoleConverter.getDashboardRouteForRole(userRole)
+                navController.navigate(route)
+                viewModel.resetNavigation()
+            }
+            is NavigationEvent.VehicleBlocked -> {
+                // Mostrar un AlertDialog y redirigir al dashboard
+                showBlockedDialog = true
                 viewModel.resetNavigation()
             }
             null -> {
@@ -153,6 +158,28 @@ fun ChecklistScreen(
             }
         }
         viewModel.resetNavigation()
+    }
+
+    if (showBlockedDialog) {
+        AlertDialog(
+            onDismissRequest = { showBlockedDialog = false },
+            title = { Text("Vehículo bloqueado") },
+            text = { Text("El vehículo ha sido bloqueado debido a un fallo en el checklist. Por favor, contacte a un supervisor o seleccione otro vehículo.") },
+            confirmButton = {
+                Button(onClick = {
+                    showBlockedDialog = false
+                    val route = when (userRole) {
+                        UserRole.ADMIN -> Screen.AdminDashboard.route
+                        else -> Screen.Dashboard.route
+                    }
+                    navController.navigate(route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }) {
+                    Text("Ir al Dashboard")
+                }
+            }
+        )
     }
 
     BaseScreen(
@@ -202,6 +229,7 @@ fun ChecklistScreen(
                                 }
 
                                 // Add Timer Display
+                                android.util.Log.d("ChecklistScreen", "[UI] startDateTime=${currentState.startDateTime}, isCompleted=${currentState.isCompleted}, formattedElapsedTime=${currentState.formattedElapsedTime}")
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -278,7 +306,7 @@ fun ChecklistScreen(
                                     if (currentState.showSubmitButton && currentState.allAnswered) {
                                         Spacer(Modifier.height(4.dp))
                                         Button(
-                                            onClick = { viewModel.saveChecklistAnswer() },
+                                            onClick = { showConfirmationDialog = true },
                                             enabled = currentState.showSubmitButton && currentState.allAnswered,
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -325,7 +353,7 @@ fun ChecklistScreen(
                         onConfirm = {
                             android.util.Log.d("ChecklistScreen", "Confirming checklist submission...")
                             showConfirmationDialog = false
-                            viewModel.submitCheck()
+                            viewModel.saveChecklistAnswer()
                         },
                         title = "Submit Checklist",
                         message = "Are you sure you want to submit this checklist?"

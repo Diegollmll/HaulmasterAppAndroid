@@ -9,20 +9,10 @@ import app.forku.domain.model.user.User
 import app.forku.domain.repository.IGOSecurityProviderRepository
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Headers
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.MultipartBody
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Inject
 import javax.inject.Singleton
-import com.google.gson.Gson
-import okhttp3.RequestBody
-import okio.Buffer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Response as OkHttpResponse
@@ -30,6 +20,12 @@ import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import app.forku.data.service.GOServicesManager
+import app.forku.data.api.dto.gosecurityprovider.RegisterRequestDto
+import java.util.UUID
+import app.forku.data.mapper.toDomain
+import app.forku.domain.repository.user.UserRepository
+import app.forku.core.auth.HeaderManager
+import app.forku.domain.model.user.UserRole
 
 private const val TAG = "GOSecurityProvider"
 
@@ -37,7 +33,9 @@ private const val TAG = "GOSecurityProvider"
 class GOSecurityProviderRepository @Inject constructor(
     private val api: GOSecurityProviderApi,
     private val authDataStore: AuthDataStore,
-    private val goServicesManager: GOServicesManager
+    private val goServicesManager: GOServicesManager,
+    private val userRepository: UserRepository,
+    private val headerManager: HeaderManager
 ) : IGOSecurityProviderRepository {
 
     override suspend fun authenticate(username: String, password: String): Result<User> {
@@ -167,31 +165,69 @@ class GOSecurityProviderRepository @Inject constructor(
     }
 
     override suspend fun register(
-        email: String, 
-        password: String, 
-        firstName: String, 
+        email: String,
+        password: String,
+        firstName: String,
         lastName: String
-    ): Result<User> = try {
-        val request = RegisterRequest(email, password, firstName, lastName)
-        val response = api.register(request)
-        handleAuthenticationResponse(response, email, password)
-    } catch (e: Exception) {
-        Log.e("GOSecurityProvider", "Registration failed", e)
-        Result.failure(e)
-    }
+    ): Result<User> = Result.failure(Exception("Use registerFull instead"))
 
     override suspend fun registerFull(
         email: String, 
         password: String, 
         firstName: String, 
         lastName: String
-    ): Result<User> = try {
-        val request = RegisterRequest(email, password, firstName, lastName)
-        val response = api.registerFull(request)
-        handleAuthenticationResponse(response, email, password)
-    } catch (e: Exception) {
-        Log.e("GOSecurityProvider", "Full registration failed", e)
-        Result.failure(e)
+    ): Result<User> {
+        return try {
+            Log.d(TAG, "registerFull: Starting registration for $email")
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie(forceRefresh = true)
+            val firstnameBody = firstName.toRequestBody(MultipartBody.FORM)
+            val lastnameBody = lastName.toRequestBody(MultipartBody.FORM)
+            val emailBody = email.toRequestBody(MultipartBody.FORM)
+            val passwordBody = password.toRequestBody(MultipartBody.FORM)
+            val response = api.registerFullMultipart(
+                csrfToken = csrfToken,
+                cookie = cookie,
+                firstname = firstnameBody,
+                lastname = lastnameBody,
+                email = emailBody,
+                password = passwordBody
+            )
+            Log.d(TAG, "registerFull: Response code: ${response.code()}, body: ${response.body()}")
+            if (response.isSuccessful && response.body() == true) {
+                Log.d(TAG, "registerFull: Registration successful for $email")
+                // Return a minimal User object with safe defaults (for registration confirmation only)
+                return Result.success(
+                    User(
+                        id = "",
+                        token = "",
+                        refreshToken = "",
+                        email = email,
+                        username = email,
+                        firstName = firstName,
+                        lastName = lastName,
+                        photoUrl = null,
+                        role = UserRole.OPERATOR,
+                        certifications = emptyList(),
+                        password = password
+                        // The rest use default values from the data class
+                    )
+                )
+            } else {
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "registerFull: Registration failed. Code: ${response.code()}, Error: $errorBody")
+                // Try to parse a friendly error
+                val friendlyError = when {
+                    errorBody?.contains("UserAlreadyRegistered", ignoreCase = true) == true ||
+                    errorBody?.contains("already registered", ignoreCase = true) == true ->
+                        "This email is already registered. Please log in or use a different email."
+                    else -> null
+                }
+                Result.failure(Exception(friendlyError ?: "Registration failed: ${response.code()} - $errorBody"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "registerFull: Exception during registration", e)
+            Result.failure(e)
+        }
     }
 
     override suspend fun registerByEmail(
@@ -200,7 +236,13 @@ class GOSecurityProviderRepository @Inject constructor(
         firstName: String, 
         lastName: String
     ): Result<User> = try {
-        val request = RegisterRequest(email, password, firstName, lastName)
+        val request = RegisterRequestDto(
+            id = java.util.UUID.randomUUID().toString(),
+            email = email,
+            password = password,
+            firstName = firstName,
+            lastName = lastName
+        )
         val response = api.registerByEmail(request)
         handleAuthenticationResponse(response, email, password)
     } catch (e: Exception) {

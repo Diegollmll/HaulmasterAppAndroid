@@ -104,7 +104,7 @@ fun DashboardScreen(
         showTopBar = false,
         showBackButton = false,
         currentVehicleId = dashboardState.currentSession?.vehicleId,
-        currentCheckId = dashboardState.lastPreShiftCheck?.id,
+        currentCheckId = dashboardState.lastChecklistAnswer?.id,
         dashboardState = dashboardState,
         networkManager = networkManager,
         onRefresh = null,  // Explicitly set to null to prevent auto-refresh on resume
@@ -237,11 +237,22 @@ private fun CurrentUserSession(
     onNavigate: (String) -> Unit,
     sessionViewModel: SessionViewModel
 ) {
+    // LOG: Estado de entrada
+    LaunchedEffect(dashboardState.activeSessions, dashboardState.vehicles, currentUser) {
+        android.util.Log.d("DashboardDebug", "activeSessions: ${dashboardState.activeSessions}")
+        android.util.Log.d("DashboardDebug", "vehicles: ${dashboardState.vehicles}")
+        android.util.Log.d("DashboardDebug", "currentUser: $currentUser")
+    }
+
     // Get current user's session or last session
     val userSession = remember(dashboardState.activeSessions, dashboardState.lastSession, currentUser?.id) {
         dashboardState.activeSessions.find { session ->
             session.userId == currentUser?.id
         } ?: dashboardState.lastSession
+    }
+    // LOG: userSession
+    LaunchedEffect(userSession) {
+        android.util.Log.d("DashboardDebug", "userSession: $userSession")
     }
 
     // Get the vehicle for the user's session
@@ -249,6 +260,10 @@ private fun CurrentUserSession(
         userSession?.let { session ->
             dashboardState.vehicles.find { it.id == session.vehicleId }
         }
+    }
+    // LOG: sessionVehicle
+    LaunchedEffect(sessionVehicle) {
+        android.util.Log.d("DashboardDebug", "sessionVehicle: $sessionVehicle")
     }
 
     // Collect session state
@@ -268,7 +283,7 @@ private fun CurrentUserSession(
     if (sessionVehicle != null && userSession != null) {
         SessionCard(
             vehicle = sessionVehicle,
-            lastCheck = dashboardState.checks.find { it.vehicleId == sessionVehicle.id },
+            lastChecklistAnswer = dashboardState.lastChecklistAnswer,
             user = currentUser,
             currentSession = if (userSession.endTime == null) userSession else null,
             onCheckClick = { checkId ->

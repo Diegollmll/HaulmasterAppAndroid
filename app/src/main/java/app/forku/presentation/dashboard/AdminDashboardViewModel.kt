@@ -137,6 +137,8 @@ class AdminDashboardViewModel @Inject constructor(
                 
                 OperatorSessionInfo(
                     name = "${it.firstName.first()}. ${it.lastName}",
+                    fullName = it.fullName,
+                    username = it.username,
                     image = it.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
                     isActive = true, // This operator has an active session since we're getting info from a session
                     userId = it.id,
@@ -201,6 +203,18 @@ class AdminDashboardViewModel @Inject constructor(
                                 val startTime = parseDateTime(dto.StartTime)
                                 val now = OffsetDateTime.now()
                                 val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
+                                android.util.Log.d(
+                                    "AdminDashboardSessionTimer",
+                                    """
+                                    [SESSION TIMER DEBUG]
+                                    - Vehicle: ${vehicle.codename}
+                                    - SessionId: ${dto.Id}
+                                    - Raw StartTime (DTO): ${dto.StartTime}
+                                    - Parsed StartTime: $startTime
+                                    - Now: $now
+                                    - Elapsed Minutes: $elapsedMinutes
+                                    """.trimIndent()
+                                )
                                 val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
                                 VehicleSessionInfo(
                                     vehicle = vehicle,
@@ -274,6 +288,8 @@ class AdminDashboardViewModel @Inject constructor(
                             android.util.Log.d("AdminDashboard", "[activeOperators] Adding OperatorSessionInfo: name='$displayName', userId=${operator.id}, sessionStartTime=${session.sessionStartTime}")
                             OperatorSessionInfo(
                                 name = displayName,
+                                fullName = operator.fullName,
+                                username = operator.username,
                                 image = operator.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
                                 isActive = true, // They have an active session
                                 userId = operator.id,

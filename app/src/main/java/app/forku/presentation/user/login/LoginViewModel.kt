@@ -39,15 +39,36 @@ class LoginViewModel @Inject constructor(
                     },
                     onFailure = { exception ->
                         Log.e("LoginViewModel", "Login failed", exception)
-                        _state.value = LoginState.Error(exception.message ?: "Login failed")
+                        val userMessage = extractUserFriendlyError(exception.message)
+                        _state.value = LoginState.Error(userMessage)
                     }
                 )
                 
             } catch (e: Exception) {
                 Log.e("LoginViewModel", "Login failed with exception", e)
-                _state.value = LoginState.Error(e.message ?: "Login failed")
+                val userMessage = extractUserFriendlyError(e.message)
+                _state.value = LoginState.Error(userMessage)
             }
         }
+    }
+
+    private fun extractUserFriendlyError(raw: String?): String {
+        if (raw.isNullOrBlank()) return "Login failed. Please try again."
+        // Busca mensajes comunes
+        if (raw.contains("Unknown username or password", ignoreCase = true)) {
+            return "Usuario o contraseña incorrectos."
+        }
+        if (raw.contains("401") || raw.contains("403")) {
+            return "No se pudo autenticar. Verifica tus credenciales."
+        }
+        // Intenta extraer el campo 'title' del JSON si existe
+        val titleRegex = """"title"\s*:\s*"([^"]+)""".toRegex()
+        val match = titleRegex.find(raw)
+        if (match != null) {
+            return match.groupValues[1]
+        }
+        // Si no, muestra un mensaje genérico
+        return "Login failed. Please try again."
     }
 
     fun resetState() {

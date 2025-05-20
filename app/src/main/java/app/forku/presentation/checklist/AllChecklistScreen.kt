@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 import app.forku.core.auth.TokenErrorHandler
+import app.forku.domain.model.checklist.getPreShiftStatusText
 
 @Composable
 fun AllChecklistScreen(
@@ -155,7 +156,7 @@ private fun CheckCard(
                         fontSize = 14.sp
                     )
                 }
-                StatusChip(status = check.status)
+                StatusChip(status = getPreShiftStatusText(check.status?.toIntOrNull()))
             }
 
             Spacer(modifier = Modifier.height(8.dp))

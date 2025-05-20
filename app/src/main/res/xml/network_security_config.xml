@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">api.weatherapi.com</domain>
-    </domain-config>
+    <base-config>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+        <tls-version>TLSv1.2</tls-version>
+        <tls-version>TLSv1.3</tls-version>
+    </base-config>
 </network-security-config> 

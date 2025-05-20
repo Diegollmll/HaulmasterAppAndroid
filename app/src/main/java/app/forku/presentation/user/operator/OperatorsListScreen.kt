@@ -143,7 +143,11 @@ private fun OperatorSessionListItem(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = operator.name,
+                    text = when {
+                        operator.fullName.isNotBlank() -> operator.fullName
+                        operator.username.isNotBlank() -> operator.username
+                        else -> operator.name
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium
                 )

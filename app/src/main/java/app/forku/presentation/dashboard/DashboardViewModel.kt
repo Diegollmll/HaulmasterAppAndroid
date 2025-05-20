@@ -13,6 +13,7 @@ import app.forku.domain.model.user.User
 import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import app.forku.presentation.user.login.LoginState
 import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +35,8 @@ class DashboardViewModel @Inject constructor(
     private val getVehicleUseCase: GetVehicleUseCase,
     private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase,
     private val getLastPreShiftCheckUseCase: GetLastPreShiftCheckByVehicleUseCase,
-    private val submitFeedbackUseCase: SubmitFeedbackUseCase
+    private val submitFeedbackUseCase: SubmitFeedbackUseCase,
+    private val checklistAnswerRepository: ChecklistAnswerRepository
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DashboardState())
@@ -66,8 +68,13 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val user = userRepository.getCurrentUser()
-                _currentUser.value = user
+                android.util.Log.d("DashboardViewModel", "[loadCurrentUser] user original: $user")
+                // Si el usuario no tiene businessId, asigna el de Constants
+                val fixedUser = if (user != null && user.businessId == null) user.copy(businessId = app.forku.core.Constants.BUSINESS_ID) else user
+                android.util.Log.d("DashboardViewModel", "[loadCurrentUser] fixedUser: $fixedUser")
+                _currentUser.value = fixedUser
             } catch (e: Exception) {
+                android.util.Log.e("DashboardViewModel", "[loadCurrentUser] Error loading user: ${e.message}")
                 _state.update { it.copy(error = "Error loading user: ${e.message}") }
             }
         }
@@ -113,11 +120,18 @@ class DashboardViewModel @Inject constructor(
         }
 
         try {
-            val currentUser = userRepository.getCurrentUser()
-                ?: throw Exception("User not authenticated")
-                
+            // Usar siempre el usuario corregido del StateFlow
+            val user = _currentUser.value
+            val currentUser = if (user != null && user.businessId == null) user.copy(businessId = app.forku.core.Constants.BUSINESS_ID) else user
+            android.util.Log.d("DashboardViewModel", "[loadDashboard] currentUser (from _currentUser): $currentUser")
+
+            if (currentUser == null) {
+                throw Exception("User not authenticated")
+            }
+
             // For operators without a business context, we'll show a limited dashboard
             if (currentUser.businessId == null) {
+                android.util.Log.d("DashboardViewModel", "No businessId, limited dashboard")
                 _state.update {
                     it.copy(
                         isLoading = false,
@@ -129,7 +143,7 @@ class DashboardViewModel @Inject constructor(
                         currentSession = null,
                         lastSession = null,
                         displayVehicle = null,
-                        lastPreShiftCheck = null,
+                        lastChecklistAnswer = null,
                         needsBusinessAssignment = true
                     )
                 }
@@ -137,32 +151,43 @@ class DashboardViewModel @Inject constructor(
             }
 
             val businessId = currentUser.businessId
+            android.util.Log.d("DashboardViewModel", "businessId: $businessId")
 
-            // Load all vehicles
-            val vehicles = vehicleRepository.getVehicles(businessId)
+            // Trae todos los vehículos
+            val allVehicles = vehicleRepository.getAllVehicles() // <-- sin businessId
+            android.util.Log.d("DashboardViewModel", "allVehicles: $allVehicles")
+            // Filtra localmente
+            val vehicles = allVehicles.filter { it.businessId == businessId }
+            android.util.Log.d("DashboardViewModel", "filtered vehicles: $vehicles")
 
-            // Load only active sessions (where endTime is null)
-            val activeSessions = vehicleSessionRepository.getSessions()
-                .filter { session ->
-                    session.endTime == null &&
-                    // Ensure the vehicle exists for this session
-                    vehicles.any { vehicle -> vehicle.id == session.vehicleId }
-                }
-                .distinctBy { it.vehicleId } // Ensure only one session per vehicle
+            // Trae todas las sesiones
+            val allSessions = vehicleSessionRepository.getSessions()
+            android.util.Log.d("DashboardViewModel", "allSessions: $allSessions")
+            // Filtra sesiones activas y que tengan vehículo válido
+            val activeSessions = allSessions.filter { session ->
+                session.endTime == null &&
+                vehicles.any { vehicle -> vehicle.id == session.vehicleId }
+            }
+            android.util.Log.d("DashboardViewModel", "filtered activeSessions: $activeSessions")
 
             // Load all users involved in active sessions
             val userIds = activeSessions.map { it.userId }
+            android.util.Log.d("DashboardViewModel", "userIds in activeSessions: $userIds")
             val users = userIds.mapNotNull { userId ->
                 userRepository.getUserById(userId)
             }
+            android.util.Log.d("DashboardViewModel", "users in activeSessions: $users")
 
             // Load latest checks for each vehicle
             val checks = vehicles.mapNotNull { vehicle ->
                 getLastPreShiftCheckUseCase(vehicle.id)
             }
+            android.util.Log.d("DashboardViewModel", "checks: $checks")
 
             android.util.Log.d("DashboardViewModel", "Getting current session")
             val currentSession = vehicleSessionRepository.getCurrentSession()
+            android.util.Log.d("DashboardViewModel", "currentSession: $currentSession")
+            android.util.Log.d("DashboardViewModel", "currentSession?.checkId: ${currentSession?.checkId}")
 
             // Get last session for current user
             val lastSession = try {
@@ -175,40 +200,36 @@ class DashboardViewModel @Inject constructor(
                 android.util.Log.e("DashboardViewModel", "Error getting last session", e)
                 null
             }
+            android.util.Log.d("DashboardViewModel", "lastSession: $lastSession")
 
             android.util.Log.d("DashboardViewModel", "Getting session vehicle")
             val sessionVehicle = (currentSession ?: lastSession)?.let { 
                 getVehicleUseCase(it.vehicleId)
             }
+            android.util.Log.d("DashboardViewModel", "sessionVehicle: $sessionVehicle")
             
-            android.util.Log.d("DashboardViewModel", "Getting last pre-shift checklist")
-            val lastPreShiftCheck = try {
-                getLastPreShiftCheckCurrentUserUseCase()
-            } catch (e: Exception) {
-                android.util.Log.e("DashboardViewModel", "Error getting last pre-shift checklist", e)
-                null
+            // Get the session for SessionCard (current or last)
+            val sessionForCard = currentSession ?: lastSession
+            var lastChecklistAnswer: app.forku.domain.model.checklist.ChecklistAnswer? = null
+            if (sessionForCard != null) {
+                val sessionWithAnswer = vehicleSessionRepository.getSessionWithChecklistAnswer(sessionForCard.id)
+                lastChecklistAnswer = sessionWithAnswer?.checkId?.let { checklistAnswerRepository.getById(it) }
+                android.util.Log.d("DashboardViewModel", "lastChecklistAnswer (getById, eager): $lastChecklistAnswer")
             }
-            
-            android.util.Log.d("DashboardViewModel", "Getting check vehicle")
-            val checkVehicle = if (currentSession == null) {
-                lastPreShiftCheck?.let { 
-                    getVehicleUseCase(it.vehicleId)
-                }
-            } else null
 
             android.util.Log.d("DashboardViewModel", "Updating state with loaded data")
             _state.update {
                 it.copy(
                     currentSession = currentSession,
                     lastSession = lastSession,
-                    displayVehicle = sessionVehicle ?: checkVehicle,
-                    lastPreShiftCheck = lastPreShiftCheck,
+                    displayVehicle = sessionVehicle,
                     isLoading = false,
                     error = null,
                     vehicles = vehicles,
                     activeSessions = activeSessions,
                     users = users,
-                    checks = checks
+                    checks = checks,
+                    lastChecklistAnswer = lastChecklistAnswer
                 )
             }
         } catch (e: Exception) {

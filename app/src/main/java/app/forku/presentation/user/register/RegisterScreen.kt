@@ -41,15 +41,34 @@ fun RegisterScreen(
     val scrollState = rememberScrollState()
 
     LaunchedEffect(state.isSuccess) {
-        if (state.isSuccess) {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(Screen.Register.route) { inclusive = true }
-            }
-        }
+        // No redirection here; show success UI instead
     }
 
     if (state.isLoading) {
         LoadingScreen()
+        return
+    }
+
+    if (state.isSuccess) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "¡Registro exitoso! Ahora puedes iniciar sesión.",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(Screen.Register.route) { inclusive = true }
+                }
+            }) {
+                Text("Ir a iniciar sesión")
+            }
+        }
         return
     }
 

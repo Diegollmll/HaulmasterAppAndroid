@@ -1,31 +1,39 @@
 package app.forku.data.repository.cico
 
 import app.forku.core.Constants
-import app.forku.data.api.SessionApi
+import app.forku.data.api.VehicleSessionApi
 import app.forku.data.datastore.AuthDataStore
+import app.forku.core.auth.HeaderManager
 import app.forku.data.mapper.VehicleSessionMapper
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.repository.cico.CicoHistoryRepository
+import app.forku.data.service.GOServicesManager
 import javax.inject.Inject
 
 class CicoHistoryRepositoryImpl @Inject constructor(
-    private val api: SessionApi,
-    private val authDataStore: AuthDataStore
+    private val api: VehicleSessionApi,
+    private val authDataStore: AuthDataStore,
+    private val goServicesManager: GOServicesManager,
+    private val headerManager: HeaderManager
 ) : CicoHistoryRepository {
 
     companion object {
         private const val PAGE_SIZE = 10
     }
 
+    private suspend fun getBusinessId(): String {
+        return authDataStore.getCurrentUser()?.businessId ?: Constants.BUSINESS_ID
+    }
+
     override suspend fun getSessionsHistory(page: Int): List<VehicleSession> {
         return try {
-            val response = api.getAllSessions()
-            
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val businessId = getBusinessId()
+            val response = api.getAllSessions(businessId)
             if (response.isSuccessful && response.body() != null) {
                 val allSessions = response.body()!!
                     .map { VehicleSessionMapper.toDomain(it) }
                     .sortedByDescending { it.startTime }
-                // Handle pagination on client side if server doesn't support it
                 allSessions.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
             } else {
                 android.util.Log.e("CicoHistory","Error getting all sessions: ${response.code()}")
@@ -39,13 +47,14 @@ class CicoHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getOperatorSessionsHistory(operatorId: String, page: Int): List<VehicleSession> {
         return try {
-            val response = api.getAllSessions()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val businessId = getBusinessId()
+            val response = api.getAllSessions(businessId)
             if (response.isSuccessful && response.body() != null) {
                 val operatorSessions = response.body()!!
                     .map { VehicleSessionMapper.toDomain(it) }
                     .filter { it.userId == operatorId }
                     .sortedByDescending { it.startTime }
-                // Handle pagination on client side
                 operatorSessions.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
             } else {
                 android.util.Log.e("CicoHistory","Error getting operator sessions: ${response.code()}")

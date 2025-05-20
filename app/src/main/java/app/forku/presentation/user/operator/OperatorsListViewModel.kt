@@ -15,6 +15,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 import kotlinx.coroutines.delay
+import app.forku.core.Constants
 
 @HiltViewModel
 class OperatorsListViewModel @Inject constructor(
@@ -40,6 +41,8 @@ class OperatorsListViewModel @Inject constructor(
             operator?.let {
                 OperatorSessionInfo(
                     name = "${it.firstName} ${it.lastName}",
+                    fullName = it.fullName,
+                    username = it.username,
                     image = it.photoUrl,
                     isActive = activeSession,
                     userId = it.id,
@@ -61,16 +64,7 @@ class OperatorsListViewModel @Inject constructor(
                 
                 // Get current user's business context
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
-                
-                if (businessId == null) {
-                    android.util.Log.e("OperatorsList", "No business context available")
-                    _state.value = _state.value.copy(
-                        error = "No business context available",
-                        isLoading = false
-                    )
-                    return@launch
-                }
+                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
                 
                 // Get both operators and admins
                 val operators = try {

@@ -20,6 +20,18 @@ interface ChecklistAnswerApi {
     )
     suspend fun getList(): Response<List<ChecklistAnswerDto>>
 
+    @GET("api/checklistanswer/list")
+    @Headers(
+        "Content-Type: application/json",
+        "Accept: text/plain"
+    )
+    suspend fun getListFiltered(
+        @Query("filter") filter: String? = null,
+        @Query("sortColumn") sortColumn: String? = null,
+        @Query("sortOrder") sortOrder: String? = null,
+        @Query("pageSize") pageSize: Int? = null
+    ): Response<List<ChecklistAnswerDto>>
+
     @FormUrlEncoded
     @POST("api/checklistanswer")
     @Headers(

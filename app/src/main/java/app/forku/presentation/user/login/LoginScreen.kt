@@ -173,20 +173,38 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        if (state is LoginState.Loading) {
-            LoadingOverlay()
+        // --- MODAL DIALOG FOR LOGIN ERRORS ---
+        var showLoginModal by remember { mutableStateOf(false) }
+        var loginModalMessage by remember { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(state) {
+            if (state is LoginState.Error) {
+                loginModalMessage = (state as LoginState.Error).message
+                showLoginModal = true
+            } else {
+                showLoginModal = false
+            }
         }
 
-        if (state is LoginState.Error) {
-            Snackbar(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.BottomCenter),
-                containerColor = Color.Red.copy(alpha = 0.8f),
-                contentColor = Color.White
-            ) {
-                Text((state as LoginState.Error).message)
-            }
+        if (showLoginModal && loginModalMessage != null) {
+            app.forku.presentation.common.components.AppModal(
+                onDismiss = {
+                    showLoginModal = false
+                    viewModel.resetState()
+                },
+                onConfirm = {
+                    showLoginModal = false
+                    viewModel.resetState()
+                },
+                title = "Login Error",
+                message = loginModalMessage ?: "Unknown error",
+                confirmText = "OK",
+                dismissText = ""
+            )
+        }
+
+        if (state is LoginState.Loading) {
+            LoadingOverlay()
         }
     }
 }

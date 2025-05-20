@@ -3,7 +3,7 @@ package app.forku.presentation.checklist
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.checklist.PreShiftCheck
-import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.domain.repository.vehicle.VehicleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +35,7 @@ data class AllChecklistState(
 
 @HiltViewModel
 class AllChecklistViewModel @Inject constructor(
-    private val checklistRepository: ChecklistRepository,
+    private val checklistAnswerRepository: ChecklistAnswerRepository,
     private val userRepository: UserRepository,
     private val vehicleRepository: VehicleRepository
 ) : ViewModel() {
@@ -70,34 +70,30 @@ class AllChecklistViewModel @Inject constructor(
             
             try {
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
+                val businessId = currentUser?.businessId ?: app.forku.core.Constants.BUSINESS_ID
                 
-                if (businessId == null) {
-                    _state.update { 
-                        it.copy(
-                            isLoading = false,
-                            isLoadingMore = false,
-                            error = "No business context available"
-                        )
-                    }
-                    return@launch
-                }
-                
-                val checks = checklistRepository.getAllChecks(page)
-                val checkStates = checks.mapNotNull { check ->
+                val answers = checklistAnswerRepository.getAll()
+                val checkStates = answers.mapNotNull { answer ->
                     try {
-                        val operator = userRepository.getUserById(check.userId)
-                        val vehicle = vehicleRepository.getVehicle(check.vehicleId, businessId)
+                        val operator = userRepository.getUserById(answer.goUserId)
+                        val vehicle = vehicleRepository.getVehicle(answer.vehicleId, businessId)
+                        val operatorName = when {
+                            operator == null -> "Desconocido"
+                            !operator.firstName.isNullOrBlank() || !operator.lastName.isNullOrBlank() ->
+                                "${operator.firstName.orEmpty()} ${operator.lastName.orEmpty()}".trim()
+                            !operator.username.isNullOrBlank() -> operator.username
+                            else -> "Desconocido"
+                        }
                         PreShiftCheckState(
-                            id = check.id,
-                            vehicleId = check.vehicleId,
+                            id = answer.id,
+                            vehicleId = answer.vehicleId,
                             vehicleCodename = vehicle.codename,
-                            operatorName = operator?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown",
-                            status = check.status,
-                            lastCheckDateTime = check.lastCheckDateTime
+                            operatorName = operatorName,
+                            status = answer.status.toString(),
+                            lastCheckDateTime = answer.lastCheckDateTime.takeIf { it.isNotBlank() }
                         )
                     } catch (e: Exception) {
-                        android.util.Log.e("AllChecklistViewModel", "Error processing check: ${e.message}")
+                        android.util.Log.e("AllChecklistViewModel", "Error processing answer: ${e.message}")
                         null
                     }
                 }
@@ -108,7 +104,6 @@ class AllChecklistViewModel @Inject constructor(
                     } else {
                         checkStates
                     }
-                    
                     currentState.copy(
                         isLoading = false,
                         isLoadingMore = false,

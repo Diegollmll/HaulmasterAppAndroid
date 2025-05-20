@@ -23,10 +23,11 @@ fun VehicleImage(
 ) {
     val context = LocalContext.current
     
-    // Build the image URL with the vehicle ID
+    // Mientras el backend no aclare el campo, usamos la URL por vehicleId
     val imageUrl = "${BASE_URL}api/vehicle/file/$vehicleId/Picture?t=%LASTEDITEDTIME%"
     
-    Log.d(TAG, "Loading vehicle image from: $imageUrl")
+    Log.d(TAG, "[VehicleImage] Params: vehicleId=$vehicleId, imageLoader=$imageLoader, contentScale=$contentScale")
+    Log.d(TAG, "[VehicleImage] Final imageUrl: $imageUrl")
 
     AsyncImage(
         model = ImageRequest.Builder(context)
@@ -44,6 +45,8 @@ fun VehicleImage(
         onSuccess = {
             Log.d(TAG, "Successfully loaded image for vehicle $vehicleId")
             onSuccess?.invoke()
-        }
+        },
+        placeholder = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_report_image),
+        error = androidx.compose.ui.res.painterResource(id = android.R.drawable.ic_menu_report_image)
     )
 } 

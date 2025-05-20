@@ -34,11 +34,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.VehicleSessionStatus
+import app.forku.domain.model.checklist.ChecklistAnswer
 
 @Composable
 fun SessionCard(
     vehicle: Vehicle?,
-    lastCheck: PreShiftCheck?,
+    lastChecklistAnswer: ChecklistAnswer?,
     user: User?,
     currentSession: VehicleSession?,
     onCheckClick: ((String) -> Unit)? = null,
@@ -76,7 +77,7 @@ fun SessionCard(
                     }
                 }
             },
-            lastCheck = lastCheck,
+            lastChecklistAnswer = lastChecklistAnswer,
             isActive = currentSession != null,
             onCheckClick = { checkId -> onCheckClick?.invoke(checkId) },
             currentUserRole = currentUserRole,
@@ -93,7 +94,7 @@ private fun SessionContent(
     user: User?,
     currentSession: VehicleSession?,
     startDateTime: LocalDateTime?,
-    lastCheck: PreShiftCheck?,
+    lastChecklistAnswer: ChecklistAnswer?,
     isActive: Boolean = false,
     onCheckClick: (String) -> Unit,
     currentUserRole: UserRole = UserRole.OPERATOR,
@@ -101,6 +102,16 @@ private fun SessionContent(
     onEndSession: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val startInstant = remember(currentSession?.startTime) {
+        currentSession?.startTime?.let {
+            try {
+                parseDateTime(it).toInstant()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -151,7 +162,7 @@ private fun SessionContent(
                     Row {
                         UserDateTimer(
                             modifier = Modifier.fillMaxWidth(),
-                            sessionStartTime = startDateTime,
+                            sessionStartInstant = startInstant,
                             isSessionActive = currentSession?.status == VehicleSessionStatus.OPERATING && currentSession.endTime == null
                         )
                     }
@@ -169,14 +180,14 @@ private fun SessionContent(
                             .padding(0.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        if (lastCheck != null) {
+                        if (lastChecklistAnswer != null) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable(
-                                        enabled = lastCheck.id != null,
+                                        enabled = lastChecklistAnswer.id.isNotBlank(),
                                         onClick = {
-                                            lastCheck.id?.let { onCheckClick(it) }
+                                            if (lastChecklistAnswer.id.isNotBlank()) onCheckClick(lastChecklistAnswer.id)
                                         }
                                     )
                                     .padding(8.dp),
@@ -191,17 +202,17 @@ private fun SessionContent(
                                     Spacer(modifier = modifier.padding(3.dp))
 
                                     Text(
-                                        text = CheckStatus.valueOf(lastCheck.status).toFriendlyString(),
+                                        text = CheckStatus.values().getOrNull(lastChecklistAnswer.status)?.toFriendlyString() ?: "-",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontSize = 13.sp
                                         ),
-                                        color = getPreShiftStatusColor(lastCheck.status)
+                                        color = getPreShiftStatusColor(CheckStatus.values().getOrNull(lastChecklistAnswer.status)?.name ?: "")
                                     )
                                 }
 
                                 Row {
                                     Text(
-                                        text = "${lastCheck.lastCheckDateTime?.let { getRelativeTimeSpanString(it) }}",
+                                        text = lastChecklistAnswer.endDateTime.takeIf { it.isNotBlank() }?.let { getRelativeTimeSpanString(it) } ?: "-",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontSize = 13.sp
                                         )
@@ -210,7 +221,7 @@ private fun SessionContent(
                             }
                         } else {
                             Text(
-                                text = "Press Check In to get started!",
+                                text = "There is no last checklist answer loaded!",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error
                             )

@@ -71,6 +71,7 @@ class ProfileViewModel @Inject constructor(
 
     private suspend fun updateProfileState(user: User) {
         try {
+            android.util.Log.d("ProfileDebug", "Loaded user: ${user.username}, role: ${user.role}")
             // Get all sessions for the user
             val userSessions = vehicleSessionRepository.getSessionsByUserId(user.id)
             

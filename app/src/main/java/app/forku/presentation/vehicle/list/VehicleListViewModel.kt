@@ -246,6 +246,9 @@ class VehicleListViewModel @Inject constructor(
                             } else {
                                 val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
                                 lastSession?.checkId?.let { checklistAnswerRepository.getById(it) }
+                            } ?: run {
+                                // 3. Si no hay sesión ni última sesión, buscar el último ChecklistAnswer por vehicleId
+                                checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
                             }
                             if (answer != null) vehicle.id to answer else null
                         } catch (e: Exception) {

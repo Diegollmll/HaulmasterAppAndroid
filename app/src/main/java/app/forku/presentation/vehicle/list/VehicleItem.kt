@@ -239,9 +239,9 @@ fun VehicleItem(
                 }
 
                 if (sessionInfo?.sessionStartTime != null) {
-                    val startDateTime = remember(sessionInfo.sessionStartTime) {
+                    val startInstant = remember(sessionInfo.sessionStartTime) {
                         try {
-                            parseDateTime(sessionInfo.sessionStartTime).toLocalDateTime()
+                            parseDateTime(sessionInfo.sessionStartTime).toInstant()
                         } catch (e: Exception) {
                             android.util.Log.e("VehicleItem", "Error parsing date: ${sessionInfo.sessionStartTime}", e)
                             null
@@ -251,7 +251,7 @@ fun VehicleItem(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(IntrinsicSize.Min),
-                        sessionStartTime = startDateTime,
+                        sessionStartInstant = startInstant,
                         fontSize = textConfigs.timer.fontSize
                     )
                 }

@@ -292,6 +292,7 @@ fun VehicleProfileContent(
                         vehicle = vehicle,
                         status = status,
                         activeOperator = state.activeOperator,
+                        lastOperator = state.lastOperator,
                         showOperatorDetails = true,
                         showPreShiftCheckDetails = true,
                         showVehicleDetails = true,

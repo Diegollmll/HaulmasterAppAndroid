@@ -170,41 +170,35 @@ class CicoHistoryViewModel @Inject constructor(
                 android.util.Log.d("CICO", "Fetched ${sessions.size} sessions")
 
                 // Process sessions with vehicle and operator details
-                val processedSessions = sessions.mapNotNull { session ->
-                    try {
-                        val businessId = currentUser?.businessId
-                        if (businessId == null) {
-                            android.util.Log.e("CICO", "No business context available for vehicle ${session.vehicleId}")
-                            return@mapNotNull null
-                        }
-                        val vehicle = vehicleRepository.getVehicle(session.vehicleId, businessId)
-                        val operatorResult = loadOperatorWithRetry(session.userId)
-                        
-                        val operator = operatorResult.getOrNull()
-                        if (operator == null) {
-                            android.util.Log.w("CICO", "Could not load operator for session ${session.id}")
-                            return@mapNotNull null
-                        }
-                        
-                        CicoEntry(
-                            id = session.id,
-                            operatorId = session.userId,
-                            vehicleName = vehicle.codename,
-                            operatorName = "${operator.firstName} ${operator.lastName}",
-                            date = getRelativeTimeSpanString(session.startTime),
-                            checkInTime = session.startTime,
-                            checkOutTime = session.endTime,
-                            duration = session.durationMinutes?.let { minutes ->
-                                when {
-                                    minutes < 60 -> "$minutes min"
-                                    else -> "${minutes / 60}h ${minutes % 60}m"
-                                }
-                            }
-                        )
+                val processedSessions = sessions.map { session ->
+                    val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
+                    val vehicle = try {
+                        if (businessId != null) vehicleRepository.getVehicle(session.vehicleId, businessId)
+                        else null
                     } catch (e: Exception) {
-                        android.util.Log.e("CICO", "Error loading details for session ${session.id}", e)
                         null
                     }
+                    val operator = try {
+                        loadOperatorWithRetry(session.userId).getOrNull()
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    CicoEntry(
+                        id = session.id,
+                        operatorId = session.userId,
+                        vehicleName = vehicle?.codename ?: "Unknown Vehicle",
+                        operatorName = operator?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown Operator",
+                        date = getRelativeTimeSpanString(session.startTime),
+                        checkInTime = session.startTime,
+                        checkOutTime = session.endTime,
+                        duration = session.durationMinutes?.let { minutes ->
+                            when {
+                                minutes < 60 -> "$minutes min"
+                                else -> "${minutes / 60}h ${minutes % 60}m"
+                            }
+                        }
+                    )
                 }
 
                 android.util.Log.d("appflow", "Processed sessions: ${processedSessions.size}")

@@ -158,6 +158,18 @@ fun CertificationScreen(
                             ) {
                                 Text(if (certificationId != null) "Save Changes" else "Create Certification")
                             }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 24.dp)
+                            ) {
+                                Text("Debug Info:", style = MaterialTheme.typography.titleSmall)
+                                Text("isMarkedForDeletion: ${state.isMarkedForDeletion}")
+                                Text("isDirty: ${state.isDirty}")
+                                Text("isNew: ${state.isNew}")
+                                Text("internalObjectId: ${state.internalObjectId}")
+                            }
                         }
                     }
                 }

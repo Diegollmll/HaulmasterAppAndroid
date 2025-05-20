@@ -39,12 +39,14 @@ import app.forku.presentation.common.components.UserDateTimer
 import app.forku.presentation.common.utils.parseDateTime
 import coil.ImageLoader
 import app.forku.presentation.vehicle.components.VehicleImage
+import app.forku.domain.model.checklist.CheckStatus
 
 @Composable
 fun VehicleProfileSummary(
     vehicle: Vehicle?,
     status: VehicleStatus,
     activeOperator: User? = null,
+    lastOperator: User? = null,
     showOperatorDetails: Boolean = true,
     showPreShiftCheckDetails: Boolean = true,
     showVehicleDetails: Boolean = true,
@@ -104,6 +106,7 @@ fun VehicleProfileSummary(
                 vehicle = vehicle,
                 showPreShiftCheckDetails = showPreShiftCheckDetails,
                 activeOperator = activeOperator,
+                lastOperator = lastOperator,
                 showOperatorDetails = showOperatorDetails,
                 showVehicleDetails = showVehicleDetails,
                 status = status,
@@ -170,6 +173,7 @@ fun VehicleDetailsSection(
     vehicle: Vehicle?,
     showPreShiftCheckDetails: Boolean,
     activeOperator: User? = null,
+    lastOperator: User? = null,
     showOperatorDetails: Boolean = true,
     showVehicleDetails: Boolean = true,
     status: VehicleStatus,
@@ -223,8 +227,15 @@ fun VehicleDetailsSection(
                 ) {
                     when {
                         activeOperator?.role != null -> {
+                            val displayName = when {
+                                !activeOperator.firstName.isNullOrBlank() || !activeOperator.lastName.isNullOrBlank() ->
+                                    listOfNotNull(activeOperator.firstName, activeOperator.lastName).joinToString(" ").trim()
+                                !activeOperator.username.isNullOrBlank() -> activeOperator.username
+                                else -> "Sin nombre"
+                            }
+                            android.util.Log.d("VehicleProfileSummary", "Mostrando operador ACTIVO: $displayName")
                             OperatorProfile(
-                                name = activeOperator.fullName,
+                                name = displayName,
                                 imageUrl = activeOperator.photoUrl,
                                 modifier = Modifier.padding(0.dp, 8.dp),
                                 role = activeOperator.role.name
@@ -250,10 +261,10 @@ fun VehicleDetailsSection(
                                     horizontalArrangement = Arrangement.Start,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    val sessionStartTime = remember(viewModel.state.value.activeSession?.startTime) {
+                                    val sessionStartInstant = remember(viewModel.state.value.activeSession?.startTime) {
                                         viewModel.state.value.activeSession?.startTime?.let {
                                             try {
-                                                parseDateTime(it).toLocalDateTime()
+                                                parseDateTime(it).toInstant()
                                             } catch (e: Exception) {
                                                 android.util.Log.e("VehicleProfileSummary", "Error parsing date: $it", e)
                                                 null
@@ -261,16 +272,39 @@ fun VehicleDetailsSection(
                                         }
                                     }
                                     UserDateTimer(
-                                        sessionStartTime = sessionStartTime,
+                                        sessionStartInstant = sessionStartInstant,
                                         fontSize = 16
                                     )
                                 }
                             }
+                            // Mostrar también el último operador si existe y es diferente al actual
+                            if (lastOperator != null && lastOperator.id != activeOperator.id) {
+                                val lastDisplayName = when {
+                                    !lastOperator.firstName.isNullOrBlank() || !lastOperator.lastName.isNullOrBlank() ->
+                                        listOfNotNull(lastOperator.firstName, lastOperator.lastName).joinToString(" ").trim()
+                                    !lastOperator.username.isNullOrBlank() -> lastOperator.username
+                                    else -> "Sin nombre"
+                                }
+                                android.util.Log.d("VehicleProfileSummary", "Mostrando ULTIMO operador: $lastDisplayName")
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OperatorProfile(
+                                    name = lastDisplayName,
+                                    imageUrl = lastOperator.photoUrl,
+                                    modifier = Modifier.padding(0.dp, 8.dp),
+                                    role = "Last ${lastOperator.role.name}"
+                                )
+                            }
                         }
-                        viewModel.state.value.lastOperator != null -> {
-                            val lastOperator = viewModel.state.value.lastOperator!!
+                        lastOperator != null -> {
+                            val lastDisplayName = when {
+                                !lastOperator.firstName.isNullOrBlank() || !lastOperator.lastName.isNullOrBlank() ->
+                                    listOfNotNull(lastOperator.firstName, lastOperator.lastName).joinToString(" ").trim()
+                                !lastOperator.username.isNullOrBlank() -> lastOperator.username
+                                else -> "Sin nombre"
+                            }
+                            android.util.Log.d("VehicleProfileSummary", "Mostrando SOLO ULTIMO operador: $lastDisplayName")
                             OperatorProfile(
-                                name = lastOperator.fullName,
+                                name = lastDisplayName,
                                 imageUrl = lastOperator.photoUrl,
                                 modifier = Modifier.padding(0.dp, 8.dp),
                                 role = "Last ${lastOperator.role.name}"
@@ -278,14 +312,22 @@ fun VehicleDetailsSection(
                         }
                         viewModel.state.value.lastChecklistOperator != null -> {
                             val lastChecklistOperator = viewModel.state.value.lastChecklistOperator!!
+                            val checklistDisplayName = when {
+                                !lastChecklistOperator.firstName.isNullOrBlank() || !lastChecklistOperator.lastName.isNullOrBlank() ->
+                                    listOfNotNull(lastChecklistOperator.firstName, lastChecklistOperator.lastName).joinToString(" ").trim()
+                                !lastChecklistOperator.username.isNullOrBlank() -> lastChecklistOperator.username
+                                else -> "Sin nombre"
+                            }
+                            android.util.Log.d("VehicleProfileSummary", "Mostrando operador de CHECKLIST: $checklistDisplayName")
                             OperatorProfile(
-                                name = lastChecklistOperator.fullName,
+                                name = checklistDisplayName,
                                 imageUrl = lastChecklistOperator.photoUrl,
                                 modifier = Modifier.padding(0.dp, 8.dp),
                                 role = "Last Operator"
                             )
                         }
                         else -> {
+                            android.util.Log.d("VehicleProfileSummary", "No hay historial de operador")
                             Text(
                                 text = "No operator history",
                                 color = Color.Gray,
@@ -308,9 +350,15 @@ fun VehicleDetailsSection(
                     }
                     Spacer(modifier = Modifier.width(3.dp))
                     Column {
+                        val lastChecklistAnswer = viewModel.state.value.lastChecklistAnswer
+                        val statusEnum = lastChecklistAnswer?.status?.let { statusInt ->
+                            CheckStatus.values().getOrNull(statusInt)
+                        }
+                        val statusText = statusEnum?.toFriendlyString() ?: getPreShiftStatusText(status = lastCheck?.value?.status ?: "")
+                        val statusColor = statusEnum?.let { getPreShiftStatusColor(it.name) } ?: getPreShiftStatusColor(status = lastCheck?.value?.status ?: "")
                         Text(
-                            text = viewModel.state.value.lastChecklistAnswer?.let { getPreShiftStatusText(status = it.status.toString()) } ?: getPreShiftStatusText(status = lastCheck?.value?.status ?: ""),
-                            color = viewModel.state.value.lastChecklistAnswer?.let { getPreShiftStatusColor(status = it.status.toString()) } ?: getPreShiftStatusColor(status = lastCheck?.value?.status ?: ""),
+                            text = statusText,
+                            color = statusColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -318,8 +366,15 @@ fun VehicleDetailsSection(
 
                 }
                 Row {
+                    val lastChecklistAnswer = viewModel.state.value.lastChecklistAnswer
+                    android.util.Log.d(
+                        "VehicleProfileSummary",
+                        "Checklist date debug: lastCheckDateTime=${lastChecklistAnswer?.lastCheckDateTime}, endDateTime=${lastChecklistAnswer?.endDateTime}, lastCheckStartDateTime=${lastCheck?.value?.startDateTime}"
+                    )
                     Text(
-                        text = viewModel.state.value.lastChecklistAnswer?.endDateTime?.takeIf { it.isNotBlank() }?.let {
+                        text = lastChecklistAnswer?.lastCheckDateTime?.takeIf { it.isNotBlank() }?.let {
+                            getRelativeTimeSpanString(it)
+                        } ?: lastChecklistAnswer?.endDateTime?.takeIf { it.isNotBlank() }?.let {
                             getRelativeTimeSpanString(it)
                         } ?: lastCheck?.value?.startDateTime?.let {
                             getRelativeTimeSpanString(it)
