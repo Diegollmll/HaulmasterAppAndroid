@@ -1,10 +1,10 @@
 package app.forku.domain.model.gogroup
 
+import com.google.gson.annotations.SerializedName
+
 data class UploadFile(
-    val fileName: String,
-    val fileContent: String, // Base64 encoded file content
-    val contentType: String,
+    val internalName: String,
+    val clientName: String,
     val fileSize: Long,
-    val uploadedAt: String? = null,
-    val fileUrl: String? = null
+    val type: String
 ) 

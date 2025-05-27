@@ -162,7 +162,8 @@ fun NavGraph(
                     navController.navigate(route)
                 },
                 networkManager = networkManager,
-                tokenErrorHandler = tokenErrorHandler
+                tokenErrorHandler = tokenErrorHandler,
+                imageLoader = imageLoader
             )
         }
 

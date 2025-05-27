@@ -13,5 +13,6 @@ data class AdminDashboardState(
     val lastPreShiftChecks: Map<String, PreShiftCheck?> = emptyMap(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val feedbackSubmitted: Boolean = false
+    val feedbackSubmitted: Boolean = false,
+    val userIncidentsCount: Int = 0
 )

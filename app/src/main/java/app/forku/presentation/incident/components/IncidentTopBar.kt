@@ -9,18 +9,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 
 @Composable
 fun IncidentTopBar(
-    incidentType: IncidentType?,
+    incidentTypeEnum: IncidentTypeEnum?,
     onNavigateBack: () -> Unit
 ) {
     TopAppBar(
         title = {
             Column {
                 Text("Report Incident")
-                incidentType?.let { type ->
+                incidentTypeEnum?.let { type ->
                     Text(
                         text = type.toString().replace("_", " ").capitalize(),
                         style = MaterialTheme.typography.bodyMedium

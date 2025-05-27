@@ -35,6 +35,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.checklist.ChecklistAnswer
+import app.forku.core.Constants.BASE_URL
+import coil.ImageLoader
 
 @Composable
 fun SessionCard(
@@ -45,7 +47,8 @@ fun SessionCard(
     onCheckClick: ((String) -> Unit)? = null,
     currentUserRole: UserRole = UserRole.OPERATOR,
     onEndSession: ((String) -> Unit)? = null,
-    sessionViewModel: SessionViewModel = hiltViewModel()
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+    imageLoader: ImageLoader? = null
 ) {
     val canEndSession = sessionViewModel.canEndSession.collectAsState().value
 
@@ -55,6 +58,9 @@ fun SessionCard(
             sessionViewModel.checkCanEndSession(userId)
         }
     }
+
+    android.util.Log.d("SessionCardDebug", "SessionCard vehicle: $vehicle")
+    android.util.Log.d("SessionCardDebug", "SessionCard vehicle.photoModel: ${vehicle?.photoModel}")
 
     Card(
         modifier = Modifier
@@ -82,7 +88,8 @@ fun SessionCard(
             onCheckClick = { checkId -> onCheckClick?.invoke(checkId) },
             currentUserRole = currentUserRole,
             canEndSession = canEndSession,
-            onEndSession = { currentSession?.id?.let { onEndSession?.invoke(it) } }
+            onEndSession = { currentSession?.id?.let { onEndSession?.invoke(it) } },
+            imageLoader = imageLoader ?: throw IllegalArgumentException("ImageLoader must not be null")
         )
     }
 }
@@ -100,7 +107,8 @@ private fun SessionContent(
     currentUserRole: UserRole = UserRole.OPERATOR,
     canEndSession: Boolean = false,
     onEndSession: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    imageLoader: ImageLoader
 ) {
     val startInstant = remember(currentSession?.startTime) {
         currentSession?.startTime?.let {
@@ -111,6 +119,9 @@ private fun SessionContent(
             }
         }
     }
+
+    android.util.Log.d("SessionCardDebug", "SessionContent vehicle: $vehicle")
+    android.util.Log.d("SessionCardDebug", "SessionContent vehicle.photoModel: ${vehicle?.photoModel}")
 
     Column(
         modifier = modifier
@@ -129,13 +140,17 @@ private fun SessionContent(
                             .weight(1f)
                             .padding(end = 8.dp)
                     ) {
+                        val imageUrl = "${BASE_URL}api/vehicle/file/${vehicle.id}/Picture?t=%LASTEDITEDTIME%"
                         OverlappingImages(
-                            mainImageUrl = vehicle.photoModel,
+                            mainImageUrl = imageUrl,
                             overlayImageUrl = user.photoUrl,
                             mainTint = MaterialTheme.colorScheme.onSurface,
                             mainSize = 120,
-                            overlaySize = 60
+                            overlaySize = 60,
+                            imageLoader = imageLoader,
+                            overlayUserId = user?.id
                         )
+                        android.util.Log.d("SessionCardDebug", "OverlappingImages mainImageUrl: $imageUrl")
                     }
                 }
             }

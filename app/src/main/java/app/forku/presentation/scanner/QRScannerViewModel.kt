@@ -65,7 +65,7 @@ class QRScannerViewModel @Inject constructor(
                             canStartCheck = false,
                             navigateToChecklist = false,
                             navigateToProfile = false,
-                            error = "El vehículo no está disponible para checklist. Estado actual: ${vehicle.status}"
+                            error = "Vehicle is not available for checklist. Current status: ${vehicle.status}"
                         )
                     }
                     isProcessingQR = false

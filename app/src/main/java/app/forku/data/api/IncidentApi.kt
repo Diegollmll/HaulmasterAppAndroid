@@ -10,7 +10,9 @@ interface IncidentApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getAllIncidents(): Response<List<IncidentDto>>
+    suspend fun getAllIncidents(
+        @Query("filter") filter: String? = null
+    ): Response<List<IncidentDto>>
 
     @GET("api/incident/byid/{id}")
     @Headers(
@@ -21,10 +23,10 @@ interface IncidentApi {
 
     @POST("api/incident")
     @Headers(
-        "Content-Type: application/json",
+        "Content-Type: application/x-www-form-urlencoded",
         "Accept: text/plain"
     )
-    suspend fun saveIncident(@Body incident: IncidentDto): Response<IncidentDto>
+    suspend fun saveIncident(@Field("entity") incident: String): Response<IncidentDto>
 
     @DELETE("dataset/api/incident/{id}")
     @Headers(
@@ -38,7 +40,9 @@ interface IncidentApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getIncidentCount(): Response<Int>
+    suspend fun getIncidentCount(
+        @Query("filter") filter: String? = null
+    ): Response<Int>
 
     // Add endpoints for incident types and multimedia if needed
     // Example:

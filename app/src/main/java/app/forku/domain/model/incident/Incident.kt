@@ -6,7 +6,7 @@ import java.time.LocalTime
 
 data class Incident(
     val id: String? = null,
-    val type: IncidentType,
+    val type: IncidentTypeEnum,
     val description: String,
     val timestamp: String,
     val userId: String,
@@ -19,7 +19,7 @@ data class Incident(
     // Nuevos campos consolidados de carga
     val isLoadCarried: Boolean = false,
     val loadBeingCarried: String = "",
-    val loadWeight: LoadWeight? = null,
+    val loadWeight: LoadWeightEnum? = null,
 
     val sessionId: String? = null,
     val status: IncidentStatus = IncidentStatus.REPORTED,
@@ -34,7 +34,7 @@ data class Incident(
     val severityLevel: IncidentSeverityLevelEnum? = null,
     val preshiftCheckStatus: String = "",
     val typeSpecificFields: IncidentTypeFields? = null,
-    val othersInvolved: List<String> = emptyList(),
+    val othersInvolved: String? = null,
     val injuries: String = "",
     val injuryLocations: List<String> = emptyList(),
     val locationCoordinates: String? = null

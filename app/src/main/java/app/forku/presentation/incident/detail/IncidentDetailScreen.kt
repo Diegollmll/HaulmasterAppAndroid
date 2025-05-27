@@ -15,7 +15,7 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
-import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import app.forku.presentation.common.utils.getRelativeTimeSpanFromMillis
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
@@ -85,7 +85,7 @@ fun IncidentDetailScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
                                     
                                     Text(
-                                        text = getRelativeTimeSpanString(incident?.date.toString()),
+                                        text = getRelativeTimeSpanFromMillis(incident?.date),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.InjuryLocation
@@ -104,10 +104,10 @@ fun BasicPeopleFields(
 
 
         CustomOutlinedTextField(
-            value = state.othersInvolved.joinToString("\n"),
+            value = state.othersInvolved ?: "",
             onValueChange = { 
                 onValueChange(state.copy(
-                    othersInvolved = it.split("\n").filter { line -> line.isNotBlank() }
+                    othersInvolved = it
                 ))
             },
             label = "Others Involved",
@@ -116,7 +116,7 @@ fun BasicPeopleFields(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
         )
-        if (state.type in listOf(IncidentType.COLLISION)) {
+        if (state.type in listOf(IncidentTypeEnum.COLLISION)) {
             FormFieldDivider()
         }
 

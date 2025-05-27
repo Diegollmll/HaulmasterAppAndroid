@@ -74,7 +74,7 @@ class IncidentListViewModel @Inject constructor(
                                             id = incident.id ?: "",
                                             type = incident.type.toDisplayText(),
                                             description = incident.description,
-                                            date = incident.timestamp,
+                                            date = incident.date,
                                             status = incident.status.toString(),
                                             vehicleName = incident.vehicleName,
                                             creatorName = getUserName(incident.userId)
@@ -124,7 +124,7 @@ data class IncidentItem(
     val id: String,
     val type: String,
     val description: String,
-    val date: String,
+    val date: Long?,
     val status: String,
     val vehicleName: String,
     val creatorName: String = "Unknown"

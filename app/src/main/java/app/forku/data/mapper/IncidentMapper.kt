@@ -3,86 +3,61 @@ package app.forku.data.mapper
 import app.forku.data.api.dto.incident.IncidentDto
 import app.forku.domain.model.incident.Incident
 import app.forku.domain.model.incident.IncidentStatus
-import app.forku.domain.model.incident.IncidentType
 import app.forku.domain.model.vehicle.VehicleType
 import app.forku.domain.model.incident.IncidentSeverityLevelEnum
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import android.net.Uri
-import app.forku.data.api.dto.incident.TypeSpecificFieldsDto
-import app.forku.domain.model.incident.LoadWeight
+import app.forku.domain.model.incident.IncidentTypeEnum
+import app.forku.domain.model.incident.LoadWeightEnum
 
 fun Incident.toDto(): IncidentDto {
     return IncidentDto(
         id = id,
-        type = type.name,
         description = description,
-        timestamp = timestamp,
         userId = userId,
-        vehicleId = vehicleId,
-        sessionId = sessionId,
-        status = status.name,
-        photoUrls = photos.map { it.toString() },
-        date = date,
+        incidentDateTime = incidentTime?.format(DateTimeFormatter.ISO_TIME) ?: "",
+        incidentType = type.ordinal,
         locationDetails = locationDetails,
-        weather = weather,
-        incidentDateTime = incidentTime?.format(DateTimeFormatter.ISO_TIME),
-        severityLevel = severityLevel?.name,
-        preshiftCheckStatus = preshiftCheckStatus,
-        typeSpecificFields = typeSpecificFields?.toDto() ?: TypeSpecificFieldsDto(
-            type = type.name,
-            data = emptyMap()
-        ),
-        othersInvolved = othersInvolved,
-        injuries = injuries,
-        injuryLocations = injuryLocations,
-        vehicleType = vehicleType?.Name,
-        vehicleName = vehicleName,
-        checkId = checkId,
-        isLoadCarried = isLoadCarried,
-        loadBeingCarried = loadBeingCarried,
-        loadWeight = loadWeight?.name,
-        locationCoordinates = locationCoordinates,
-        photos = photos.map { it.toString() }
+        severityLevel = severityLevel?.ordinal ?: 0,
+        status = status.ordinal,
+        isDirty = true,
+        isNew = true,
+        isMarkedForDeletion = false
     )
 }
 
 fun IncidentDto.toDomain(): Incident {
     return Incident(
-        id = id,
-        type = IncidentType.valueOf(type),
+        id = id ?: "",
+        type = IncidentTypeEnum.values().getOrNull(incidentType) ?: IncidentTypeEnum.COLLISION,
         description = description,
-        timestamp = timestamp,
+        timestamp = "", // This will be set by the server
         userId = userId,
-        vehicleId = vehicleId,
-        sessionId = sessionId,
-        status = IncidentStatus.valueOf(status),
-        photos = photoUrls.map { Uri.parse(it) },
-        date = date,
-        locationDetails = locationDetails,
-        weather = weather,
-        incidentTime = incidentDateTime?.let { LocalTime.parse(it) },
-        severityLevel = severityLevel?.let { IncidentSeverityLevelEnum.valueOf(it) },
-        preshiftCheckStatus = preshiftCheckStatus,
-        typeSpecificFields = typeSpecificFields.toDomain(),
-        othersInvolved = othersInvolved,
-        injuries = injuries,
-        injuryLocations = injuryLocations,
-        vehicleType = vehicleType?.let { type ->
-            VehicleType(
-                Id = type,
-                Name = type,
-                RequiresCertification = false,
-                VehicleCategoryId = "",
-                IsMarkedForDeletion = false,
-                InternalObjectId = 0
-            )
+        status = IncidentStatus.values().getOrNull(status) ?: IncidentStatus.REPORTED,
+        date = try {
+            java.time.ZonedDateTime.parse(incidentDateTime).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            0L
         },
-        vehicleName = vehicleName,
-        checkId = checkId,
-        isLoadCarried = isLoadCarried,
-        loadBeingCarried = loadBeingCarried,
-        loadWeight = loadWeight?.let { LoadWeight.valueOf(it) },
-        locationCoordinates = locationCoordinates
+        locationDetails = locationDetails,
+        incidentTime = try {
+            java.time.ZonedDateTime.parse(incidentDateTime).toLocalTime()
+        } catch (e: Exception) {
+            null
+        },
+        severityLevel = IncidentSeverityLevelEnum.values().getOrNull(severityLevel) ?: IncidentSeverityLevelEnum.LOW,
+        preshiftCheckStatus = "", // This will be set by the server
+        typeSpecificFields = null, // This will be handled separately if needed
+        vehicleType = null,
+        vehicleName = "",
+        checkId = "",
+        isLoadCarried = false,
+        loadBeingCarried = "",
+        loadWeight = null, // Map if available
+        sessionId = "",
+        photos = emptyList(),
+        weather = "",
+        vehicleId = ""
     )
 } 

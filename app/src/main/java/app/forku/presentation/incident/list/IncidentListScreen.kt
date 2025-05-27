@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.presentation.common.components.ErrorScreen
-import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import app.forku.presentation.common.utils.getRelativeTimeSpanFromMillis
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
@@ -81,7 +81,7 @@ fun IncidentListScreen(
                             ) { incident ->
                                 IncidentCard(
                                     type = incident.type,
-                                    date = getRelativeTimeSpanString(incident.date),
+                                    date = getRelativeTimeSpanFromMillis(incident.date),
                                     description = incident.description,
                                     status = try {
                                         IncidentStatus.valueOf(incident.status)

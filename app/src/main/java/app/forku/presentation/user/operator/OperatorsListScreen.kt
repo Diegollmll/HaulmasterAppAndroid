@@ -31,9 +31,12 @@ import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.ErrorScreen
+import app.forku.presentation.common.components.OverlappingImages
 import app.forku.presentation.dashboard.OperatorSessionInfo
 import app.forku.presentation.navigation.Screen
 import coil.compose.AsyncImage
+import coil.compose.LocalImageLoader
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -119,15 +122,14 @@ private fun OperatorSessionListItem(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box {
-                AsyncImage(
-                    model = operator.image,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
+                OverlappingImages(
+                    mainImageUrl = null,
+                    overlayImageUrl = operator.image,
+                    imageLoader = LocalImageLoader.current,
+                    overlayUserId = operator.userId,
+                    mainSize = 0, // No main image, only overlay
+                    overlaySize = 48
                 )
-
                 if (operator.isActive) {
                     Box(
                         modifier = Modifier

@@ -45,11 +45,22 @@ import javax.inject.Singleton
 import app.forku.data.repository.gogroup.*
 import app.forku.domain.repository.gogroup.*
 import app.forku.data.api.UserBusinessApi
+import app.forku.data.repository.CollisionIncidentRepository
 import app.forku.data.repository.user.UserBusinessRepositoryImpl
 import app.forku.domain.repository.user.UserBusinessRepository
 import app.forku.data.repository.weather.WeatherRepositoryImpl
+import app.forku.domain.repository.ICollisionIncidentRepository
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.domain.repository.weather.WeatherRepository
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import okhttp3.OkHttpClient
+import okhttp3.Interceptor
+import okhttp3.logging.HttpLoggingInterceptor
+import javax.inject.Named
+import app.forku.data.repository.VehicleFailIncidentRepositoryImpl
+import app.forku.domain.repository.incident.VehicleFailIncidentRepository
+
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -131,11 +142,41 @@ abstract class RepositoryModule {
     abstract fun bindWeatherRepository(
         repository: WeatherRepositoryImpl
     ): WeatherRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCollisionIncidentRepository(
+        repository: CollisionIncidentRepository
+    ): ICollisionIncidentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindVehicleFailIncidentRepository(
+        repositoryImpl: VehicleFailIncidentRepositoryImpl
+    ): VehicleFailIncidentRepository
 }
 
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryProvidersModule {
+    @Provides
+    @Singleton
+    fun provideCollisionIncidentApi(@Named("authenticatedRetrofit") retrofit: Retrofit): CollisionIncidentApi {
+        return retrofit.create(CollisionIncidentApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideHazardIncidentApi(@Named("authenticatedRetrofit") retrofit: Retrofit): HazardIncidentApi {
+        return retrofit.create(HazardIncidentApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNearMissIncidentApi(@Named("authenticatedRetrofit") retrofit: Retrofit): NearMissIncidentApi {
+        return retrofit.create(NearMissIncidentApi::class.java)
+    }
+
     @Provides
     @Singleton
     fun provideUserBusinessRepository(
@@ -242,8 +283,10 @@ object RepositoryProvidersModule {
     @Singleton
     fun provideIncidentRepository(
         api: IncidentApi,
-        authDataStore: AuthDataStore
-    ): IncidentRepository = IncidentRepositoryImpl(api, authDataStore)
+        collisionApi: CollisionIncidentApi,
+        authDataStore: AuthDataStore,
+        gson: Gson
+    ): IncidentRepository = IncidentRepositoryImpl(api, collisionApi, authDataStore, gson)
 
     @Provides
     @Singleton

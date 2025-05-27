@@ -23,6 +23,8 @@ import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import javax.inject.Named
 import app.forku.data.api.interceptor.FormUrlEncodedInterceptor
+import app.forku.domain.repository.incident.IncidentMultimediaRepository
+import app.forku.data.repository.incident.IncidentMultimediaRepositoryImpl
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -154,7 +156,18 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideWeatherApi(@Named("authenticatedRetrofit") retrofit: Retrofit): WeatherApi = 
+    @Named("weatherRetrofit")
+    fun provideWeatherRetrofit(@Named("baseClient") okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://api.weatherapi.com/v1/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherApi(@Named("weatherRetrofit") retrofit: Retrofit): WeatherApi = 
         retrofit.create(WeatherApi::class.java)
 
     @Provides
@@ -204,8 +217,19 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideGOFileUploaderApi(@Named("authenticatedRetrofit") retrofit: Retrofit): GOFileUploaderApi =
-        retrofit.create(GOFileUploaderApi::class.java)
+    fun provideFileUploaderApi(@Named("authenticatedRetrofit") retrofit: Retrofit): FileUploaderApi =
+        retrofit.create(FileUploaderApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideIncidentMultimediaRepository(
+        api: IncidentMultimediaApi
+    ): IncidentMultimediaRepository = IncidentMultimediaRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideIncidentMultimediaApi(@Named("authenticatedRetrofit") retrofit: Retrofit): IncidentMultimediaApi =
+        retrofit.create(IncidentMultimediaApi::class.java)
 
     @Provides
     @Singleton
@@ -240,5 +264,13 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideVehicleFailIncidentApi(
+        @Named("authenticatedRetrofit") authenticatedRetrofit: Retrofit
+    ): VehicleFailIncidentApi {
+        return authenticatedRetrofit.create(VehicleFailIncidentApi::class.java)
     }
 }

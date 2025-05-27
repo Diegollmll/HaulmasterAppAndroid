@@ -14,7 +14,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "collisionType" to (collisionType?.name ?: ""),
                 "commonCause" to (commonCause?.name ?: ""),
                 "damageOccurrence" to damageOccurrence.joinToString(",") { it.name },
-                "environmentalImpact" to environmentalImpact,
+                "environmentalImpact" to (environmentalImpact ?: ""),
                 "injurySeverity" to injurySeverity.name,
                 "injuryLocations" to injuryLocations.joinToString(","),
                 "immediateCause" to (immediateCause?.name ?: ""),
@@ -30,7 +30,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "immediateCause" to (immediateCause?.name ?: ""),
                 "contributingFactors" to contributingFactors.joinToString(",") { it.name },
                 "immediateActions" to immediateActions.joinToString(",") { it.name },
-                "longTermSolutions" to longTermSolutions.joinToString(",") { it.name }
+                "longTermSolutions" to longTermSolutions.joinToString(",") { it.name },
             )
         )
         is IncidentTypeFields.HazardFields -> TypeSpecificFieldsDto(
@@ -39,7 +39,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "hazardType" to (hazardType?.name ?: ""),
                 "potentialConsequences" to potentialConsequences.joinToString(",") { it.name },
                 "correctiveActions" to correctiveActions.joinToString(",") { it.name },
-                "preventiveMeasures" to preventiveMeasures.joinToString(",") { it.name }
+                "preventiveMeasures" to preventiveMeasures.joinToString(",") { it.name },
             )
         )
         is IncidentTypeFields.VehicleFailFields -> TypeSpecificFieldsDto(
@@ -54,10 +54,10 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "immediateActions" to immediateActions.joinToString(",") { it.name },
                 "longTermSolutions" to longTermSolutions.joinToString(",") { it.name },
                 "damageOccurrence" to damageOccurrence.joinToString(",") { it.name },
-                "environmentalImpact" to environmentalImpact,
+                "environmentalImpact" to (environmentalImpact?.joinToString(",") ?: ""),
                 "isLoadCarried" to isLoadCarried.toString(),
                 "loadBeingCarried" to loadBeingCarried,
-                "loadWeight" to (loadWeight?.name ?: "")
+                "loadWeight" to (loadWeightEnum?.name ?: "")
             )
         )
     }
@@ -110,7 +110,7 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
                 ?.filter { it.isNotEmpty() }
                 ?.mapNotNull { runCatching { NearMissLongTermSolution.valueOf(it) }.getOrNull() }
                 ?.toSet()
-                ?: emptySet()
+                ?: emptySet(),
         )
         "HAZARD" -> IncidentTypeFields.HazardFields(
             hazardType = data["hazardType"]?.let { if (it.isNotEmpty()) HazardType.valueOf(it) else null },
@@ -128,7 +128,7 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
                 ?.filter { it.isNotEmpty() }
                 ?.mapNotNull { runCatching { HazardPreventiveMeasure.valueOf(it) }.getOrNull() }
                 ?.toSet()
-                ?: emptySet()
+                ?: emptySet(),
         )
         "VEHICLE_FAIL" -> IncidentTypeFields.VehicleFailFields(
             failureType = data["failureType"]?.let { if (it.isNotEmpty()) VehicleFailType.valueOf(it) else null },
@@ -156,10 +156,13 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
                 ?.mapNotNull { runCatching { DamageOccurrence.valueOf(it) }.getOrNull() }
                 ?.toSet()
                 ?: emptySet(),
-            environmentalImpact = data["environmentalImpact"] ?: "",
+            environmentalImpact = data["environmentalImpact"]
+                ?.split(",")
+                ?.filter { it.isNotEmpty() }
+                ?.mapNotNull { it.toIntOrNull() },
             isLoadCarried = data["isLoadCarried"]?.toBoolean() ?: false,
             loadBeingCarried = data["loadBeingCarried"] ?: "",
-            loadWeight = data["loadWeight"]?.let { if (it.isNotEmpty()) LoadWeight.valueOf(it) else null }
+            loadWeightEnum = data["loadWeight"]?.let { if (it.isNotEmpty()) LoadWeightEnum.valueOf(it) else null }
         )
         else -> throw IllegalArgumentException("Unknown type: $type")
     }

@@ -12,7 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.CollisionImmediateCause
 import app.forku.domain.model.incident.IncidentTypeFields
@@ -36,9 +36,9 @@ fun ImmediateCauseDropdown(
     }?.replace("_", " ")
 
     val causes = when (state.type) {
-        IncidentType.COLLISION -> CollisionImmediateCause.values()
-        IncidentType.NEAR_MISS -> NearMissImmediateCause.values()
-        IncidentType.VEHICLE_FAIL -> VehicleFailImmediateCause.values()
+        IncidentTypeEnum.COLLISION -> CollisionImmediateCause.values()
+        IncidentTypeEnum.NEAR_MISS -> NearMissImmediateCause.values()
+        IncidentTypeEnum.VEHICLE_FAIL -> VehicleFailImmediateCause.values()
         else -> emptyArray()
     }
 

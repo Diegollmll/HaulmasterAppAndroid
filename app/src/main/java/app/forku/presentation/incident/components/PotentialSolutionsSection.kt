@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.CollisionImmediateAction
@@ -24,7 +24,7 @@ fun PotentialSolutionsSection(
     onValueChange: (IncidentReportState) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (state.type == IncidentType.HAZARD) return
+    if (state.type == IncidentTypeEnum.HAZARD) return
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Immediate Actions
@@ -35,9 +35,9 @@ fun PotentialSolutionsSection(
         )
 
         val immediateActions = when (state.type) {
-            IncidentType.COLLISION -> CollisionImmediateAction.values()
-            IncidentType.NEAR_MISS -> NearMissImmediateAction.values()
-            IncidentType.VEHICLE_FAIL -> VehicleFailImmediateAction.values()
+            IncidentTypeEnum.COLLISION -> CollisionImmediateAction.values()
+            IncidentTypeEnum.NEAR_MISS -> NearMissImmediateAction.values()
+            IncidentTypeEnum.VEHICLE_FAIL -> VehicleFailImmediateAction.values()
             else -> emptyArray()
         }
 
@@ -99,9 +99,9 @@ fun PotentialSolutionsSection(
         )
 
         val longTermSolutions = when (state.type) {
-            IncidentType.COLLISION -> CollisionLongTermSolution.values()
-            IncidentType.NEAR_MISS -> NearMissLongTermSolution.values()
-            IncidentType.VEHICLE_FAIL -> VehicleFailLongTermSolution.values()
+            IncidentTypeEnum.COLLISION -> CollisionLongTermSolution.values()
+            IncidentTypeEnum.NEAR_MISS -> NearMissLongTermSolution.values()
+            IncidentTypeEnum.VEHICLE_FAIL -> VehicleFailLongTermSolution.values()
             else -> emptyArray()
         }
 

@@ -1,7 +1,7 @@
 package app.forku.presentation.incident.components
 
 import androidx.compose.runtime.Composable
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 
 
@@ -11,16 +11,16 @@ fun IncidentSpecificTypeFieldsSelector(
     onValueChange: (IncidentReportState) -> Unit
 ) {
     when (state.type) {
-        IncidentType.COLLISION -> {
+        IncidentTypeEnum.COLLISION -> {
             CollisionTypeSpecificField(state = state, onValueChange = onValueChange)
         }
-        IncidentType.HAZARD -> {
+        IncidentTypeEnum.HAZARD -> {
             HazardTypeSpecificField(state = state, onValueChange = onValueChange)
         }
-        IncidentType.NEAR_MISS -> {
+        IncidentTypeEnum.NEAR_MISS -> {
             NearMissTypeSpecificField(state = state, onValueChange = onValueChange)
         }
-        IncidentType.VEHICLE_FAIL -> {
+        IncidentTypeEnum.VEHICLE_FAIL -> {
             VehicleFailSpecificField(state = state, onValueChange = onValueChange)
         }
         else -> null

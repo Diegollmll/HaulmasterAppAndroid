@@ -6,12 +6,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.DamageOccurrence
 import app.forku.domain.model.incident.EnvironmentalImpact
 import app.forku.domain.model.incident.IncidentTypeFields
-import app.forku.presentation.common.components.CustomOutlinedTextField
 import app.forku.presentation.common.components.FormFieldDivider
 
 @Composable
@@ -21,7 +20,7 @@ fun DamageAndImpactSection(
     modifier: Modifier = Modifier
 ) {
     // Only show for Collision and Vehicle Failure
-    if (state.type !in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL)) return
+    if (state.type !in listOf(IncidentTypeEnum.COLLISION, IncidentTypeEnum.VEHICLE_FAIL)) return
 
     Column(
         modifier = modifier.fillMaxWidth()
@@ -84,9 +83,9 @@ fun DamageAndImpactSection(
         EnvironmentalImpact.values().forEach { impact ->
             val isChecked = when (val fields = state.typeSpecificFields) {
                 is IncidentTypeFields.CollisionFields ->
-                    impact.name in fields.environmentalImpact.split(",").filter { it.isNotEmpty() }
+                    impact.name in fields.environmentalImpact
                 is IncidentTypeFields.VehicleFailFields ->
-                    impact.name in fields.environmentalImpact.split(",").filter { it.isNotEmpty() }
+                    fields.environmentalImpact?.contains(impact.ordinal) == true
                 else -> false
             }
 
@@ -102,25 +101,24 @@ fun DamageAndImpactSection(
                         val newFields = when (val fields = state.typeSpecificFields) {
                             is IncidentTypeFields.CollisionFields -> {
                                 val currentImpacts = fields.environmentalImpact
-                                    .split(",")
-                                    .filter { it.isNotEmpty() }
-                                    .toMutableList()
-                                
-                                if (checked) currentImpacts.add(impact.name)
-                                else currentImpacts.remove(impact.name)
-                                
+                                    ?.split(",")
+                                    ?.filter { it.isNotEmpty() }
+                                    ?.toMutableList() ?: mutableListOf()
+                                if (checked) {
+                                    if (!currentImpacts.contains(impact.name)) currentImpacts.add(impact.name)
+                                } else {
+                                    currentImpacts.remove(impact.name)
+                                }
                                 fields.copy(environmentalImpact = currentImpacts.joinToString(","))
                             }
                             is IncidentTypeFields.VehicleFailFields -> {
-                                val currentImpacts = fields.environmentalImpact
-                                    .split(",")
-                                    .filter { it.isNotEmpty() }
-                                    .toMutableList()
-                                
-                                if (checked) currentImpacts.add(impact.name)
-                                else currentImpacts.remove(impact.name)
-                                
-                                fields.copy(environmentalImpact = currentImpacts.joinToString(","))
+                                val currentImpacts = fields.environmentalImpact?.toMutableList() ?: mutableListOf()
+                                if (checked) {
+                                    if (!currentImpacts.contains(impact.ordinal)) currentImpacts.add(impact.ordinal)
+                                } else {
+                                    currentImpacts.remove(impact.ordinal)
+                                }
+                                fields.copy(environmentalImpact = currentImpacts)
                             }
                             else -> fields
                         }

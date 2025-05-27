@@ -116,8 +116,8 @@ class ProfileViewModel @Inject constructor(
             
             android.util.Log.d("ProfileViewModel", "Final total hours: $totalHours")
             
-            // Get total incidents
-            val totalIncidents = incidentRepository.getIncidentsByUserId(user.id).getOrDefault(emptyList()).size
+            // Get total incidents using backend count endpoint
+            val totalIncidents = incidentRepository.getIncidentCountForUser(user.id)
             
             // Get active vehicle session if any
             val OPERATING = userSessions.find { it.status == VehicleSessionStatus.OPERATING }

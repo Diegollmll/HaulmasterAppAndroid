@@ -49,22 +49,20 @@ fun GOGroupRole.toDto(): GOGroupRoleDto {
 
 fun UploadFileDto.toDomain(): UploadFile {
     return UploadFile(
-        fileName = fileName,
-        fileContent = fileContent,
-        contentType = contentType,
+        internalName = fileName,
+        clientName = fileName,
         fileSize = fileSize,
-        uploadedAt = uploadedAt,
-        fileUrl = fileUrl
+        type = contentType
     )
 }
 
 fun UploadFile.toDto(): UploadFileDto {
     return UploadFileDto(
-        fileName = fileName,
-        fileContent = fileContent,
-        contentType = contentType,
+        fileName = clientName,
+        fileContent = "",
+        contentType = type,
         fileSize = fileSize,
-        uploadedAt = uploadedAt,
-        fileUrl = fileUrl
+        uploadedAt = null,
+        fileUrl = null
     )
 } 

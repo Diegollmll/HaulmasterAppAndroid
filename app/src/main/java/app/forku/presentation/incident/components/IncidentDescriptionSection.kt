@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import app.forku.presentation.common.components.CustomOutlinedTextField
 import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.incident.IncidentReportState
+import app.forku.presentation.incident.IncidentReportViewModel.UploadedPhoto
 import coil.compose.AsyncImage
 import getImmediateActionsByType
 
@@ -55,7 +56,7 @@ fun IncidentDescriptionSection(
 
         // Photo grid
         val itemSize = 120.dp
-        val rows = (state.photos.size + 4) / 3 // +1 por el botón de añadir, redondeado hacia arriba
+        val rows = (state.uploadedPhotos.size + 4) / 3 // +1 por el botón de añadir, redondeado hacia arriba
         val gridHeight = itemSize * rows
 
         LazyVerticalGrid(
@@ -65,9 +66,9 @@ fun IncidentDescriptionSection(
                 .height(gridHeight),
             contentPadding = PaddingValues(8.dp)
         ) {
-            items(state.photos) { photoUri ->
+            items(state.uploadedPhotos) { photo ->
                 AsyncImage(
-                    model = photoUri,
+                    model = photo.uri,
                     contentDescription = "Incident photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

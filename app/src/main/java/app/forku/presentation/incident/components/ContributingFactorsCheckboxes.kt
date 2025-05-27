@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.CollisionContributingFactor
@@ -27,9 +27,9 @@ fun ContributingFactorsCheckboxes(
         )
 
         val factors = when (state.type) {
-            IncidentType.COLLISION -> CollisionContributingFactor.values()
-            IncidentType.NEAR_MISS -> NearMissContributingFactor.values()
-            IncidentType.VEHICLE_FAIL -> VehicleFailContributingFactor.values()
+            IncidentTypeEnum.COLLISION -> CollisionContributingFactor.values()
+            IncidentTypeEnum.NEAR_MISS -> NearMissContributingFactor.values()
+            IncidentTypeEnum.VEHICLE_FAIL -> VehicleFailContributingFactor.values()
             else -> emptyArray()
         }
 

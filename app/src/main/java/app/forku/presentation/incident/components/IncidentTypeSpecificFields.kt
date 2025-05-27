@@ -117,10 +117,10 @@ fun VehicleFailSpecificField(
                         immediateActions = emptySet(),
                         longTermSolutions = emptySet(),
                         damageOccurrence = emptySet(),
-                        environmentalImpact = "",
+                        environmentalImpact = emptyList(),
                         isLoadCarried = state.isLoadCarried,
                         loadBeingCarried = state.loadBeingCarried,
-                        loadWeight = state.loadWeight
+                        loadWeightEnum = state.loadWeightEnum
                     )
 
                 onValueChange(state.copy(

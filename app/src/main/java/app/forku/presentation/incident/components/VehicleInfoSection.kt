@@ -6,16 +6,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.forku.presentation.incident.IncidentReportState
-import java.time.format.DateTimeFormatter
 import androidx.compose.ui.Alignment
-import app.forku.domain.model.checklist.CheckStatus
 import app.forku.domain.model.checklist.getPreShiftStatusColor
 import app.forku.domain.model.checklist.getPreShiftStatusText
-import app.forku.domain.model.incident.IncidentType
 import app.forku.presentation.common.components.CustomOutlinedTextField
 import app.forku.presentation.common.components.FormFieldDivider
 import app.forku.presentation.common.utils.getRelativeTimeSpanFromDateTime
-import app.forku.presentation.common.utils.getRelativeTimeSpanString
 
 
 @Composable
@@ -167,9 +163,9 @@ fun VehicleInfoSection(
 
             // Load Weight Dropdown
             LoadWeightDropdown(
-                selected = state.loadWeight,
+                selected = state.loadWeightEnum,
                 onSelected = { selectedWeight ->
-                    onValueChange(state.copy(loadWeight = selectedWeight))
+                    onValueChange(state.copy(loadWeightEnum = selectedWeight))
                 },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -49,6 +49,9 @@ fun AdminDashboardScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Log.d("AdminDashboardScreen", "UI muestra operatingVehiclesCount: ${state.operatingVehiclesCount}")
+    Log.d("AdminDashboardScreen", "UI muestra userIncidentsCount: ${state.userIncidentsCount}")
+    Log.d("AdminDashboardScreen", "UI muestra totalIncidentsCount: ${state.totalIncidentsCount}")
+    Log.d("AdminDashboardScreen", "UI muestra safetyAlertsCount: ${state.safetyAlertsCount}")
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
 
@@ -179,6 +182,7 @@ private fun OperationStatusSection(
                     iconTint = Color(0xFF4CAF50),
                     onClick = { navController.navigate(Screen.VehiclesList.route) }
                 )
+                Log.d("AdminDashboardScreen", "OperationStatusSection - totalIncidentsCount: ${state.totalIncidentsCount}")
                 StatusItem(
                     icon = Icons.Default.Warning,
                     count = state.totalIncidentsCount.toString(),

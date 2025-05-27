@@ -32,6 +32,7 @@ import app.forku.data.datastore.AuthDataStore
 import app.forku.data.service.GOServicesManager
 import app.forku.data.api.VehicleSessionApi
 import app.forku.domain.model.session.VehicleSessionStatus
+import app.forku.domain.usecase.incident.GetUserIncidentCountUseCase
 
 sealed class AuthEvent {
     object NavigateToLogin : AuthEvent()
@@ -47,7 +48,8 @@ class AdminDashboardViewModel @Inject constructor(
     private val vehicleSessionRepository: VehicleSessionRepository,
     private val authDataStore: AuthDataStore,
     private val goServicesManager: GOServicesManager,
-    private val vehicleSessionApi: VehicleSessionApi
+    private val vehicleSessionApi: VehicleSessionApi,
+    private val getUserIncidentCountUseCase: GetUserIncidentCountUseCase
 ) : ViewModel() {
 
     private val _authEvent = MutableSharedFlow<AuthEvent>()
@@ -151,6 +153,26 @@ class AdminDashboardViewModel @Inject constructor(
         }
     }
 
+    private fun loadIncidentCountForDashboard(user: User?) {
+        viewModelScope.launch {
+            try {
+                val count = when (user?.role) {
+                    UserRole.ADMIN -> getUserIncidentCountUseCase() // total
+                    else -> if (user != null) getUserIncidentCountUseCase(user.id) else 0
+                }
+                _state.update { it.copy(
+                    userIncidentsCount = count,
+                    totalIncidentsCount = count
+                ) }
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    userIncidentsCount = 0,
+                    totalIncidentsCount = 0
+                ) }
+            }
+        }
+    }
+
     fun loadDashboardData() {
         viewModelScope.launch {
             android.util.Log.d("AdminDashboard", "[loadDashboardData] Iniciando carga de dashboard data...")
@@ -159,6 +181,9 @@ class AdminDashboardViewModel @Inject constructor(
 
                 val currentUser = userRepository.getCurrentUser()
                 val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
+                if (currentUser != null) {
+                    loadIncidentCountForDashboard(currentUser)
+                }
 
                 // Obtener sesiones activas directamente de la API
                 val sessionResponse = vehicleSessionApi.getAllSessions(businessId)
@@ -327,7 +352,6 @@ class AdminDashboardViewModel @Inject constructor(
 
                 _state.value = _state.value.copy(
                     operatingVehiclesCount = _state.value.operatingVehiclesCount,
-                    totalIncidentsCount = incidents.size,
                     safetyAlertsCount = safetyAlertsCount,
                     activeVehicleSessions = activeSessions,
                     activeOperators = activeOperators,

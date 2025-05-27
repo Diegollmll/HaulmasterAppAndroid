@@ -51,6 +51,9 @@ fun User.toDto(): UserDto {
         lastName = lastName,
         fullName = fullName,
         password = password,
+        picture = photoUrl ?: "",
+        pictureFileSize = null,
+        pictureInternalName = null
         // Other fields can be added here if needed and present in UserDto
     )
 }

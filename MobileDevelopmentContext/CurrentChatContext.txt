@@ -1,0 +1,99 @@
+Could you please integrate this Api if it is not already in our @basecode ?
+
+The new Api is CollisionIncidentApi.
+
+And these are the endpoints that needs to be integrated:
+
+CountryApi
+
+GET
+/dataset/api/country/byid/{id}
+Get a Country instance by primary key and return data in dataset format
+
+GET
+/api/country/byid/{id}
+Get a Country instance by primary key and return data in json structured format
+
+GET
+/dataset/api/country/list
+Get a list of Country instances and return data in dataset format
+
+GET
+/api/country/list
+Get a list of Country instances and return data in json structured format
+
+GET
+/dataset/api/country/count
+Count the number of Country instances
+
+POST
+/dataset/api/country
+Save (create or update if existing) a given Country instance, and return the saved instance data
+
+DELETE
+/dataset/api/country
+Delete a given Country instance
+
+POST
+/api/country
+Save (create or update if existing) a given Country instance, and return the saved instance data
+
+DELETE
+/dataset/api/country/{id}
+Delete a given Country instance
+
+
+
+CollisionIncidentDto:
+
+{
+          "Id": "A9182001-9411-436F-B843-CF551AE6B694",
+          "CollisionType": [
+            0
+          ],
+          "CommonCauses": [
+            0
+          ],
+          "ContributingFactors": [
+            0
+          ],
+          "DamageOccurrence": [
+            4
+          ],
+          "Description": "Test",
+          "EnvironmentalImpact": [
+            3
+          ],
+          "GOUserId": "867b342e-5d9a-484c-a2db-3fd08a0dfeaf",
+          "ImmediateAction": [
+            4
+          ],
+          "ImmediateCause": [
+            2
+          ],
+          "IncidentDateTime": "2025-05-20T12:00:00.000-05:00",
+          "IncidentType": 0,
+          "InjuryLocation": [],
+          "InjurySeverity": 0,
+          "IsLoadCarried": true,
+          "LoadBeingCarried": "Beer",
+          "LoadWeight": 0,
+          "LocationCoordinates": null,
+          "LocationDetails": "Test",
+          "LongTermSolution": [
+            0
+          ],
+          "OthersInvolved": "No body",
+          "SeverityLevel": 0,
+          "Status": 0,
+          "VehicleId": "99216b5e-2ffc-4f76-b9e5-0e9fafcaa125",
+          "Weather": "Test",
+          "IsDirty": true,
+          "IsNew": true,
+          "IsMarkedForDeletion": false
+        }
+
+
+//
+
+Could you please try to send the message id: "dd771761-07ba-453b-a797-e4dd6fd7152d" again please?

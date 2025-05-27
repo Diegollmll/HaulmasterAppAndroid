@@ -391,7 +391,7 @@ enum class VehicleFailType {
     }
 }
 
-enum class LoadWeight {
+enum class LoadWeightEnum {
     LESS_THAN_1T,
     ONE_TO_THREE_T,
     THREE_TO_FIVE_T,

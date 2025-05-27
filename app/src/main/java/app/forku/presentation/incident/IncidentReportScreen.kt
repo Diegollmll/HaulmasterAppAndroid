@@ -12,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
-import app.forku.presentation.incident.components.IncidentTopBar
 import app.forku.presentation.incident.components.IncidentFormContent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.domain.model.incident.toDisplayText
 import android.Manifest
 import android.content.pm.PackageManager
@@ -139,7 +138,7 @@ fun IncidentReportScreen(
         navController = navController,
         viewModel = viewModel,
         showBottomBar = false,
-        topBarTitle = "${IncidentType.valueOf(incidentType).toDisplayText()} Incident",
+        topBarTitle = "${IncidentTypeEnum.valueOf(incidentType).toDisplayText()} Incident",
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
     ) { padding ->
@@ -157,7 +156,15 @@ fun IncidentReportScreen(
             )
 
             SubmitButton(
-                onClick = { viewModel.submitIncident() },
+                onClick = { 
+                    when (state.type) {
+                        IncidentTypeEnum.COLLISION -> viewModel.submitCollisionIncident()
+                        IncidentTypeEnum.NEAR_MISS -> viewModel.submitNearMissIncident()
+                        IncidentTypeEnum.HAZARD -> viewModel.submitHazardIncident()
+                        IncidentTypeEnum.VEHICLE_FAIL -> viewModel.submitVehicleFailIncident()
+                        else -> viewModel.submitIncident()
+                    }
+                },
                 enabled = !state.isLoading,
                 modifier = Modifier
                     .fillMaxWidth()

@@ -1,17 +1,31 @@
-Type,ID,Item Description,Sprint,Force Rank,Required,Desired,As a,I want to,So that,Status,Created On,Story Points,Estimation (hours)
-User Story,APP-002,Session Management Enhancements,Current Sprint,1,Yes,Yes,User,restore my session,avoid losing progress,To-do,,3,12
-User Story,APP-003,Vehicle State Management,Current Sprint,2,Yes,Yes,Operator/Admin,change vehicle state,reflect real-time status,To-do,,3,12
-User Story,APP-005,Basic Checklist Flow,Current Sprint,3,Yes,Yes,Operator,complete checklist,ensure safety,To-do,,5,20
-User Story,APP-006,Checklist Session Management,Current Sprint,4,Yes,Yes,Operator/Admin,manage checklist sessions,track progress,To-do,,5,20
-User Story,APP-008,Incident Reporting,Current Sprint,5,Yes,Yes,Operator/Admin,report incidents,improve safety,To-do,,3,12
-User Story,APP-001,ProfileScreen Integration,Current Sprint,6,Yes,Yes,User,edit my profile,my information is up to date,To-do,,2,8
-User Story,APP-004,Vehicle Profile Photo Management,Current Sprint,7,Yes,Yes,Operator/Admin,upload vehicle photo,vehicle is easily identified,To-do,,2,8
-User Story,APP-007,Checklist History & Reports,Current Sprint,8,Yes,Yes,Operator/Admin,view checklist history,review past checks,To-do,,3,12
-User Story,APP-009,Incident History,Current Sprint,9,Yes,Yes,Operator/Admin,view incident history,review past incidents,To-do,,2,8
-User Story,APP-010,Incident Reports,Current Sprint,10,Yes,Yes,Operator/Admin,view incident reports,analyze trends,To-do,,3,12
-User Story,APP-011,User Management (Admin),Current Sprint,11,Yes,Yes,Admin,manage users,control access,To-do,,3,12
-User Story,APP-012,Vehicle Management (Admin),Current Sprint,12,Yes,Yes,Admin,manage vehicles,keep fleet updated,To-do,,3,12
-User Story,APP-013,Checklist Monitoring (Admin),Current Sprint,13,Yes,Yes,Admin,monitor checklists,ensure compliance,To-do,,2,8
-User Story,APP-014,Reports & Analytics (Admin),Current Sprint,14,Yes,Yes,Admin,view analytics,make decisions,To-do,,3,12
-User Story,APP-015,MockAPI ProfileScreen Migration,Current Sprint,15,Yes,Yes,User,see real profile data,improve accuracy,To-do,,2,8
-User Story,APP-016,MockAPI Basic Reports Migration,Current Sprint,16,Yes,Yes,User,see real reports,improve accuracy,To-do,,2,8 
+Task ID,Task Description,Sprint,Status,Estimation (hours),Advance %,Remaining,Notes
+APP-001a,Profile Screen UI Implementation,Current Sprint,Done,8,99,0.08,UI mostly implemented, needs final polish and integration with real data.
+APP-001b,Profile Data Integration,Current Sprint,Done,8,99,0.08,UserApi/GOUserRoleApi integration
+APP-002a,Session Timeout Implementation,Current Sprint,In Progress,6,99,0.06,Session timeout logic present, needs more testing and UI feedback.
+APP-002b,Session Restoration,Current Sprint,Done,4,100,0,Auto-restore on launch works
+NEW-001,Login Screen Implementation,Current Sprint,Done,8,100,0,Login screen fully functional and tested.
+APP-003,Vehicle State Management,Current Sprint,Done,8,100,0,State management logic and UI in place
+APP-004,Vehicle Profile Photo Management,Current Sprint,Done,6,100,0,Just check where the image of the vehicle is to test that appear correctly if not fix
+APP-012,Vehicle List Management (Admin),Current Sprint,Done,8,100,0,Fully functional but need to check and test the indicadors when sessions are actually performed and other indicators like user in session, etc.
+NEW-002,Vehicle QR Code Scanner,Current Sprint,Done,8,100,0,QR scanner check implementation and test
+APP-005a,Basic Checklist UI,Current Sprint,Done,10,100,0,UI and flow working
+APP-005b,Checklist Local Storage,Current Sprint,Done,6,100,0,Remove local save and sync handling logic present
+NEW-004,Advanced Checklist Features,Current Sprint,In Progress,12,50,6,Not started
+APP-006a,Start/End Checklist Session,Current Sprint,Done,8,100,0,Session logic in ViewModel
+APP-006b,Checklist Session Tracking,Current Sprint,In Progress,4,95,0.2,Tracking logic present
+APP-007,Checklist History & Reports,Current Sprint,In Progress,8,20,6.4,UserChecklistApi/AnsweredChecklistItemApi integration.
+APP-013,Checklist Monitoring (Admin),Current Sprint,Done,6,100,0,Not started
+APP-008a,Basic Incident Reporting,Current Sprint,In Progress,8,100,0,UI started, backend integration in progress.
+APP-008b,Advanced Incident Reporting,Current Sprint,In Progress,10,30,7,Not started
+APP-009,Incident History,Current Sprint,Done,6,100,0,IncidentApi/UserChecklistApi.
+APP-010,Incident Reports & Analytics,Current Sprint,To-do,8,0,8,Not started
+APP-011,User Management (Admin),Current Sprint,Done,8,100,0,List and role assignment UI, whole relationed code test in progress
+APP-014,Reports & Analytics Dashboard (Admin),Current Sprint,To-do,8,0,8,Not started
+APP-015,MockAPI ProfileScreen Migration,Current Sprint,Done,4,100,0,UserApi/GOUserRoleApi readiness.
+APP-016,MockAPI Basic Reports Migration,Current Sprint,Done,4,100,0,Analytics/reporting APIs.
+NEW-009,Security Enhancements,Current Sprint,Done,8,100,0,Not started
+NEW-007,Safety Gamification Features,Future Sprint,Not Started,16,0,,Planned for future sprint.
+NEW-003,Vehicle Maintenance Management,Next Sprint,Not Started,12,0,,Planned for next sprint.
+NEW-005,Certification Tracking System,Next Sprint,Not Started,12,0,,Planned for next sprint.
+NEW-006,Training Materials Portal,Next Sprint,Not Started,10,0,,Planned for next sprint.
+NEW-008,Localization Support,Next Sprint,Not Started,8,0,,Planned for next sprint. 

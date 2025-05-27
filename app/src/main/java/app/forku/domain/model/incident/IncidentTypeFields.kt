@@ -40,10 +40,10 @@ sealed class IncidentTypeFields {
         val immediateActions: Set<VehicleFailImmediateAction>,
         val longTermSolutions: Set<VehicleFailLongTermSolution>,
         val damageOccurrence: Set<DamageOccurrence> = emptySet(),
-        val environmentalImpact: String,
+        val environmentalImpact: List<Int>? = emptyList(),
         // Campos de carga
         val isLoadCarried: Boolean = false,
         val loadBeingCarried: String = "",
-        val loadWeight: LoadWeight? = null
+        val loadWeightEnum: LoadWeightEnum? = null
     ) : IncidentTypeFields()
 }

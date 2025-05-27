@@ -69,6 +69,12 @@ data class UserDto(
     @SerializedName("userNearMissIncidentItems")
     val userNearMissIncidentItems: List<Any>? = emptyList(),
     @SerializedName("userRoleItems")
-    val userRoleItems: List<Any>? = emptyList()
+    val userRoleItems: List<Any>? = emptyList(),
+    @SerializedName("Picture")
+    val picture: String,
+    @SerializedName("PictureFileSize")
+    val pictureFileSize: Long? = null,
+    @SerializedName("PictureInternalName")
+    val pictureInternalName: String? = null,
 )
 

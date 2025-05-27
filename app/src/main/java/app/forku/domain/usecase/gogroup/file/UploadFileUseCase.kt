@@ -1,6 +1,5 @@
 package app.forku.domain.usecase.gogroup.file
 
-import android.util.Base64
 import app.forku.domain.model.gogroup.UploadFile
 import app.forku.domain.repository.gogroup.GOFileUploaderRepository
 import java.io.File
@@ -13,23 +12,7 @@ class UploadFileUseCase @Inject constructor(
         file: File,
         contentType: String
     ): Result<UploadFile> {
-        return try {
-            // Read file content and encode as Base64
-            val fileContent = file.readBytes()
-            val base64Content = Base64.encodeToString(fileContent, Base64.DEFAULT)
-
-            val uploadFile = UploadFile(
-                fileName = file.name,
-                fileContent = base64Content,
-                contentType = contentType,
-                fileSize = file.length(),
-                uploadedAt = java.time.Instant.now().toString()
-            )
-
-            repository.uploadFile(uploadFile)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return repository.uploadFile(file, contentType)
     }
 
     suspend fun uploadImageFile(file: File): Result<UploadFile> {

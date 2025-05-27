@@ -190,7 +190,10 @@ class UserRepositoryImpl @Inject constructor(
                 password = password,
                 username = email,
                 firstName = firstName,
-                lastName = lastName
+                lastName = lastName,
+                picture = "",
+                pictureFileSize = null,
+                pictureInternalName = null
             )
 
             val response = api.createUser(newUser)
@@ -248,7 +251,10 @@ class UserRepositoryImpl @Inject constructor(
                 password = "", // No incluimos el password en la actualización
                 username = user.username,
                 firstName = user.firstName,
-                lastName = user.lastName
+                lastName = user.lastName,
+                picture = "",
+                pictureFileSize = null,
+                pictureInternalName = null
             )
 
             val response = api.saveUser(updatedUserDto)
@@ -287,7 +293,10 @@ class UserRepositoryImpl @Inject constructor(
                 password = currentPassword, // Preserve the current password
                 username = user.username,
                 firstName = user.firstName,
-                lastName = user.lastName
+                lastName = user.lastName,
+                picture = "",
+                pictureFileSize = null,
+                pictureInternalName = null
             )
 
             Log.d("UserRepository", "Sending update request to API")

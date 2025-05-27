@@ -40,6 +40,7 @@ import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.VehicleSessionClosedMethod
+import coil.ImageLoader
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -50,7 +51,8 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     networkManager: NetworkConnectivityManager,
     sessionViewModel: SessionViewModel = hiltViewModel(),
-    tokenErrorHandler: TokenErrorHandler
+    tokenErrorHandler: TokenErrorHandler,
+    imageLoader: ImageLoader
 ) {
     val dashboardState by viewModel.state.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -171,7 +173,8 @@ fun DashboardScreen(
                             dashboardState = dashboardState,
                             currentUser = currentUser,
                             onNavigate = onNavigate,
-                            sessionViewModel = sessionViewModel
+                            sessionViewModel = sessionViewModel,
+                            imageLoader = imageLoader
                         )
                     }
 
@@ -235,7 +238,8 @@ private fun CurrentUserSession(
     dashboardState: DashboardState,
     currentUser: User?,
     onNavigate: (String) -> Unit,
-    sessionViewModel: SessionViewModel
+    sessionViewModel: SessionViewModel,
+    imageLoader: ImageLoader
 ) {
     // LOG: Estado de entrada
     LaunchedEffect(dashboardState.activeSessions, dashboardState.vehicles, currentUser) {
@@ -264,6 +268,7 @@ private fun CurrentUserSession(
     // LOG: sessionVehicle
     LaunchedEffect(sessionVehicle) {
         android.util.Log.d("DashboardDebug", "sessionVehicle: $sessionVehicle")
+        android.util.Log.d("DashboardDebug", "sessionVehicle.photoModel: ${sessionVehicle?.photoModel}")
     }
 
     // Collect session state
@@ -303,7 +308,8 @@ private fun CurrentUserSession(
                     sessionId = sessionId,
                     closeMethod = if (currentUser?.role == UserRole.ADMIN) VehicleSessionClosedMethod.ADMIN_CLOSED else VehicleSessionClosedMethod.USER_CLOSED
                 )
-            }
+            },
+            imageLoader = imageLoader
         )
     } else {
         Text("Press Check In to get started!", modifier = Modifier.padding(16.dp))

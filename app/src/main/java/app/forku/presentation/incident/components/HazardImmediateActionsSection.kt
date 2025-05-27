@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.HazardCorrectiveAction
 import app.forku.domain.model.incident.IncidentTypeFields
@@ -17,7 +17,7 @@ fun HazardImmediateActionsSection(
     onValueChange: (IncidentReportState) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (state.type != IncidentType.HAZARD) return
+    if (state.type != IncidentTypeEnum.HAZARD) return
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(

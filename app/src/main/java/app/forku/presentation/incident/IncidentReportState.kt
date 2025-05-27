@@ -1,6 +1,6 @@
 package app.forku.presentation.incident
 
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import android.net.Uri
 import app.forku.presentation.incident.model.IncidentFormSection
 import app.forku.domain.model.incident.IncidentTypeFields
@@ -9,13 +9,14 @@ import java.time.LocalTime
 import app.forku.domain.model.vehicle.VehicleType
 import java.time.LocalDateTime
 import app.forku.domain.model.incident.IncidentSeverityLevelEnum
-import app.forku.domain.model.incident.LoadWeight
+import app.forku.domain.model.incident.LoadWeightEnum
 import app.forku.domain.model.vehicle.Vehicle
+import app.forku.presentation.incident.IncidentReportViewModel.UploadedPhoto
 
 
 data class IncidentReportState(
     // Common fields
-    val type: IncidentType? = null,
+    val type: IncidentTypeEnum? = null,
     val date: Long = System.currentTimeMillis(),
     val location: String = "",
     val locationDetails: String = "",
@@ -36,7 +37,7 @@ data class IncidentReportState(
     // People involved
     val userId: String? = null,
     val reporterName: String? = null,
-    val othersInvolved: List<String> = emptyList(),
+    val othersInvolved: String? = null,
     val injuries: String = "",
     val injuryLocations: List<String> = emptyList(),
     
@@ -47,13 +48,13 @@ data class IncidentReportState(
     val checkId: String? = null,
     val isLoadCarried: Boolean = false,
     val loadBeingCarried: String = "",
-    val loadWeight: LoadWeight? = null,
+    val loadWeightEnum: LoadWeightEnum? = null,
     val lastPreshiftCheck: LocalDateTime? = null,
     
     // Incident specific
     val immediateActions: List<String> = emptyList(),
     val proposedSolutions: List<String> = emptyList(),
-    val photos: List<Uri> = emptyList(),
+    val uploadedPhotos: List<UploadedPhoto> = emptyList(),
     
     // Form state
     val currentSection: IncidentFormSection = IncidentFormSection.BasicInfo,
@@ -90,10 +91,10 @@ sealed class ValidationResult {
 
 fun IncidentReportState.validate(): ValidationResult {
     return when (type) {
-        IncidentType.COLLISION -> validateCollision()
-        IncidentType.NEAR_MISS -> validateNearMiss()
-        IncidentType.HAZARD -> validateHazard()
-        IncidentType.VEHICLE_FAIL -> validateVehicleFail()
+        IncidentTypeEnum.COLLISION -> validateCollision()
+        IncidentTypeEnum.NEAR_MISS -> validateNearMiss()
+        IncidentTypeEnum.HAZARD -> validateHazard()
+        IncidentTypeEnum.VEHICLE_FAIL -> validateVehicleFail()
         else -> ValidationResult.Error("Invalid incident type")
     }
 }
@@ -116,6 +117,7 @@ fun IncidentReportState.validateNearMiss(): ValidationResult {
     return when {
         description.isBlank() -> ValidationResult.Error("Description is required")
         userId == null -> ValidationResult.Error("Operator information is required")
+        vehicleId == null -> ValidationResult.Error("Vehicle information is required")
         fields?.nearMissType == null -> ValidationResult.Error("Near miss type is required")
         fields.immediateCause == null -> ValidationResult.Error("Immediate cause is required")
         else -> ValidationResult.Success

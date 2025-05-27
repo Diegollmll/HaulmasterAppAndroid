@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.domain.model.incident.toDisplayText
 import app.forku.presentation.common.components.ForkuButton
 
@@ -35,7 +35,7 @@ fun IncidentTypeSelector(
                     .padding(vertical = 4.dp)
             ) {
                 Text(
-                    text = IncidentType.valueOf(type.toString()).toDisplayText(),
+                    text = IncidentTypeEnum.valueOf(type.toString()).toDisplayText(),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
@@ -48,9 +48,9 @@ fun IncidentTypeSelector(
 
 private object IncidentTypes {
     val types = listOf(
-        IncidentType.COLLISION.name,
-        IncidentType.NEAR_MISS.name,
-        IncidentType.HAZARD.name,
-        IncidentType.VEHICLE_FAIL
+        IncidentTypeEnum.COLLISION.name,
+        IncidentTypeEnum.NEAR_MISS.name,
+        IncidentTypeEnum.HAZARD.name,
+        IncidentTypeEnum.VEHICLE_FAIL
     )
 }

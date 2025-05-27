@@ -130,4 +130,30 @@ fun formatReadableDate(dateTimeStr: String): String {
         android.util.Log.e("DateTimeUtils", "Error formatting readable date: $dateTimeStr", e)
         dateTimeStr // Return original string if parsing fails
     }
+}
+
+fun getRelativeTimeSpanFromMillis(millis: Long?): String {
+    return try {
+        if (millis == null || millis == 0L) return "N/A"
+        val instant = Instant.ofEpochMilli(millis)
+        val now = Instant.now()
+        val duration = Duration.between(instant, now)
+        val minutes = duration.toMinutes()
+        val hours = duration.toHours()
+        val days = duration.toDays()
+        when {
+            minutes < 1 -> "Just now"
+            minutes == 1L -> "Hace 1 minuto"
+            minutes < 60 -> "Hace $minutes minutos"
+            hours == 1L -> "Hace 1 hora"
+            hours < 24 -> "Hace $hours horas"
+            days == 1L -> "Hace 1 día"
+            days < 7 -> "Hace $days días"
+            days < 30 -> "Hace ${days / 7} semanas"
+            days < 365 -> "Hace ${days / 30} meses"
+            else -> "Hace ${days / 365} años"
+        }
+    } catch (e: Exception) {
+        "N/A"
+    }
 } 

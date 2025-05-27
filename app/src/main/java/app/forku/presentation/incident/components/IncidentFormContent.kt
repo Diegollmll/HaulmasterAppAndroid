@@ -9,20 +9,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.presentation.common.components.ExpandableCard
 import app.forku.presentation.common.components.ContentCard
 import androidx.compose.ui.graphics.Color
-import app.forku.presentation.common.components.ForkuButton
 import app.forku.core.utils.keyboardAwareScroll
 
 @Composable
@@ -59,7 +55,7 @@ fun IncidentFormContent(
             }
         }
 
-        if (state.type == IncidentType.HAZARD) {
+        if (state.type == IncidentTypeEnum.HAZARD) {
             ExpandableCard(
                 title = "Immediate Actions Taken",
                 initiallyExpanded = true,
@@ -80,7 +76,7 @@ fun IncidentFormContent(
             }
         }
 
-        if (state.type in listOf(IncidentType.COLLISION, IncidentType.NEAR_MISS)) {
+        if (state.type in listOf(IncidentTypeEnum.COLLISION, IncidentTypeEnum.NEAR_MISS)) {
             // People Involved Section
             ExpandableCard(
                 title = "People Involved",
@@ -99,7 +95,7 @@ fun IncidentFormContent(
         }
 
         // Vehicle Info Section (Only for specific types)
-        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
+        if (state.type in listOf(IncidentTypeEnum.COLLISION, IncidentTypeEnum.VEHICLE_FAIL, IncidentTypeEnum.NEAR_MISS)) {
             ExpandableCard(
                 title = "Vehicle Info",
                 initiallyExpanded = true,
@@ -136,7 +132,7 @@ fun IncidentFormContent(
             }
         }
 
-        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
+        if (state.type in listOf(IncidentTypeEnum.COLLISION, IncidentTypeEnum.VEHICLE_FAIL, IncidentTypeEnum.NEAR_MISS)) {
             ExpandableCard(
                 title = "Root Cause Analysis",
                 initiallyExpanded = true,
@@ -153,7 +149,7 @@ fun IncidentFormContent(
             }
         }
 
-        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL)) {
+        if (state.type in listOf(IncidentTypeEnum.COLLISION, IncidentTypeEnum.VEHICLE_FAIL)) {
             ExpandableCard(
                 title = "Damage & Impact",
                 initiallyExpanded = true,
@@ -170,7 +166,7 @@ fun IncidentFormContent(
             }
         }
 
-        if (state.type in listOf(IncidentType.COLLISION, IncidentType.VEHICLE_FAIL, IncidentType.NEAR_MISS)) {
+        if (state.type in listOf(IncidentTypeEnum.COLLISION, IncidentTypeEnum.VEHICLE_FAIL, IncidentTypeEnum.NEAR_MISS)) {
             ExpandableCard(
                 title = "Potential Solutions",
                 initiallyExpanded = true,
@@ -192,7 +188,7 @@ fun IncidentFormContent(
         }
 
         // Add Hazard Preventive Measures section only for HAZARD type
-        if (state.type == IncidentType.HAZARD) {
+        if (state.type == IncidentTypeEnum.HAZARD) {
             ExpandableCard(
                 title = "Preventive Measures",
                 initiallyExpanded = true,

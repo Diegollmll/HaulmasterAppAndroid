@@ -1,7 +1,7 @@
 package app.forku.domain.usecase.incident
 
 import app.forku.domain.model.incident.Incident
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.domain.repository.incident.IncidentRepository
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.user.UserRepository
@@ -12,7 +12,7 @@ import app.forku.domain.model.vehicle.VehicleType
 import app.forku.domain.model.incident.IncidentSeverityLevelEnum
 import app.forku.domain.model.incident.IncidentTypeFields
 import java.time.LocalTime
-import app.forku.domain.model.incident.LoadWeight
+import app.forku.domain.model.incident.LoadWeightEnum
 
 class ReportIncidentUseCase @Inject constructor(
     private val incidentRepository: IncidentRepository,
@@ -20,7 +20,7 @@ class ReportIncidentUseCase @Inject constructor(
     private val vehicleSessionRepository: VehicleSessionRepository
 ) {
     suspend operator fun invoke(
-        type: IncidentType,
+        type: IncidentTypeEnum,
         date: Long,
         location: String,
         locationDetails: String,
@@ -32,7 +32,7 @@ class ReportIncidentUseCase @Inject constructor(
         typeSpecificFields: IncidentTypeFields?,
         sessionId: String?,
         userId: String?,
-        othersInvolved: List<String>,
+        othersInvolved: String,
         injuries: String,
         injuryLocations: List<String>,
         vehicleId: String?,
@@ -40,7 +40,7 @@ class ReportIncidentUseCase @Inject constructor(
         vehicleName: String,
         isLoadCarried: Boolean = false,
         loadBeingCarried: String = "",
-        loadWeight: LoadWeight? = null,
+        loadWeight: LoadWeightEnum? = null,
         photos: List<Uri>,
         locationCoordinates: String?
     ): Result<Incident> {

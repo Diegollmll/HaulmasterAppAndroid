@@ -58,6 +58,9 @@ import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.OptionsDropdownMenu
 import app.forku.presentation.common.components.DropdownMenuOption
+import app.forku.presentation.common.components.OverlappingImages
+import coil.compose.LocalImageLoader
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -258,25 +261,13 @@ private fun ProfileHeader(
                                     .clip(CircleShape)
                                     .border(1.dp, Color.LightGray, CircleShape)
                             ) {
-                                AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(state.user?.photoUrl?.takeIf { it.isNotEmpty() }
-                                            ?: run {
-                                                val firstInitial = state.user?.firstName?.firstOrNull()?.toString()
-                                                    ?: state.user?.username?.firstOrNull()?.toString()
-                                                    ?: "U"
-                                                val lastInitial = state.user?.lastName?.firstOrNull()?.toString()
-                                                    ?: state.user?.username?.drop(1)?.firstOrNull()?.toString()
-                                                    ?: "U"
-                                                "https://ui-avatars.com/api/?name=${firstInitial}+${lastInitial}&background=random"
-                                            })
-                                        .crossfade(true)
-                                        .placeholder(R.drawable.ic_profile_placeholder)
-                                        .error(R.drawable.ic_profile_placeholder)
-                                        .build(),
-                                    contentDescription = "Profile picture",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
+                                OverlappingImages(
+                                    mainImageUrl = null,
+                                    overlayImageUrl = state.user?.photoUrl,
+                                    imageLoader = LocalImageLoader.current,
+                                    overlayUserId = state.user?.id,
+                                    mainSize = 0,
+                                    overlaySize = 100
                                 )
                             }
                             Row(

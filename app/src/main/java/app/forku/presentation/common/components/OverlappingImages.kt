@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.ImageLoader
+import app.forku.core.Constants.BASE_URL
 
 @Composable
 fun OverlappingImages(
@@ -23,8 +25,16 @@ fun OverlappingImages(
     mainTint: Color = Color.Gray,
     overlayBackground: Color = Color.White,
     mainSize: Int = 40,
-    overlaySize: Int = 20
+    overlaySize: Int = 20,
+    imageLoader: ImageLoader,
+    overlayUserId: String? = null
 ) {
+    val userImageUrl = if (!overlayImageUrl.isNullOrBlank()) {
+        overlayImageUrl
+    } else if (!overlayUserId.isNullOrBlank()) {
+        "${BASE_URL}api/gouser/file/${overlayUserId}/Picture?t=%LASTEDITEDTIME%"
+    } else null
+
     Box(
         modifier = Modifier
             .size(mainSize.dp + (overlaySize.dp / 2))
@@ -36,6 +46,7 @@ fun OverlappingImages(
                 .data(mainImageUrl)
                 .crossfade(true)
                 .build(),
+            imageLoader = imageLoader,
             contentDescription = "Vehicle image",
             modifier = Modifier
                 .size(mainSize.dp)
@@ -48,9 +59,10 @@ fun OverlappingImages(
         // Overlay user image
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(overlayImageUrl)
+                .data(userImageUrl)
                 .crossfade(true)
                 .build(),
+            imageLoader = imageLoader,
             contentDescription = "User image",
             modifier = Modifier
                 .size(overlaySize.dp)

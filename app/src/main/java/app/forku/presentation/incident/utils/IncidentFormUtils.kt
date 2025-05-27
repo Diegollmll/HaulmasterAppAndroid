@@ -1,7 +1,7 @@
-import app.forku.domain.model.incident.IncidentType
+import app.forku.domain.model.incident.IncidentTypeEnum
 
-fun getActivitiesByType(type: IncidentType?): List<String> = when (type) {
-    IncidentType.COLLISION -> listOf(
+fun getActivitiesByType(type: IncidentTypeEnum?): List<String> = when (type) {
+    IncidentTypeEnum.COLLISION -> listOf(
         "Loading",
         "Unloading",
         "Traveling",
@@ -9,19 +9,19 @@ fun getActivitiesByType(type: IncidentType?): List<String> = when (type) {
         "Parking",
         "Other"
     )
-    IncidentType.NEAR_MISS -> listOf(
+    IncidentTypeEnum.NEAR_MISS -> listOf(
         "Pedestrian Interaction",
         "Vehicle Operation",
         "Load Handling",
         "Other"
     )
-    IncidentType.HAZARD -> listOf(
+    IncidentTypeEnum.HAZARD -> listOf(
         "Regular Operation",
         "Inspection",
         "Maintenance",
         "Other"
     )
-    IncidentType.VEHICLE_FAIL -> listOf(
+    IncidentTypeEnum.VEHICLE_FAIL -> listOf(
         "Regular Operation",
         "Start-up",
         "Maintenance Check",
@@ -30,8 +30,8 @@ fun getActivitiesByType(type: IncidentType?): List<String> = when (type) {
     else -> emptyList()
 }
 
-fun getImmediateActionsByType(type: IncidentType?): List<String> = when (type) {
-    IncidentType.COLLISION -> listOf(
+fun getImmediateActionsByType(type: IncidentTypeEnum?): List<String> = when (type) {
+    IncidentTypeEnum.COLLISION -> listOf(
         "Secured the area",
         "Provided first aid",
         "Called emergency services",
@@ -42,8 +42,8 @@ fun getImmediateActionsByType(type: IncidentType?): List<String> = when (type) {
     else -> emptyList()
 }
 
-fun getProposedSolutionsByType(type: IncidentType?): List<String> = when (type) {
-    IncidentType.COLLISION -> listOf(
+fun getProposedSolutionsByType(type: IncidentTypeEnum?): List<String> = when (type) {
+    IncidentTypeEnum.COLLISION -> listOf(
         "Training refresher",
         "Equipment upgrades",
         "Procedural changes",
