@@ -100,6 +100,7 @@ class GOSecurityProviderRepository @Inject constructor(
                         authDataStore.saveApplicationToken(applicationToken)
                         authDataStore.saveAuthenticationToken(authenticationToken)
                         Log.d(TAG, "Tokens saved successfully")
+                        authDataStore.logTokenExpirationDate()
 
                         // Parse user from token
                         val tokenClaims = TokenParser.parseJwtToken(applicationToken)

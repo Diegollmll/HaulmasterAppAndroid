@@ -54,12 +54,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
+import app.forku.core.Constants.BASE_URL
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.common.components.OptionsDropdownMenu
 import app.forku.presentation.common.components.DropdownMenuOption
 import app.forku.presentation.common.components.OverlappingImages
 import coil.compose.LocalImageLoader
+import app.forku.presentation.common.utils.getUserAvatarData
+import app.forku.presentation.common.components.UserAvatar
+import coil.ImageLoader
+import app.forku.data.datastore.AuthDataStore
+import kotlinx.coroutines.runBlocking
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,12 +77,24 @@ fun ProfileScreen(
     networkManager: NetworkConnectivityManager,
     operatorId: String? = null,
     onNavigateToCicoHistory: () -> Unit,
-    tokenErrorHandler: TokenErrorHandler
+    tokenErrorHandler: TokenErrorHandler,
+    imageLoader: ImageLoader
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showLogoutDialog by remember { mutableStateOf(false) }
     val isAdminRole = state.user?.role == UserRole.SYSTEM_OWNER || state.user?.role == UserRole.SUPERADMIN
     
+    // --- Get tokens for image URL ---
+    val context = LocalContext.current
+    val authDataStore = remember { AuthDataStore(context) }
+    var appToken by remember { mutableStateOf<String?>(null) }
+    var authToken by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        appToken = authDataStore.getApplicationToken()
+        authToken = authDataStore.getAuthenticationToken()
+        android.util.Log.d("ProfileScreen", "Loaded tokens for image: appToken=${appToken?.take(10)}, authToken=${authToken?.take(10)}")
+    }
+
     // Load operator profile if operatorId is provided
     LaunchedEffect(operatorId) {
         if (operatorId != null) {
@@ -141,7 +159,10 @@ fun ProfileScreen(
                         state = state,
                         navController = navController,
                         viewModel = viewModel,
-                        isCurrentUser = operatorId == null
+                        isCurrentUser = operatorId == null,
+                        imageLoader = imageLoader,
+                        appToken = appToken,
+                        authToken = authToken
                     )
 
                     // Stats grid is only relevant for operational roles, not admin roles
@@ -223,7 +244,10 @@ private fun ProfileHeader(
     state: ProfileState,
     navController: NavController,
     viewModel: ProfileViewModel,
-    isCurrentUser: Boolean
+    isCurrentUser: Boolean,
+    imageLoader: ImageLoader,
+    appToken: String?,
+    authToken: String?
 ) {
     val isAdminRole = state.user?.role == UserRole.SYSTEM_OWNER || state.user?.role == UserRole.SUPERADMIN
     
@@ -255,19 +279,28 @@ private fun ProfileHeader(
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .clip(CircleShape)
-                                    .border(1.dp, Color.LightGray, CircleShape)
-                            ) {
+                            state.user?.let { user ->
+                                // --- Build authenticated image URL ---
+                                android.util.Log.d("ProfileHeader", "user=${user}")
+                                android.util.Log.d("ProfileHeader", "user.photoUrl=${user.photoUrl}")
+                                val baseUrl = user.photoUrl?.takeIf { it.isNotBlank() }
+                                android.util.Log.d("ProfileHeader", "baseUrl=$baseUrl")
+                                val authenticatedUrl = if (!baseUrl.isNullOrBlank() && appToken != null && authToken != null) {
+                                    val url = "$baseUrl&_application_token=$appToken&_user_token=$authToken"
+                                    android.util.Log.d("ProfileHeader", "Authenticated user image URL: $url")
+                                    url
+                                } else baseUrl
+                                android.util.Log.d("ProfileHeader", "mainImageUrl=$authenticatedUrl")
                                 OverlappingImages(
-                                    mainImageUrl = null,
-                                    overlayImageUrl = state.user?.photoUrl,
-                                    imageLoader = LocalImageLoader.current,
-                                    overlayUserId = state.user?.id,
-                                    mainSize = 0,
-                                    overlaySize = 100
+                                    mainImageUrl = authenticatedUrl,
+                                    overlayImageUrl = null,
+                                    mainTint = MaterialTheme.colorScheme.onSurface,
+                                    mainSize = 100,
+                                    overlaySize = 0,
+                                    imageLoader = imageLoader,
+                                    overlayUserId = null,
+                                    overlayFirstName = user.firstName,
+                                    overlayLastName = user.lastName
                                 )
                             }
                             Row(

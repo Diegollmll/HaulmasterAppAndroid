@@ -1,5 +1,6 @@
 package app.forku.presentation.checklist
 
+import android.net.Uri
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,20 +16,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.Answer
+import app.forku.presentation.common.components.ImageUploader
+import app.forku.presentation.checklist.model.ChecklistImage
+import androidx.compose.animation.AnimatedVisibility
 
 @Composable
 fun ChecklistQuestionItem(
     question: ChecklistItem,
     onResponseChanged: (String, Boolean) -> Unit,
     onDescriptionToggled: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier
+    onCommentChanged: (String, String) -> Unit = { _, _ -> },
+    images: List<ChecklistImage>,
+    onAddImage: () -> Unit,
+    onRemoveImage: (ChecklistImage) -> Unit,
+    modifier: Modifier = Modifier,
+    uploadingImages: Set<Uri> = emptySet(),
+    imageLoader: coil.ImageLoader? = null
 ) {
     var showDescription by remember { mutableStateOf(false) }
+    var comment by remember { mutableStateOf(question.userComment ?: "") }
 
-    // Debug log to check description content
-    android.util.Log.d("ChecklistQuestionItem", "Question: ${question.question}")
-    android.util.Log.d("ChecklistQuestionItem", "Description: ${question.description}")
-    android.util.Log.d("ChecklistQuestionItem", "Show Description: $showDescription")
+    // Log when component is recomposed
+    LaunchedEffect(question.id, question.userAnswer) {
+        android.util.Log.d("ChecklistFields", "Question[${question.id}] - userAnswer: ${question.userAnswer}, " +
+            "hasComment: ${question.userComment != null}, " +
+            "imagesCount: ${images.size}")
+    }
 
     Column(
         modifier = modifier
@@ -53,7 +66,7 @@ fun ChecklistQuestionItem(
                         .clickable { 
                             showDescription = !showDescription
                             onDescriptionToggled(showDescription)
-                            android.util.Log.d("ChecklistQuestionItem", "Clicked! New showDescription value: $showDescription")
+                            // android.util.Log.d("ChecklistQuestionItem", "Clicked! New showDescription value: $showDescription")
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -144,6 +157,41 @@ fun ChecklistQuestionItem(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Mostrar campo de comentario y fotos SOLO si la pregunta está respondida, con animación
+            AnimatedVisibility(visible = question.userAnswer != null) {
+                Column {
+                    OutlinedTextField(
+                        value = comment,
+                        onValueChange = {
+                            android.util.Log.d("ChecklistFields", "Comment changed for Question[${question.id}] - " +
+                                "New comment: \${it.take(20)}...")
+                            comment = it
+                            onCommentChanged(question.id, it)
+                        },
+                        label = { Text("Comment (optional)") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF5F5F5))
+                            .padding(vertical = 4.dp),
+                        singleLine = false,
+                        maxLines = 3
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        android.util.Log.d("ChecklistFields", "Rendering ImageUploader for Question[${question.id}] - " +
+                            "Total images: \${images.size}, " +
+                            "Uploading: \${uploadingImages.size}")
+                        ImageUploader(
+                            images = images,
+                            onAddImage = onAddImage,
+                            onRemoveImage = onRemoveImage,
+                            imageLoader = imageLoader
+                        )
+                    }
+                }
             }
         }
         

@@ -332,7 +332,8 @@ fun NavGraph(
                 },
                 networkManager = networkManager,
                 operatorId = operatorId,
-                tokenErrorHandler = tokenErrorHandler
+                tokenErrorHandler = tokenErrorHandler,
+                imageLoader = imageLoader
             )
         }
 

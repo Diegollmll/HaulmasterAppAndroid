@@ -1,5 +1,6 @@
 package app.forku.presentation.vehicle.list
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.core.Constants
@@ -24,6 +25,7 @@ import app.forku.core.auth.HeaderManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.coroutineScope
 
 @HiltViewModel
 class VehicleListViewModel @Inject constructor(
@@ -93,7 +95,7 @@ class VehicleListViewModel @Inject constructor(
     }
 
     fun loadVehicles(showLoading: Boolean = true) {
-        if (isLoading) return  // Skip if already loading
+        if (isLoading) return
         
         viewModelScope.launch(exceptionHandler) {
             try {
@@ -103,12 +105,12 @@ class VehicleListViewModel @Inject constructor(
                     isRefreshing = showLoading
                 )
 
-                // Use hardcoded business ID instead of checking user role
+                // 1. Load vehicles first
                 val vehicles = try {
                     vehicleRepository.getVehicles(hardcodedBusinessId)
                 } catch (e: retrofit2.HttpException) {
                     if (e.code() == 401 || e.code() == 403) {
-                        throw e // Let auth errors bubble up for global handling
+                        throw e
                     }
                     _state.value = _state.value.copy(
                         error = "Error loading vehicles: ${e.message()}",
@@ -126,138 +128,116 @@ class VehicleListViewModel @Inject constructor(
                     isLoading = false
                     return@launch
                 }
-                
-                // Get all active sessions with rate limiting
-                val activeSessions = vehicles.mapNotNull { vehicle ->
-                    async {
-                        try {
-                            val session = vehicleSessionRepository.getActiveSessionForVehicle(
-                                vehicleId = vehicle.id,
-                                businessId = hardcodedBusinessId
-                            )
-                            if (session != null) {
-                                val operator = try {
-                                    // Add delay between requests to avoid rate limiting
-                                    kotlinx.coroutines.delay(300)
-                                    userRepository.getUserById(session.userId)
-                                } catch (e: Exception) {
-                                    // If we can't get the operator, continue with null
-                                    null
-                                }
-                                
-                                val operatorName = when {
-                                    !operator?.firstName.isNullOrBlank() || !operator?.lastName.isNullOrBlank() ->
-                                        listOfNotNull(operator?.firstName, operator?.lastName).joinToString(" ").trim()
-                                    !operator?.username.isNullOrBlank() -> operator?.username ?: "Sin nombre"
-                                    else -> "Sin nombre"
-                                }
-                                val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.firstOrNull() ?: "U"}+${operator?.lastName?.firstOrNull() ?: "U"}&background=random"
-                                
-                                // Calculate session progress
-                                val startTime = parseDateTime(session.startTime)
-                                val now = OffsetDateTime.now()
-                                val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
-                                val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
-                                
-                                vehicle.id to VehicleSessionInfo(
-                                    session = session,
-                                    sessionStartTime = startTime.format(DateTimeFormatter.ISO_DATE_TIME),
-                                    operator = operator,
-                                    operatorName = operatorName,
-                                    operatorImage = operator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
-                                    vehicle = vehicle,
+
+                // 2. Process all data in parallel without artificial delays
+                val (activeSessions, lastChecks, checklistAnswers) = coroutineScope {
+                    val activeSessionsDeferred = async {
+                        vehicles.mapNotNull { vehicle ->
+                            try {
+                                val session = vehicleSessionRepository.getActiveSessionForVehicle(
                                     vehicleId = vehicle.id,
-                                    vehicleType = vehicle.type.Name,
-                                    progress = progress,
-                                    vehicleImage = vehicle.photoModel,
-                                    codename = vehicle.codename
+                                    businessId = hardcodedBusinessId
                                 )
-                            } else {
-                                // If no active session, get the last completed session
-                                val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
-                                if (lastSession != null) {
-                                    val lastOperator = try {
-                                        // Add delay between requests to avoid rate limiting
-                                        kotlinx.coroutines.delay(300)
-                                        userRepository.getUserById(lastSession.userId)
-                                    } catch (e: Exception) {
-                                        // If we can't get the operator, continue with null
-                                        null
-                                    }
-                                    
-                                    val lastOperatorName = when {
-                                        !lastOperator?.firstName.isNullOrBlank() || !lastOperator?.lastName.isNullOrBlank() ->
-                                            listOfNotNull(lastOperator?.firstName, lastOperator?.lastName).joinToString(" ").trim()
-                                        !lastOperator?.username.isNullOrBlank() -> lastOperator?.username ?: "Sin nombre"
+                                
+                                if (session != null) {
+                                    val operator = userRepository.getUserById(session.userId)
+                                    val operatorName = when {
+                                        !operator?.firstName.isNullOrBlank() || !operator?.lastName.isNullOrBlank() ->
+                                            listOfNotNull(operator?.firstName, operator?.lastName).joinToString(" ").trim()
+                                        !operator?.username.isNullOrBlank() -> operator?.username ?: "Sin nombre"
                                         else -> "Sin nombre"
                                     }
-                                    val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${lastOperator?.firstName?.firstOrNull() ?: "U"}+${lastOperator?.lastName?.firstOrNull() ?: "U"}&background=random"
                                     
+                                    val startTime = parseDateTime(session.startTime)
+                                    val now = OffsetDateTime.now()
+                                    val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
+                                    val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
+
+                                    Log.d("VehicleItem", "operator photoUrl value in VehicleListViewModel: ${operator?.photoUrl}")
+
                                     vehicle.id to VehicleSessionInfo(
-                                        session = lastSession,
-                                        sessionStartTime = null, // No active session time
-                                        operator = lastOperator,
-                                        operatorName = lastOperatorName,
-                                        operatorImage = lastOperator?.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
+                                        session = session,
+                                        sessionStartTime = startTime.format(DateTimeFormatter.ISO_DATE_TIME),
+                                        operator = operator,
+                                        operatorName = operatorName,
+                                        operatorImage = operator?.photoUrl?.takeIf { !it.isNullOrBlank() },
                                         vehicle = vehicle,
                                         vehicleId = vehicle.id,
                                         vehicleType = vehicle.type.Name,
-                                        progress = null, // No progress for completed session
+                                        progress = progress,
                                         vehicleImage = vehicle.photoModel,
                                         codename = vehicle.codename
                                     )
-                                } else null
+                                } else {
+                                    val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
+                                    if (lastSession != null) {
+                                        val lastOperator = userRepository.getUserById(lastSession.userId)
+                                        val lastOperatorName = when {
+                                            !lastOperator?.firstName.isNullOrBlank() || !lastOperator?.lastName.isNullOrBlank() ->
+                                                listOfNotNull(lastOperator?.firstName, lastOperator?.lastName).joinToString(" ").trim()
+                                            !lastOperator?.username.isNullOrBlank() -> lastOperator?.username ?: "Sin nombre"
+                                            else -> "Sin nombre"
+                                        }
+                                        
+                                        vehicle.id to VehicleSessionInfo(
+                                            session = lastSession,
+                                            sessionStartTime = null,
+                                            operator = lastOperator,
+                                            operatorName = lastOperatorName,
+                                            operatorImage = lastOperator?.photoUrl?.takeIf { !it.isNullOrBlank() },
+                                            vehicle = vehicle,
+                                            vehicleId = vehicle.id,
+                                            vehicleType = vehicle.type.Name,
+                                            progress = null,
+                                            vehicleImage = vehicle.photoModel,
+                                            codename = vehicle.codename
+                                        )
+                                    } else null
+                                }
+                            } catch (e: Exception) {
+                                null
                             }
-                        } catch (e: Exception) {
-                            // If there's an error getting the session, return null
-                            null
-                        }
+                        }.toMap()
                     }
-                }.awaitAll().filterNotNull().toMap()
-
-                // Get last preshift checks with rate limiting
-                val lastChecks = vehicles.mapNotNull { vehicle ->
-                    async {
-                        try {
-                            // Add delay between requests to avoid rate limiting
-                            kotlinx.coroutines.delay(300)
-                            val lastCheck = checklistRepository.getLastPreShiftCheck(
-                                vehicleId = vehicle.id,
-                                businessId = hardcodedBusinessId
-                            )
-                            vehicle.id to lastCheck
-                        } catch (e: Exception) {
-                            // If there's an error getting the check, return null
-                            vehicle.id to null
-                        }
-                    }
-                }.awaitAll().filterNotNull().toMap()
-
-                // Fetch last ChecklistAnswer for each vehicle (if available)
-                val checklistAnswers = vehicles.mapNotNull { vehicle ->
-                    async {
-                        try {
-                            // 1. Buscar sesión activa
-                            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, hardcodedBusinessId)
-                            val checklistAnswerId = session?.checkId
-                            // 2. Si no hay sesión activa, buscar la última sesión finalizada
-                            val answer = if (!checklistAnswerId.isNullOrBlank()) {
-                                checklistAnswerRepository.getById(checklistAnswerId)
-                            } else {
-                                val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
-                                lastSession?.checkId?.let { checklistAnswerRepository.getById(it) }
-                            } ?: run {
-                                // 3. Si no hay sesión ni última sesión, buscar el último ChecklistAnswer por vehicleId
-                                checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
+                    val lastChecksDeferred = async {
+                        vehicles.mapNotNull { vehicle ->
+                            try {
+                                vehicle.id to checklistRepository.getLastPreShiftCheck(
+                                    vehicleId = vehicle.id,
+                                    businessId = hardcodedBusinessId
+                                )
+                            } catch (e: Exception) {
+                                vehicle.id to null
                             }
-                            if (answer != null) vehicle.id to answer else null
-                        } catch (e: Exception) {
-                            null
-                        }
+                        }.toMap()
                     }
-                }.awaitAll().filterNotNull().toMap()
-                _checklistAnswers.value = checklistAnswers
+                    val checklistAnswersDeferred = async {
+                        vehicles.mapNotNull { vehicle ->
+                            try {
+                                val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, hardcodedBusinessId)
+                                val checklistAnswerId = session?.checkId
+                                
+                                val answer = if (!checklistAnswerId.isNullOrBlank()) {
+                                    checklistAnswerRepository.getById(checklistAnswerId)
+                                } else {
+                                    val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
+                                    lastSession?.checkId?.let { checklistAnswerRepository.getById(it) }
+                                } ?: checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
+                                
+                                if (answer != null) vehicle.id to answer else null
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }.toMap()
+                    }
+                    Triple(
+                        activeSessionsDeferred.await(),
+                        lastChecksDeferred.await(),
+                        checklistAnswersDeferred.await()
+                    )
+                }
 
+                // 3. Update state with all data
                 _state.value = _state.value.copy(
                     vehicles = vehicles,
                     vehicleSessions = activeSessions,
@@ -266,6 +246,8 @@ class VehicleListViewModel @Inject constructor(
                     isRefreshing = false,
                     error = null
                 )
+                _checklistAnswers.value = checklistAnswers
+
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     error = "Error loading vehicles. Please try again later.",

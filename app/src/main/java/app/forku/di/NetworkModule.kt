@@ -25,6 +25,9 @@ import javax.inject.Named
 import app.forku.data.api.interceptor.FormUrlEncodedInterceptor
 import app.forku.domain.repository.incident.IncidentMultimediaRepository
 import app.forku.data.repository.incident.IncidentMultimediaRepositoryImpl
+import app.forku.data.api.ChecklistItemAnswerMultimediaApi
+import app.forku.data.repository.checklist.ChecklistItemAnswerMultimediaRepositoryImpl
+import app.forku.domain.repository.checklist.ChecklistItemAnswerMultimediaRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -33,7 +36,7 @@ object NetworkModule {
     @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         }
     }
 
@@ -273,4 +276,16 @@ object NetworkModule {
     ): VehicleFailIncidentApi {
         return authenticatedRetrofit.create(VehicleFailIncidentApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideChecklistItemAnswerMultimediaApi(@Named("authenticatedRetrofit") retrofit: Retrofit): ChecklistItemAnswerMultimediaApi =
+        retrofit.create(ChecklistItemAnswerMultimediaApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideChecklistItemAnswerMultimediaRepository(
+        api: ChecklistItemAnswerMultimediaApi,
+        headerManager: HeaderManager
+    ): ChecklistItemAnswerMultimediaRepository = ChecklistItemAnswerMultimediaRepositoryImpl(api, headerManager)
 }

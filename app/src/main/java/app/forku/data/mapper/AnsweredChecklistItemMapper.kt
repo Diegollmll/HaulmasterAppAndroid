@@ -13,7 +13,8 @@ fun AnsweredChecklistItemDto.toDomain(): AnsweredChecklistItem =
         question = "",
         answer = Answer.values().getOrNull(userAnswer)?.name ?: Answer.PASS.name,
         userId = goUserId,
-        createdAt = ""
+        createdAt = "",
+        userComment = userComment
     )
 
 fun AnsweredChecklistItem.toDto(): AnsweredChecklistItemDto =
@@ -25,5 +26,6 @@ fun AnsweredChecklistItem.toDto(): AnsweredChecklistItemDto =
         userAnswer = try { Answer.valueOf(answer).ordinal } catch (e: Exception) { 0 },
         isDirty = isDirty,
         isNew = isNew,
-        isMarkedForDeletion = false
+        isMarkedForDeletion = false,
+        userComment = userComment
     ) 

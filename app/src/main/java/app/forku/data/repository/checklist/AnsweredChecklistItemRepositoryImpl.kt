@@ -26,7 +26,7 @@ class AnsweredChecklistItemRepositoryImpl @Inject constructor(
         // Convert DTO to JSON string for the 'entity' field
         val dto = item.toDto()
         val jsonString = gson.toJson(dto)
-        android.util.Log.d("AnsweredChecklistItemRepository", "JSON enviado a API: $jsonString")
+        android.util.Log.d("ChecklistUserComment", "[REPO] Enviando AnsweredChecklistItem al backend: json=$jsonString, userComment=${dto.userComment}")
 
         // Get CSRF token and cookie from headers
         val headers = headerManager.getHeaders().getOrThrow()

@@ -42,6 +42,8 @@ import app.forku.core.auth.AuthenticationState
 import app.forku.core.auth.TokenErrorHandler
 import kotlinx.coroutines.flow.collectLatest
 import coil.ImageLoader
+import app.forku.presentation.common.imageloader.LocalAuthenticatedImageLoader
+import androidx.compose.runtime.CompositionLocalProvider
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -129,71 +131,73 @@ class MainActivity : ComponentActivity() {
             }
 
             ForkUTheme {
-                // Only show the modal for login errors, not for session expiration
-                if (showAuthModal.value && authErrorMessage.value != null && loginState is LoginState.Error) {
-                    app.forku.presentation.common.components.AppModal(
-                        onDismiss = {
-                            showAuthModal.value = false
-                            authErrorMessage.value = null
-                            // Clear auth data
-                            lifecycleScope.launch { authDataStore.clearAuth() }
-                            // Navigate to login screen
-                            if (navController.currentDestination?.route != Screen.Login.route) {
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = false }
-                                    launchSingleTop = true
-                                    restoreState = false
+                CompositionLocalProvider(LocalAuthenticatedImageLoader provides imageLoader) {
+                    // Only show the modal for login errors, not for session expiration
+                    if (showAuthModal.value && authErrorMessage.value != null && loginState is LoginState.Error) {
+                        app.forku.presentation.common.components.AppModal(
+                            onDismiss = {
+                                showAuthModal.value = false
+                                authErrorMessage.value = null
+                                // Clear auth data
+                                lifecycleScope.launch { authDataStore.clearAuth() }
+                                // Navigate to login screen
+                                if (navController.currentDestination?.route != Screen.Login.route) {
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = false }
+                                        launchSingleTop = true
+                                        restoreState = false
+                                    }
                                 }
-                            }
-                        },
-                        onConfirm = {
-                            showAuthModal.value = false
-                            authErrorMessage.value = null
-                            // Clear auth data
-                            lifecycleScope.launch { authDataStore.clearAuth() }
-                            // Navigate to login screen
-                            if (navController.currentDestination?.route != Screen.Login.route) {
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = false }
-                                    launchSingleTop = true
-                                    restoreState = false
+                            },
+                            onConfirm = {
+                                showAuthModal.value = false
+                                authErrorMessage.value = null
+                                // Clear auth data
+                                lifecycleScope.launch { authDataStore.clearAuth() }
+                                // Navigate to login screen
+                                if (navController.currentDestination?.route != Screen.Login.route) {
+                                    navController.navigate(Screen.Login.route) {
+                                        popUpTo(navController.graph.startDestinationId) { saveState = false }
+                                        launchSingleTop = true
+                                        restoreState = false
+                                    }
                                 }
-                            }
-                        },
-                        title = "Authentication Required",
-                        message = authErrorMessage.value ?: "Session expired. Please log in again.",
-                        confirmText = "Go to Login",
-                        dismissText = "Cancel"
-                    )
-                }
-                when (loginState) {
-                    is LoginState.Loading -> LoadingScreen()
-                    is LoginState.Error -> {
-                        val error = (loginState as LoginState.Error).message
-                        ErrorScreen(
-                            message = error,
-                            onRetry = { loginViewModel.resetState() }
+                            },
+                            title = "Authentication Required",
+                            message = authErrorMessage.value ?: "Session expired. Please log in again.",
+                            confirmText = "Go to Login",
+                            dismissText = "Cancel"
                         )
-                        Toast.makeText(this, error, Toast.LENGTH_LONG).show()
                     }
-                    else -> {
-                        // Reset auth state when login succeeds
-                        if (loginState is LoginState.Success) {
-                            LaunchedEffect(Unit) {
-                                tokenErrorHandler.resetAuthenticationState()
-                            }
+                    when (loginState) {
+                        is LoginState.Loading -> LoadingScreen()
+                        is LoginState.Error -> {
+                            val error = (loginState as LoginState.Error).message
+                            ErrorScreen(
+                                message = error,
+                                onRetry = { loginViewModel.resetState() }
+                            )
+                            Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
                         }
-                        
-                        NavGraph(
-                            navController = navController,
-                            networkManager = networkManager,
-                            locationManager = locationManager,
-                            userRole = userRole ?: UserRole.OPERATOR,
-                            isAuthenticated = isAuthenticated,
-                            tourCompleted = tourCompleted,
-                            tokenErrorHandler = tokenErrorHandler,
-                            imageLoader = imageLoader
-                        )
+                        else -> {
+                            // Reset auth state when login succeeds
+                            if (loginState is LoginState.Success) {
+                                LaunchedEffect(Unit) {
+                                    tokenErrorHandler.resetAuthenticationState()
+                                }
+                            }
+                            
+                            NavGraph(
+                                navController = navController,
+                                networkManager = networkManager,
+                                locationManager = locationManager,
+                                userRole = userRole ?: UserRole.OPERATOR,
+                                isAuthenticated = isAuthenticated,
+                                tourCompleted = tourCompleted,
+                                tokenErrorHandler = tokenErrorHandler,
+                                imageLoader = imageLoader
+                            )
+                        }
                     }
                 }
             }

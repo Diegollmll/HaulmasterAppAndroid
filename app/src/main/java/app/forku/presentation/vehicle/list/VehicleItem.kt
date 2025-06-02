@@ -1,5 +1,7 @@
 package app.forku.presentation.vehicle.list
 
+import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -33,6 +35,8 @@ import app.forku.domain.model.vehicle.toDisplayString
 import app.forku.presentation.common.utils.parseDateTime
 import app.forku.presentation.vehicle.components.VehicleImage
 import coil.ImageLoader
+import app.forku.presentation.common.utils.getUserAvatarData
+import app.forku.presentation.common.components.UserAvatar
 
 data class TextConfig(
     val fontSize: Int,
@@ -267,16 +271,14 @@ fun VehicleItem(
                         .height(IntrinsicSize.Min),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    if (sessionInfo.operatorImage != null) {
-                        AsyncImage(
-                            model = sessionInfo.operatorImage,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    val avatarData = getUserAvatarData(
+                        sessionInfo.operator?.firstName,
+                        sessionInfo.operator?.lastName,
+                        sessionInfo.operatorImage
+                    )
+                    Log.d("VehicleItem", "operatorName value: ${sessionInfo.operatorName}")
+                    Log.d("VehicleItem", "operatorImage value: ${sessionInfo.operatorImage}")
+                    UserAvatar(avatarData = avatarData, size = 32.dp, fontSize = 14.sp)
                     Text(
                         text = "Operator",
                         style = TextStyle(

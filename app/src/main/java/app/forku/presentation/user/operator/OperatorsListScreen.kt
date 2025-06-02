@@ -36,6 +36,8 @@ import app.forku.presentation.dashboard.OperatorSessionInfo
 import app.forku.presentation.navigation.Screen
 import coil.compose.AsyncImage
 import coil.compose.LocalImageLoader
+import app.forku.presentation.common.utils.getUserAvatarData
+import app.forku.presentation.common.components.UserAvatar
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -121,25 +123,15 @@ private fun OperatorSessionListItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box {
-                OverlappingImages(
-                    mainImageUrl = null,
-                    overlayImageUrl = operator.image,
-                    imageLoader = LocalImageLoader.current,
-                    overlayUserId = operator.userId,
-                    mainSize = 0, // No main image, only overlay
-                    overlaySize = 48
-                )
-                if (operator.isActive) {
-                    Box(
-                        modifier = Modifier
-                            .size(16.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF4CAF50))
-                            .align(Alignment.BottomEnd)
-                    )
-                }
-            }
+            UserAvatar(
+                avatarData = getUserAvatarData(
+                    operator.name.split(" ").firstOrNull(),
+                    operator.name.split(" ").drop(1).firstOrNull(),
+                    operator.image
+                ),
+                size = 48.dp,
+                fontSize = 18.sp
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)

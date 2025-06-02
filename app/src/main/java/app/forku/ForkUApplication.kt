@@ -29,6 +29,12 @@ class ForkUApplication : Application(), ProviderInstallListener {
         ProviderInstaller.installIfNeededAsync(this, this)
         
         initializeAuth()
+        // Log JWT expiration at app startup
+        try {
+            authDataStore.logTokenExpirationDate()
+        } catch (e: Exception) {
+            Log.e("ForkUApplication", "Failed to log token expiration", e)
+        }
     }
 
     override fun onProviderInstalled() {

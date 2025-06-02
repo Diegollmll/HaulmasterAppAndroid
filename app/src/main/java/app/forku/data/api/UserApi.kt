@@ -3,6 +3,7 @@ package app.forku.data.api
 import app.forku.data.api.dto.user.UserDto
 import retrofit2.Response
 import retrofit2.http.*
+import android.util.Log
 
 interface UserApi {
     /**

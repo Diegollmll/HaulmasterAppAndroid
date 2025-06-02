@@ -19,6 +19,9 @@ import javax.inject.Singleton
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import app.forku.data.service.GOServicesManager
+import android.util.Base64
+import org.json.JSONObject
+import java.util.Date
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth")
 
@@ -239,5 +242,30 @@ class AuthDataStore @Inject constructor(
                 lastActiveTime = now
             }
         }
+    }
+
+    /**
+     * Returns the expiration date of the current JWT token, or null if not available.
+     */
+    fun getTokenExpirationDate(): Date? {
+        val token = getApplicationToken() ?: return null
+        val parts = token.split(".")
+        if (parts.size < 2) return null
+        return try {
+            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP))
+            val json = JSONObject(payload)
+            val exp = json.optLong("exp", -1)
+            if (exp > 0) Date(exp * 1000) else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Logs the expiration date of the current JWT token for debugging.
+     */
+    fun logTokenExpirationDate() {
+        val expiration = getTokenExpirationDate()
+        android.util.Log.d("AuthDataStore", "JWT token expires at: $expiration")
     }
 } 

@@ -38,6 +38,16 @@ import coil.ImageLoader
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.auth.RoleConverter
 import app.forku.domain.model.user.UserRole
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.platform.LocalContext
+import app.forku.presentation.checklist.model.ChecklistImage
+import app.forku.core.Constants
+import app.forku.presentation.common.components.buildAuthenticatedImageLoader
+import app.forku.data.datastore.AuthDataStore
+import app.forku.core.utils.hideKeyboardOnTapOutside
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +77,35 @@ fun ChecklistScreen(
     val descriptionStates = remember { mutableMapOf<Int, Boolean>() }
     
     val categoryNameMap by viewModel.categoryNameMap.collectAsState()
+    val itemImages by viewModel.itemImages.collectAsState(initial = emptyMap())
+    val uploadedMultimedia by viewModel.uploadedMultimedia.collectAsState()
+    val uploading by viewModel.uploading.collectAsState()
+    val uploadErrors by viewModel.uploadErrors.collectAsState()
+    val uploadingImages by viewModel.uploadingImages.collectAsState()
+    val answeredItemIds by viewModel.answeredItemIds.collectAsState()
+    
+    // Launcher state for each item
+    val launcherStates = remember { mutableStateMapOf<String, () -> Unit>() }
+    val context = LocalContext.current
+    var imageLoader by remember { mutableStateOf<coil.ImageLoader?>(null) }
+    LaunchedEffect(Unit) {
+        val headers = viewModel.getAuthHeadersFull()
+        val authDataStore = AuthDataStore(context)
+        val authenticationToken = authDataStore.getAuthenticationToken()
+        imageLoader = buildAuthenticatedImageLoader(
+            context,
+            headers.csrfToken,
+            headers.cookie,
+            headers.applicationToken,
+            authenticationToken
+        )
+        viewModel.loadChecklistData()
+    }
+    // Single launcher for gallery
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        val itemId = launcherStates.keys.firstOrNull() ?: return@rememberLauncherForActivityResult
+        uri?.let { viewModel.uploadAndAttachImage(itemId, it) }
+    }
     
     // Add LocationPermissionHandler
     LocationPermissionHandler(
@@ -97,7 +136,7 @@ fun ChecklistScreen(
                 }
             }
             
-            val scrollPosition = baseOffset + (currentIndex + 1) * (questionBaseHeight + 20) + descriptionsHeight
+            val scrollPosition = baseOffset + (currentIndex + 1) * (questionBaseHeight + 20)
             
             // Add extra offset for category headers (approximate)
             val categoryHeaderOffset = ((currentIndex + 1) / 3) * 50 // Assuming ~3 questions per category
@@ -189,10 +228,15 @@ fun ChecklistScreen(
         viewModel = viewModel,
         topBarTitle = "Pre-Shift Checklist",
         networkManager = networkManager,
-        onRefresh = { viewModel.loadChecklistData() },
+        onRefresh = {},
         tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hideKeyboardOnTapOutside()
+                    .padding(padding)
+            ) {
                 when (val currentState = state) {
                     null -> {
                         CircularProgressIndicator(
@@ -224,12 +268,12 @@ fun ChecklistScreen(
                                     VehicleProfileSummary(
                                         vehicle = vehicle,
                                         status = vehicle.status,
-                                        imageLoader = imageLoader
+                                        imageLoader = imageLoader ?: LocalContext.current.let { coil.ImageLoader(it) } // fallback al default si es null
                                     )
                                 }
 
                                 // Add Timer Display
-                                android.util.Log.d("ChecklistScreen", "[UI] startDateTime=${currentState.startDateTime}, isCompleted=${currentState.isCompleted}, formattedElapsedTime=${currentState.formattedElapsedTime}")
+                                // android.util.Log.d("ChecklistScreen", "[UI] startDateTime=${currentState.startDateTime}, isCompleted=${currentState.isCompleted}, formattedElapsedTime=${currentState.formattedElapsedTime}")
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -255,6 +299,7 @@ fun ChecklistScreen(
                                 )
 
                                 // Add padding to the questionary section
+                                android.util.Log.d("ChecklistScreen", "[Render] Rendering questionary section with ${currentState.checkItems.size} items")
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -263,41 +308,97 @@ fun ChecklistScreen(
                                     // Group items by category
                                     val groupedItems = currentState.checkItems.groupBy { it.category }
                                     var totalIndex = 0
-                                    
+                                    android.util.Log.d("ChecklistScreen", "[Render] Grouped categories: ${groupedItems.keys}")
                                     groupedItems.forEach { (category, items) ->
-                                        // Only show the category name, never the ID. If not found, show a placeholder.
-
                                         val displayCategoryName = categoryNameMap[category] ?: "Unknown Category"
-                                        Log.d("ChecklistScreen", "Rendering category: $category, mapped name: $displayCategoryName")
+                                        android.util.Log.d("ChecklistScreen", "[Render] Rendering category: $category, mapped name: $displayCategoryName, items: ${items.size}")
                                         CategoryHeader(
                                             categoryName = displayCategoryName,
                                             modifier = Modifier.padding(bottom = 1.dp)
                                         )
-
                                         items.forEach { item ->
                                             val currentIndex = totalIndex
+                                            android.util.Log.d("ChecklistScreen", "[DEBUG] answeredItemIds: $answeredItemIds")
+                                            android.util.Log.d("ChecklistScreen", "[DEBUG] uploadedMultimedia keys: ${uploadedMultimedia.keys}")
+                                            android.util.Log.d("ChecklistScreen", "[DEBUG] item.id: ${item.id}, answeredItemId: ${answeredItemIds[item.id]}")
+                                            android.util.Log.d("ChecklistScreen", "[Render] Rendering item: ${item.id}, question: ${item.question}")
+                                            val localImages = itemImages[item.id]?.map { uri ->
+                                                ChecklistImage(
+                                                    uri = uri,
+                                                    isUploading = uploadingImages.contains(uri),
+                                                    isUploaded = false,
+                                                    backendId = null
+                                                )
+                                            } ?: emptyList()
+                                            android.util.Log.d("ChecklistScreen", "[Render] Local images for item ${item.id}: ${localImages.map { it.uri }}")
+                                            val answeredItemId = answeredItemIds[item.id]
+                                            android.util.Log.d("appflow", "[UI] itemId=${item.id}, answeredItemId=$answeredItemId, multimediaCount=${answeredItemId?.let { uploadedMultimedia[it] }?.size ?: 0}, multimediaIds=${answeredItemId?.let { uploadedMultimedia[it] }?.map { it.id } ?: emptyList()}")
+                                            val multimediaList = answeredItemId?.let { uploadedMultimedia[it] } ?: emptyList()
+                                            android.util.Log.d("ChecklistScreen", "[Render] Uploaded images for item ${item.id}: ${multimediaList.map { it.id }}")
+                                            android.util.Log.d("ChecklistScreen", "[UI] uploadedMultimedia for item ${item.id}: ${uploadedMultimedia[item.id]}")
+                                            val uploadedImages = multimediaList.mapNotNull { media ->
+                                                val url = media.imageUrl
+                                                    ?: (media.imageInternalName?.let { name ->
+                                                        Constants.BASE_URL + "api/multimedia/file/${media.id}/Image?t=%LASTEDITEDTIME%"
+                                                    })
+                                                if (url == null) {
+                                                    android.util.Log.w("ChecklistScreen", "[ImagePreview] No valid URL for media: $media")
+                                                }
+                                                url?.let {
+                                                    android.util.Log.d("ChecklistScreen", "[ImagePreview] Using URL: $it for mediaId: ${media.id}")
+                                                    ChecklistImage(
+                                                        uri = Uri.parse(it),
+                                                        isUploading = false,
+                                                        isUploaded = true,
+                                                        backendId = media.id
+                                                    )
+                                                }
+                                            } ?: emptyList()
+                                            android.util.Log.d("ChecklistScreen", "[UI] Images for item ${item.id} (AnsweredId=$answeredItemId): $uploadedImages")
+                                            val isUploading = uploading[item.id] == true
+                                            val uploadError = uploadErrors[item.id]
                                             
                                             ChecklistQuestionItem(
                                                 question = item,
                                                 onResponseChanged = { itemId, answer ->
+                                                    android.util.Log.d("ChecklistScreen", "[Event] onResponseChanged for item $itemId: $answer")
                                                     viewModel.updateItemResponse(itemId, answer)
                                                     lastAnsweredIndex.value = currentIndex
-                                                    scope.launch {
-                                                        kotlinx.coroutines.delay(100)
-                                                        scrollToNextQuestion(currentIndex, currentState.checkItems.size)
-                                                    }
                                                 },
                                                 onDescriptionToggled = { isVisible ->
+                                                    android.util.Log.d("ChecklistScreen", "[Event] onDescriptionToggled for item ${item.id}: $isVisible")
                                                     descriptionStates[currentIndex] = isVisible
-                                                    if (isVisible) {
-                                                        scope.launch {
-                                                            kotlinx.coroutines.delay(100)
-                                                            scrollToNextQuestion(currentIndex, currentState.checkItems.size)
-                                                        }
+                                                },
+                                                onCommentChanged = { itemId, comment ->
+                                                    android.util.Log.d("ChecklistScreen", "[Event] onCommentChanged for item $itemId: $comment")
+                                                    viewModel.updateItemComment(itemId, comment)
+                                                },
+                                                images = localImages + uploadedImages,
+                                                onAddImage = {
+                                                    android.util.Log.d("ChecklistScreen", "[Event] onAddImage for item ${item.id}")
+                                                    launcherStates[item.id] = { galleryLauncher.launch("image/*") }
+                                                    launcherStates[item.id]?.invoke()
+                                                },
+                                                onRemoveImage = { checklistImage ->
+                                                    android.util.Log.d("ChecklistScreen", "[Event] onRemoveImage for item ${item.id}, uploaded: ${checklistImage.isUploaded}, backendId: ${checklistImage.backendId}, uri: ${checklistImage.uri}")
+                                                    if (checklistImage.isUploaded && checklistImage.backendId != null) {
+                                                        viewModel.removeImageFromBackend(item.id, checklistImage.backendId)
+                                                    } else {
+                                                        viewModel.onRemoveImage(item.id, checklistImage.uri)
                                                     }
                                                 },
-                                                modifier = Modifier.padding(bottom = 1.dp)
+                                                modifier = Modifier.padding(bottom = 1.dp),
+                                                uploadingImages = uploadingImages,
+                                                imageLoader = imageLoader
                                             )
+                                            if (isUploading) {
+                                                android.util.Log.d("ChecklistScreen", "[Render] Showing LinearProgressIndicator for item ${item.id}")
+                                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                            }
+                                            uploadError?.let {
+                                                android.util.Log.e("ChecklistScreen", "[Render] Upload error for item ${item.id}: $it")
+                                                Text("Upload error: $it", color = Color.Red, modifier = Modifier.padding(8.dp))
+                                            }
                                             totalIndex++
                                         }
                                     }
@@ -351,7 +452,7 @@ fun ChecklistScreen(
                     AppModal(
                         onDismiss = { showConfirmationDialog = false },
                         onConfirm = {
-                            android.util.Log.d("ChecklistScreen", "Confirming checklist submission...")
+                            // android.util.Log.d("ChecklistScreen", "Confirming checklist submission...")
                             showConfirmationDialog = false
                             viewModel.saveChecklistAnswer()
                         },

@@ -2,24 +2,19 @@ package app.forku.presentation.safety
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.forku.domain.repository.checklist.ChecklistRepository
+import app.forku.data.api.dto.safetyalert.SafetyAlertDto
+import app.forku.domain.repository.safetyalert.SafetyAlertRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import app.forku.domain.model.checklist.Answer
-import app.forku.domain.repository.vehicle.VehicleRepository
-import app.forku.domain.repository.user.UserRepository
-import java.time.format.DateTimeFormatter
-import java.time.OffsetDateTime
 
 @HiltViewModel
 class SafetyAlertsViewModel @Inject constructor(
-    private val checklistRepository: ChecklistRepository,
-    private val vehicleRepository: VehicleRepository,
-    private val userRepository: UserRepository
+    private val repository: SafetyAlertRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SafetyAlertsState())
@@ -31,70 +26,123 @@ class SafetyAlertsViewModel @Inject constructor(
 
     fun loadSafetyAlerts() {
         viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
             try {
-                _state.value = _state.value.copy(isLoading = true)
-
-                val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
-                
-                if (businessId == null) {
-                    _state.value = _state.value.copy(
-                        error = "No business context available",
+                val alerts = repository.getSafetyAlertList()
+                _state.update { 
+                    it.copy(
+                        alerts = alerts.map { dto ->
+                            SafetyAlert(
+                                id = dto.id,
+                                title = "Safety Alert #${dto.id.take(8)}", // Generate a title from the ID
+                                description = "Vehicle: ${dto.vehicleId}\nChecklist Item: ${dto.answeredChecklistItemId}",
+                                createdAt = java.time.Instant.now().toString(), // Use current time since we don't have it
+                                updatedAt = java.time.Instant.now().toString()  // Use current time since we don't have it
+                            )
+                        },
                         isLoading = false
                     )
-                    return@launch
                 }
-
-                // Get all checks
-                val checks = checklistRepository.getAllChecks()
-
-                // Process checks to find safety alerts (failed non-critical items)
-                val alerts = mutableListOf<SafetyAlert>()
-
-                checks.forEach { check ->
-                    // Get vehicle info
-                    val vehicle = vehicleRepository.getVehicle(check.vehicleId, businessId)
-                    // Get operator info
-                    val operator = userRepository.getUserById(check.userId)
-
-                    // Find failed non-critical items
-                    check.items
-                        .filter { !it.isCritical && it.userAnswer == Answer.FAIL }
-                        .forEach { item ->
-                            val alert = SafetyAlert(
-                                id = "${check.id}_${item.id}",
-                                vehicleId = check.vehicleId,
-                                vehicleCodename = vehicle.codename,
-                                description = item.description,
-                                operatorId = check.userId,
-                                operatorName = "${operator?.firstName?.first() ?: ""}. ${operator?.lastName ?: "Unknown"}",
-                                date = check.lastCheckDateTime?.let { parseDateTime(it) } ?: "Date not available"
-                            )
-                            alerts.add(alert)
-                        }
-                }
-
-                _state.value = _state.value.copy(
-                    safetyAlerts = alerts.sortedByDescending { it.date },
-                    isLoading = false,
-                    error = null
-                )
             } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    error = "Failed to load safety alerts",
-                    isLoading = false
-                )
+                _state.update { 
+                    it.copy(
+                        error = e.message ?: "Error loading safety alerts",
+                        isLoading = false
+                    )
+                }
             }
         }
     }
 
-    private fun parseDateTime(timestamp: String): String {
-        return try {
-            val dateTime = OffsetDateTime.parse(timestamp)
-            val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
-            dateTime.format(formatter)
-        } catch (e: Exception) {
-            timestamp
+    fun createSafetyAlert(answeredChecklistItemId: String, vehicleId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                val alert = SafetyAlertDto(
+                    id = java.util.UUID.randomUUID().toString(),  // Generate a new GUID
+                    answeredChecklistItemId = answeredChecklistItemId,
+                    goUserId = "",  // Required by API
+                    vehicleId = vehicleId,
+                    isDirty = false,  // Required by API
+                    isNew = true,  // Required by API
+                    isMarkedForDeletion = false  // Required by API
+                )
+                
+                val savedAlert = repository.saveSafetyAlert(alert)
+                if (savedAlert != null) {
+                    _state.update { currentState ->
+                        currentState.copy(
+                            alerts = currentState.alerts + SafetyAlert(
+                                id = savedAlert.id,
+                                title = "Safety Alert #${savedAlert.id.take(8)}",
+                                description = "Vehicle: ${savedAlert.vehicleId}\nChecklist Item: ${savedAlert.answeredChecklistItemId}",
+                                createdAt = java.time.Instant.now().toString(),
+                                updatedAt = java.time.Instant.now().toString()
+                            ),
+                            isLoading = false
+                        )
+                    }
+                } else {
+                    _state.update { 
+                        it.copy(
+                            error = "Failed to create safety alert",
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = e.message ?: "Error creating safety alert",
+                        isLoading = false
+                    )
+                }
+            }
         }
+    }
+
+    fun deleteSafetyAlert(alert: SafetyAlert) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true) }
+            try {
+                val dto = SafetyAlertDto(
+                    id = alert.id,
+                    answeredChecklistItemId = "",  // Required by API
+                    goUserId = "",  // Required by API
+                    vehicleId = "",  // Required by API
+                    isDirty = false,  // Required by API
+                    isNew = false,  // Required by API
+                    isMarkedForDeletion = true  // Required by API
+                )
+                
+                val success = repository.deleteSafetyAlert(dto)
+                if (success) {
+                    _state.update { currentState ->
+                        currentState.copy(
+                            alerts = currentState.alerts.filter { it.id != alert.id },
+                            isLoading = false
+                        )
+                    }
+                } else {
+                    _state.update { 
+                        it.copy(
+                            error = "Failed to delete safety alert",
+                            isLoading = false
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = e.message ?: "Error deleting safety alert",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearError() {
+        _state.update { it.copy(error = null) }
     }
 } 

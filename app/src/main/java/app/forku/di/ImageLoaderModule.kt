@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -19,7 +20,7 @@ object ImageLoaderModule {
     @Singleton
     fun provideImageLoader(
         @ApplicationContext context: Context,
-        okHttpClient: OkHttpClient
+        @Named("authenticatedClient") okHttpClient: OkHttpClient
     ): ImageLoader {
         return ImageLoader.Builder(context)
             .okHttpClient(okHttpClient)

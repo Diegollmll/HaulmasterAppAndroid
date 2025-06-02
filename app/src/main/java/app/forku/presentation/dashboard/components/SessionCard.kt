@@ -31,12 +31,17 @@ import app.forku.presentation.common.utils.getRelativeTimeSpanString
 import app.forku.domain.model.user.UserRole
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.checklist.ChecklistAnswer
 import app.forku.core.Constants.BASE_URL
 import coil.ImageLoader
+import app.forku.presentation.common.utils.getUserAvatarData
+import app.forku.presentation.common.components.UserAvatar
+import coil.compose.AsyncImage
 
 @Composable
 fun SessionCard(
@@ -135,23 +140,19 @@ private fun SessionContent(
             user?.let {
                 if (vehicle != null) {
                     // Left Column - User/Vehicle Info
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp)
-                    ) {
-                        val imageUrl = "${BASE_URL}api/vehicle/file/${vehicle.id}/Picture?t=%LASTEDITEDTIME%"
-                        OverlappingImages(
-                            mainImageUrl = imageUrl,
-                            overlayImageUrl = user.photoUrl,
-                            mainTint = MaterialTheme.colorScheme.onSurface,
-                            mainSize = 120,
-                            overlaySize = 60,
-                            imageLoader = imageLoader,
-                            overlayUserId = user?.id
-                        )
-                        android.util.Log.d("SessionCardDebug", "OverlappingImages mainImageUrl: $imageUrl")
-                    }
+                    val imageUrl = "${BASE_URL}api/vehicle/file/${vehicle.id}/Picture?t=%LASTEDITEDTIME%"
+                    OverlappingImages(
+                        mainImageUrl = imageUrl,
+                        overlayImageUrl = user.photoUrl,
+                        mainTint = MaterialTheme.colorScheme.onSurface,
+                        mainSize = 120,
+                        overlaySize = 60,
+                        imageLoader = imageLoader,
+                        overlayUserId = user.id,
+                        overlayFirstName = user.firstName,
+                        overlayLastName = user.lastName
+                    )
+                    android.util.Log.d("SessionCardDebug", "OverlappingImages mainImageUrl: $imageUrl")
                 }
             }
 

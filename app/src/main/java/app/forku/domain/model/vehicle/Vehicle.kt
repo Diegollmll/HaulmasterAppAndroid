@@ -24,7 +24,7 @@ data class Vehicle(
     fun getPictureUrl(baseUrl: String, lastEditedTime: String? = "%LASTEDITEDTIME%"): String {
         val timeParam = lastEditedTime?.let { "?t=$it" } ?: ""
         val url = "$baseUrl" + "api/vehicle/file/$id/Picture$timeParam"
-        android.util.Log.d("VehicleImage", "Generated vehicle image URL: $url")
+        // android.util.Log.d("VehicleImage", "Generated vehicle image URL: $url")
         return url
     }
 }

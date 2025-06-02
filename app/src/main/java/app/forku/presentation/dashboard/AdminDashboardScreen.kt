@@ -36,6 +36,8 @@ import app.forku.core.auth.TokenErrorHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.util.Log
+import app.forku.presentation.common.utils.getUserAvatarData
+import app.forku.presentation.common.components.UserAvatar
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -400,14 +402,25 @@ private fun OperatorsInSessionSection(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     state.activeOperators.forEach { operator ->
-                        OperatorItem(
-                            name = operator.name,
-                            image = operator.image ?: "",
-                            isActive = operator.isActive,
-                            onClick = {
-                                navController.navigate(Screen.Profile.createRoute(operator.userId))
-                            }
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            UserAvatar(
+                                avatarData = getUserAvatarData(
+                                    operator.name.split(" ").firstOrNull(),
+                                    operator.name.split(" ").drop(1).firstOrNull(),
+                                    operator.image
+                                ),
+                                size = 24.dp,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                text = operator.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }

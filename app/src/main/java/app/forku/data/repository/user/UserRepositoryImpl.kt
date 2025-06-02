@@ -61,19 +61,34 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getUserById(userId: String): User? = withContext(Dispatchers.IO) {
         try {
+            Log.d("UserRepository", "Getting user by ID: $userId")
             val response = api.getUser(userId)
+            Log.d("UserRepository", "API response code: ${response.code()}")
+            Log.d("UserRepository", "API response body: ${response.body()}")
+            Log.d("UserRepository", "API response headers: ${response.headers()}")
+            Log.d("UserRepository", "API response error body: ${response.errorBody()?.string()}")
+            
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to get user: ${response.code()}")
                 return@withContext null
             }
 
-            val userDto = response.body() ?: return@withContext null
+            val userDto = response.body()
+            if (userDto == null) {
+                Log.e("UserRepository", "User DTO is null for ID: $userId")
+                return@withContext null
+            }
+
+            Log.d("UserRepository", "Received user DTO: id=${userDto.id}, picture=${userDto.picture}, pictureInternalName=${userDto.pictureInternalName}")
+            Log.d("UserRepository", "UserDto for Ana: id=${userDto.id}, picture=${userDto.picture}, pictureInternalName=${userDto.pictureInternalName}")
             val userRole = getUserRoleFromGOApi(userId)
             
             // Map to domain model, passing the role directly
-            userDto.toDomain(userRole)
+            val user = userDto.toDomain(userRole)
+            Log.d("UserRepository", "Mapped user: id=${user.id}, photoUrl=${user.photoUrl}")
+            user
         } catch (e: Exception) {
-            Log.e("UserRepository", "Error getting user: ${e.message}")
+            Log.e("UserRepository", "Error getting user: ${e.message}", e)
             null
         }
     }
@@ -119,6 +134,7 @@ class UserRepositoryImpl @Inject constructor(
                         // Save tokens
                         authDataStore.saveApplicationToken(applicationToken)
                         authDataStore.saveAuthenticationToken(authenticationToken)
+                        authDataStore.logTokenExpirationDate()
 
                         // Parse user from token
                         val tokenClaims = app.forku.data.api.auth.TokenParser.parseJwtToken(applicationToken)
@@ -464,6 +480,34 @@ class UserRepositoryImpl @Inject constructor(
                 Log.e("UserRepository", "Error in fallback count", e2)
                 return@withContext null
             }
+        }
+    }
+
+    suspend fun getUserFromGOApi(userId: String): Result<User> {
+        return try {
+            Log.d("UserRepository", "Fetching user from GO API for userId: $userId")
+            val response = api.getUser(userId)
+            Log.d("UserRepository", "GO API Response: $response")
+            
+            if (response.isSuccessful) {
+                val userDto = response.body()
+                Log.d("UserRepository", "User DTO received: $userDto")
+                
+                if (userDto != null) {
+                    val user = userDto.toDomain()
+                    Log.d("UserRepository", "Mapped user: id=${user.id}, firstName=${user.firstName}, lastName=${user.lastName}, fullName=${user.fullName}, photoUrl=${user.photoUrl}, role=${user.role}")
+                    Result.success(user)
+                } else {
+                    Log.e("UserRepository", "User DTO is null")
+                    Result.failure(Exception("User not found"))
+                }
+            } else {
+                Log.e("UserRepository", "API call failed with code: ${response.code()}")
+                Result.failure(Exception("Failed to get user: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error fetching user", e)
+            Result.failure(e)
         }
     }
 } 

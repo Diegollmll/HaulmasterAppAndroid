@@ -26,8 +26,8 @@ fun VehicleImage(
     // Mientras el backend no aclare el campo, usamos la URL por vehicleId
     val imageUrl = "${BASE_URL}api/vehicle/file/$vehicleId/Picture?t=%LASTEDITEDTIME%"
     
-    Log.d(TAG, "[VehicleImage] Params: vehicleId=$vehicleId, imageLoader=$imageLoader, contentScale=$contentScale")
-    Log.d(TAG, "[VehicleImage] Final imageUrl: $imageUrl")
+    //Log.d(TAG, "[VehicleImage] Params: vehicleId=$vehicleId, imageLoader=$imageLoader, contentScale=$contentScale")
+    //Log.d(TAG, "[VehicleImage] Final imageUrl: $imageUrl")
 
     AsyncImage(
         model = ImageRequest.Builder(context)

@@ -33,6 +33,7 @@ import app.forku.data.service.GOServicesManager
 import app.forku.data.api.VehicleSessionApi
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.usecase.incident.GetUserIncidentCountUseCase
+import app.forku.domain.usecase.safetyalert.GetSafetyAlertCountUseCase
 
 sealed class AuthEvent {
     object NavigateToLogin : AuthEvent()
@@ -49,7 +50,8 @@ class AdminDashboardViewModel @Inject constructor(
     private val authDataStore: AuthDataStore,
     private val goServicesManager: GOServicesManager,
     private val vehicleSessionApi: VehicleSessionApi,
-    private val getUserIncidentCountUseCase: GetUserIncidentCountUseCase
+    private val getUserIncidentCountUseCase: GetUserIncidentCountUseCase,
+    private val getSafetyAlertCountUseCase: GetSafetyAlertCountUseCase
 ) : ViewModel() {
 
     private val _authEvent = MutableSharedFlow<AuthEvent>()
@@ -106,10 +108,7 @@ class AdminDashboardViewModel @Inject constructor(
             val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
             val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
 
-            // Default avatar URL for when photoUrl is empty
-            val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${operator?.firstName?.first() ?: "U"}+${operator?.lastName?.first() ?: "U"}&background=random"
-
-            // Create session info even if operator is null
+            // Remove defaultAvatarUrl and only assign operatorImage if photoUrl is not blank
             VehicleSessionInfo(
                 vehicle = vehicle,
                 vehicleId = vehicle.id,
@@ -118,8 +117,8 @@ class AdminDashboardViewModel @Inject constructor(
                 vehicleImage = vehicle.photoModel,
                 session = session,
                 operator = operator,
-                operatorName = "${operator?.firstName?.first() ?: ""}. ${operator?.lastName ?: ""}",
-                operatorImage = operator?.photoUrl ?: defaultAvatarUrl,
+                operatorName = "${operator?.firstName?.firstOrNull() ?: ""}. ${operator?.lastName ?: ""}",
+                operatorImage = operator?.photoUrl?.takeIf { !it.isNullOrBlank() },
                 sessionStartTime = session.startTime,
                 userRole = operator?.role ?: UserRole.OPERATOR,
                 progress = progress
@@ -134,14 +133,11 @@ class AdminDashboardViewModel @Inject constructor(
         return try {
             val operator = userRepository.getUserById(session.userId)
             operator?.let {
-                // Default avatar URL for when photoUrl is empty
-                val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${it.firstName.first()}+${it.lastName.first()}&background=random"
-                
                 OperatorSessionInfo(
-                    name = "${it.firstName.first()}. ${it.lastName}",
+                    name = "${it.firstName.firstOrNull() ?: ""}. ${it.lastName}",
                     fullName = it.fullName,
                     username = it.username,
-                    image = it.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
+                    image = it.photoUrl?.takeIf { url -> !url.isNullOrBlank() },
                     isActive = true, // This operator has an active session since we're getting info from a session
                     userId = it.id,
                     sessionStartTime = session.startTime,
@@ -265,7 +261,7 @@ class AdminDashboardViewModel @Inject constructor(
                                     ),
                                     operator = operator,
                                     operatorName = operatorFullName,
-                                    operatorImage = operator?.photoUrl ?: defaultAvatarUrl,
+                                    operatorImage = operator?.photoUrl?.takeIf { !it.isNullOrBlank() },
                                     sessionStartTime = dto.StartTime,
                                     userRole = operator?.role ?: UserRole.OPERATOR,
                                     progress = progress
@@ -303,19 +299,16 @@ class AdminDashboardViewModel @Inject constructor(
                             android.util.Log.d("AdminDashboard", "[activeOperators] session.operator: id=${session.operator.id}, firstName='${session.operator.firstName}', lastName='${session.operator.lastName}', username='${session.operator.username}', photoUrl='${session.operator.photoUrl}'")
                         }
                         session.operator?.let { operator ->
-                            val firstInitial = operator.firstName?.firstOrNull()?.toString() ?: "?"
-                            val lastInitial = operator.lastName?.firstOrNull()?.toString() ?: "?"
                             val displayName = listOfNotNull(operator.firstName, operator.lastName)
                                 .filter { it.isNotBlank() }
                                 .joinToString(" ")
                                 .ifBlank { operator.username ?: "Sin nombre" }
-                            val defaultAvatarUrl = "https://ui-avatars.com/api/?name=${firstInitial}${lastInitial}&background=random"
                             android.util.Log.d("AdminDashboard", "[activeOperators] Adding OperatorSessionInfo: name='$displayName', userId=${operator.id}, sessionStartTime=${session.sessionStartTime}")
                             OperatorSessionInfo(
                                 name = displayName,
                                 fullName = operator.fullName,
                                 username = operator.username,
-                                image = operator.photoUrl?.takeIf { url -> url.isNotEmpty() } ?: defaultAvatarUrl,
+                                image = operator.photoUrl?.takeIf { !it.isNullOrBlank() },
                                 isActive = true, // They have an active session
                                 userId = operator.id,
                                 sessionStartTime = session.sessionStartTime ?: "",
@@ -344,11 +337,7 @@ class AdminDashboardViewModel @Inject constructor(
                     emptyList()
                 }
 
-                val safetyAlertsCount = allChecks.flatMap { check -> 
-                    check.items.filter { item -> 
-                        !item.isCritical && item.userAnswer == Answer.FAIL
-                    }
-                }.size
+                val safetyAlertsCount = getSafetyAlertCountUseCase()
 
                 _state.value = _state.value.copy(
                     operatingVehiclesCount = _state.value.operatingVehiclesCount,

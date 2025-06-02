@@ -16,5 +16,6 @@ data class ChecklistItem(
     val isCritical: Boolean,
     val expectedAnswer: Answer,
     val rotationGroup: Int,
-    val userAnswer: Answer? = null
+    val userAnswer: Answer? = null,
+    val userComment: String? = null
 )

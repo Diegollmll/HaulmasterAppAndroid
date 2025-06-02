@@ -1,6 +1,7 @@
 package app.forku.data.api.dto.user
 
 import com.google.gson.annotations.SerializedName
+import android.util.Log
 
 data class UserDto(
     @SerializedName("Id")
@@ -71,10 +72,14 @@ data class UserDto(
     @SerializedName("userRoleItems")
     val userRoleItems: List<Any>? = emptyList(),
     @SerializedName("Picture")
-    val picture: String,
+    val picture: String? = null,
     @SerializedName("PictureFileSize")
     val pictureFileSize: Long? = null,
     @SerializedName("PictureInternalName")
     val pictureInternalName: String? = null,
-)
+) {
+    init {
+        Log.d("UserDto", "Initializing UserDto with picture: $picture")
+    }
+}
 

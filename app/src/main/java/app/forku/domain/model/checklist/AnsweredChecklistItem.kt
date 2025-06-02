@@ -10,5 +10,6 @@ data class AnsweredChecklistItem(
     val userId: String,
     val createdAt: String,
     val isNew: Boolean = true,
-    val isDirty: Boolean = true
+    val isDirty: Boolean = true,
+    val userComment: String? = null
 ) 

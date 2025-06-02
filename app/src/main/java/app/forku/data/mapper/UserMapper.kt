@@ -19,6 +19,19 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
     // Use default businessId if not present
     val resolvedBusinessId = this.userBusinesses?.firstOrNull()?.toString() ?: Constants.BUSINESS_ID
 
+    Log.d("UserMapper", "Processing user photo: id=$id, picture=$picture, pictureInternalName=$pictureInternalName")
+    val imageUrl = if (!picture.isNullOrBlank() || !pictureInternalName.isNullOrBlank()) {
+        val url = "${Constants.BASE_URL}api/gouser/file/${id}/Picture?t=%LASTEDITEDTIME%"
+        Log.d("UserMapper", "Generated photo URL: $url")
+        Log.d("UserMapper", "Picture field: $picture")
+        Log.d("UserMapper", "PictureInternalName field: $pictureInternalName")
+        url
+    } else {
+        Log.d("UserMapper", "No picture field or it's blank, setting photoUrl to null")
+        null
+    }
+
+    Log.d("UserMapper", "Final user mapping: id=$id, photoUrl=$imageUrl, role=$mappedRole")
     return User(
         id = id ?: "",
         token = "", // Not present in UserDto, set as empty
@@ -27,7 +40,7 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
         username = username ?: "",
         firstName = firstName ?: "",
         lastName = lastName ?: "",
-        photoUrl = null, // Not present in UserDto
+        photoUrl = imageUrl,
         role = mappedRole,
         certifications = emptyList(), // If you want to map certifications, do it via CertificationMapper
         lastMedicalCheck = null, // Not present in UserDto

@@ -4,29 +4,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.components.BaseScreen
+import app.forku.presentation.common.components.LoadingOverlay
+import app.forku.presentation.common.components.ErrorScreen
+import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
-import app.forku.domain.model.checklist.PreShiftCheck
+import app.forku.core.auth.TokenErrorHandler
+import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.OffsetDateTime
-import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import java.time.format.FormatStyle
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SafetyAlertsScreen(
-    navController: NavController,
     viewModel: SafetyAlertsViewModel = hiltViewModel(),
+    navController: NavController,
     networkManager: NetworkConnectivityManager,
     tokenErrorHandler: TokenErrorHandler
 ) {
@@ -34,105 +33,104 @@ fun SafetyAlertsScreen(
 
     BaseScreen(
         navController = navController,
-        showBottomBar = false,
         showTopBar = true,
+        showBottomBar = true,
+        viewModel = viewModel,
         topBarTitle = "Safety Alerts",
-        showBackButton = true,
         networkManager = networkManager,
+        onRefresh = { viewModel.loadSafetyAlerts() },
         tokenErrorHandler = tokenErrorHandler
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(state.safetyAlerts) { alert ->
-                    SafetyAlertItem(alert = alert)
+        Box(modifier = Modifier.padding(padding)) {
+            when {
+                state.isLoading -> {
+                    LoadingOverlay()
                 }
-
-                if (state.safetyAlerts.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No safety alerts found",
-                                color = Color.Gray,
-                                fontSize = 18.sp
+                state.error != null -> {
+                    ErrorScreen(
+                        message = state.error ?: "",
+                        onRetry = { viewModel.loadSafetyAlerts() }
+                    )
+                }
+                state.alerts.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        Text("No safety alerts found")
+                    }
+                }
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(state.alerts) { alert ->
+                            SafetyAlertCard(
+                                alert = alert,
+                                onDelete = { viewModel.deleteSafetyAlert(alert) }
                             )
                         }
                     }
                 }
             }
-
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SafetyAlertItem(alert: SafetyAlert) {
+fun SafetyAlertCard(
+    alert: SafetyAlert,
+    onDelete: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Text(
+                    text = alert.title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                IconButton(onClick = onDelete) {
                     Icon(
-                        imageVector = Icons.Default.Security,
-                        contentDescription = null,
-                        tint = Color(0xFF2196F3),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = alert.vehicleCodename,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete alert"
                     )
                 }
-                Text(
-                    text = getRelativeTimeSpanString(alert.date),
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
             }
-            
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = alert.description,
-                fontSize = 14.sp,
-                color = Color.DarkGray
+                style = MaterialTheme.typography.bodyMedium
             )
-            
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Reported by: ${alert.operatorName}",
-                fontSize = 12.sp,
-                color = Color.Gray
+                text = "Created: ${formatDate(alert.createdAt)}",
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
-} 
+}
+
+private fun formatDate(dateString: String): String {
+    return try {
+        val instant = Instant.parse(dateString)
+        val formatter = DateTimeFormatter
+            .ofLocalizedDateTime(FormatStyle.MEDIUM)
+            .withZone(ZoneId.systemDefault())
+        formatter.format(instant)
+    } catch (e: Exception) {
+        dateString
+    }
+}

@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.unit.Dp
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.presentation.vehicle.profile.VehicleProfileViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,6 +42,8 @@ import app.forku.presentation.common.utils.parseDateTime
 import coil.ImageLoader
 import app.forku.presentation.vehicle.components.VehicleImage
 import app.forku.domain.model.checklist.CheckStatus
+import app.forku.presentation.common.utils.getUserAvatarData
+import app.forku.presentation.common.components.UserAvatar
 
 @Composable
 fun VehicleProfileSummary(
@@ -122,7 +126,10 @@ fun OperatorProfile(
     name: String,
     imageUrl: String?,
     modifier: Modifier = Modifier,
-    role: String = "Operator"
+    role: String = "Operator",
+    avatarSize: Dp = 40.dp,
+    fontSize: TextUnit = 18.sp,
+    roleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
 ) {
     Row(
         modifier = modifier
@@ -133,36 +140,25 @@ fun OperatorProfile(
             .padding(0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Profile Image
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(imageUrl)
-                .crossfade(true)
-                .build(),
-            contentDescription = "Profile picture of $name",
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
-            contentScale = ContentScale.Crop
+        UserAvatar(
+            avatarData = getUserAvatarData(name.split(" ").firstOrNull(), name.split(" ").drop(1).firstOrNull(), imageUrl),
+            size = avatarSize,
+            fontSize = fontSize
         )
-
         Spacer(modifier = Modifier.width(10.dp))
-
-        // User info
         Column {
             Text(
                 text = role,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp
+                color = roleColor,
+                fontSize = fontSize * 0.7f
             )
-
             Text(
                 text = name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = fontSize
             )
         }
     }
@@ -233,7 +229,7 @@ fun VehicleDetailsSection(
                                 !activeOperator.username.isNullOrBlank() -> activeOperator.username
                                 else -> "Sin nombre"
                             }
-                            android.util.Log.d("VehicleProfileSummary", "Mostrando operador ACTIVO: $displayName")
+                            // android.util.Log.d("VehicleProfileSummary", "Mostrando operador ACTIVO: $displayName")
                             OperatorProfile(
                                 name = displayName,
                                 imageUrl = activeOperator.photoUrl,
@@ -285,13 +281,16 @@ fun VehicleDetailsSection(
                                     !lastOperator.username.isNullOrBlank() -> lastOperator.username
                                     else -> "Sin nombre"
                                 }
-                                android.util.Log.d("VehicleProfileSummary", "Mostrando ULTIMO operador: $lastDisplayName")
+                                // android.util.Log.d("VehicleProfileSummary", "Mostrando ULTIMO operador: $lastDisplayName")
                                 Spacer(modifier = Modifier.height(8.dp))
                                 OperatorProfile(
                                     name = lastDisplayName,
                                     imageUrl = lastOperator.photoUrl,
                                     modifier = Modifier.padding(0.dp, 8.dp),
-                                    role = "Last ${lastOperator.role.name}"
+                                    role = "Last ${lastOperator.role.name}",
+                                    avatarSize = 28.dp,
+                                    fontSize = 12.sp,
+                                    roleColor = Color.Gray
                                 )
                             }
                         }
@@ -302,12 +301,15 @@ fun VehicleDetailsSection(
                                 !lastOperator.username.isNullOrBlank() -> lastOperator.username
                                 else -> "Sin nombre"
                             }
-                            android.util.Log.d("VehicleProfileSummary", "Mostrando SOLO ULTIMO operador: $lastDisplayName")
+                            // android.util.Log.d("VehicleProfileSummary", "Mostrando SOLO ULTIMO operador: $lastDisplayName")
                             OperatorProfile(
                                 name = lastDisplayName,
                                 imageUrl = lastOperator.photoUrl,
                                 modifier = Modifier.padding(0.dp, 8.dp),
-                                role = "Last ${lastOperator.role.name}"
+                                role = "Last ${lastOperator.role.name}",
+                                avatarSize = 28.dp,
+                                fontSize = 12.sp,
+                                roleColor = Color.Gray
                             )
                         }
                         viewModel.state.value.lastChecklistOperator != null -> {
@@ -318,16 +320,17 @@ fun VehicleDetailsSection(
                                 !lastChecklistOperator.username.isNullOrBlank() -> lastChecklistOperator.username
                                 else -> "Sin nombre"
                             }
-                            android.util.Log.d("VehicleProfileSummary", "Mostrando operador de CHECKLIST: $checklistDisplayName")
+                            // android.util.Log.d("VehicleProfileSummary", "Mostrando operador de CHECKLIST: $checklistDisplayName")
                             OperatorProfile(
                                 name = checklistDisplayName,
                                 imageUrl = lastChecklistOperator.photoUrl,
                                 modifier = Modifier.padding(0.dp, 8.dp),
+                                avatarSize = 0.dp,
                                 role = "Last Operator"
                             )
                         }
                         else -> {
-                            android.util.Log.d("VehicleProfileSummary", "No hay historial de operador")
+                            // android.util.Log.d("VehicleProfileSummary", "No hay historial de operador")
                             Text(
                                 text = "No operator history",
                                 color = Color.Gray,
@@ -367,10 +370,10 @@ fun VehicleDetailsSection(
                 }
                 Row {
                     val lastChecklistAnswer = viewModel.state.value.lastChecklistAnswer
-                    android.util.Log.d(
-                        "VehicleProfileSummary",
-                        "Checklist date debug: lastCheckDateTime=${lastChecklistAnswer?.lastCheckDateTime}, endDateTime=${lastChecklistAnswer?.endDateTime}, lastCheckStartDateTime=${lastCheck?.value?.startDateTime}"
-                    )
+//                    android.util.Log.d(
+//                        "VehicleProfileSummary",
+//                        "Checklist date debug: lastCheckDateTime=${lastChecklistAnswer?.lastCheckDateTime}, endDateTime=${lastChecklistAnswer?.endDateTime}, lastCheckStartDateTime=${lastCheck?.value?.startDateTime}"
+//                    )
                     Text(
                         text = lastChecklistAnswer?.lastCheckDateTime?.takeIf { it.isNotBlank() }?.let {
                             getRelativeTimeSpanString(it)
