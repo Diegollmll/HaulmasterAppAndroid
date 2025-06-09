@@ -14,6 +14,8 @@ data class ChecklistItemAnswerMultimediaDto(
     val createdAt: String? = null,
     @SerializedName("createdAt_WithTimezoneOffset")
     val createdAtWithTimezoneOffset: String? = null,
+    @SerializedName("CreationDateTime")
+    val creationDateTime: String? = null,
     // --- Multimedia fields (opcional) ---
     @SerializedName("EntityType")
     val entityType: Int? = null,

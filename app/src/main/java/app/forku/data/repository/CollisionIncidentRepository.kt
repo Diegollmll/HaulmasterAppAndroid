@@ -14,7 +14,7 @@ class CollisionIncidentRepository @Inject constructor(
     private val api: CollisionIncidentApi,
     private val gson: Gson
 ) : ICollisionIncidentRepository {
-    override suspend fun getCollisionIncidentById(id: Long): Flow<Result<CollisionIncidentDto>> = flow {
+    override suspend fun getCollisionIncidentById(id: String): Flow<Result<CollisionIncidentDto>> = flow {
         try {
             val result = api.getById(id)
             emit(Result.success(result))
@@ -56,7 +56,7 @@ class CollisionIncidentRepository @Inject constructor(
         }
     }
 
-    override suspend fun deleteCollisionIncidentById(id: Long): Flow<Result<Unit>> = flow {
+    override suspend fun deleteCollisionIncidentById(id: String): Flow<Result<Unit>> = flow {
         try {
             api.deleteById(id)
             emit(Result.success(Unit))

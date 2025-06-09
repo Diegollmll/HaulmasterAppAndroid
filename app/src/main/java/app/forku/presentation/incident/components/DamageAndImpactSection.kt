@@ -83,9 +83,9 @@ fun DamageAndImpactSection(
         EnvironmentalImpact.values().forEach { impact ->
             val isChecked = when (val fields = state.typeSpecificFields) {
                 is IncidentTypeFields.CollisionFields ->
-                    impact.name in fields.environmentalImpact
+                    fields.environmentalImpact?.contains(impact) == true
                 is IncidentTypeFields.VehicleFailFields ->
-                    fields.environmentalImpact?.contains(impact.ordinal) == true
+                    fields.environmentalImpact?.contains(impact) == true
                 else -> false
             }
 
@@ -100,23 +100,20 @@ fun DamageAndImpactSection(
                     onCheckedChange = { checked ->
                         val newFields = when (val fields = state.typeSpecificFields) {
                             is IncidentTypeFields.CollisionFields -> {
-                                val currentImpacts = fields.environmentalImpact
-                                    ?.split(",")
-                                    ?.filter { it.isNotEmpty() }
-                                    ?.toMutableList() ?: mutableListOf()
+                                val currentImpacts = fields.environmentalImpact?.toMutableSet() ?: mutableSetOf()
                                 if (checked) {
-                                    if (!currentImpacts.contains(impact.name)) currentImpacts.add(impact.name)
+                                    currentImpacts.add(impact)
                                 } else {
-                                    currentImpacts.remove(impact.name)
+                                    currentImpacts.remove(impact)
                                 }
-                                fields.copy(environmentalImpact = currentImpacts.joinToString(","))
+                                fields.copy(environmentalImpact = currentImpacts)
                             }
                             is IncidentTypeFields.VehicleFailFields -> {
-                                val currentImpacts = fields.environmentalImpact?.toMutableList() ?: mutableListOf()
+                                val currentImpacts = fields.environmentalImpact?.toMutableSet() ?: mutableSetOf()
                                 if (checked) {
-                                    if (!currentImpacts.contains(impact.ordinal)) currentImpacts.add(impact.ordinal)
+                                    currentImpacts.add(impact)
                                 } else {
-                                    currentImpacts.remove(impact.ordinal)
+                                    currentImpacts.remove(impact)
                                 }
                                 fields.copy(environmentalImpact = currentImpacts)
                             }

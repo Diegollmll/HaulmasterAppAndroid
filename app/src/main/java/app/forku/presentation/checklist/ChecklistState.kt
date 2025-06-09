@@ -29,7 +29,12 @@ data class ChecklistState(
     val errorModalMessage: String? = null,
     val isSubmitting: Boolean = false,
     val vehicleBlocked: Boolean = false,
-    val message: String? = null
+    val message: String? = null,
+    val noCompatibleChecklists: Boolean = false,
+    val totalChecklistsFound: Int = 0,
+    val compatibleChecklistsFound: Int = 0,
+    val specificChecklistsFound: Int = 0,
+    val defaultChecklistsFound: Int = 0
 ) {
     val isEmpty: Boolean
         get() = checkItems.isEmpty()

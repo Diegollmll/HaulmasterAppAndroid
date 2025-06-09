@@ -87,38 +87,40 @@ fun SafetyAlertCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+        Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = alert.title,
                     style = MaterialTheme.typography.titleMedium
                 )
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete alert"
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = alert.description,
                 style = MaterialTheme.typography.bodyMedium
             )
+            if (alert.createdAt.isNotBlank()) {
+                val formattedDate = try {
+                    val instant = java.time.Instant.parse(alert.createdAt)
+                    val formatter = java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM)
+                        .withZone(java.time.ZoneId.systemDefault())
+                    formatter.format(instant)
+                } catch (e: Exception) {
+                    alert.createdAt // fallback
+                }
+                Text(
+                    text = "Created: $formattedDate",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Created: ${formatDate(alert.createdAt)}",
-                style = MaterialTheme.typography.bodySmall
-            )
+            Button(
+                onClick = onDelete,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Delete")
+            }
         }
     }
 }

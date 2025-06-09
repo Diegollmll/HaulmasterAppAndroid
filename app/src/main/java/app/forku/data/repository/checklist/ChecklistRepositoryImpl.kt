@@ -37,7 +37,7 @@ class ChecklistRepositoryImpl @Inject constructor(
     override suspend fun getChecklistItems(vehicleId: String): List<Checklist> {
         try {
             android.util.Log.d("ChecklistRepositoryImpl", "Llamando a api.getList() para vehicleId=$vehicleId")
-            val response = api.getList(include = "ChecklistChecklistQuestionItems")
+            val response = api.getList(include = "ChecklistChecklistQuestionItems,ChecklistVehicleTypeItems")
             android.util.Log.d("ChecklistRepositoryImpl", "Respuesta cruda del API: ${response.body()}")
             
             if (!response.isSuccessful) {
@@ -256,7 +256,7 @@ class ChecklistRepositoryImpl @Inject constructor(
             ChecklistChecklistQuestionItems = check.items.map { it.toDto() },
             CriticalityLevels = emptyList(),
             CriticalQuestionMinimum = 0,
-            EnergySources = 0,
+            EnergySources = emptyList(),
             IsDefault = false,
             MaxQuestionsPerCheck = 0,
             RotationGroups = 0,
@@ -296,7 +296,7 @@ class ChecklistRepositoryImpl @Inject constructor(
             ChecklistChecklistQuestionItems = check.items.map { it.toDto() },
             CriticalityLevels = emptyList(),
             CriticalQuestionMinimum = 0,
-            EnergySources = 0,
+            EnergySources = emptyList(),
             IsDefault = false,
             MaxQuestionsPerCheck = 0,
             RotationGroups = 0,

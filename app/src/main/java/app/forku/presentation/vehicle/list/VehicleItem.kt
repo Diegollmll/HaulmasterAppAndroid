@@ -212,34 +212,12 @@ fun VehicleItem(
 
                 // After displaying vehicle type/name, add checklist status if available
                 if (checklistAnswer != null) {
-                    val statusEnum = CheckStatus.values().getOrNull(checklistAnswer.status)
-                    val statusText = statusEnum?.toFriendlyString() ?: "Unknown"
-                    val statusColor = app.forku.domain.model.checklist.getPreShiftStatusColor(statusEnum?.name ?: "PENDING")
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Start,
-                        modifier = Modifier.padding(top = 1.dp)
-                    ) {
-                        Text(
-                            text = "Checklist: ",
-                            style = TextStyle(
-                                fontSize = textConfigs.preshiftCheck.fontSize.sp,
-                                lineHeight = textConfigs.preshiftCheck.lineHeight.sp,
-                            )
-                        )
-                        Spacer(Modifier.width(3.dp))
-                        Text(
-                            text = "$statusText",
-                            style = TextStyle(
-                                fontSize = textConfigs.preshiftCheck.fontSize.sp,
-                                lineHeight = textConfigs.preshiftCheck.lineHeight.sp,
-                                color = statusColor
-                            )
-                        )
-                    }
-
-
+                    Text(
+                        text = "Checklist: ${ getPreShiftStatusText(checklistAnswer.status)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = getPreShiftStatusColor(getPreShiftStatusText(checklistAnswer.status)),
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
                 }
 
                 if (sessionInfo?.sessionStartTime != null) {

@@ -1,6 +1,10 @@
 package app.forku.data.mapper
 
 import app.forku.data.dto.HazardIncidentDto
+import app.forku.domain.model.incident.HazardConsequence
+import app.forku.domain.model.incident.HazardCorrectiveAction
+import app.forku.domain.model.incident.HazardPreventiveMeasure
+import app.forku.domain.model.incident.HazardType
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
 import java.time.LocalDateTime
@@ -43,5 +47,49 @@ fun IncidentReportState.toHazardIncidentDto(): HazardIncidentDto {
         loadBeingCarried = loadBeingCarried,
         loadWeight = loadWeightEnum?.ordinal,
         othersInvolved = othersInvolved
+    ).also {
+        android.util.Log.d("HazardIncidentMapper", "Mapping to HazardIncidentDto. Weather field: $weather")
+    }
+}
+
+fun HazardIncidentDto.toTypeSpecificFields(): IncidentTypeFields.HazardFields {
+    return IncidentTypeFields.HazardFields(
+        hazardType = this.hazardType?.let { HazardType.values().getOrNull(it) },
+        potentialConsequences = this.potentialConsequences?.mapNotNull { HazardConsequence.values().getOrNull(it) }?.toSet() ?: emptySet(),
+        correctiveActions = this.correctiveActions?.mapNotNull { HazardCorrectiveAction.values().getOrNull(it) }?.toSet() ?: emptySet(),
+        preventiveMeasures = this.preventiveMeasures?.mapNotNull { HazardPreventiveMeasure.values().getOrNull(it) }?.toSet() ?: emptySet()
+    )
+}
+
+fun HazardIncidentDto.toDomain(): app.forku.domain.model.incident.Incident {
+    return app.forku.domain.model.incident.Incident(
+        id = id,
+        type = app.forku.domain.model.incident.IncidentTypeEnum.HAZARD,
+        description = description,
+        timestamp = incidentDateTime,
+        userId = userId,
+        vehicleId = vehicleId,
+        vehicleType = null,
+        vehicleName = "",
+        checkId = null,
+        isLoadCarried = isLoadCarried ?: false,
+        loadBeingCarried = loadBeingCarried ?: "",
+        loadWeight = null, // Map if available
+        sessionId = null,
+        status = app.forku.domain.model.incident.IncidentStatus.values().getOrNull(status) ?: app.forku.domain.model.incident.IncidentStatus.REPORTED,
+        photos = emptyList(),
+        date = try { java.time.ZonedDateTime.parse(incidentDateTime).toInstant().toEpochMilli() } catch (e: Exception) { 0L },
+        location = locationDetails,
+        locationDetails = locationDetails,
+        weather = weather ?: "",
+        incidentTime = null,
+        severityLevel = app.forku.domain.model.incident.IncidentSeverityLevelEnum.values().getOrNull(severityLevel) ?: app.forku.domain.model.incident.IncidentSeverityLevelEnum.LOW,
+        preshiftCheckStatus = "",
+        typeSpecificFields = this.toTypeSpecificFields(),
+        othersInvolved = othersInvolved,
+        injuries = "",
+        injuryLocations = emptyList(),
+        locationCoordinates = locationCoordinates,
+        creatorName = "Unknown" // This will be handled by the main IncidentDto mapper when using include=GOUser
     )
 } 

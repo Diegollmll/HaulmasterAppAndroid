@@ -7,11 +7,13 @@ data class Checklist(
     val items: List<ChecklistItem>,
     val criticalityLevels: List<Int>,
     val criticalQuestionMinimum: Int,
-    val energySources: Int,
+    val energySources: List<Int>,
     val isDefault: Boolean,
     val maxQuestionsPerCheck: Int,
     val rotationGroups: Int,
     val standardQuestionMaximum: Int,
     val isMarkedForDeletion: Boolean,
-    val internalObjectId: Int
+    val internalObjectId: Int,
+    val allVehicleTypesEnabled: Boolean = false,
+    val supportedVehicleTypeIds: Set<String> = emptySet()
 )

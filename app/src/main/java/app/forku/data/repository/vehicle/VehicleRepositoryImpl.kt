@@ -37,6 +37,15 @@ import app.forku.data.api.dto.vehicle.ObjectsDataSet
 import app.forku.data.api.dto.vehicle.VehicleObjectsDataSet
 import app.forku.data.mapper.toJsonObject
 import app.forku.data.mapper.toUpdateDto
+import app.forku.domain.model.vehicle.VehicleWithRelatedData
+import app.forku.domain.model.session.VehicleSessionInfo
+import app.forku.data.mapper.VehicleSessionMapper
+import app.forku.domain.repository.user.UserRepository
+import app.forku.presentation.common.utils.parseDateTime
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
+import app.forku.data.mapper.toDomainWithIncludedData
+import app.forku.data.mapper.VehicleWithSessionAndOperatorData
 
 @Singleton
 class VehicleRepositoryImpl @Inject constructor(
@@ -46,7 +55,8 @@ class VehicleRepositoryImpl @Inject constructor(
     private val vehicleStatusRepository: VehicleStatusRepository,
     private val vehicleTypeRepository: VehicleTypeRepository,
     private val goServicesManager: GOServicesManager,
-    private val headerManager: HeaderManager
+    private val headerManager: HeaderManager,
+    private val userRepository: UserRepository
 ) : VehicleRepository {
     private val cache = ConcurrentHashMap<String, CachedVehicle>()
     private val mutex = Mutex()
@@ -201,7 +211,8 @@ class VehicleRepositoryImpl @Inject constructor(
 
     override suspend fun getVehicles(
         businessId: String,
-        siteId: String?
+        siteId: String?,
+        includeRelatedData: Boolean
     ): List<Vehicle> = withContext(Dispatchers.IO) {
         try {
             Log.d(TAG, "Fetching vehicles for business: $businessId")
@@ -266,7 +277,7 @@ class VehicleRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getAllVehicles(): List<Vehicle> {
-        return getVehicles("0") // Use "0" as businessId to get all vehicles
+        return getVehicles("0", null, false) // Use "0" as businessId to get all vehicles
     }
 
     override suspend fun getVehicleStatus(
@@ -441,5 +452,192 @@ class VehicleRepositoryImpl @Inject constructor(
             throw Exception("Vehicle does not belong to the specified business")
         }
         return vehicle
+    }
+
+    override suspend fun getVehiclesWithRelatedData(
+        businessId: String,
+        siteId: String?
+    ): List<VehicleWithRelatedData> = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Fetching vehicles with related data for business: $businessId")
+            
+            val headersResult = headerManager.getHeaders()
+            if (headersResult.isFailure) {
+                val error = headersResult.exceptionOrNull()
+                Log.e(TAG, "Failed to get auth headers", error)
+                throw error ?: Exception("Failed to get auth headers")
+            }
+            
+            val headers = headersResult.getOrNull()!!
+            Log.d(TAG, "Got auth headers, making optimized API call with includes")
+            
+            // Single API call with all related data
+            val response = api.getAllVehicles(
+                csrfToken = headers.csrfToken,
+                cookie = headers.cookie,
+                include = "VehicleType,ChecklistAnswerItems,VehicleSessionItems"
+            )
+
+            when (val apiResponse = response.toApiResponse()) {
+                is ApiResponse.Success -> {
+                    // 🚀 OPTIMIZATION: Collect all unique user IDs first
+                    val allUserIds = apiResponse.data.flatMap { dto ->
+                        dto.vehicleSessionItems?.mapNotNull { sessionDto -> 
+                            sessionDto.GOUserId.takeIf { it.isNotBlank() }
+                        } ?: emptyList()
+                    }.toSet()
+                    
+                    Log.d(TAG, "Found ${allUserIds.size} unique user IDs for batch fetch")
+                    
+                    // 🚀 OPTIMIZATION: Fetch all users in batch or cache them
+                    val usersMap: Map<String, app.forku.domain.model.user.User?> = if (allUserIds.isNotEmpty()) {
+                        try {
+                            allUserIds.associateWith { userId ->
+                                userRepository.getUserById(userId)
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error fetching users in batch", e)
+                            emptyMap()
+                        }
+                    } else {
+                        emptyMap()
+                    }
+                    
+                    Log.d(TAG, "Successfully cached ${usersMap.size} users")
+
+                    val vehiclesWithData = apiResponse.data.mapNotNull { dto ->
+                        try {
+                            val vehicle = dto.toDomain()
+                            
+                            // Process VehicleSessionItems to create VehicleSessionInfo - now using cached users
+                            val sessions = dto.vehicleSessionItems?.mapNotNull { sessionDto ->
+                                try {
+                                    val session = VehicleSessionMapper.toDomain(sessionDto)
+                                    val operator = usersMap[session.userId] // 🚀 Use cached user instead of API call
+                                    val operatorName = when {
+                                        !operator?.firstName.isNullOrBlank() || !operator?.lastName.isNullOrBlank() ->
+                                            listOfNotNull(operator?.firstName, operator?.lastName).joinToString(" ").trim()
+                                        !operator?.username.isNullOrBlank() -> operator?.username ?: "Sin nombre"
+                                        else -> "Sin nombre"
+                                    }
+                                    
+                                    val startTime = parseDateTime(session.startTime)
+                                    val now = OffsetDateTime.now()
+                                    val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
+                                    val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
+
+                                    VehicleSessionInfo(
+                                        session = session,
+                                        sessionStartTime = if (session.endTime == null) 
+                                            startTime.format(DateTimeFormatter.ISO_DATE_TIME) else null,
+                                        operator = operator,
+                                        operatorName = operatorName,
+                                        operatorImage = operator?.photoUrl?.takeIf { !it.isNullOrBlank() },
+                                        vehicle = vehicle,
+                                        vehicleId = vehicle.id,
+                                        vehicleType = vehicle.type.Name,
+                                        progress = if (session.endTime == null) progress else null,
+                                        vehicleImage = vehicle.photoModel,
+                                        codename = vehicle.codename
+                                    )
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Error processing session for vehicle ${vehicle.id}", e)
+                                    null
+                                }
+                            } ?: emptyList()
+
+                            // Process ChecklistAnswerItems 
+                            val checklistAnswers = dto.checklistAnswerItems?.mapNotNull { answerDto ->
+                                try {
+                                    answerDto.toDomain()
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Error processing checklist answer for vehicle ${vehicle.id}", e)
+                                    null
+                                }
+                            } ?: emptyList()
+
+                            // Find the last pre-shift check - FIXED to match profile screen logic
+                            val lastPreShiftCheck = checklistAnswers
+                                .filter { it.vehicleId == vehicle.id }
+                                .sortedByDescending { 
+                                    // Use same logic as VehicleMapper: lastCheckDateTime or endDateTime as fallback
+                                    it.lastCheckDateTime.takeIf { it.isNotBlank() } ?: it.endDateTime 
+                                }
+                                .firstOrNull()
+                            
+                            android.util.Log.d("VehicleRepo", "Vehicle ${vehicle.codename}: Found ${checklistAnswers.size} checklists, selected: ${lastPreShiftCheck?.id} with date: ${lastPreShiftCheck?.lastCheckDateTime}")
+
+                            VehicleWithRelatedData(
+                                vehicle = vehicle,
+                                activeSessions = sessions,
+                                lastPreShiftCheck = lastPreShiftCheck,
+                                checklistAnswers = checklistAnswers
+                            )
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error mapping vehicle with related data: ${dto.id}, Name: ${dto.codename}", e)
+                            null
+                        }
+                    }
+
+                    // Filter by businessId if provided
+                    val filteredVehicles = if (businessId.isNotEmpty() && businessId != "0") {
+                        vehiclesWithData.filter { it.vehicle.businessId == businessId }
+                    } else {
+                        vehiclesWithData
+                    }
+
+                    Log.d("appflow VehicleRepo", "Successfully fetched ${filteredVehicles.size} vehicles with related data")
+                    Log.d("VehicleListViewModel", "✅ OPTIMIZED: Loaded ${filteredVehicles.size} vehicles with 1 vehicle API call + ${allUserIds.size} unique user API calls instead of 1 + ${filteredVehicles.size * 5} calls")
+                    filteredVehicles
+                }
+                is ApiResponse.AuthError -> {
+                    Log.e(TAG, "Authentication error: ${apiResponse.error.detail}")
+                    throw HttpException(response)
+                }
+                is ApiResponse.Error -> {
+                    Log.e(TAG, "Error fetching vehicles with related data", apiResponse.exception)
+                    throw apiResponse.exception
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching vehicles with related data", e)
+            throw e
+        }
+    }
+
+    override suspend fun getVehicleWithOptimizedData(
+        id: String,
+        businessId: String
+    ): app.forku.data.mapper.VehicleWithSessionAndOperatorData = withContext(Dispatchers.IO) {
+        Log.d(TAG, "getVehicleWithOptimizedData called with id=$id, businessId=$businessId")
+        try {
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            Log.d(TAG, "Making optimized API call with include parameter...")
+            
+            // Use include parameter to fetch vehicle with related data in single call
+            val include = "VehicleSessionItems,ChecklistAnswerItems,VehicleType"
+            val response = api.getVehicleById(
+                id = id, 
+                csrfToken = csrfToken, 
+                cookie = cookie,
+                include = include
+            )
+            
+            if (!response.isSuccessful) {
+                Log.e(TAG, "Failed to fetch vehicle with optimized data: ${response.code()}")
+                throw Exception("Vehicle not found")
+            }
+            
+            val vehicleDto = response.body() ?: run {
+                Log.e(TAG, "Vehicle DTO is null for id=$id")
+                throw Exception("Vehicle not found")
+            }
+            
+            Log.d(TAG, "Successfully fetched vehicle with included data")
+            vehicleDto.toDomainWithIncludedData()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching vehicle with optimized data for id=$id: ${e.message}", e)
+            throw e
+        }
     }
 }

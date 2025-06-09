@@ -178,6 +178,8 @@ Given those changes that are present in our current git status, please generate 
 
 We plan to refactor and centralize all multimedia upload/association/removal logic (for checklist item answers, incidents, user profiles, etc.) into a single, flexible interface/service. This will allow switching the backend use case/API implementation based on context, making it much easier to add new multimedia flows in the future. The pattern will use a generic MultimediaManager interface, with implementations for each entity type, and a factory or switch to select the correct manager in each screen or ViewModel.
 
-## [TODO] SafetyAlert registration from ChecklistAnswer (Pending)
+## [DONE] SafetyAlert registration from ChecklistAnswer
 
 Cuando se envia un checklistAnswer y hay preguntas "no críticas" respondidas como "Fail", esas son consideradas "SafetyAlerts", con lo cual debemos usar el caso de uso de registrar uno o mas "SafetyAlerts" cuando se cumple esa condición. Puedes ayudarme a revisar y ajustar el flujo del checklist para esa lógica?
+
+**Completion Note**: Implemented in ChecklistViewModel with automatic SafetyAlert creation for non-critical FAIL answers, including proper API integration and error handling.

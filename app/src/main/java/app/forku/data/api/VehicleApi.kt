@@ -19,7 +19,8 @@ interface VehicleApi {
     )
     suspend fun getAllVehicles(
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Query("include") include: String? = null
     ): Response<List<VehicleDto>>
 
     /**
@@ -33,7 +34,8 @@ interface VehicleApi {
     suspend fun getVehicleById(
         @Path("id") id: String,
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Query("include") include: String? = null
     ): Response<VehicleDto>
 
     /**

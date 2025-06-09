@@ -1,5 +1,6 @@
 package app.forku.presentation.incident.detail
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
@@ -30,10 +31,13 @@ class IncidentDetailViewModel @Inject constructor(
                 val incidentResult = repository.getIncidentById(incidentId)
                 incidentResult.fold(
                     onSuccess = { incident ->
+                        Log.d("IncidentDetailVM", "Loaded incident from repo: $incident")
                         _state.update { 
                             it.copy(
                                 isLoading = false,
-                                incident = incident.toIncidentDetail(),
+                                incident = incident.toIncidentDetail().also { detail ->
+                                    Log.d("IncidentDetailVM", "Mapped to IncidentDetail: $detail")
+                                },
                                 error = null
                             )
                         }
@@ -64,6 +68,20 @@ class IncidentDetailViewModel @Inject constructor(
         description = description,
         date = date,
         location = location,
+        locationDetails = locationDetails,
+        weather = weather,
+        severityLevel = severityLevel?.toString() ?: "Not specified",
+        status = status.toString(),
+        vehicleName = vehicleName,
+        vehicleType = vehicleType?.toString() ?: "Not specified",
+        isLoadCarried = isLoadCarried,
+        loadBeingCarried = loadBeingCarried,
+        loadWeight = loadWeight?.toString() ?: "Not specified",
+        preshiftCheckStatus = preshiftCheckStatus,
+        othersInvolved = othersInvolved,
+        injuries = injuries,
+        injuryLocations = injuryLocations,
+        typeSpecificFields = typeSpecificFields,
         attachments = photos.map { it.toString() }
     )
 }
@@ -80,5 +98,19 @@ data class IncidentDetail(
     val description: String,
     val date: Long,
     val location: String = "",
+    val locationDetails: String = "",
+    val weather: String = "",
+    val severityLevel: String = "",
+    val status: String = "",
+    val vehicleName: String = "",
+    val vehicleType: String = "",
+    val isLoadCarried: Boolean = false,
+    val loadBeingCarried: String = "",
+    val loadWeight: String = "",
+    val preshiftCheckStatus: String = "",
+    val othersInvolved: String? = null,
+    val injuries: String = "",
+    val injuryLocations: List<String> = emptyList(),
+    val typeSpecificFields: app.forku.domain.model.incident.IncidentTypeFields? = null,
     val attachments: List<String> = emptyList()
 ) 

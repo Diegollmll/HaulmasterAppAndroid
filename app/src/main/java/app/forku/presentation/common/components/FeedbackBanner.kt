@@ -33,7 +33,7 @@ private val feedbackEmojis = listOf(
 
 @Composable
 fun FeedbackBanner(
-    onFeedbackSubmitted: (Int, String) -> Unit,
+    onFeedbackSubmitted: (Int, String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showFeedbackDialog by remember { mutableStateOf(false) }
@@ -66,8 +66,8 @@ fun FeedbackBanner(
     if (showFeedbackDialog) {
         FeedbackDialog(
             onDismiss = { showFeedbackDialog = false },
-            onSubmit = { rating, feedback ->
-                onFeedbackSubmitted(rating, feedback)
+            onSubmit = { rating, feedback, canContactMe ->
+                onFeedbackSubmitted(rating, feedback, canContactMe)
                 showFeedbackDialog = false
             }
         )
@@ -77,7 +77,7 @@ fun FeedbackBanner(
 @Composable
 private fun FeedbackDialog(
     onDismiss: () -> Unit,
-    onSubmit: (Int, String) -> Unit
+    onSubmit: (Int, String, Boolean) -> Unit
 ) {
     var selectedRating by remember { mutableStateOf<Int?>(null) }
     var feedbackText by remember { mutableStateOf(TextFieldValue()) }
@@ -95,7 +95,6 @@ private fun FeedbackDialog(
                     text = "How could we improve?",
                     style = MaterialTheme.typography.titleLarge
                 )
-                //Spacer(Modifier.width(3.dp))
                 IconButton(onClick = onDismiss) {
                     Icon(Icons.Default.Close, contentDescription = "Close")
                 }
@@ -180,7 +179,7 @@ private fun FeedbackDialog(
             Button(
                 onClick = { 
                     selectedRating?.let { rating ->
-                        onSubmit(rating, feedbackText.text)
+                        onSubmit(rating, feedbackText.text, contactEnabled)
                     }
                 },
                 enabled = selectedRating != null,

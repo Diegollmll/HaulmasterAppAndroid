@@ -171,9 +171,12 @@ fun CicoHistoryScreen(
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 items(state.filteredHistory) { entry ->
+                                    // Always show operator name for consistency
+                                    val showOperator = true
+                                    android.util.Log.d("CicoHistoryScreen", "Entry ${entry.id}: isAdmin=${state.isAdmin}, currentUserId=${state.currentUserId}, entryOperatorId=${entry.operatorId}, showOperator=$showOperator, operatorName='${entry.operatorName}'")
                                     CicoHistoryItem(
                                         entry = entry,
-                                        showOperator = state.isAdmin && state.currentUserId != entry.operatorId
+                                        showOperator = showOperator
                                     )
                                 }
                             }

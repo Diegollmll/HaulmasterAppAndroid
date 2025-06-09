@@ -36,13 +36,7 @@ fun IncidentReportState.toCollisionIncidentDto(): CollisionIncidentDto {
         immediateActions = collisionFields.immediateActions.map { it.ordinal },
         immediateCauses = collisionFields.immediateCause?.let { listOf(it.ordinal) } ?: emptyList(),
         longTermSolutions = collisionFields.longTermSolutions.map { it.ordinal },
-        environmentalImpact = collisionFields.environmentalImpact
-            .split(",")
-            .filter { it.isNotBlank() }
-            .mapNotNull { name ->
-                try { app.forku.domain.model.incident.EnvironmentalImpact.valueOf(name).ordinal }
-                catch (e: Exception) { null }
-            },
+        environmentalImpact = collisionFields.environmentalImpact.map { it.ordinal },
         // Campos base
         id = null, // Nuevo incidente
         description = description,
@@ -106,13 +100,7 @@ fun Incident.toCollisionIncidentDto(): CollisionIncidentDto {
         immediateActions = collisionFields.immediateActions.map { it.ordinal },
         immediateCauses = collisionFields.immediateCause?.let { listOf(it.ordinal) } ?: emptyList(),
         longTermSolutions = collisionFields.longTermSolutions.map { it.ordinal },
-        environmentalImpact = collisionFields.environmentalImpact
-            .split(",")
-            .filter { it.isNotBlank() }
-            .mapNotNull { name ->
-                try { app.forku.domain.model.incident.EnvironmentalImpact.valueOf(name).ordinal }
-                catch (e: Exception) { null }
-            },
+        environmentalImpact = collisionFields.environmentalImpact.map { it.ordinal },
         isDirty = true,
         isNew = true,
         isMarkedForDeletion = false
@@ -120,6 +108,7 @@ fun Incident.toCollisionIncidentDto(): CollisionIncidentDto {
 }
 
 fun CollisionIncidentDto.toDomain(): Incident {
+    android.util.Log.d("CollisionIncidentMapper", "Mapping CollisionIncidentDto to Incident. Weather field: ${weather}")
     return Incident(
         id = id,
         type = IncidentTypeEnum.COLLISION,
@@ -134,19 +123,20 @@ fun CollisionIncidentDto.toDomain(): Incident {
         loadBeingCarried = loadBeingCarried ?: "",
         loadWeight = null, // Map if available
         sessionId = null,
-        status = IncidentStatus.REPORTED, // Or map from status int
+        status = IncidentStatus.values().getOrNull(status) ?: IncidentStatus.REPORTED,
         photos = emptyList(), // Map if available
-        date = 0L, // Map if available
+        date = try { java.time.ZonedDateTime.parse(incidentDateTime).toInstant().toEpochMilli() } catch (e: Exception) { 0L },
         location = locationDetails,
         locationDetails = locationDetails,
         weather = weather ?: "",
         incidentTime = null, // Map if available
-        severityLevel = null, // Map if available
+        severityLevel = IncidentSeverityLevelEnum.values().getOrNull(severityLevel) ?: IncidentSeverityLevelEnum.LOW,
         preshiftCheckStatus = "",
-        typeSpecificFields = null, // Map if needed
+        typeSpecificFields = this.toTypeSpecificFields(),
         othersInvolved = othersInvolved ?: "",
         injuries = "",
         injuryLocations = emptyList(),
-        locationCoordinates = locationCoordinates
+        locationCoordinates = locationCoordinates,
+        creatorName = "Unknown" // This will be handled by the main IncidentDto mapper when using include=GOUser
     )
 } 

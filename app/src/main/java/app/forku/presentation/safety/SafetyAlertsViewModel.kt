@@ -36,8 +36,8 @@ class SafetyAlertsViewModel @Inject constructor(
                                 id = dto.id,
                                 title = "Safety Alert #${dto.id.take(8)}", // Generate a title from the ID
                                 description = "Vehicle: ${dto.vehicleId}\nChecklist Item: ${dto.answeredChecklistItemId}",
-                                createdAt = java.time.Instant.now().toString(), // Use current time since we don't have it
-                                updatedAt = java.time.Instant.now().toString()  // Use current time since we don't have it
+                                createdAt = dto.creationDateTime ?: "",
+                                updatedAt = dto.creationDateTime ?: ""
                             )
                         },
                         isLoading = false
@@ -65,7 +65,8 @@ class SafetyAlertsViewModel @Inject constructor(
                     vehicleId = vehicleId,
                     isDirty = false,  // Required by API
                     isNew = true,  // Required by API
-                    isMarkedForDeletion = false  // Required by API
+                    isMarkedForDeletion = false,  // Required by API
+                    creationDateTime = java.time.Instant.now().toString() // Nuevo campo
                 )
                 
                 val savedAlert = repository.saveSafetyAlert(alert)

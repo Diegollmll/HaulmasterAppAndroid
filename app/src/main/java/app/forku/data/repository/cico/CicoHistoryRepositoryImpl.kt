@@ -27,14 +27,18 @@ class CicoHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getSessionsHistory(page: Int): List<VehicleSession> {
         return try {
-            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             val businessId = getBusinessId()
-            val response = api.getAllSessions(businessId)
+            val response = api.getAllSessions(
+                businessId = businessId,
+                include = "GOUser,Vehicle",
+                pageNumber = page,
+                pageSize = PAGE_SIZE,
+                sortColumn = "StartTime",
+                sortOrder = "desc"
+            )
             if (response.isSuccessful && response.body() != null) {
-                val allSessions = response.body()!!
-                    .map { VehicleSessionMapper.toDomain(it) }
-                    .sortedByDescending { it.startTime }
-                allSessions.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
+                android.util.Log.d("CicoHistory", "Fetched ${response.body()!!.size} sessions with included data for page $page")
+                response.body()!!.map { VehicleSessionMapper.toDomain(it) }
             } else {
                 android.util.Log.e("CicoHistory","Error getting all sessions: ${response.code()}")
                 emptyList()
@@ -47,15 +51,20 @@ class CicoHistoryRepositoryImpl @Inject constructor(
 
     override suspend fun getOperatorSessionsHistory(operatorId: String, page: Int): List<VehicleSession> {
         return try {
-            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             val businessId = getBusinessId()
-            val response = api.getAllSessions(businessId)
+            val filter = "GOUserId == Guid.Parse(\"$operatorId\")"
+            val response = api.getAllSessions(
+                businessId = businessId,
+                include = "GOUser,Vehicle",
+                filter = filter,
+                pageNumber = page,
+                pageSize = PAGE_SIZE,
+                sortColumn = "StartTime",
+                sortOrder = "desc"
+            )
             if (response.isSuccessful && response.body() != null) {
-                val operatorSessions = response.body()!!
-                    .map { VehicleSessionMapper.toDomain(it) }
-                    .filter { it.userId == operatorId }
-                    .sortedByDescending { it.startTime }
-                operatorSessions.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
+                android.util.Log.d("CicoHistory", "Fetched ${response.body()!!.size} sessions for operator $operatorId with included data for page $page")
+                response.body()!!.map { VehicleSessionMapper.toDomain(it) }
             } else {
                 android.util.Log.e("CicoHistory","Error getting operator sessions: ${response.code()}")
                 emptyList()

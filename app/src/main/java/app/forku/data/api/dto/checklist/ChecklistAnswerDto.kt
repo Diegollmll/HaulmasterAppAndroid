@@ -1,6 +1,9 @@
 package app.forku.data.api.dto.checklist
 
 import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.Contextual
+import app.forku.data.api.dto.user.UserDto
+import app.forku.data.api.dto.vehicle.VehicleDto
 
 // Adjust fields as needed based on the JSON structure
 // Add more fields if required for your use case
@@ -32,6 +35,12 @@ data class ChecklistAnswerDto(
     val vehicleId: String,
     @SerializedName("Duration")
     val duration: Int? = null,
+    @SerializedName("GOUser")
+    @Contextual
+    val goUser: UserDto? = null,
+    @SerializedName("Vehicle")
+    @Contextual
+    val vehicle: VehicleDto? = null
     //@SerializedName("\$type")
     //val type: String = "ChecklistAnswerDataObject"
 ) 

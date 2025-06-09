@@ -14,7 +14,9 @@ data class VehicleSession(
     val timestamp: String,
     val closeMethod: VehicleSessionClosedMethod?,
     val closedBy: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val operatorName: String = "Unknown",
+    val vehicleName: String = "Unknown"
 )
 
 enum class VehicleSessionStatus {

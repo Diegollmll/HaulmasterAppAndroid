@@ -6,7 +6,7 @@ sealed class IncidentTypeFields {
         val collisionType: CollisionType? = null,
         val commonCause: CommonCause? = null,
         val damageOccurrence: Set<DamageOccurrence> = emptySet(),
-        val environmentalImpact: String = "", // spills, emissions
+        val environmentalImpact: Set<EnvironmentalImpact> = emptySet(),
         val injurySeverity: InjurySeverity = InjurySeverity.NONE,
         val injuryLocations: List<String> = emptyList(),
         val immediateCause: CollisionImmediateCause? = null,
@@ -31,17 +31,16 @@ sealed class IncidentTypeFields {
     ) : IncidentTypeFields()
 
     data class VehicleFailFields(
-        val failureType: VehicleFailType?,
-        val systemAffected: String,
-        val maintenanceHistory: String,
-        val operationalImpact: String,
-        val immediateCause: VehicleFailImmediateCause?,
-        val contributingFactors: Set<VehicleFailContributingFactor>,
-        val immediateActions: Set<VehicleFailImmediateAction>,
-        val longTermSolutions: Set<VehicleFailLongTermSolution>,
+        val failureType: VehicleFailType? = null,
+        val systemAffected: String = "",
+        val maintenanceHistory: String = "",
+        val operationalImpact: String = "",
+        val immediateCause: VehicleFailImmediateCause? = null,
+        val contributingFactors: Set<VehicleFailContributingFactor> = emptySet(),
+        val immediateActions: Set<VehicleFailImmediateAction> = emptySet(),
+        val longTermSolutions: Set<VehicleFailLongTermSolution> = emptySet(),
         val damageOccurrence: Set<DamageOccurrence> = emptySet(),
-        val environmentalImpact: List<Int>? = emptyList(),
-        // Campos de carga
+        val environmentalImpact: Set<EnvironmentalImpact> = emptySet(),
         val isLoadCarried: Boolean = false,
         val loadBeingCarried: String = "",
         val loadWeightEnum: LoadWeightEnum? = null

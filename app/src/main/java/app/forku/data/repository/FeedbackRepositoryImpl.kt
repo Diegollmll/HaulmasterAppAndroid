@@ -5,13 +5,17 @@ import app.forku.data.mapper.toFeedback
 import app.forku.data.mapper.toFeedbackDto
 import app.forku.domain.model.feedback.Feedback
 import app.forku.domain.repository.feedback.FeedbackRepository
+import com.google.gson.Gson
 import javax.inject.Inject
 
 class FeedbackRepositoryImpl @Inject constructor(
-    private val api: FeedbackApi
+    private val api: FeedbackApi,
+    private val gson: Gson
 ) : FeedbackRepository {
     override suspend fun submitFeedback(feedback: Feedback): Result<Feedback> = runCatching {
-        val response = api.saveFeedback(feedback.toFeedbackDto())
+        val dto = feedback.toFeedbackDto()
+        val entityJson = gson.toJson(dto)
+        val response = api.saveFeedback(entity = entityJson)
         if (response.isSuccessful) {
             response.body()?.toFeedback() ?: throw Exception("Response body is null")
         } else {
@@ -38,7 +42,9 @@ class FeedbackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateFeedback(feedback: Feedback): Result<Feedback> = runCatching {
-        val response = api.saveFeedback(feedback.toFeedbackDto())
+        val dto = feedback.toFeedbackDto()
+        val entityJson = gson.toJson(dto)
+        val response = api.saveFeedback(entity = entityJson)
         if (response.isSuccessful) {
             response.body()?.toFeedback() ?: throw Exception("Response body is null")
         } else {
@@ -59,15 +65,6 @@ class FeedbackRepositoryImpl @Inject constructor(
             response.body() ?: 0
         } else {
             throw Exception("Failed to get feedback count: ${response.code()}")
-        }
-    }
-
-    override suspend fun getFeedbackAnalytics(): Result<Map<String, Any>> = runCatching {
-        val response = api.getFeedbackAnalytics()
-        if (response.isSuccessful) {
-            response.body() ?: emptyMap()
-        } else {
-            throw Exception("Failed to get feedback analytics: ${response.code()}")
         }
     }
 } 

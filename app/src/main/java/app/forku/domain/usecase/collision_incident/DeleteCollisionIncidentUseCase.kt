@@ -7,7 +7,7 @@ import javax.inject.Inject
 class DeleteCollisionIncidentUseCase @Inject constructor(
     private val repository: ICollisionIncidentRepository
 ) {
-    suspend operator fun invoke(id: Long): Flow<Result<Unit>> {
+    suspend operator fun invoke(id: String): Flow<Result<Unit>> {
         return repository.deleteCollisionIncidentById(id)
     }
 } 

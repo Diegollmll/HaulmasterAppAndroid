@@ -17,5 +17,7 @@ data class IncidentMultimediaDto(
     @SerializedName("createdAt_WithTimezoneOffset")
     val createdAtWithTimezoneOffset: String,
     @SerializedName("multimedia")
-    val multimedia: MultimediaDto?
+    val multimedia: MultimediaDto?,
+    @SerializedName("CreationDateTime")
+    val creationDateTime: String?
 ) 

@@ -22,7 +22,6 @@ import kotlinx.coroutines.delay
 @HiltViewModel
 class CicoHistoryViewModel @Inject constructor(
     private val cicoHistoryRepository: CicoHistoryRepository,
-    private val vehicleRepository: VehicleRepository,
     private val userRepository: UserRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(CicoHistoryState())
@@ -169,26 +168,19 @@ class CicoHistoryViewModel @Inject constructor(
 
                 android.util.Log.d("CICO", "Fetched ${sessions.size} sessions")
 
-                // Process sessions with vehicle and operator details
+                // Process sessions with included vehicle and operator details (optimized)
                 val processedSessions = sessions.map { session ->
-                    val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
-                    val vehicle = try {
-                        if (businessId != null) vehicleRepository.getVehicle(session.vehicleId, businessId)
-                        else null
-                    } catch (e: Exception) {
-                        null
-                    }
-                    val operator = try {
-                        loadOperatorWithRetry(session.userId).getOrNull()
-                    } catch (e: Exception) {
-                        null
-                    }
-
+                    android.util.Log.d("CICO", "Processing session ${session.id}:")
+                    android.util.Log.d("CICO", "  - UserId: ${session.userId}")
+                    android.util.Log.d("CICO", "  - Operator: '${session.operatorName}'")
+                    android.util.Log.d("CICO", "  - Vehicle: '${session.vehicleName}'")
+                    android.util.Log.d("CICO", "  - StartTime: ${session.startTime}")
+                    
                     CicoEntry(
                         id = session.id,
                         operatorId = session.userId,
-                        vehicleName = vehicle?.codename ?: "Unknown Vehicle",
-                        operatorName = operator?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown Operator",
+                        vehicleName = session.vehicleName,
+                        operatorName = session.operatorName,
                         date = getRelativeTimeSpanString(session.startTime),
                         checkInTime = session.startTime,
                         checkOutTime = session.endTime,

@@ -40,5 +40,8 @@ data class MultimediaDto(
     val isNew: Boolean,
     
     @SerializedName("internalObjectId")
-    val internalObjectId: Int
+    val internalObjectId: Int,
+    
+    @SerializedName("CreationDateTime")
+    val creationDateTime: String?
 ) 

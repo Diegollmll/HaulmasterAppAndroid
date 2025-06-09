@@ -11,7 +11,8 @@ interface IncidentApi {
         "Accept: text/plain"
     )
     suspend fun getAllIncidents(
-        @Query("filter") filter: String? = null
+        @Query("filter") filter: String? = null,
+        @Query("include") include: String? = null
     ): Response<List<IncidentDto>>
 
     @GET("api/incident/byid/{id}")

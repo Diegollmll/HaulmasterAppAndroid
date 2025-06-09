@@ -341,16 +341,29 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getUsersByRole(role: UserRole): List<User> = withContext(Dispatchers.IO) {
         try {
-            val response = api.getUsers()
+            // Use include parameter to fetch user roles in one call
+            val response = api.getUsers(include = "UserRoleItems")
             if (!response.isSuccessful) {
+                Log.e("UserRepository", "Failed to get users with roles: ${response.code()}")
                 return@withContext emptyList()
             }
 
-            response.body()
-                ?.map { it.toDomain() }
-                ?.filter { it.role == role }
+            val users = response.body()
+                ?.map { userDto ->
+                    Log.d("UserRepository", "Processing user with included roles: ${userDto.id}, roles: ${userDto.userRoleItems?.size ?: 0}")
+                    userDto.toDomain()
+                }
+                ?.filter { user -> 
+                    val matches = user.role == role
+                    Log.d("UserRepository", "User ${user.id} role ${user.role} matches filter $role: $matches")
+                    matches
+                }
                 ?: emptyList()
+            
+            Log.d("UserRepository", "Returning ${users.size} users with role $role")
+            users
         } catch (e: Exception) {
+            Log.e("UserRepository", "Error getting users by role: ${e.message}", e)
             emptyList()
         }
     }
@@ -373,7 +386,24 @@ class UserRepositoryImpl @Inject constructor(
                 - CSRF token present: ${csrfToken != null}
             """.trimIndent())
             
-            api.getUsers()
+            val response = api.getUsers(include = "UserRoleItems")
+            
+            // Add detailed logging of API response
+            Log.d("UserRepository", "API Response:")
+            Log.d("UserRepository", "- Status: ${response.code()}")
+            Log.d("UserRepository", "- Success: ${response.isSuccessful}")
+            Log.d("UserRepository", "- Body size: ${response.body()?.size ?: 0}")
+            
+            response.body()?.forEachIndexed { index, userDto ->
+                Log.d("UserRepository", "User $index: id=${userDto.id}, roles=${userDto.userRoleItems?.size ?: 0}")
+                if (!userDto.userRoleItems.isNullOrEmpty()) {
+                    userDto.userRoleItems!!.forEach { roleItem ->
+                        Log.d("UserRepository", "  - Role: ${roleItem.role.Name}, Active: ${roleItem.isActive}")
+                    }
+                }
+            }
+            
+            response
         }.map { userDto ->
             Log.d("UserRepository", "Processing user DTO: id=${userDto.id}, email=${userDto.email}")
             userDto.toDomain().also { user ->

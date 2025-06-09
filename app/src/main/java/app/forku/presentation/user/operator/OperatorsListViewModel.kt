@@ -31,28 +31,21 @@ class OperatorsListViewModel @Inject constructor(
         loadOperators()
     }
 
-    private suspend fun getOperatorSessionInfo(
-        userId: String,
+    private fun createOperatorSessionInfo(
+        user: app.forku.domain.model.user.User,
         activeSession: Boolean,
         sessionStartTime: String? = null
-    ): OperatorSessionInfo? {
-        return try {
-            val operator = userRepository.getUserById(userId)
-            operator?.let {
-                OperatorSessionInfo(
-                    name = "${it.firstName} ${it.lastName}",
-                    fullName = it.fullName,
-                    username = it.username,
-                    image = it.photoUrl,
-                    isActive = activeSession,
-                    userId = it.id,
-                    sessionStartTime = sessionStartTime ?: "",
-                    role = it.role
-                )
-            }
-        } catch (e: Exception) {
-            null
-        }
+    ): OperatorSessionInfo {
+        return OperatorSessionInfo(
+            name = "${user.firstName} ${user.lastName}",
+            fullName = user.fullName,
+            username = user.username,
+            image = user.photoUrl,
+            isActive = activeSession,
+            userId = user.id,
+            sessionStartTime = sessionStartTime ?: "",
+            role = user.role
+        )
     }
 
     fun loadOperators(showLoading: Boolean = true) {
@@ -66,22 +59,13 @@ class OperatorsListViewModel @Inject constructor(
                 val currentUser = userRepository.getCurrentUser()
                 val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
                 
-                // Get both operators and admins
-                val operators = try {
-                    userRepository.getUsersByRole(UserRole.OPERATOR)
+                // Get all users with included role data in one optimized call
+                val allUsers = try {
+                    userRepository.getAllUsers()
                 } catch (e: Exception) {
-                    android.util.Log.e("OperatorsList", "Error getting operators", e)
+                    android.util.Log.e("OperatorsList", "Error getting users", e)
                     emptyList()
                 }
-                
-                val admins = try {
-                    userRepository.getUsersByRole(UserRole.ADMIN)
-                } catch (e: Exception) {
-                    android.util.Log.e("OperatorsList", "Error getting admins", e)
-                    emptyList()
-                }
-                
-                val allUsers = operators + admins
                 
                 // Get all vehicles and their active sessions with retry
                 val vehicles = try {
@@ -109,19 +93,25 @@ class OperatorsListViewModel @Inject constructor(
                 // Create a map of operator IDs to their active sessions
                 val activeOperatorIds = activeSessions.map { it.userId to it.startTime }.toMap()
                 
-                // Process all users and mark them as active/inactive
-                val userInfos = allUsers.mapNotNull { user ->
+                // Process all users and mark them as active/inactive using optimized data
+                val userInfos = allUsers.map { user ->
                     val activeSessionStartTime = activeOperatorIds[user.id]
-                    try {
-                        getOperatorSessionInfo(
-                            userId = user.id,
-                            activeSession = activeSessionStartTime != null,
-                            sessionStartTime = activeSessionStartTime
-                        )
-                    } catch (e: Exception) {
-                        android.util.Log.e("OperatorsList", "Error getting operator info for ${user.id}", e)
-                        null
-                    }
+                    android.util.Log.d("OperatorsList", "=== Processing User ===")
+                    android.util.Log.d("OperatorsList", "User ID: ${user.id}")
+                    android.util.Log.d("OperatorsList", "User fullName: ${user.fullName}")
+                    android.util.Log.d("OperatorsList", "User email: ${user.email}")
+                    android.util.Log.d("OperatorsList", "User username: ${user.username}")
+                    android.util.Log.d("OperatorsList", "User role: ${user.role}")
+                    android.util.Log.d("OperatorsList", "Active session: ${activeSessionStartTime != null}")
+                    
+                    val operatorInfo = createOperatorSessionInfo(
+                        user = user,
+                        activeSession = activeSessionStartTime != null,
+                        sessionStartTime = activeSessionStartTime
+                    )
+                    
+                    android.util.Log.d("OperatorsList", "Created OperatorSessionInfo with role: ${operatorInfo.role}")
+                    operatorInfo
                 }.sortedWith(
                     compareByDescending<OperatorSessionInfo> { it.isActive }
                     .thenByDescending { it.sessionStartTime }

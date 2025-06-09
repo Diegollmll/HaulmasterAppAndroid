@@ -1,6 +1,7 @@
 package app.forku.data.mapper
 
 import app.forku.data.api.dto.incident.TypeSpecificFieldsDto
+import app.forku.data.dto.CollisionIncidentDto
 import app.forku.domain.model.incident.IncidentTypeFields
 import app.forku.domain.model.incident.*
 
@@ -14,7 +15,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "collisionType" to (collisionType?.name ?: ""),
                 "commonCause" to (commonCause?.name ?: ""),
                 "damageOccurrence" to damageOccurrence.joinToString(",") { it.name },
-                "environmentalImpact" to (environmentalImpact ?: ""),
+                "environmentalImpact" to environmentalImpact.joinToString(",") { it.name },
                 "injurySeverity" to injurySeverity.name,
                 "injuryLocations" to injuryLocations.joinToString(","),
                 "immediateCause" to (immediateCause?.name ?: ""),
@@ -54,7 +55,7 @@ fun IncidentTypeFields.toDto(): TypeSpecificFieldsDto {
                 "immediateActions" to immediateActions.joinToString(",") { it.name },
                 "longTermSolutions" to longTermSolutions.joinToString(",") { it.name },
                 "damageOccurrence" to damageOccurrence.joinToString(",") { it.name },
-                "environmentalImpact" to (environmentalImpact?.joinToString(",") ?: ""),
+                "environmentalImpact" to environmentalImpact.joinToString(",") { it.name },
                 "isLoadCarried" to isLoadCarried.toString(),
                 "loadBeingCarried" to loadBeingCarried,
                 "loadWeight" to (loadWeightEnum?.name ?: "")
@@ -73,7 +74,12 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
                 ?.mapNotNull { runCatching { DamageOccurrence.valueOf(it) }.getOrNull() }
                 ?.toSet()
                 ?: emptySet(),
-            environmentalImpact = data["environmentalImpact"] ?: "",
+            environmentalImpact = data["environmentalImpact"]
+                ?.split(",")
+                ?.filter { it.isNotEmpty() }
+                ?.mapNotNull { runCatching { EnvironmentalImpact.valueOf(it) }.getOrNull() }
+                ?.toSet()
+                ?: emptySet(),
             injurySeverity = data["injurySeverity"]?.let { InjurySeverity.valueOf(it) } ?: InjurySeverity.NONE,
             injuryLocations = data["injuryLocations"]?.split(",")?.filter { it.isNotEmpty() } ?: emptyList(),
             immediateCause = data["immediateCause"]?.let { if (it.isNotEmpty()) CollisionImmediateCause.valueOf(it) else null },
@@ -156,14 +162,51 @@ fun TypeSpecificFieldsDto.toDomain(): IncidentTypeFields {
                 ?.mapNotNull { runCatching { DamageOccurrence.valueOf(it) }.getOrNull() }
                 ?.toSet()
                 ?: emptySet(),
-            environmentalImpact = data["environmentalImpact"]
-                ?.split(",")
-                ?.filter { it.isNotEmpty() }
-                ?.mapNotNull { it.toIntOrNull() },
+            environmentalImpact = mapEnvironmentalImpactIdsToEnums(data["environmentalImpact"]?.split(",")?.mapNotNull { it.toIntOrNull() }),
             isLoadCarried = data["isLoadCarried"]?.toBoolean() ?: false,
             loadBeingCarried = data["loadBeingCarried"] ?: "",
             loadWeightEnum = data["loadWeight"]?.let { if (it.isNotEmpty()) LoadWeightEnum.valueOf(it) else null }
         )
         else -> throw IllegalArgumentException("Unknown type: $type")
     }
+}
+
+fun mapCollisionTypeIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.CollisionType> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.CollisionType.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapCommonCauseIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.CommonCause> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.CommonCause.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapDamageOccurrenceIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.DamageOccurrence> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.DamageOccurrence.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapEnvironmentalImpactIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.EnvironmentalImpact> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.EnvironmentalImpact.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapContributingFactorIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.CollisionContributingFactor> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.CollisionContributingFactor.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapImmediateActionIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.CollisionImmediateAction> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.CollisionImmediateAction.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapImmediateCauseIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.CollisionImmediateCause> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.CollisionImmediateCause.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+fun mapLongTermSolutionIdsToEnums(ids: List<Int>?): Set<app.forku.domain.model.incident.CollisionLongTermSolution> {
+    return ids?.mapNotNull { id -> app.forku.domain.model.incident.CollisionLongTermSolution.values().getOrNull(id) }?.toSet() ?: emptySet()
+}
+
+fun CollisionIncidentDto.toTypeSpecificFields(): app.forku.domain.model.incident.IncidentTypeFields.CollisionFields {
+    return app.forku.domain.model.incident.IncidentTypeFields.CollisionFields(
+        collisionType = this.collisionType?.firstOrNull()?.let { app.forku.domain.model.incident.CollisionType.values().getOrNull(it) },
+        commonCause = this.commonCauses?.firstOrNull()?.let { app.forku.domain.model.incident.CommonCause.values().getOrNull(it) },
+        damageOccurrence = mapDamageOccurrenceIdsToEnums(this.damageOccurrence),
+        environmentalImpact = mapEnvironmentalImpactIdsToEnums(this.environmentalImpact),
+        injurySeverity = this.injurySeverity?.let { app.forku.domain.model.incident.InjurySeverity.values().getOrNull(it) } ?: app.forku.domain.model.incident.InjurySeverity.NONE,
+        injuryLocations = this.injuryLocations?.mapNotNull { it.toString() } ?: emptyList(),
+        immediateCause = this.immediateCauses?.firstOrNull()?.let { app.forku.domain.model.incident.CollisionImmediateCause.values().getOrNull(it) },
+        contributingFactors = mapContributingFactorIdsToEnums(this.contributingFactors),
+        immediateActions = mapImmediateActionIdsToEnums(this.immediateActions),
+        longTermSolutions = mapLongTermSolutionIdsToEnums(this.longTermSolutions)
+    )
 } 

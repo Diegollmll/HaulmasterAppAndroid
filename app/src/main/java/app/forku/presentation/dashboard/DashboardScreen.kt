@@ -191,8 +191,8 @@ fun DashboardScreen(
                     
                     item {
                         FeedbackBanner(
-                            onFeedbackSubmitted = { rating, feedback ->
-                                viewModel.submitFeedback(rating, feedback)
+                            onFeedbackSubmitted = { rating, feedback, canContactMe ->
+                                viewModel.submitFeedback(rating, feedback, canContactMe)
                             }
                         )
                         

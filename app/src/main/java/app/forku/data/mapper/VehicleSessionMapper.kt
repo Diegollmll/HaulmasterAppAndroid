@@ -30,6 +30,31 @@ object VehicleSessionMapper {
     }
 
     fun toDomain(dto: VehicleSessionDto): VehicleSession {
+        android.util.Log.d("VehicleSessionMapper", "Mapping session ${dto.Id} - GOUser present: ${dto.GOUser != null}, Vehicle present: ${dto.Vehicle != null}")
+        
+        // Extract operator name from included GOUser data
+        val operatorName = dto.GOUser?.let { user ->
+            android.util.Log.d("VehicleSessionMapper", "GOUser data: fullName=${user.fullName}, firstName=${user.firstName}, lastName=${user.lastName}, username=${user.username}")
+            when {
+                !user.fullName.isNullOrBlank() -> user.fullName
+                !user.firstName.isNullOrBlank() || !user.lastName.isNullOrBlank() -> 
+                    listOfNotNull(user.firstName, user.lastName).joinToString(" ").trim()
+                !user.username.isNullOrBlank() -> user.username
+                else -> "Unknown"
+            }
+        } ?: run {
+            android.util.Log.w("VehicleSessionMapper", "No GOUser data included for session ${dto.Id}")
+            "Unknown"
+        }
+        
+        // Extract vehicle name from included Vehicle data
+        val vehicleName = dto.Vehicle?.codename ?: run {
+            android.util.Log.w("VehicleSessionMapper", "No Vehicle data included for session ${dto.Id}")
+            "Unknown"
+        }
+        
+        android.util.Log.d("VehicleSessionMapper", "Mapped session ${dto.Id} - operatorName: $operatorName, vehicleName: $vehicleName")
+        
         return VehicleSession(
             id = dto.Id,
             vehicleId = dto.VehicleId,
@@ -44,7 +69,9 @@ object VehicleSessionMapper {
             timestamp = dto.Timestamp,
             closeMethod = mapCloseMethod(dto.VehicleSessionClosedMethod),
             closedBy = dto.ClosedBy,
-            notes = null // Not present in new DTO
+            notes = null, // Not present in new DTO
+            operatorName = operatorName,
+            vehicleName = vehicleName
         )
     }
 

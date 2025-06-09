@@ -105,9 +105,9 @@ class VehicleListViewModel @Inject constructor(
                     isRefreshing = showLoading
                 )
 
-                // 1. Load vehicles first
-                val vehicles = try {
-                    vehicleRepository.getVehicles(hardcodedBusinessId)
+                // 🚀 OPTIMIZED: Single API call with all related data
+                val vehiclesWithData = try {
+                    vehicleRepository.getVehiclesWithRelatedData(hardcodedBusinessId)
                 } catch (e: retrofit2.HttpException) {
                     if (e.code() == 401 || e.code() == 403) {
                         throw e
@@ -129,115 +129,39 @@ class VehicleListViewModel @Inject constructor(
                     return@launch
                 }
 
-                // 2. Process all data in parallel without artificial delays
-                val (activeSessions, lastChecks, checklistAnswers) = coroutineScope {
-                    val activeSessionsDeferred = async {
-                        vehicles.mapNotNull { vehicle ->
-                            try {
-                                val session = vehicleSessionRepository.getActiveSessionForVehicle(
-                                    vehicleId = vehicle.id,
-                                    businessId = hardcodedBusinessId
-                                )
-                                
-                                if (session != null) {
-                                    val operator = userRepository.getUserById(session.userId)
-                                    val operatorName = when {
-                                        !operator?.firstName.isNullOrBlank() || !operator?.lastName.isNullOrBlank() ->
-                                            listOfNotNull(operator?.firstName, operator?.lastName).joinToString(" ").trim()
-                                        !operator?.username.isNullOrBlank() -> operator?.username ?: "Sin nombre"
-                                        else -> "Sin nombre"
-                                    }
-                                    
-                                    val startTime = parseDateTime(session.startTime)
-                                    val now = OffsetDateTime.now()
-                                    val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
-                                    val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
-
-                                    Log.d("VehicleItem", "operator photoUrl value in VehicleListViewModel: ${operator?.photoUrl}")
-
-                                    vehicle.id to VehicleSessionInfo(
-                                        session = session,
-                                        sessionStartTime = startTime.format(DateTimeFormatter.ISO_DATE_TIME),
-                                        operator = operator,
-                                        operatorName = operatorName,
-                                        operatorImage = operator?.photoUrl?.takeIf { !it.isNullOrBlank() },
-                                        vehicle = vehicle,
-                                        vehicleId = vehicle.id,
-                                        vehicleType = vehicle.type.Name,
-                                        progress = progress,
-                                        vehicleImage = vehicle.photoModel,
-                                        codename = vehicle.codename
-                                    )
-                                } else {
-                                    val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
-                                    if (lastSession != null) {
-                                        val lastOperator = userRepository.getUserById(lastSession.userId)
-                                        val lastOperatorName = when {
-                                            !lastOperator?.firstName.isNullOrBlank() || !lastOperator?.lastName.isNullOrBlank() ->
-                                                listOfNotNull(lastOperator?.firstName, lastOperator?.lastName).joinToString(" ").trim()
-                                            !lastOperator?.username.isNullOrBlank() -> lastOperator?.username ?: "Sin nombre"
-                                            else -> "Sin nombre"
-                                        }
-                                        
-                                        vehicle.id to VehicleSessionInfo(
-                                            session = lastSession,
-                                            sessionStartTime = null,
-                                            operator = lastOperator,
-                                            operatorName = lastOperatorName,
-                                            operatorImage = lastOperator?.photoUrl?.takeIf { !it.isNullOrBlank() },
-                                            vehicle = vehicle,
-                                            vehicleId = vehicle.id,
-                                            vehicleType = vehicle.type.Name,
-                                            progress = null,
-                                            vehicleImage = vehicle.photoModel,
-                                            codename = vehicle.codename
-                                        )
-                                    } else null
-                                }
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }.toMap()
+                // Transform the optimized data to the existing state structure
+                val vehicles = vehiclesWithData.map { it.vehicle }
+                val activeSessions = vehiclesWithData.associate { vehicleData ->
+                    vehicleData.vehicle.id to vehicleData.activeSessions.firstOrNull { 
+                        it.sessionStartTime != null 
                     }
-                    val lastChecksDeferred = async {
-                        vehicles.mapNotNull { vehicle ->
-                            try {
-                                vehicle.id to checklistRepository.getLastPreShiftCheck(
-                                    vehicleId = vehicle.id,
-                                    businessId = hardcodedBusinessId
-                                )
-                            } catch (e: Exception) {
-                                vehicle.id to null
-                            }
-                        }.toMap()
+                }.filterValues { it != null }.mapValues { it.value!! }
+                
+                val lastChecks = vehiclesWithData.associate { vehicleData ->
+                    vehicleData.vehicle.id to vehicleData.lastPreShiftCheck?.let { checklistAnswer ->
+                        // Convert ChecklistAnswer to PreShiftCheck for compatibility
+                        app.forku.domain.model.checklist.PreShiftCheck(
+                            id = checklistAnswer.id,
+                            vehicleId = checklistAnswer.vehicleId ?: vehicleData.vehicle.id,
+                            userId = checklistAnswer.goUserId,
+                            status = checklistAnswer.status.toString(),
+                            startDateTime = checklistAnswer.startDateTime,
+                            endDateTime = checklistAnswer.endDateTime,
+                            items = emptyList() // Will be populated if needed
+                        )
                     }
-                    val checklistAnswersDeferred = async {
-                        vehicles.mapNotNull { vehicle ->
-                            try {
-                                val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicle.id, hardcodedBusinessId)
-                                val checklistAnswerId = session?.checkId
-                                
-                                val answer = if (!checklistAnswerId.isNullOrBlank()) {
-                                    checklistAnswerRepository.getById(checklistAnswerId)
-                                } else {
-                                    val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
-                                    lastSession?.checkId?.let { checklistAnswerRepository.getById(it) }
-                                } ?: checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
-                                
-                                if (answer != null) vehicle.id to answer else null
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }.toMap()
-                    }
-                    Triple(
-                        activeSessionsDeferred.await(),
-                        lastChecksDeferred.await(),
-                        checklistAnswersDeferred.await()
-                    )
                 }
+                
+                val checklistAnswers = vehiclesWithData.associate { vehicleData ->
+                    vehicleData.vehicle.id to vehicleData.checklistAnswers
+                        .sortedByDescending { 
+                            // Use same logic as repository: lastCheckDateTime or endDateTime as fallback
+                            it.lastCheckDateTime.takeIf { it.isNotBlank() } ?: it.endDateTime 
+                        }
+                        .firstOrNull()
+                }.filterValues { it != null }.mapValues { it.value!! }
 
-                // 3. Update state with all data
+                // Update state with all data (same structure as before, but from optimized source)
                 _state.value = _state.value.copy(
                     vehicles = vehicles,
                     vehicleSessions = activeSessions,
@@ -247,6 +171,10 @@ class VehicleListViewModel @Inject constructor(
                     error = null
                 )
                 _checklistAnswers.value = checklistAnswers
+
+                // The actual number of API calls is now handled in the repository
+                // 1 vehicle call + N unique user calls (instead of 1 + vehicles * 5)
+                Log.d("VehicleListViewModel", "✅ OPTIMIZED: Loaded ${vehicles.size} vehicles with optimized API calls")
 
             } catch (e: Exception) {
                 _state.value = _state.value.copy(

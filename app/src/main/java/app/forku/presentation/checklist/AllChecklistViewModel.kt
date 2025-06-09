@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
-import app.forku.domain.repository.user.UserRepository
-import app.forku.domain.repository.vehicle.VehicleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,9 +33,7 @@ data class AllChecklistState(
 
 @HiltViewModel
 class AllChecklistViewModel @Inject constructor(
-    private val checklistAnswerRepository: ChecklistAnswerRepository,
-    private val userRepository: UserRepository,
-    private val vehicleRepository: VehicleRepository
+    private val checklistAnswerRepository: ChecklistAnswerRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AllChecklistState())
@@ -69,33 +65,17 @@ class AllChecklistViewModel @Inject constructor(
             }
             
             try {
-                val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId ?: app.forku.core.Constants.BUSINESS_ID
-                
-                val answers = checklistAnswerRepository.getAll()
-                val checkStates = answers.mapNotNull { answer ->
-                    try {
-                        val operator = userRepository.getUserById(answer.goUserId)
-                        val vehicle = vehicleRepository.getVehicle(answer.vehicleId, businessId)
-                        val operatorName = when {
-                            operator == null -> "Desconocido"
-                            !operator.firstName.isNullOrBlank() || !operator.lastName.isNullOrBlank() ->
-                                "${operator.firstName.orEmpty()} ${operator.lastName.orEmpty()}".trim()
-                            !operator.username.isNullOrBlank() -> operator.username
-                            else -> "Desconocido"
-                        }
-                        PreShiftCheckState(
-                            id = answer.id,
-                            vehicleId = answer.vehicleId,
-                            vehicleCodename = vehicle.codename,
-                            operatorName = operatorName,
-                            status = answer.status.toString(),
-                            lastCheckDateTime = answer.lastCheckDateTime.takeIf { it.isNotBlank() }
-                        )
-                    } catch (e: Exception) {
-                        android.util.Log.e("AllChecklistViewModel", "Error processing answer: ${e.message}")
-                        null
-                    }
+                // Use real server-side pagination
+                val answers = checklistAnswerRepository.getAllPaginated(page, _state.value.itemsPerPage)
+                val checkStates = answers.map { answer ->
+                    PreShiftCheckState(
+                        id = answer.id,
+                        vehicleId = answer.vehicleId,
+                        vehicleCodename = answer.vehicleName,
+                        operatorName = answer.operatorName,
+                        status = answer.status.toString(),
+                        lastCheckDateTime = answer.lastCheckDateTime.takeIf { it.isNotBlank() }
+                    )
                 }
                 
                 _state.update { currentState ->
@@ -110,7 +90,8 @@ class AllChecklistViewModel @Inject constructor(
                         error = null,
                         checks = updatedChecks,
                         currentPage = if (checkStates.isNotEmpty()) page else currentState.currentPage,
-                        hasMoreItems = checkStates.size >= currentState.itemsPerPage
+                        // If we received fewer items than requested, we've reached the end
+                        hasMoreItems = checkStates.size == currentState.itemsPerPage
                     )
                 }
             } catch (e: Exception) {

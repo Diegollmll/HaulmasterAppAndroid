@@ -292,7 +292,7 @@ class DashboardViewModel @Inject constructor(
                 _state.update { 
                     it.copy(
                         isLoading = false,
-                        error = "Error al finalizar sesión: ${e.message}"
+                        error = "Error ending session: ${e.message}"
                     )
                 }
             }
@@ -312,10 +312,10 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun submitFeedback(rating: Int, feedback: String) {
+    fun submitFeedback(rating: Int, feedback: String, canContactMe: Boolean) {
         viewModelScope.launch {
             try {
-                submitFeedbackUseCase(rating, feedback)
+                submitFeedbackUseCase(rating, feedback, canContactMe)
                     .onSuccess {
                         _state.update { it.copy(feedbackSubmitted = true) }
                         delay(3000)

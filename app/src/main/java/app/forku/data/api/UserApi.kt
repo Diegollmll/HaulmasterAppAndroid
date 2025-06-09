@@ -15,7 +15,9 @@ interface UserApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getUsers(): Response<List<UserDto>>
+    suspend fun getUsers(
+        @Query("include") include: String? = null
+    ): Response<List<UserDto>>
 
     /**
      * Get user by ID

@@ -227,7 +227,7 @@ fun VehicleDetailsSection(
                                 !activeOperator.firstName.isNullOrBlank() || !activeOperator.lastName.isNullOrBlank() ->
                                     listOfNotNull(activeOperator.firstName, activeOperator.lastName).joinToString(" ").trim()
                                 !activeOperator.username.isNullOrBlank() -> activeOperator.username
-                                else -> "Sin nombre"
+                                else -> "No name"
                             }
                             // android.util.Log.d("VehicleProfileSummary", "Mostrando operador ACTIVO: $displayName")
                             OperatorProfile(
@@ -279,7 +279,7 @@ fun VehicleDetailsSection(
                                     !lastOperator.firstName.isNullOrBlank() || !lastOperator.lastName.isNullOrBlank() ->
                                         listOfNotNull(lastOperator.firstName, lastOperator.lastName).joinToString(" ").trim()
                                     !lastOperator.username.isNullOrBlank() -> lastOperator.username
-                                    else -> "Sin nombre"
+                                    else -> "No name"
                                 }
                                 // android.util.Log.d("VehicleProfileSummary", "Mostrando ULTIMO operador: $lastDisplayName")
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -299,7 +299,7 @@ fun VehicleDetailsSection(
                                 !lastOperator.firstName.isNullOrBlank() || !lastOperator.lastName.isNullOrBlank() ->
                                     listOfNotNull(lastOperator.firstName, lastOperator.lastName).joinToString(" ").trim()
                                 !lastOperator.username.isNullOrBlank() -> lastOperator.username
-                                else -> "Sin nombre"
+                                else -> "No name"
                             }
                             // android.util.Log.d("VehicleProfileSummary", "Mostrando SOLO ULTIMO operador: $lastDisplayName")
                             OperatorProfile(
@@ -318,7 +318,7 @@ fun VehicleDetailsSection(
                                 !lastChecklistOperator.firstName.isNullOrBlank() || !lastChecklistOperator.lastName.isNullOrBlank() ->
                                     listOfNotNull(lastChecklistOperator.firstName, lastChecklistOperator.lastName).joinToString(" ").trim()
                                 !lastChecklistOperator.username.isNullOrBlank() -> lastChecklistOperator.username
-                                else -> "Sin nombre"
+                                else -> "No name"
                             }
                             // android.util.Log.d("VehicleProfileSummary", "Mostrando operador de CHECKLIST: $checklistDisplayName")
                             OperatorProfile(
@@ -354,17 +354,19 @@ fun VehicleDetailsSection(
                     Spacer(modifier = Modifier.width(3.dp))
                     Column {
                         val lastChecklistAnswer = viewModel.state.value.lastChecklistAnswer
-                        val statusEnum = lastChecklistAnswer?.status?.let { statusInt ->
-                            CheckStatus.values().getOrNull(statusInt)
+                        
+                        // Display checklist status
+                        if (lastChecklistAnswer != null) {
+                            val statusText = getPreShiftStatusText(lastChecklistAnswer.status)
+                            val statusColor = getPreShiftStatusColor(statusText)
+                            
+                            Text(
+                                text = "Checklist: $statusText",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = statusColor,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
                         }
-                        val statusText = statusEnum?.toFriendlyString() ?: getPreShiftStatusText(status = lastCheck?.value?.status ?: "")
-                        val statusColor = statusEnum?.let { getPreShiftStatusColor(it.name) } ?: getPreShiftStatusColor(status = lastCheck?.value?.status ?: "")
-                        Text(
-                            text = statusText,
-                            color = statusColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
 
                 }

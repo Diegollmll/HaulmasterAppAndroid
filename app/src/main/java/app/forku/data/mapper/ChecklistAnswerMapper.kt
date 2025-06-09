@@ -33,7 +33,17 @@ fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
     isMarkedForDeletion = isMarkedForDeletion,
     lastCheckDateTime = lastCheckDateTime,
     vehicleId = vehicleId,
-    duration = duration
+    duration = duration,
+    operatorName = goUser?.let { user ->
+        when {
+            !user.fullName.isNullOrBlank() -> user.fullName
+            !user.firstName.isNullOrBlank() || !user.lastName.isNullOrBlank() -> 
+                listOfNotNull(user.firstName, user.lastName).joinToString(" ").trim()
+            !user.username.isNullOrBlank() -> user.username
+            else -> "Unknown"
+        }
+    } ?: "Unknown",
+    vehicleName = vehicle?.codename ?: "Unknown"
 )
 
 fun ChecklistAnswerDto.toJsonObject(): JsonObject {

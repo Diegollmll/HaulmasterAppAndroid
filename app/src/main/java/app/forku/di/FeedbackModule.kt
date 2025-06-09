@@ -3,6 +3,7 @@ package app.forku.di
 import app.forku.data.api.FeedbackApi
 import app.forku.data.repository.FeedbackRepositoryImpl
 import app.forku.domain.repository.feedback.FeedbackRepository
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -15,6 +16,6 @@ import javax.inject.Singleton
 object FeedbackModule {
     @Provides
     @Singleton
-    fun provideFeedbackRepository(api: FeedbackApi): FeedbackRepository =
-        FeedbackRepositoryImpl(api)
+    fun provideFeedbackRepository(api: FeedbackApi, gson: Gson): FeedbackRepository =
+        FeedbackRepositoryImpl(api, gson)
 } 

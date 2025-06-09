@@ -45,5 +45,50 @@ fun IncidentReportState.toNearMissIncidentDto(): NearMissIncidentDto {
         isDirty = true,
         isNew = true,
         isMarkedForDeletion = false
+    ).also {
+        android.util.Log.d("NearMissIncidentMapper", "Mapping to NearMissIncidentDto. Weather field: $weather")
+    }
+}
+
+fun NearMissIncidentDto.toTypeSpecificFields(): IncidentTypeFields.NearMissFields {
+    return IncidentTypeFields.NearMissFields(
+        nearMissType = this.nearMissType?.firstOrNull()?.let { NearMissType.values().getOrNull(it) },
+        immediateCause = this.immediateCause?.firstOrNull()?.let { NearMissImmediateCause.values().getOrNull(it) },
+        contributingFactors = this.contributingFactors?.mapNotNull { NearMissContributingFactor.values().getOrNull(it) }?.toSet() ?: emptySet(),
+        immediateActions = this.immediateActions?.mapNotNull { NearMissImmediateAction.values().getOrNull(it) }?.toSet() ?: emptySet(),
+        longTermSolutions = this.longTermSolutions?.mapNotNull { NearMissLongTermSolution.values().getOrNull(it) }?.toSet() ?: emptySet()
+    )
+}
+
+fun NearMissIncidentDto.toDomain(): app.forku.domain.model.incident.Incident {
+    return app.forku.domain.model.incident.Incident(
+        id = id,
+        type = app.forku.domain.model.incident.IncidentTypeEnum.NEAR_MISS,
+        description = description,
+        timestamp = incidentDateTime,
+        userId = userId,
+        vehicleId = vehicleId,
+        vehicleType = null,
+        vehicleName = "",
+        checkId = null,
+        isLoadCarried = isLoadCarried ?: false,
+        loadBeingCarried = loadBeingCarried ?: "",
+        loadWeight = null, // Map if available
+        sessionId = null,
+        status = app.forku.domain.model.incident.IncidentStatus.values().getOrNull(status) ?: app.forku.domain.model.incident.IncidentStatus.REPORTED,
+        photos = emptyList(),
+        date = try { java.time.ZonedDateTime.parse(incidentDateTime).toInstant().toEpochMilli() } catch (e: Exception) { 0L },
+        location = locationDetails,
+        locationDetails = locationDetails,
+        weather = weather ?: "",
+        incidentTime = null,
+        severityLevel = app.forku.domain.model.incident.IncidentSeverityLevelEnum.values().getOrNull(severityLevel) ?: app.forku.domain.model.incident.IncidentSeverityLevelEnum.LOW,
+        preshiftCheckStatus = "",
+        typeSpecificFields = this.toTypeSpecificFields(),
+        othersInvolved = othersInvolved,
+        injuries = "",
+        injuryLocations = emptyList(),
+        locationCoordinates = locationCoordinates,
+        creatorName = "Unknown" // This will be handled by the main IncidentDto mapper when using include=GOUser
     )
 } 

@@ -5,18 +5,19 @@ import app.forku.domain.model.feedback.Feedback
 
 fun FeedbackDto.toFeedback(): Feedback = Feedback(
     id = id,
-    userId = userId,
-    rating = rating,
+    canContactMe = canContactMe,
     comment = comment,
-    createdAt = createdAt,
-    updatedAt = updatedAt
+    goUserId = goUserId,
+    rating = rating
 )
 
 fun Feedback.toFeedbackDto(): FeedbackDto = FeedbackDto(
     id = id,
-    userId = userId,
-    rating = rating,
+    canContactMe = canContactMe,
     comment = comment,
-    createdAt = createdAt,
-    updatedAt = updatedAt
+    goUserId = goUserId,
+    rating = rating,
+    isDirty = true,
+    isNew = true,
+    isMarkedForDeletion = false
 ) 

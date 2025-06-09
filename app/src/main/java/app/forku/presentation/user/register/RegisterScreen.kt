@@ -56,7 +56,7 @@ fun RegisterScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "¡Registro exitoso! Ahora puedes iniciar sesión.",
+                text = "Registration successful! You can now log in.",
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleMedium
             )
@@ -66,7 +66,7 @@ fun RegisterScreen(
                     popUpTo(Screen.Register.route) { inclusive = true }
                 }
             }) {
-                Text("Ir a iniciar sesión")
+                Text("Go to login")
             }
         }
         return

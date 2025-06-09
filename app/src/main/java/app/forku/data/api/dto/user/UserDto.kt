@@ -2,6 +2,7 @@ package app.forku.data.api.dto.user
 
 import com.google.gson.annotations.SerializedName
 import android.util.Log
+import app.forku.data.api.dto.gouserrole.GOUserRoleDto
 
 data class UserDto(
     @SerializedName("Id")
@@ -70,7 +71,7 @@ data class UserDto(
     @SerializedName("userNearMissIncidentItems")
     val userNearMissIncidentItems: List<Any>? = emptyList(),
     @SerializedName("userRoleItems")
-    val userRoleItems: List<Any>? = emptyList(),
+    val userRoleItems: List<GOUserRoleDto>? = emptyList(),
     @SerializedName("Picture")
     val picture: String? = null,
     @SerializedName("PictureFileSize")

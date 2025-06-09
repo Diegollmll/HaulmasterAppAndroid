@@ -18,7 +18,11 @@ interface ChecklistAnswerApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getList(): Response<List<ChecklistAnswerDto>>
+    suspend fun getList(
+        @Query("include") include: String? = null,
+        @Query("sortColumn") sortColumn: String? = null,
+        @Query("sortOrder") sortOrder: String? = null
+    ): Response<List<ChecklistAnswerDto>>
 
     @GET("api/checklistanswer/list")
     @Headers(
@@ -29,7 +33,9 @@ interface ChecklistAnswerApi {
         @Query("filter") filter: String? = null,
         @Query("sortColumn") sortColumn: String? = null,
         @Query("sortOrder") sortOrder: String? = null,
-        @Query("pageSize") pageSize: Int? = null
+        @Query("pageNumber") pageNumber: Int? = null,
+        @Query("pageSize") pageSize: Int? = null,
+        @Query("include") include: String? = null
     ): Response<List<ChecklistAnswerDto>>
 
     @FormUrlEncoded

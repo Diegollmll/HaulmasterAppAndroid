@@ -29,7 +29,7 @@ fun ErrorScreen(
             Text(text = message)
             Spacer(modifier = Modifier.height(16.dp))
             Button(onClick = onRetry) {
-                Text(text = "Reintentar")
+                Text(text = "Retry")
             }
         }
     }

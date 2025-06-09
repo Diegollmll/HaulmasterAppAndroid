@@ -3,6 +3,7 @@ package app.forku.domain.repository.vehicle
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.VehicleType
+import app.forku.domain.model.vehicle.VehicleWithRelatedData
 
 interface VehicleRepository {
     /**
@@ -11,11 +12,26 @@ interface VehicleRepository {
     suspend fun getVehicle(id: String, businessId: String): Vehicle
     
     /**
+     * Gets a vehicle with optimized included data (sessions, checklists) in single API call
+     * @param id The vehicle ID
+     * @param businessId The business context
+     */
+    suspend fun getVehicleWithOptimizedData(id: String, businessId: String): app.forku.data.mapper.VehicleWithSessionAndOperatorData
+    
+    /**
      * Gets vehicles for the current business and site context
      * @param businessId The ID of the business
      * @param siteId Optional site ID to filter vehicles by site
+     * @param includeRelatedData Whether to include related data (sessions, checklist answers)
      */
-    suspend fun getVehicles(businessId: String, siteId: String? = null): List<Vehicle>
+    suspend fun getVehicles(businessId: String, siteId: String? = null, includeRelatedData: Boolean = false): List<Vehicle>
+    
+    /**
+     * Gets vehicles with related data optimized for list views (single API call)
+     * @param businessId The ID of the business
+     * @param siteId Optional site ID to filter vehicles by site
+     */
+    suspend fun getVehiclesWithRelatedData(businessId: String, siteId: String? = null): List<VehicleWithRelatedData>
     
     /**
      * Gets all vehicles across all businesses (SuperAdmin only)

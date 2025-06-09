@@ -73,7 +73,7 @@ class ProfileViewModel @Inject constructor(
             try {
                 userRepository.logout()
             } catch (e: Exception) {
-                _state.update { it.copy(error = "Error al cerrar sesión: ${e.message}") }
+                _state.update { it.copy(error = "Error logging out: ${e.message}") }
             }
         }
     }

@@ -2,6 +2,9 @@ package app.forku.data.repository.incident
 
 import app.forku.data.api.CollisionIncidentApi
 import app.forku.data.api.IncidentApi
+import app.forku.data.api.NearMissIncidentApi
+import app.forku.data.api.HazardIncidentApi
+import app.forku.data.api.VehicleFailIncidentApi
 import app.forku.data.datastore.AuthDataStore
 import app.forku.data.mapper.toDto
 import app.forku.data.mapper.toDomain
@@ -15,6 +18,9 @@ import javax.inject.Inject
 class IncidentRepositoryImpl @Inject constructor(
     private val incidentApi: IncidentApi,
     private val collisionIncidentApi: CollisionIncidentApi,
+    private val nearMissIncidentApi: NearMissIncidentApi,
+    private val hazardIncidentApi: HazardIncidentApi,
+    private val vehicleFailIncidentApi: VehicleFailIncidentApi,
     private val authDataStore: AuthDataStore,
     private val gson: Gson
 ) : IncidentRepository {
@@ -60,9 +66,9 @@ class IncidentRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getIncidents(filter: String?): Result<List<Incident>> {
+    override suspend fun getIncidents(filter: String?, include: String?): Result<List<Incident>> {
+        val response = incidentApi.getAllIncidents(filter, include ?: "GOUser")
         return try {
-            val response = incidentApi.getAllIncidents(filter)
             if (response.isSuccessful) {
                 val allIncidents = response.body()?.map { it.toDomain() } ?: emptyList()
                 Result.success(allIncidents)
@@ -77,12 +83,29 @@ class IncidentRepositoryImpl @Inject constructor(
     override suspend fun getIncidentById(id: String): Result<Incident> {
         return try {
             val response = incidentApi.getIncidentById(id)
-            if (response.isSuccessful) {
-                response.body()?.let { dto ->
-                    Result.success(dto.toDomain())
-                } ?: Result.failure(Exception("Empty response"))
-            } else {
-                Result.failure(Exception("Failed to fetch incident: ${response.code()}"))
+            if (!response.isSuccessful) {
+                return Result.failure(Exception("Failed to fetch incident: ${response.code()}"))
+            }
+            val dto = response.body() ?: return Result.failure(Exception("Empty response"))
+            android.util.Log.d("IncidentRepository", "Raw JSON response for incident $id: ${gson.toJson(dto)}")
+            val type = IncidentTypeEnum.values().getOrNull(dto.incidentType) ?: IncidentTypeEnum.COLLISION
+            when (type) {
+                IncidentTypeEnum.COLLISION -> {
+                    val collisionDto = collisionIncidentApi.getById(id)
+                    Result.success(collisionDto.toDomain())
+                }
+                IncidentTypeEnum.NEAR_MISS -> {
+                    val nearMissDto = nearMissIncidentApi.getById(id)
+                    Result.success(nearMissDto.toDomain())
+                }
+                IncidentTypeEnum.HAZARD -> {
+                    val hazardDto = hazardIncidentApi.getById(id)
+                    Result.success(hazardDto.toDomain())
+                }
+                IncidentTypeEnum.VEHICLE_FAIL -> {
+                    val vehicleFailDto = vehicleFailIncidentApi.getById(id)
+                    Result.success(vehicleFailDto.toDomain())
+                }
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -96,14 +119,14 @@ class IncidentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getIncidentsByUserId(userId: String): Result<List<Incident>> {
+        val filterString = "GOUserId == Guid.Parse(\"$userId\")"
+        val response = incidentApi.getAllIncidents(filter = filterString, include = "GOUser")
         return try {
-            val filter = if (userId.isNullOrBlank()) null else "GOUserId == Guid.Parse(\"$userId\")"
-            val response = incidentApi.getAllIncidents(filter)
             if (response.isSuccessful) {
                 val allIncidents = response.body()?.map { it.toDomain() } ?: emptyList()
                 Result.success(allIncidents)
             } else {
-                Result.failure(Exception("Failed to fetch incidents: \\${response.code()}"))
+                Result.failure(Exception("Failed to fetch incidents: ${response.code()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)

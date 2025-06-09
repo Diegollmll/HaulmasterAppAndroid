@@ -33,7 +33,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getCurrentSession(): VehicleSession? {
         val currentUser = authDataStore.getCurrentUser() ?: return null
         try {
-            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
+            val response = api.getAllSessions(
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
+            )
             if (response.isSuccessful) {
                 val sessions = response.body()?.let { dtos ->
                     dtos.map { dto -> VehicleSessionMapper.toDomain(dto) }
@@ -246,7 +248,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getActiveSessionForVehicle(vehicleId: String, businessId: String): VehicleSession? {
         android.util.Log.d("VehicleSession", "Fetching active session for vehicle: $vehicleId")
         return try {
-            val response = api.getAllSessions(businessId)
+            val response = api.getAllSessions(
+                businessId = businessId
+            )
             if (response.isSuccessful) {
                 android.util.Log.d("VehicleSession", "API response successful. Status code: ${response.code()}")
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
@@ -281,7 +285,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getSessionsByUserId(userId: String): List<VehicleSession> {
         val currentUser = authDataStore.getCurrentUser() ?: return emptyList()
         return try {
-            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
+            val response = api.getAllSessions(
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
+            )
             if (response.isSuccessful) {
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions.filter { it.userId == userId }
@@ -296,7 +302,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getLastCompletedSessionForVehicle(vehicleId: String): VehicleSession? {
         val currentUser = authDataStore.getCurrentUser() ?: return null
         return try {
-            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
+            val response = api.getAllSessions(
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
+            )
             if (response.isSuccessful) {
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions
@@ -318,7 +326,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     override suspend fun getSessions(): List<VehicleSession> {
         val currentUser = authDataStore.getCurrentUser() ?: return emptyList()
         return try {
-            val response = api.getAllSessions(currentUser.businessId ?: Constants.BUSINESS_ID)
+            val response = api.getAllSessions(
+                businessId = currentUser.businessId ?: Constants.BUSINESS_ID
+            )
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.map { VehicleSessionMapper.toDomain(it) }
             } else {

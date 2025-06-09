@@ -284,9 +284,20 @@ object RepositoryProvidersModule {
     fun provideIncidentRepository(
         api: IncidentApi,
         collisionApi: CollisionIncidentApi,
+        nearMissIncidentApi: NearMissIncidentApi,
+        hazardIncidentApi: HazardIncidentApi,
+        vehicleFailIncidentApi: VehicleFailIncidentApi,
         authDataStore: AuthDataStore,
         gson: Gson
-    ): IncidentRepository = IncidentRepositoryImpl(api, collisionApi, authDataStore, gson)
+    ): IncidentRepository = IncidentRepositoryImpl(
+        api,
+        collisionApi,
+        nearMissIncidentApi,
+        hazardIncidentApi,
+        vehicleFailIncidentApi,
+        authDataStore,
+        gson
+    )
 
     @Provides
     @Singleton

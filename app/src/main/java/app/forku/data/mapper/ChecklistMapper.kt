@@ -149,10 +149,15 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
 
 fun ChecklistDto.toDomain(): Checklist {
     android.util.Log.d("ChecklistMapper", "Entrando a ChecklistDto.toDomain() con DTO: $this")
+    
+    // Extract vehicle type IDs from ChecklistVehicleTypeItems (handle null case)
+    val supportedVehicleTypeIds = ChecklistVehicleTypeItems?.map { it.VehicleTypeId }?.toSet() ?: emptySet()
+    android.util.Log.d("ChecklistMapper", "Checklist ${this.Id} supports vehicle types: $supportedVehicleTypeIds")
+    
     return Checklist(
         id = Id,
         title = Title,
-        description = Description,
+        description = Description ?: "",
         items = (ChecklistChecklistQuestionItems ?: emptyList()).map { 
             it.toDomain().copy(checklistId = Id)
         },
@@ -164,7 +169,9 @@ fun ChecklistDto.toDomain(): Checklist {
         rotationGroups = RotationGroups,
         standardQuestionMaximum = StandardQuestionMaximum,
         isMarkedForDeletion = IsMarkedForDeletion,
-        internalObjectId = InternalObjectId
+        internalObjectId = InternalObjectId,
+        allVehicleTypesEnabled = AllVehicleTypesEnabled,
+        supportedVehicleTypeIds = supportedVehicleTypeIds
     )
 }
 
@@ -183,6 +190,16 @@ fun Checklist.toDto(): ChecklistDto {
         RotationGroups = rotationGroups,
         StandardQuestionMaximum = standardQuestionMaximum,
         IsMarkedForDeletion = isMarkedForDeletion,
-        InternalObjectId = internalObjectId
+        InternalObjectId = internalObjectId,
+        AllVehicleTypesEnabled = allVehicleTypesEnabled,
+        ChecklistVehicleTypeItems = supportedVehicleTypeIds.mapIndexed { index, vehicleTypeId ->
+            app.forku.data.api.dto.checklist.ChecklistVehicleTypeDto(
+                ChecklistId = id,
+                Id = java.util.UUID.randomUUID().toString(),
+                VehicleTypeId = vehicleTypeId,
+                IsMarkedForDeletion = false,
+                InternalObjectId = index + 1
+            )
+        }
     )
 }

@@ -1,6 +1,8 @@
 package app.forku.data.api.dto.vehicle
 
 import com.google.gson.annotations.SerializedName
+import app.forku.data.api.dto.session.VehicleSessionDto
+import app.forku.data.api.dto.checklist.ChecklistAnswerDto
 
 data class VehicleDto(
     @SerializedName("Id")
@@ -76,5 +78,27 @@ data class VehicleDto(
     val vehicleCategoryNewObjectId: String? = null,
     
     @SerializedName("_vehicleType_NewObjectId")
-    val vehicleTypeNewObjectId: String? = null
+    val vehicleTypeNewObjectId: String? = null,
+    
+    // Nested data from include parameter
+    @SerializedName("VehicleType")
+    val vehicleType: VehicleTypeDto? = null,
+    
+    @SerializedName("VehicleSessionItems")
+    val vehicleSessionItems: List<VehicleSessionDto>? = null,
+    
+    @SerializedName("ChecklistAnswerItems")
+    val checklistAnswerItems: List<ChecklistAnswerDto>? = null,
+    
+    @SerializedName("Business")
+    val business: app.forku.data.api.dto.business.BusinessItemDto? = null,
+    
+    @SerializedName("Site")
+    val site: app.forku.data.api.dto.site.SiteDto? = null,
+    
+    @SerializedName("VehicleCategory")
+    val vehicleCategory: VehicleCategoryDto? = null,
+    
+    @SerializedName("SafetyAlertItems")
+    val safetyAlertItems: List<app.forku.data.api.dto.safetyalert.SafetyAlertDto>? = null
 )

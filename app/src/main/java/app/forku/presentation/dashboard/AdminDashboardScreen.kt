@@ -121,8 +121,8 @@ fun AdminDashboardScreen(
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
                         FeedbackBanner(
-                            onFeedbackSubmitted = { rating, feedback ->
-                                viewModel.submitFeedback(rating, feedback)
+                            onFeedbackSubmitted = { rating, feedback, canContactMe ->
+                                viewModel.submitFeedback(rating, feedback, canContactMe)
                             }
                         )
                         

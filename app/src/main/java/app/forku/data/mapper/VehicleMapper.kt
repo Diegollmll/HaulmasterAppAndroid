@@ -12,9 +12,10 @@ import app.forku.data.api.dto.vehicle.UpdateVehicleDto
 import app.forku.data.api.dto.vehicle.VehicleObjectData
 import app.forku.data.api.dto.vehicle.ObjectsDataSet
 import app.forku.data.api.dto.vehicle.VehicleObjectsDataSet
-import app.forku.data.mapper.toDomain as vehicleTypeDtoToDomain // Use the extension from VehicleTypeMapper
+import app.forku.data.mapper.toDomain
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
+import app.forku.data.mapper.VehicleSessionMapper
 
 fun VehicleDto.toDomain(): Vehicle {
     val nextServiceHours = try {
@@ -31,9 +32,8 @@ fun VehicleDto.toDomain(): Vehicle {
         "0"
     }
 
-    // VehicleType mapping should be handled via VehicleTypeMapper if DTO is available
-    // If only IDs are available, use a placeholder
-    val vehicleType = VehicleType.createPlaceholder(
+    // Use the VehicleType from the DTO if available (when using includes), otherwise create placeholder
+    val vehicleType = vehicleType?.toDomain() ?: VehicleType.createPlaceholder(
         Id = vehicleTypeId ?: "",
         Name = "Unknown",
         RequiresCertification = false,
@@ -197,4 +197,59 @@ fun VehicleDto.toJsonObject(newStatus: VehicleStatus? = null): JsonObject {
         add("NextServiceDateTime_WithTimezoneOffset", com.google.gson.JsonNull.INSTANCE)
     }
 }
+
+fun VehicleDto.toDomainWithIncludedData(): VehicleWithSessionAndOperatorData {
+    android.util.Log.d("VehicleMapper", "=== Mapping VehicleDto with included data ===")
+    android.util.Log.d("VehicleMapper", "Vehicle ID: $id")
+    android.util.Log.d("VehicleMapper", "VehicleSessionItems count: ${vehicleSessionItems?.size ?: 0}")
+    android.util.Log.d("VehicleMapper", "ChecklistAnswerItems count: ${checklistAnswerItems?.size ?: 0}")
+    
+    // Map the base vehicle
+    val vehicle = this.toDomain()
+    
+    // Process VehicleSessionItems to find active and last sessions
+    val sessions = vehicleSessionItems?.map { sessionDto ->
+        android.util.Log.d("VehicleMapper", "Processing session: ${sessionDto.Id}, Status: ${sessionDto.Status}, UserId: ${sessionDto.GOUserId}")
+        VehicleSessionMapper.toDomain(sessionDto)
+    } ?: emptyList()
+    
+    // Find active session (Status = 0 means OPERATING)
+    val activeSession = sessions.find { session ->
+        session.status == app.forku.domain.model.session.VehicleSessionStatus.OPERATING
+    }
+    android.util.Log.d("VehicleMapper", "Active session found: ${activeSession?.id}")
+    
+    // Find last completed session if no active session
+    val lastSession = if (activeSession == null) {
+        sessions
+            .filter { it.status == app.forku.domain.model.session.VehicleSessionStatus.NOT_OPERATING && it.endTime != null }
+            .maxByOrNull { it.endTime!! }
+    } else null
+    android.util.Log.d("VehicleMapper", "Last session found: ${lastSession?.id}")
+    
+    // Process ChecklistAnswerItems to find last checklist
+    val checklistAnswers = checklistAnswerItems?.map { checklistDto ->
+        android.util.Log.d("VehicleMapper", "Processing checklist: ${checklistDto.id}, Status: ${checklistDto.status}, UserId: ${checklistDto.goUserId}, LastCheckDateTime: ${checklistDto.lastCheckDateTime}, EndDateTime: ${checklistDto.endDateTime}")
+        checklistDto.toDomain()
+    } ?: emptyList()
+    
+    val lastChecklistAnswer = checklistAnswers
+        .sortedByDescending { it.lastCheckDateTime.takeIf { it.isNotBlank() } ?: it.endDateTime }
+        .firstOrNull()
+    android.util.Log.d("VehicleMapper", "Last checklist answer found: ${lastChecklistAnswer?.id}, Status: ${lastChecklistAnswer?.status}, DateTime: ${lastChecklistAnswer?.lastCheckDateTime}")
+    
+    return VehicleWithSessionAndOperatorData(
+        vehicle = vehicle,
+        activeSession = activeSession,
+        lastSession = lastSession,
+        lastChecklistAnswer = lastChecklistAnswer
+    )
+}
+
+data class VehicleWithSessionAndOperatorData(
+    val vehicle: app.forku.domain.model.vehicle.Vehicle,
+    val activeSession: app.forku.domain.model.session.VehicleSession?,
+    val lastSession: app.forku.domain.model.session.VehicleSession?,
+    val lastChecklistAnswer: app.forku.domain.model.checklist.ChecklistAnswer?
+)
 

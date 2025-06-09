@@ -11,26 +11,41 @@ object RoleConverter {
      * @return The corresponding UserRole
      */
     fun fromString(roleString: String?, defaultRole: UserRole = UserRole.OPERATOR): UserRole {
-        if (roleString == null) return defaultRole
+        Log.d("RoleConverter", "=== Converting role string ===")
+        Log.d("RoleConverter", "Input roleString: '$roleString'")
+        Log.d("RoleConverter", "Default role: $defaultRole")
+        
+        if (roleString == null) {
+            Log.d("RoleConverter", "Role string is null, returning default: $defaultRole")
+            return defaultRole
+        }
+        
         val normalized = roleString.trim().lowercase().replace(" ", "")
+        Log.d("RoleConverter", "Normalized role string: '$normalized'")
+        
         return try {
-            when (normalized) {
+            val result = when (normalized) {
                 "systemowner", "system_owner" -> UserRole.SYSTEM_OWNER
                 "superadmin", "super_admin" -> UserRole.SUPERADMIN
-                "admin", "administrator" -> UserRole.ADMIN
-                "operator" -> UserRole.OPERATOR
+                "admin", "administrator", "administrador" -> UserRole.ADMIN
+                "operator", "operador" -> UserRole.OPERATOR
                 else -> {
+                    Log.d("RoleConverter", "No direct match, trying enum parse...")
                     // Try to parse as enum name directly
                     try {
-                        UserRole.valueOf(roleString.uppercase())
+                        val enumResult = UserRole.valueOf(roleString.uppercase())
+                        Log.d("RoleConverter", "Enum parse successful: $enumResult")
+                        enumResult
                     } catch (e: IllegalArgumentException) {
-                        Log.w("RoleConverter", "Could not convert role string: $roleString, using default role")
+                        Log.w("RoleConverter", "Could not convert role string: '$roleString', using default role: $defaultRole")
                         defaultRole
                     }
                 }
             }
+            Log.d("RoleConverter", "Final conversion result: $result")
+            result
         } catch (e: Exception) {
-            Log.e("RoleConverter", "Error converting role string: $roleString", e)
+            Log.e("RoleConverter", "Error converting role string: '$roleString'", e)
             defaultRole
         }
     }

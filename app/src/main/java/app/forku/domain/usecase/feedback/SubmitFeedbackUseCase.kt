@@ -9,15 +9,16 @@ class SubmitFeedbackUseCase @Inject constructor(
     private val feedbackRepository: FeedbackRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(rating: Int, comment: String): Result<Feedback> {
+    suspend operator fun invoke(rating: Int, comment: String, canContactMe: Boolean): Result<Feedback> {
         return try {
             val currentUser = userRepository.getCurrentUser()
                 ?: return Result.failure(Exception("User not authenticated"))
 
             val feedback = Feedback(
-                userId = currentUser.id,
+                goUserId = currentUser.id,
                 rating = rating,
-                comment = comment
+                comment = comment,
+                canContactMe = canContactMe
             )
 
             feedbackRepository.submitFeedback(feedback)

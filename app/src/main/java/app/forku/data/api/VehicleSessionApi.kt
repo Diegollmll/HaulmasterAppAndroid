@@ -13,7 +13,12 @@ interface VehicleSessionApi {
     )
     suspend fun getAllSessions(
         @Query("businessId") businessId: String,
-        @Query("include") include: String? = null
+        @Query("include") include: String? = null,
+        @Query("filter") filter: String? = null,
+        @Query("pageNumber") pageNumber: Int? = null,
+        @Query("pageSize") pageSize: Int? = null,
+        @Query("sortColumn") sortColumn: String? = null,
+        @Query("sortOrder") sortOrder: String? = null
     ): Response<List<VehicleSessionDto>>
 
     @GET("api/vehiclesession/byid/{id}")

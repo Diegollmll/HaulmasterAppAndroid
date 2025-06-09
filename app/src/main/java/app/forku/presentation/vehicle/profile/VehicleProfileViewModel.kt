@@ -118,45 +118,61 @@ class VehicleProfileViewModel @Inject constructor(
                 }
                 Log.d("VehicleProfileVM_Debug", "Determined effectiveBusinessId: $effectiveBusinessId based on Role=$userRole")
 
-                Log.d("VehicleProfileVM", "Attempting to load vehicle $vehicleId with effective businessId $effectiveBusinessId")
-                val vehicle = retryOnFailure {
-                    vehicleRepository.getVehicle(vehicleId!!, effectiveBusinessId)
+                Log.d("VehicleProfileVM", "Attempting to load vehicle $vehicleId with optimized API call")
+                
+                // **OPTIMIZED API CALL** - Single call with include parameter
+                val vehicleWithData = retryOnFailure {
+                    vehicleRepository.getVehicleWithOptimizedData(vehicleId!!, effectiveBusinessId)
                 }
                 
-                if (vehicle == null) {
-                    throw Exception("Error al cargar vehiculo")
+                val vehicle = vehicleWithData.vehicle
+                Log.d("VehicleProfileVM", "Vehicle loaded with optimized data: ${vehicle.codename}")
+                
+                // Extract active operator from included session data
+                val activeOperator = vehicleWithData.activeSession?.userId?.let { userId ->
+                    Log.d("VehicleProfileVM", "Loading active operator: $userId")
+                    retryOnFailure {
+                        userRepository.getUserById(userId)
+                    }
                 }
                 
-                // Load other related data (session, checks) using the actual vehicle.businessId
-                val actualBusinessId = vehicle.businessId
-                if (actualBusinessId != null) {
-                    loadActiveSession(vehicle.id, actualBusinessId)
-                    loadLastPreShiftCheck(vehicle.id, actualBusinessId)
-                    val lastChecklistAnswer = checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicle.id)
-                    val lastChecklistOperator = lastChecklistAnswer?.goUserId?.takeIf { it.isNotBlank() }?.let { userRepository.getUserById(it) }
-                    // Fetch last operator if no active session
-                    val lastSession = vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicle.id)
-                    android.util.Log.d("VehicleProfileVM", "lastSession: ${lastSession?.id}, userId: ${lastSession?.userId}")
-                    val lastOperator = lastSession?.userId?.let { 
-                        val user = userRepository.getUserById(it)
-                        Log.d("VehicleProfileVM", "Fetched lastOperator: id=${user?.id}, firstName=${user?.firstName}, lastName=${user?.lastName}, username=${user?.username}, photoUrl=${user?.photoUrl}")
-                        user
+                // Extract last operator from included session data
+                val lastOperator = vehicleWithData.lastSession?.userId?.let { userId ->
+                    Log.d("VehicleProfileVM", "Loading last operator: $userId")
+                    retryOnFailure {
+                        userRepository.getUserById(userId)
                     }
-                    android.util.Log.d("VehicleProfileVM", "lastOperator: ${lastOperator?.id} - ${lastOperator?.fullName}")
-                    _state.update {
-                        it.copy(
-                            lastChecklistAnswer = lastChecklistAnswer,
-                            lastChecklistOperator = lastChecklistOperator,
-                            lastOperator = lastOperator
-                        )
-                    }
-                } else {
-                    Log.w("VehicleProfileVM", "Vehicle ${vehicle.id} has no businessId, skipping session/check load.")
                 }
+                
+                // Extract last checklist operator from included checklist data
+                val lastChecklistOperator = vehicleWithData.lastChecklistAnswer?.goUserId?.takeIf { it.isNotBlank() }?.let { userId ->
+                    Log.d("VehicleProfileVM", "Loading last checklist operator: $userId")
+                    retryOnFailure {
+                        userRepository.getUserById(userId)
+                    }
+                }
+                
+                Log.d("VehicleProfileVM", """
+                    Optimized data loaded:
+                    - Vehicle: ${vehicle.codename}
+                    - Active session: ${vehicleWithData.activeSession?.id}
+                    - Last session: ${vehicleWithData.lastSession?.id}
+                    - Last checklist: ${vehicleWithData.lastChecklistAnswer?.id}
+                    - Active operator: ${activeOperator?.fullName}
+                    - Last operator: ${lastOperator?.fullName}
+                    - Last checklist operator: ${lastChecklistOperator?.fullName}
+                """.trimIndent())
                 
                 _state.update { 
                     it.copy(
                         vehicle = vehicle,
+                        activeSession = vehicleWithData.activeSession,
+                        hasActiveSession = vehicleWithData.activeSession != null,
+                        activeOperator = activeOperator,
+                        lastOperator = lastOperator,
+                        lastChecklistAnswer = vehicleWithData.lastChecklistAnswer,
+                        lastChecklistOperator = lastChecklistOperator,
+                        hasActivePreShiftCheck = vehicleWithData.lastChecklistAnswer?.status == CheckStatus.IN_PROGRESS.ordinal,
                         isLoading = false,
                         error = null
                     )
@@ -177,55 +193,6 @@ class VehicleProfileViewModel @Inject constructor(
                     )
                 }
             }
-        }
-    }
-
-    private suspend fun loadActiveSession(vehicleId: String, businessId: String) {
-        try {
-            val session = vehicleSessionRepository.getActiveSessionForVehicle(vehicleId, businessId)
-            
-            // Fetch operator details if there's an active session
-            val operator = session?.userId?.let { userId ->
-                retryOnFailure {
-                    userRepository.getUserById(userId)
-                }
-            }
-
-            // If no active operator, get the last session's operator
-            val lastOperator = if (operator == null) {
-                withTimeoutOrNull(5000) { // Add timeout to prevent hanging
-                    vehicleSessionRepository.getLastCompletedSessionForVehicle(vehicleId)?.userId?.let { userId ->
-                        retryOnFailure {
-                            userRepository.getUserById(userId)
-                        }
-                    }
-                }
-            } else null
-            
-            _state.update { 
-                it.copy(
-                    activeSession = session,
-                    hasActiveSession = session != null,
-                    activeOperator = operator,
-                    lastOperator = lastOperator
-                )
-            }
-        } catch (e: Exception) {
-            _state.update { it.copy(error = "Error loading active session: ${e.message}") }
-        }
-    }
-
-    private suspend fun loadLastPreShiftCheck(vehicleId: String, businessId: String) {
-        try {
-            val check = checklistRepository.getLastPreShiftCheck(vehicleId, businessId)
-            
-            _state.update { 
-                it.copy(
-                    hasActivePreShiftCheck = check?.status == CheckStatus.IN_PROGRESS.toString()
-                )
-            }
-        } catch (e: Exception) {
-            _state.update { it.copy(error = "Error loading last pre-shift check: ${e.message}") }
         }
     }
 
@@ -333,7 +300,7 @@ class VehicleProfileViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
-                        error = "Error al iniciar sesión: ${e.message}",
+                        error = "Error starting session: ${e.message}",
                         isLoading = false
                     )
                 }

@@ -10,5 +10,4 @@ interface FeedbackRepository {
     suspend fun updateFeedback(feedback: Feedback): Result<Feedback>
     suspend fun deleteFeedback(id: String): Result<Unit>
     suspend fun getFeedbackCount(): Result<Int>
-    suspend fun getFeedbackAnalytics(): Result<Map<String, Any>>
 } 

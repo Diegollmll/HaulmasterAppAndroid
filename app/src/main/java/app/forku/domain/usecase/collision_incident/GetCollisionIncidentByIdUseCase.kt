@@ -8,7 +8,7 @@ import javax.inject.Inject
 class GetCollisionIncidentByIdUseCase @Inject constructor(
     private val repository: ICollisionIncidentRepository
 ) {
-    suspend operator fun invoke(id: Long): Flow<Result<CollisionIncidentDto>> {
+    suspend operator fun invoke(id: String): Flow<Result<CollisionIncidentDto>> {
         return repository.getCollisionIncidentById(id)
     }
 } 

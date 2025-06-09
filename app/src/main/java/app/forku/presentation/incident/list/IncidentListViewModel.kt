@@ -47,7 +47,7 @@ class IncidentListViewModel @Inject constructor(
                     // From dashboard and user is admin -> show all incidents
                     source == null && isAdmin -> {
                         android.util.Log.d("Incidents", "Admin loading all incidents from dashboard")
-                        incidentRepository.getIncidents()
+                        incidentRepository.getIncidents(include = "GOUser")
                     }
                     // From profile with specific userId -> show that user's incidents
                     source == "profile" && userId != null -> {
@@ -63,13 +63,13 @@ class IncidentListViewModel @Inject constructor(
 
                 incidentsResult
                     .onSuccess { incidents ->
-                        android.util.Log.d("Incidents", "Received ${incidents.size} incidents")
+                        android.util.Log.d("Incidents", "Received ${incidents.size} incidents with included user data")
                         _state.update { 
                             it.copy(
                                 isLoading = false,
                                 incidents = incidents
                                     .map { incident ->
-                                        android.util.Log.d("Incidents", "Mapping incident: ${incident.id}")
+                                        android.util.Log.d("Incidents", "Mapping incident: ${incident.id}, Creator: ${incident.creatorName}")
                                         IncidentItem(
                                             id = incident.id ?: "",
                                             type = incident.type.toDisplayText(),
@@ -77,7 +77,7 @@ class IncidentListViewModel @Inject constructor(
                                             date = incident.date,
                                             status = incident.status.toString(),
                                             vehicleName = incident.vehicleName,
-                                            creatorName = getUserName(incident.userId)
+                                            creatorName = incident.creatorName
                                         )
                                     }
                                     .sortedByDescending { incident -> incident.date }
@@ -102,14 +102,6 @@ class IncidentListViewModel @Inject constructor(
                     )
                 }
             }
-        }
-    }
-
-    private suspend fun getUserName(userId: String): String {
-        return try {
-            userRepository.getUserById(userId)?.fullName ?: "Unknown"
-        } catch (e: Exception) {
-            "Unknown"
         }
     }
 }

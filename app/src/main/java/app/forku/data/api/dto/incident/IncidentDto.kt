@@ -2,6 +2,8 @@ package app.forku.data.api.dto.incident
 
 import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Contextual
+import app.forku.data.api.dto.user.UserDto
 
 @Serializable
 open class IncidentDto(
@@ -26,5 +28,8 @@ open class IncidentDto(
     @SerializedName("IsNew")
     open val isNew: Boolean = true,
     @SerializedName("IsMarkedForDeletion")
-    open val isMarkedForDeletion: Boolean = false
+    open val isMarkedForDeletion: Boolean = false,
+    @SerializedName("GOUser")
+    @Contextual
+    open val goUser: UserDto? = null
 )

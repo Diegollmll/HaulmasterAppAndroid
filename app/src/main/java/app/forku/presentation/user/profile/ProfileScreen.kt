@@ -445,22 +445,23 @@ private fun ProfileHeader(
 
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Performance Report button - only for operational roles
-                        if (!isAdminRole) {
-                            Row {
-                                Button(
-                                    onClick = {
-                                        navController.navigate(Screen.PerformanceReport.route)
-                                    },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFFFA726)
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Performance Report")
-                                }
-                            }
-                        }
+//                        Performance Report button - only for operational roles
+//                        Commented for the future use
+//                        if (!isAdminRole) {
+//                            Row {
+//                                Button(
+//                                    onClick = {
+//                                        navController.navigate(Screen.PerformanceReport.route)
+//                                    },
+//                                    colors = ButtonDefaults.buttonColors(
+//                                        containerColor = Color(0xFFFFA726)
+//                                    ),
+//                                    modifier = Modifier.fillMaxWidth()
+//                                ) {
+//                                    Text("Performance Report")
+//                                }
+//                            }
+//                        }
                     }
                 }
 

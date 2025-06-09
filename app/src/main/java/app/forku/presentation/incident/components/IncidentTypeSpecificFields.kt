@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.forku.domain.model.incident.EnvironmentalImpact
 
 import app.forku.presentation.incident.IncidentReportState
 import app.forku.domain.model.incident.IncidentTypeFields
@@ -117,7 +118,7 @@ fun VehicleFailSpecificField(
                         immediateActions = emptySet(),
                         longTermSolutions = emptySet(),
                         damageOccurrence = emptySet(),
-                        environmentalImpact = emptyList(),
+                        environmentalImpact = emptySet<EnvironmentalImpact>(),
                         isLoadCarried = state.isLoadCarried,
                         loadBeingCarried = state.loadBeingCarried,
                         loadWeightEnum = state.loadWeightEnum

@@ -170,12 +170,11 @@ class SuperAdminDashboardViewModel @Inject constructor(
         }
     }
     
-    fun submitFeedback(rating: Int, feedback: String) {
+    fun submitFeedback(rating: Int, feedback: String, canContactMe: Boolean) {
         viewModelScope.launch {
             try {
-                submitFeedbackUseCase(rating, feedback)
+                submitFeedbackUseCase(rating, feedback, canContactMe)
                 _state.update { it.copy(feedbackSubmitted = true) }
-                
                 // Reset feedback submitted state after 3 seconds
                 delay(3000)
                 _state.update { it.copy(feedbackSubmitted = false) }

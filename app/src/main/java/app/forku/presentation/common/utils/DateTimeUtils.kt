@@ -34,15 +34,15 @@ fun getRelativeTimeSpanString(dateTimeStr: String): String {
 
         when {
             minutes < 1 -> "Just now"
-            minutes == 1L -> "Hace 1 minuto"
-            minutes < 60 -> "Hace $minutes minutos"
-            hours == 1L -> "Hace 1 hora"
-            hours < 24 -> "Hace $hours horas"
-            days == 1L -> "Hace 1 día"
-            days < 7 -> "Hace $days días"
-            days < 30 -> "Hace ${days / 7} semanas"
-            days < 365 -> "Hace ${days / 30} meses"
-            else -> "Hace ${days / 365} años"
+            minutes == 1L -> "1 minute ago"
+            minutes < 60 -> "$minutes minutes ago"
+            hours == 1L -> "1 hour ago"
+            hours < 24 -> "$hours hours ago"
+            days == 1L -> "1 day ago"
+            days < 7 -> "$days days ago"
+            days < 30 -> "${days / 7} weeks ago"
+            days < 365 -> "${days / 30} months ago"
+            else -> "${days / 365} years ago"
         }
     } catch (e: Exception) {
         "N/A"
@@ -143,15 +143,15 @@ fun getRelativeTimeSpanFromMillis(millis: Long?): String {
         val days = duration.toDays()
         when {
             minutes < 1 -> "Just now"
-            minutes == 1L -> "Hace 1 minuto"
-            minutes < 60 -> "Hace $minutes minutos"
-            hours == 1L -> "Hace 1 hora"
-            hours < 24 -> "Hace $hours horas"
-            days == 1L -> "Hace 1 día"
-            days < 7 -> "Hace $days días"
-            days < 30 -> "Hace ${days / 7} semanas"
-            days < 365 -> "Hace ${days / 30} meses"
-            else -> "Hace ${days / 365} años"
+            minutes == 1L -> "1 minute ago"
+            minutes < 60 -> "$minutes minutes ago"
+            hours == 1L -> "1 hour ago"
+            hours < 24 -> "$hours hours ago"
+            days == 1L -> "1 day ago"
+            days < 7 -> "$days days ago"
+            days < 30 -> "${days / 7} weeks ago"
+            days < 365 -> "${days / 30} months ago"
+            else -> "${days / 365} years ago"
         }
     } catch (e: Exception) {
         "N/A"

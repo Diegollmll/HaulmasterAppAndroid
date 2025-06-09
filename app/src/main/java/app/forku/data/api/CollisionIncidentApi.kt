@@ -5,7 +5,7 @@ import retrofit2.http.*
 
 interface CollisionIncidentApi {
     @GET("api/collisionincident/byid/{id}")
-    suspend fun getById(@Path("id") id: Long): CollisionIncidentDto
+    suspend fun getById(@Path("id") id: String): CollisionIncidentDto
 
     @GET("api/collisionincident/list")
     suspend fun getList(): List<CollisionIncidentDto>
@@ -22,5 +22,5 @@ interface CollisionIncidentApi {
     ): CollisionIncidentDto
 
     @DELETE("api/collisionincident/{id}")
-    suspend fun deleteById(@Path("id") id: Long)
+    suspend fun deleteById(@Path("id") id: String)
 } 

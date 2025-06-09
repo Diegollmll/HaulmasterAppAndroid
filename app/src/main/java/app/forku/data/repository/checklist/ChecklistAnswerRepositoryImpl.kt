@@ -64,7 +64,11 @@ class ChecklistAnswerRepositoryImpl @Inject constructor(
 
     override suspend fun getAll(): List<ChecklistAnswer> {
         return try {
-            val response = api.getList()
+            val response = api.getList(
+                include = "GOUser,Vehicle",
+                sortColumn = "LastCheckDateTime",
+                sortOrder = "desc"
+            )
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.map { it.toDomain() }
             } else {
@@ -89,7 +93,14 @@ class ChecklistAnswerRepositoryImpl @Inject constructor(
     override suspend fun getLastChecklistAnswerForVehicle(vehicleId: String): ChecklistAnswer? {
         return try {
             val filter = "VehicleId == Guid.Parse(\"$vehicleId\")"
-            val response = api.getListFiltered(filter = filter, sortColumn = "EndDateTime", sortOrder = "desc", pageSize = 1)
+            val response = api.getListFiltered(
+                filter = filter, 
+                sortColumn = "EndDateTime", 
+                sortOrder = "desc",
+                pageNumber = 1,
+                pageSize = 1,
+                include = "GOUser,Vehicle"
+            )
             if (response.isSuccessful && !response.body().isNullOrEmpty()) {
                 response.body()!![0].toDomain()
             } else {
@@ -97,6 +108,26 @@ class ChecklistAnswerRepositoryImpl @Inject constructor(
             }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    override suspend fun getAllPaginated(page: Int, pageSize: Int): List<ChecklistAnswer> {
+        return try {
+            val response = api.getListFiltered(
+                filter = null,
+                sortColumn = "LastCheckDateTime",
+                sortOrder = "desc",
+                pageNumber = page,
+                pageSize = pageSize,
+                include = "GOUser,Vehicle"
+            )
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!.map { it.toDomain() }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 } 

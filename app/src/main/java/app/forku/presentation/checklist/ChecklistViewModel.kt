@@ -49,6 +49,12 @@ import app.forku.domain.usecase.checklist.GetChecklistItemAnswerMultimediaByAnsw
 import app.forku.core.auth.HeaderManager
 import kotlinx.coroutines.flow.map
 import app.forku.domain.usecase.safetyalert.CreateSafetyAlertUseCase
+import android.content.ContentProvider
+import android.content.ContentResolver
+import androidx.core.content.FileProvider
+import android.os.Build
+import android.provider.MediaStore
+import android.content.ContentValues
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -156,6 +162,9 @@ class ChecklistViewModel @Inject constructor(
     private val _uploadingImages = MutableStateFlow<Set<Uri>>(emptySet())
     val uploadingImages = _uploadingImages.asStateFlow()
 
+    private var _tempPhotoUri = MutableStateFlow<Uri?>(null)
+    val tempPhotoUri: Uri? get() = _tempPhotoUri.value
+
     companion object {
         private const val TAG = "ChecklistUserComment"
     }
@@ -174,7 +183,7 @@ class ChecklistViewModel @Inject constructor(
                 locationState.error?.let { error ->
                     _state.update { it?.copy(
                         showErrorModal = true,
-                        errorModalMessage = "Error de ubicación: $error"
+                        errorModalMessage = "Location error: $error"
                     )}
                 }
             }
@@ -246,7 +255,7 @@ class ChecklistViewModel @Inject constructor(
             } catch (e: Exception) {
                 _state.update { it?.copy(
                     showErrorModal = true,
-                    errorModalMessage = "Error al iniciar la ubicación: ${e.message}"
+                    errorModalMessage = "Error starting location: ${e.message}"
                 )}
             }
         }
@@ -255,14 +264,14 @@ class ChecklistViewModel @Inject constructor(
     fun onLocationPermissionDenied() {
         _state.update { it?.copy(
             showErrorModal = true,
-            errorModalMessage = "Se requiere el permiso de ubicación para completar el checklist"
+            errorModalMessage = "Location permission is required to complete the checklist"
         )}
     }
 
     fun onLocationSettingsDenied() {
         _state.update { it?.copy(
             showErrorModal = true,
-            errorModalMessage = "Se requiere activar la ubicación para completar el checklist"
+            errorModalMessage = "Location must be enabled to complete the checklist"
         )}
     }
 
@@ -364,26 +373,7 @@ class ChecklistViewModel @Inject constructor(
                 android.util.Log.d("ChecklistViewModel", "Category map: $categoryMap")
                 _categoryNameMap.value = categoryMap
 
-                // 1. Obtener datos del checklist
-                android.util.Log.d("ChecklistViewModel", "Llamando a getChecklistUseCase con vehicleId=$vehicleId")
-                val checklists = getChecklistUseCase(vehicleId.toString())
-                android.util.Log.d("ChecklistViewModel", "checklists.size=${checklists.size}")
-                val firstChecklist = checklists.firstOrNull()
-                if (firstChecklist == null) {
-                    android.util.Log.d("ChecklistViewModel", "No se encontró ningún checklist para vehicleId=$vehicleId")
-                }
-                val allItems = checklists.flatMap { it.items }
-                android.util.Log.d("ChecklistViewModel", "Total de items obtenidos: ${allItems.size}")
-                android.util.Log.d("ChecklistViewModel", "All item categories: ${allItems.map { it.category }}")
-                val selectedItems = if (firstChecklist != null) selectQuestionsForRotation(
-                    allItems,
-                    firstChecklist.criticalQuestionMinimum,
-                    firstChecklist.maxQuestionsPerCheck,
-                    firstChecklist.standardQuestionMaximum
-                ) else emptyList()
-                android.util.Log.d("ChecklistViewModel", "Items seleccionados para rotación: ${selectedItems.size}")
-
-                // Fetch vehicle for summary display
+                // Fetch vehicle for summary display and type filtering
                 android.util.Log.d("ChecklistViewModel", "Llamando a getVehicleUseCase con vehicleId=$vehicleId")
                 val vehicle = try {
                     getVehicleUseCase(vehicleId.toString()).also {
@@ -392,6 +382,122 @@ class ChecklistViewModel @Inject constructor(
                 } catch (e: Exception) {
                     android.util.Log.e("ChecklistViewModel", "Error fetching vehicle: ${e.message}", e)
                     null
+                }
+
+                // 1. Obtener datos del checklist
+                android.util.Log.d("ChecklistViewModel", "Llamando a getChecklistUseCase con vehicleId=$vehicleId")
+                val allChecklists = getChecklistUseCase(vehicleId.toString())
+                android.util.Log.d("ChecklistViewModel", "Total checklists retrieved: ${allChecklists.size}")
+                allChecklists.forEachIndexed { index, checklist ->
+                    android.util.Log.d("ChecklistViewModel", "Checklist $index: id=${checklist.id}, title=${checklist.title}, " +
+                        "isDefault=${checklist.isDefault}, allVehicleTypesEnabled=${checklist.allVehicleTypesEnabled}, " +
+                        "supportedVehicleTypeIds=${checklist.supportedVehicleTypeIds}")
+                }
+                
+                // 2. Filter checklists by vehicle type
+                val vehicleTypeId = vehicle?.type?.Id
+                val vehicleTypeName = vehicle?.type?.Name
+                android.util.Log.d("ChecklistViewModel", "Vehicle type ID: $vehicleTypeId, Name: $vehicleTypeName")
+                
+                // First, try to find checklists specifically compatible with this vehicle type
+                val specificCompatibleChecklists = allChecklists.filter { checklist ->
+                    val isSpecificallyCompatible = !checklist.allVehicleTypesEnabled && 
+                                                 vehicleTypeId != null && 
+                                                 checklist.supportedVehicleTypeIds.contains(vehicleTypeId)
+                    android.util.Log.d("ChecklistViewModel", "🔍 [SPECIFIC] Checklist ${checklist.id} (${checklist.title}) - " +
+                        "allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled}, " +
+                        "supportedTypes: ${checklist.supportedVehicleTypeIds}, " +
+                        "vehicleTypeId: $vehicleTypeId, " +
+                        "isSpecificallyCompatible: $isSpecificallyCompatible")
+                    isSpecificallyCompatible
+                }
+                
+                // If no specific checklists found, look for universal or default checklists
+                val universalOrDefaultChecklists = allChecklists.filter { checklist ->
+                    val isUniversalOrDefault = checklist.allVehicleTypesEnabled || checklist.isDefault
+                    android.util.Log.d("ChecklistViewModel", "🔄 [FALLBACK] Checklist ${checklist.id} (${checklist.title}) - " +
+                        "allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled}, " +
+                        "isDefault: ${checklist.isDefault}, " +
+                        "isUniversalOrDefault: $isUniversalOrDefault")
+                    isUniversalOrDefault
+                }
+                
+                // Use specific checklists if available, otherwise use universal/default ones
+                val compatibleChecklists = if (specificCompatibleChecklists.isNotEmpty()) {
+                    android.util.Log.d("ChecklistViewModel", "✅ Using ${specificCompatibleChecklists.size} specific checklists for vehicle type $vehicleTypeName")
+                    specificCompatibleChecklists.forEach { checklist ->
+                        android.util.Log.d("ChecklistViewModel", "  ✅ Specific: ${checklist.title} (ID: ${checklist.id})")
+                    }
+                    specificCompatibleChecklists
+                } else {
+                    android.util.Log.d("ChecklistViewModel", "⚠️ No specific checklists found for vehicle type $vehicleTypeName, using ${universalOrDefaultChecklists.size} universal/default checklists")
+                    universalOrDefaultChecklists.forEach { checklist ->
+                        android.util.Log.d("ChecklistViewModel", "  ⚠️ Fallback: ${checklist.title} (ID: ${checklist.id}, isDefault: ${checklist.isDefault}, allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled})")
+                    }
+                    universalOrDefaultChecklists
+                }
+                
+                android.util.Log.d("ChecklistViewModel", "📊 [RESULTADO FINAL] Compatible checklists: ${compatibleChecklists.size}")
+                compatibleChecklists.forEachIndexed { index, checklist ->
+                    android.util.Log.d("ChecklistViewModel", "  ✅ [$index] ${checklist.title} (ID: ${checklist.id}, isDefault: ${checklist.isDefault}, allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled})")
+                }
+                
+                // Check if no compatible checklists were found at all
+                val noCompatibleChecklists = allChecklists.isNotEmpty() && compatibleChecklists.isEmpty()
+                if (noCompatibleChecklists) {
+                    android.util.Log.e("ChecklistViewModel", "❌ NO HAY CHECKLISTS COMPATIBLES para vehicleTypeId=$vehicleTypeId ($vehicleTypeName)")
+                    android.util.Log.e("ChecklistViewModel", "   - Total checklists: ${allChecklists.size}")
+                    android.util.Log.e("ChecklistViewModel", "   - Específicos encontrados: ${specificCompatibleChecklists.size}")
+                    android.util.Log.e("ChecklistViewModel", "   - Por defecto/universales: ${universalOrDefaultChecklists.size}")
+                } else {
+                    android.util.Log.d("ChecklistViewModel", "✅ CHECKLISTS COMPATIBLES ENCONTRADOS: ${compatibleChecklists.size}")
+                }
+                
+                // 3. Filter questions within checklists by vehicle type
+                val filteredChecklists = compatibleChecklists.map { checklist ->
+                    val filteredItems = checklist.items.filter { item ->
+                        val itemCompatible = item.vehicleType.isEmpty() || 
+                                           vehicleTypeId == null || 
+                                           item.vehicleType.any { it.Id == vehicleTypeId }
+                        android.util.Log.d("ChecklistViewModel", "Item ${item.id} - vehicleTypes: ${item.vehicleType.map { it.Id }}, isCompatible: $itemCompatible")
+                        itemCompatible
+                    }
+                    checklist.copy(items = filteredItems)
+                }
+                
+                val firstChecklist = filteredChecklists.firstOrNull()
+                if (firstChecklist == null) {
+                    if (noCompatibleChecklists) {
+                        android.util.Log.w("ChecklistViewModel", "No hay checklists compatibles para vehicleId=$vehicleId, vehicleTypeId=$vehicleTypeId ($vehicleTypeName)")
+                    } else {
+                        android.util.Log.d("ChecklistViewModel", "No se encontró ningún checklist para vehicleId=$vehicleId")
+                    }
+                }
+                val allItems = filteredChecklists.flatMap { it.items }
+                android.util.Log.d("ChecklistViewModel", "Total de items después del filtrado: ${allItems.size}")
+                android.util.Log.d("ChecklistViewModel", "All item categories: ${allItems.map { it.category }}")
+                
+                allItems.forEachIndexed { index, item ->
+                    android.util.Log.d("ChecklistViewModel", "Item $index: id=${item.id}, question=${item.question.take(50)}..., isCritical=${item.isCritical}")
+                }
+                val selectedItems = if (firstChecklist != null) {
+                    android.util.Log.d("ChecklistViewModel", "Seleccionando preguntas para rotación con parámetros:")
+                    android.util.Log.d("ChecklistViewModel", "  - criticalQuestionMinimum: ${firstChecklist.criticalQuestionMinimum}")
+                    android.util.Log.d("ChecklistViewModel", "  - maxQuestionsPerCheck: ${firstChecklist.maxQuestionsPerCheck}")
+                    android.util.Log.d("ChecklistViewModel", "  - standardQuestionMaximum: ${firstChecklist.standardQuestionMaximum}")
+                    selectQuestionsForRotation(
+                        allItems,
+                        firstChecklist.criticalQuestionMinimum,
+                        firstChecklist.maxQuestionsPerCheck,
+                        firstChecklist.standardQuestionMaximum
+                    )
+                } else {
+                    android.util.Log.w("ChecklistViewModel", "No hay firstChecklist, retornando lista vacía")
+                    emptyList()
+                }
+                android.util.Log.d("ChecklistViewModel", "Items seleccionados para rotación: ${selectedItems.size}")
+                selectedItems.forEachIndexed { index, item ->
+                    android.util.Log.d("ChecklistViewModel", "Selected item $index: ${item.question.take(50)}..., isCritical=${item.isCritical}")
                 }
 
                 // 2. Crear o recuperar el check
@@ -424,7 +530,12 @@ class ChecklistViewModel @Inject constructor(
                         checkItems = selectedItems,
                         checklistAnswerId = checkId,
                         checklistId = selectedItems.firstOrNull()?.checklistId,
-                        startDateTime = currentDateTime
+                        startDateTime = currentDateTime,
+                        noCompatibleChecklists = noCompatibleChecklists,
+                        totalChecklistsFound = allChecklists.size,
+                        compatibleChecklistsFound = compatibleChecklists.size,
+                        specificChecklistsFound = specificCompatibleChecklists.size,
+                        defaultChecklistsFound = universalOrDefaultChecklists.size
                     )
                     android.util.Log.d("ChecklistViewModel", "ChecklistState actualizado: ${_state.value}")
                     maybeStartTimer()
@@ -876,7 +987,7 @@ class ChecklistViewModel @Inject constructor(
                     _state.update { 
                         it?.copy(
                             showErrorModal = true,
-                            errorModalMessage = "Se requiere la ubicación para enviar el checklist. Por favor verifica que la ubicación esté activada.",
+                            errorModalMessage = "Location is required to submit the checklist. Please verify that location is enabled.",
                             isSubmitting = false
                         )
                     }
@@ -928,7 +1039,8 @@ class ChecklistViewModel @Inject constructor(
                             vehicleId = vehicleId.toString(),
                             isDirty = true,
                             isNew = true,
-                            isMarkedForDeletion = false
+                            isMarkedForDeletion = false,
+                            creationDateTime = now
                         )
                         val result = createSafetyAlertUseCase(alert)
                         android.util.Log.d("ChecklistViewModel", "SafetyAlert created for item ${item.id}: ${result?.id}")
@@ -952,7 +1064,7 @@ class ChecklistViewModel @Inject constructor(
                             _state.update {
                                 it?.copy(
                                     showErrorModal = true,
-                                    errorModalMessage = "Check completado pero no se pudo iniciar sesión: ${e.message}"
+                                    errorModalMessage = "Check completed but could not start session: ${e.message}"
                                 )
                             }
                         }
@@ -961,13 +1073,13 @@ class ChecklistViewModel @Inject constructor(
                         _state.update {
                             it?.copy(
                                 showErrorModal = true,
-                                errorModalMessage = "Check completado pero no se pudo iniciar sesión: ${e.message}"
+                                errorModalMessage = "Check completed but could not start session: ${e.message}"
                             )
                         }
                     }
                 } else if (validation.status == CheckStatus.COMPLETED_FAIL) {
                     // Bloquear vehículo ya ocurre en repositorio, solo navega y muestra mensaje
-                    _state.update { it?.copy(vehicleBlocked = true, message = "El vehículo ha sido bloqueado por un fallo en el checklist.") }
+                    _state.update { it?.copy(vehicleBlocked = true, message = "The vehicle has been blocked due to a checklist failure.") }
                     _navigationEvent.value = NavigationEvent.VehicleBlocked
                     // Cambiar estado del vehículo a OUT_OF_SERVICE
                     val vehicleId = state.value?.vehicleId
@@ -1113,7 +1225,8 @@ class ChecklistViewModel @Inject constructor(
                             vehicleId = vehicleId.toString(),
                             isDirty = true,
                             isNew = true,
-                            isMarkedForDeletion = false
+                            isMarkedForDeletion = false,
+                            creationDateTime = now
                         )
                         val result = createSafetyAlertUseCase(alert)
                         android.util.Log.d("ChecklistViewModel", "SafetyAlert created for item ${item.id}: ${result?.id}")
@@ -1143,7 +1256,7 @@ class ChecklistViewModel @Inject constructor(
                     }
                 } else if (validation.status == CheckStatus.COMPLETED_FAIL) {
                     // Bloquear vehículo ya ocurre en repositorio, solo navega y muestra mensaje
-                    _state.update { it?.copy(vehicleBlocked = true, message = "El vehículo ha sido bloqueado por un fallo en el checklist.") }
+                    _state.update { it?.copy(vehicleBlocked = true, message = "The vehicle has been blocked due to a checklist failure.") }
                     _navigationEvent.value = NavigationEvent.VehicleBlocked
                     // Cambiar estado del vehículo a OUT_OF_SERVICE
                     val vehicleId = state.value?.vehicleId
@@ -1250,39 +1363,41 @@ class ChecklistViewModel @Inject constructor(
 
     fun uploadAndAttachImage(itemId: String, uri: Uri) {
         android.util.Log.d("ChecklistViewModel", "[ImageUpload][START] uploadAndAttachImage called for itemId=$itemId, uri=$uri")
+        // Asegura que la imagen esté en la lista local para previsualización inmediata
+        _itemImages.update { current ->
+            val currentImages = current[itemId].orEmpty()
+            if (!currentImages.contains(uri.toString())) {
+                current + (itemId to (currentImages + uri.toString()))
+            } else {
+                current
+            }
+        }
         viewModelScope.launch {
             try {
                 android.util.Log.d("appflow", "[ImageUpload][STEP1] Current answeredItemIds mapping: ${_answeredItemIds.value}")
                 android.util.Log.d("appflow", "[ImageUpload][STEP1] Current uploadedMultimedia state: ${_uploadedMultimedia.value}")
-                
                 _uploadingImages.update { current ->
                     android.util.Log.d("appflow", "[ImageUpload][STEP2] Added uri to uploadingImages set - Current size: ${current.size}")
                     current + uri
                 }
-                
                 android.util.Log.d("appflow", "[ImageUpload][STEP3] Converting URI to file for itemId=$itemId")
                 val file = uriToFile(uri)
                 android.util.Log.d("appflow", "[ImageUpload][STEP3] File created: ${file.name}, size=${file.length()}")
-                
                 android.util.Log.d("appflow", "[ImageUpload][STEP4] Uploading file for itemId=$itemId")
                 val uploadResult = uploadFileUseCase.uploadImageFile(file)
                 val uploadFile = uploadResult.getOrThrow()
                 android.util.Log.d("appflow", "[ImageUpload][STEP4] File uploaded successfully: ${uploadFile.internalName}")
-                
                 android.util.Log.d("appflow", "[ImageUpload][STEP5] Getting or creating AnsweredChecklistItem for itemId=$itemId")
                 val answeredChecklistItemId = getOrCreateAnsweredChecklistItemId(itemId)
                 android.util.Log.d("appflow", "[ImageUpload][STEP5] AnsweredChecklistItemId=$answeredChecklistItemId")
-                
                 val goUserId = userRepository.getCurrentUser()?.id ?: ""
                 android.util.Log.d("appflow", "[ImageUpload][STEP6] Building multimedia JSON for itemId=$itemId, goUserId=$goUserId")
                 val json = buildChecklistItemAnswerMultimediaJson(answeredChecklistItemId, uploadFile, goUserId)
                 android.util.Log.d("appflow", "[ImageUpload][STEP6] JSON built: $json")
-                
                 android.util.Log.d("appflow", "[ImageUpload][STEP7] Adding multimedia to checklist item")
                 val multimediaResult = addChecklistItemAnswerMultimediaUseCase(json)
                 val multimedia = multimediaResult.getOrThrow()
                 android.util.Log.d("appflow", "[ImageUpload][STEP7] Multimedia added successfully: id=${multimedia.id}")
-                
                 android.util.Log.d("appflow", "[ImageUpload][STEP8] Fetching updated multimedia list for AnsweredChecklistItemId=$answeredChecklistItemId")
                 val updatedMultimediaResult = getChecklistItemAnswerMultimediaByAnswerIdUseCase(answeredChecklistItemId)
                 updatedMultimediaResult.onSuccess { multimediaList ->
@@ -1304,7 +1419,6 @@ class ChecklistViewModel @Inject constructor(
                 }.onFailure { error ->
                     android.util.Log.e("appflow", "[ImageUpload][ERROR] Failed to fetch updated multimedia list: ${error.message}", error)
                 }
-                
                 android.util.Log.d("appflow", "[ImageUpload][END] Image upload process completed successfully for itemId=$itemId")
             } catch (e: Exception) {
                 android.util.Log.e("appflow", "[ImageUpload][ERROR] Error uploading image for itemId=$itemId: ${e.message}", e)
@@ -1335,14 +1449,23 @@ class ChecklistViewModel @Inject constructor(
     // Utility: Convert Uri to File (implementation for Android)
     private fun uriToFile(uri: Uri): File {
         val contentResolver = appContext.contentResolver
-        val fileName = getFileName(uri)
-        val tempFile = File(appContext.cacheDir, fileName)
-        contentResolver.openInputStream(uri)?.use { inputStream ->
-            tempFile.outputStream().use { outputStream ->
-                inputStream.copyTo(outputStream)
+        return if (uri.scheme == "file") {
+            // Si es un archivo directo, úsalo
+            val file = File(uri.path!!)
+            android.util.Log.d("ImageDebug", "[uriToFile] file:// path: ${file.absolutePath}, size: ${file.length()}")
+            file
+        } else {
+            // Si es content://, copia el contenido
+            val fileName = getFileName(uri)
+            val tempFile = File(appContext.externalCacheDir, fileName)
+            contentResolver.openInputStream(uri)?.use { inputStream ->
+                tempFile.outputStream().use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
             }
+            android.util.Log.d("ImageDebug", "[uriToFile] Copied content:// to: ${tempFile.absolutePath}, size: ${tempFile.length()}")
+            tempFile
         }
-        return tempFile
     }
 
     private fun getFileName(uri: Uri): String {
@@ -1369,6 +1492,7 @@ class ChecklistViewModel @Inject constructor(
             description = "",
             createdAt = now,
             createdAtWithTimezoneOffset = now,
+            creationDateTime = now,
             entityType = 2,
             goUserId = goUserId,
             image = file.internalName,
@@ -1442,6 +1566,29 @@ class ChecklistViewModel @Inject constructor(
     // 3. Loggear cada vez que se sube una imagen
     private fun logImageUploadEvent(itemId: String, checklistId: String?, checklistAnswerId: String?, answeredChecklistItemId: String?) {
         android.util.Log.d("appflow", "[ImageUpload] itemId=$itemId, checklistId=$checklistId, checklistAnswerId=$checklistAnswerId, answeredChecklistItemId=$answeredChecklistItemId")
+    }
+
+    fun createTempPhotoUri(context: Context): Uri? {
+        return try {
+            val contentResolver = context.contentResolver
+            val fileName = "PHOTO_${System.currentTimeMillis()}_.jpg"
+            val imageCollection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+            } else {
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            }
+            val contentValues = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ForkU")
+            }
+            val uri = contentResolver.insert(imageCollection, contentValues)
+            _tempPhotoUri.value = uri
+            uri
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistViewModel", "Error creating temp photo URI (MediaStore): ${e.message}", e)
+            null
+        }
     }
 }
 

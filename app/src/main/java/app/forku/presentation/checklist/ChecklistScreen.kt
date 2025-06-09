@@ -6,6 +6,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +51,9 @@ import app.forku.core.Constants
 import app.forku.presentation.common.components.buildAuthenticatedImageLoader
 import app.forku.data.datastore.AuthDataStore
 import app.forku.core.utils.hideKeyboardOnTapOutside
+import android.Manifest
+import android.content.pm.PackageManager
+import app.forku.presentation.common.components.ForkuButton
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +72,7 @@ fun ChecklistScreen(
     
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showBlockedDialog by remember { mutableStateOf(false) }
+    var showPhotoSourceDialog by remember { mutableStateOf(false) }
     val state by viewModel.state.collectAsState()
     val showDiscardDialog by viewModel.showDiscardDialog.collectAsState()
     val navigationEvent by viewModel.navigationEvent.collectAsState()
@@ -84,8 +91,8 @@ fun ChecklistScreen(
     val uploadingImages by viewModel.uploadingImages.collectAsState()
     val answeredItemIds by viewModel.answeredItemIds.collectAsState()
     
-    // Launcher state for each item
-    val launcherStates = remember { mutableStateMapOf<String, () -> Unit>() }
+    // Store the current item ID that is adding an image
+    var currentImageItemId by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     var imageLoader by remember { mutableStateOf<coil.ImageLoader?>(null) }
     LaunchedEffect(Unit) {
@@ -101,12 +108,82 @@ fun ChecklistScreen(
         )
         viewModel.loadChecklistData()
     }
-    // Single launcher for gallery
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        val itemId = launcherStates.keys.firstOrNull() ?: return@rememberLauncherForActivityResult
-        uri?.let { viewModel.uploadAndAttachImage(itemId, it) }
+
+    // Camera launcher
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        if (success) {
+            val itemId = currentImageItemId ?: return@rememberLauncherForActivityResult
+            viewModel.tempPhotoUri?.let { viewModel.uploadAndAttachImage(itemId, it) }
+        }
+        currentImageItemId = null // Clear after use
     }
-    
+
+    // Camera permission launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val itemId = currentImageItemId ?: return@rememberLauncherForActivityResult
+            viewModel.createTempPhotoUri(context)?.let { uri ->
+                cameraLauncher.launch(uri)
+            }
+        } else {
+            currentImageItemId = null // Clear if permission denied
+        }
+    }
+
+    // Gallery launcher
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        val itemId = currentImageItemId ?: return@rememberLauncherForActivityResult
+        uri?.let { viewModel.uploadAndAttachImage(itemId, it) }
+        currentImageItemId = null // Clear after use
+    }
+
+    // Photo source selection dialog
+    if (showPhotoSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showPhotoSourceDialog = false
+                currentImageItemId = null // Clear if dialog is dismissed
+            },
+            title = { Text("Add Photo") },
+            text = { Text("Choose photo source") },
+            confirmButton = {
+                ForkuButton(
+                    onClick = {
+                        showPhotoSourceDialog = false
+                        galleryLauncher.launch("image/*")
+                    }
+                ) {
+                    Text("Gallery")
+                }
+            },
+            dismissButton = {
+                ForkuButton(
+                    onClick = {
+                        showPhotoSourceDialog = false
+                        when (PackageManager.PERMISSION_GRANTED) {
+                            context.checkSelfPermission(Manifest.permission.CAMERA) -> {
+                                currentImageItemId?.let { itemId ->
+                                    viewModel.createTempPhotoUri(context)?.let { uri ->
+                                        cameraLauncher.launch(uri)
+                                    }
+                                }
+                            }
+                            else -> cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
+                ) {
+                    Text("Camera")
+                }
+            }
+        )
+    }
+
     // Add LocationPermissionHandler
     LocationPermissionHandler(
         onPermissionsGranted = viewModel::onLocationPermissionGranted,
@@ -170,7 +247,9 @@ fun ChecklistScreen(
                 Log.d("QRFlow", "ChecklistScreen - Navigating after submit, role: ${event.role}")
                 val userRole = RoleConverter.fromString(event.role)
                 val route = RoleConverter.getDashboardRouteForRole(userRole)
-                navController.navigate(route)
+                navController.navigate(route) {
+                    popUpTo(0) { inclusive = true }
+                }
                 viewModel.resetNavigation()
             }
             is NavigationEvent.VehicleBlocked -> {
@@ -202,8 +281,8 @@ fun ChecklistScreen(
     if (showBlockedDialog) {
         AlertDialog(
             onDismissRequest = { showBlockedDialog = false },
-            title = { Text("Vehículo bloqueado") },
-            text = { Text("El vehículo ha sido bloqueado debido a un fallo en el checklist. Por favor, contacte a un supervisor o seleccione otro vehículo.") },
+            title = { Text("Vehicle Blocked") },
+            text = { Text("The vehicle has been blocked due to a checklist failure. Please contact a supervisor or select another vehicle.") },
             confirmButton = {
                 Button(onClick = {
                     showBlockedDialog = false
@@ -215,7 +294,7 @@ fun ChecklistScreen(
                         popUpTo(0) { inclusive = true }
                     }
                 }) {
-                    Text("Ir al Dashboard")
+                    Text("Go to Dashboard")
                 }
             }
         )
@@ -259,9 +338,9 @@ fun ChecklistScreen(
                         if (currentState.checkItems.isNotEmpty()) {
                             Column(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(padding)
+                                    .fillMaxWidth()
                                     .verticalScroll(scrollState)
+                                    .align(Alignment.TopStart)
                             ) {
                                 // Keep VehicleProfileSummary
                                 currentState.vehicle?.let { vehicle ->
@@ -376,8 +455,8 @@ fun ChecklistScreen(
                                                 images = localImages + uploadedImages,
                                                 onAddImage = {
                                                     android.util.Log.d("ChecklistScreen", "[Event] onAddImage for item ${item.id}")
-                                                    launcherStates[item.id] = { galleryLauncher.launch("image/*") }
-                                                    launcherStates[item.id]?.invoke()
+                                                    currentImageItemId = item.id
+                                                    showPhotoSourceDialog = true
                                                 },
                                                 onRemoveImage = { checklistImage ->
                                                     android.util.Log.d("ChecklistScreen", "[Event] onRemoveImage for item ${item.id}, uploaded: ${checklistImage.isUploaded}, backendId: ${checklistImage.backendId}, uri: ${checklistImage.uri}")
@@ -433,16 +512,13 @@ fun ChecklistScreen(
                             }
                         } else {
                             // Show a message if no checklist items are available
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    "Este checklist no tiene preguntas configuradas.",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                            NoChecklistItemsMessage(
+                                state = currentState,
+                                onContactSupport = { 
+                                    // TODO: Implementar navegación a soporte/contacto
+                                },
+                                onRetry = { viewModel.loadChecklistData() }
+                            )
                         }
                     }
                 }
@@ -489,6 +565,219 @@ fun CategoryHeader(
             text = categoryName.replace("_", " ").capitalize(),
             style = MaterialTheme.typography.titleMedium,
             color = Color.Black
+        )
+    }
+}
+
+@Composable
+fun NoChecklistItemsMessage(
+    state: ChecklistState,
+    onContactSupport: () -> Unit,
+    onRetry: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp)
+        ) {
+            when {
+                state.noCompatibleChecklists -> {
+                    // No compatible checklists for this vehicle type
+                    androidx.compose.material.icons.Icons.Default.Warning.let { icon ->
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Warning",
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "No hay checklists disponibles",
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    val vehicleTypeName = state.vehicle?.type?.Name ?: "este tipo de vehículo"
+                    
+                    Text(
+                        text = "No se encontraron checklists configurados para:",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = vehicleTypeName,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Estadísticas del Sistema",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            StatisticRow("Total de checklists", state.totalChecklistsFound.toString())
+                            StatisticRow("Específicos para este tipo", state.specificChecklistsFound.toString())
+                            StatisticRow("Por defecto/universales", state.defaultChecklistsFound.toString())
+                            StatisticRow("Compatibles finales", state.compatibleChecklistsFound.toString())
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Action buttons
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ForkuButton(
+                            onClick = onContactSupport,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Contactar al Administrador")
+                        }
+                        
+                        OutlinedButton(
+                            onClick = onRetry,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Reintentar")
+                        }
+                    }
+                }
+                
+                state.totalChecklistsFound == 0 -> {
+                    // No checklists found at all
+                    androidx.compose.material.icons.Icons.Default.Info.let { icon ->
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Info",
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "No hay checklists configurados",
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "No se encontraron checklists configurados en el sistema.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    ForkuButton(
+                        onClick = onRetry,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Reintentar")
+                    }
+                }
+                
+                else -> {
+                    // Generic case - checklist exists but has no questions
+                    androidx.compose.material.icons.Icons.Default.CheckCircle.let { icon ->
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = "Empty",
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Checklist sin preguntas",
+                        style = MaterialTheme.typography.headlineSmall,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "Este checklist no tiene preguntas configuradas.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    ForkuButton(
+                        onClick = onRetry,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Reintentar")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatisticRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "• $label:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.End
         )
     }
 }

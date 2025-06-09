@@ -37,5 +37,8 @@ data class Incident(
     val othersInvolved: String? = null,
     val injuries: String = "",
     val injuryLocations: List<String> = emptyList(),
-    val locationCoordinates: String? = null
+    val locationCoordinates: String? = null,
+    
+    // Creator info (included from API response)
+    val creatorName: String = "Unknown"
 ) 

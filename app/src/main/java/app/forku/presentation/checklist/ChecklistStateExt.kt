@@ -24,16 +24,16 @@ fun ChecklistState.isReadyForSubmission(): Boolean {
 
 fun ChecklistState.getCompletionMessage(): String? {
     return when {
-        hasUnsavedChanges -> "Hay cambios sin guardar"
-        syncErrors.isNotEmpty() -> "Hay errores de sincronización pendientes"
-        checkStatus == CheckStatus.COMPLETED_PASS.toString() -> "Check completado exitosamente"
-        checkStatus == CheckStatus.COMPLETED_FAIL.toString() -> "Check completado con fallas"
+        hasUnsavedChanges -> "There are unsaved changes"
+        syncErrors.isNotEmpty() -> "There are pending synchronization errors"
+        checkStatus == CheckStatus.COMPLETED_PASS.toString() -> "Check completed successfully"
+        checkStatus == CheckStatus.COMPLETED_FAIL.toString() -> "Check completed with failures"
         else -> null
     }
 }
 
 fun ChecklistState.getSyncErrorMessage(): String? {
     return if (syncErrors.isNotEmpty()) {
-        "Hay ${syncErrors.size} respuestas con errores de sincronización"
+        "There are ${syncErrors.size} responses with synchronization errors"
     } else null
 } 

@@ -28,6 +28,19 @@ fun Incident.toDto(): IncidentDto {
 }
 
 fun IncidentDto.toDomain(): Incident {
+    android.util.Log.d("IncidentMapper", "Mapping IncidentDto to Incident with included GOUser: ${goUser?.fullName ?: "null"}")
+    
+    // Extract creator name from included GOUser data
+    val creatorName = goUser?.let { user ->
+        when {
+            !user.fullName.isNullOrBlank() -> user.fullName
+            !user.firstName.isNullOrBlank() || !user.lastName.isNullOrBlank() -> 
+                listOfNotNull(user.firstName, user.lastName).joinToString(" ").trim()
+            !user.username.isNullOrBlank() -> user.username
+            else -> "Unknown"
+        }
+    } ?: "Unknown"
+    
     return Incident(
         id = id ?: "",
         type = IncidentTypeEnum.values().getOrNull(incidentType) ?: IncidentTypeEnum.COLLISION,
@@ -58,6 +71,7 @@ fun IncidentDto.toDomain(): Incident {
         sessionId = "",
         photos = emptyList(),
         weather = "",
-        vehicleId = ""
+        vehicleId = "",
+        creatorName = creatorName
     )
 } 

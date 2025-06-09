@@ -177,10 +177,10 @@ class SystemOwnerDashboardViewModel @Inject constructor(
         }
     }
     
-    fun submitFeedback(rating: Int, feedback: String) {
+    fun submitFeedback(rating: Int, feedback: String, canContactMe: Boolean) {
         viewModelScope.launch {
             try {
-                submitFeedbackUseCase(rating, feedback)
+                submitFeedbackUseCase(rating, feedback, canContactMe)
                 _state.update { it.copy(feedbackSubmitted = true) }
             } catch (e: Exception) {
                 _state.update { it.copy(error = "Error submitting feedback: ${e.message}") }

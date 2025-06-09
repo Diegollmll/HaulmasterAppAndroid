@@ -34,6 +34,7 @@ import app.forku.data.api.VehicleSessionApi
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.usecase.incident.GetUserIncidentCountUseCase
 import app.forku.domain.usecase.safetyalert.GetSafetyAlertCountUseCase
+import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
 
 sealed class AuthEvent {
     object NavigateToLogin : AuthEvent()
@@ -51,7 +52,8 @@ class AdminDashboardViewModel @Inject constructor(
     private val goServicesManager: GOServicesManager,
     private val vehicleSessionApi: VehicleSessionApi,
     private val getUserIncidentCountUseCase: GetUserIncidentCountUseCase,
-    private val getSafetyAlertCountUseCase: GetSafetyAlertCountUseCase
+    private val getSafetyAlertCountUseCase: GetSafetyAlertCountUseCase,
+    private val submitFeedbackUseCase: SubmitFeedbackUseCase
 ) : ViewModel() {
 
     private val _authEvent = MutableSharedFlow<AuthEvent>()
@@ -381,29 +383,15 @@ class AdminDashboardViewModel @Inject constructor(
         }
     }
 
-    fun submitFeedback(rating: Int, feedback: String) {
+    fun submitFeedback(rating: Int, feedback: String, canContactMe: Boolean) {
         viewModelScope.launch {
             try {
-                // TODO: Implement API call to submit feedback
-                // For now, just log it
-                android.util.Log.d("Feedback", "Submitting feedback - Rating: $rating, Feedback: $feedback")
-                android.util.Log.d("Feedback", "User: ${currentUser.value?.id}")
-                
-                // You could show a success message in the UI
-                _state.update { it.copy(
-                    feedbackSubmitted = true
-                )}
-                
-                // Reset the feedback submitted state after a delay
+                submitFeedbackUseCase(rating, feedback, canContactMe)
+                _state.update { it.copy(feedbackSubmitted = true) }
                 delay(3000)
-                _state.update { it.copy(
-                    feedbackSubmitted = false
-                )}
+                _state.update { it.copy(feedbackSubmitted = false) }
             } catch (e: Exception) {
-                android.util.Log.e("Feedback", "Error submitting feedback", e)
-                _state.update { it.copy(
-                    error = "Failed to submit feedback: ${e.message}"
-                )}
+                _state.update { it.copy(error = "Failed to submit feedback: ${e.message}") }
             }
         }
     }
