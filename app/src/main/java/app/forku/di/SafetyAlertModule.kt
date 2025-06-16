@@ -2,6 +2,7 @@ package app.forku.di
 
 import app.forku.data.api.SafetyAlertApi
 import app.forku.core.auth.HeaderManager
+import app.forku.core.business.BusinessContextManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,9 +31,10 @@ object SafetyAlertModule {
     fun provideSafetyAlertRepository(
         api: SafetyAlertApi,
         headerManager: HeaderManager,
-        gson: Gson
+        gson: Gson,
+        businessContextManager: BusinessContextManager
     ): SafetyAlertRepository {
-        return SafetyAlertRepositoryImpl(api, headerManager, gson)
+        return SafetyAlertRepositoryImpl(api, headerManager, gson, businessContextManager)
     }
 
     @Provides

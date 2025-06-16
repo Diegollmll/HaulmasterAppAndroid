@@ -15,7 +15,9 @@ interface SafetyAlertApi {
     @GET("api/safetyalert/list")
     suspend fun getSafetyAlertList(
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Query("filter") filter: String? = null,
+        @Query("businessId") businessId: String? = null
     ): Response<List<SafetyAlertDto>>
 
     @FormUrlEncoded
@@ -23,7 +25,8 @@ interface SafetyAlertApi {
     suspend fun saveSafetyAlert(
         @Field("entity") entity: String,
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Query("businessId") businessId: String? = null
     ): Response<SafetyAlertDto>
 
     @DELETE("api/safetyalert")
@@ -44,13 +47,15 @@ interface SafetyAlertApi {
     @GET("dataset/api/safetyalert/list")
     suspend fun getDatasetSafetyAlertList(
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Query("filter") filter: String? = null
     ): Response<Any>
 
     @GET("dataset/api/safetyalert/count")
     suspend fun getDatasetSafetyAlertCount(
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Accept") accept: String = "text/plain"
+        @Header("Accept") accept: String = "text/plain",
+        @Query("filter") filter: String? = null
     ): Response<Int>
 
     @POST("dataset/api/safetyalert")

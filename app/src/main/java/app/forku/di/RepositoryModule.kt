@@ -1,5 +1,6 @@
 package app.forku.di
 
+import app.forku.core.business.BusinessContextManager
 import app.forku.core.location.LocationManager
 import app.forku.data.api.*
 import app.forku.data.datastore.AuthDataStore
@@ -46,6 +47,8 @@ import app.forku.data.repository.gogroup.*
 import app.forku.domain.repository.gogroup.*
 import app.forku.data.api.UserBusinessApi
 import app.forku.data.repository.CollisionIncidentRepository
+import app.forku.data.repository.NearMissIncidentRepository
+import app.forku.data.repository.HazardIncidentRepository
 import app.forku.data.repository.user.UserBusinessRepositoryImpl
 import app.forku.domain.repository.user.UserBusinessRepository
 import app.forku.data.repository.weather.WeatherRepositoryImpl
@@ -143,17 +146,8 @@ abstract class RepositoryModule {
         repository: WeatherRepositoryImpl
     ): WeatherRepository
 
-    @Binds
-    @Singleton
-    abstract fun bindCollisionIncidentRepository(
-        repository: CollisionIncidentRepository
-    ): ICollisionIncidentRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindVehicleFailIncidentRepository(
-        repositoryImpl: VehicleFailIncidentRepositoryImpl
-    ): VehicleFailIncidentRepository
+    // Incident repositories are now provided explicitly with BusinessContextManager
+    // See RepositoryProvidersModule for @Provides methods
 }
 
 @Module
@@ -270,13 +264,15 @@ object RepositoryProvidersModule {
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
         checklistAnswerRepository: ChecklistAnswerRepository,
-        locationManager: LocationManager
+        locationManager: LocationManager,
+        businessContextManager: BusinessContextManager
     ): VehicleSessionRepository = VehicleSessionRepositoryImpl(
         api = api,
         authDataStore = authDataStore,
         vehicleStatusRepository = vehicleStatusRepository,
         checklistAnswerRepository = checklistAnswerRepository,
-        locationManager = locationManager
+        locationManager = locationManager,
+        businessContextManager = businessContextManager
     )
 
     @Provides
@@ -288,7 +284,8 @@ object RepositoryProvidersModule {
         hazardIncidentApi: HazardIncidentApi,
         vehicleFailIncidentApi: VehicleFailIncidentApi,
         authDataStore: AuthDataStore,
-        gson: Gson
+        gson: Gson,
+        businessContextManager: BusinessContextManager
     ): IncidentRepository = IncidentRepositoryImpl(
         api,
         collisionApi,
@@ -296,7 +293,8 @@ object RepositoryProvidersModule {
         hazardIncidentApi,
         vehicleFailIncidentApi,
         authDataStore,
-        gson
+        gson,
+        businessContextManager
     )
 
     @Provides
@@ -304,4 +302,53 @@ object RepositoryProvidersModule {
     fun provideVehicleStatusChecker(
         vehicleStatusRepository: VehicleStatusRepository
     ): VehicleStatusChecker = vehicleStatusRepository
+
+    // Specific incident repository providers with BusinessContextManager
+    @Provides
+    @Singleton
+    fun provideNearMissIncidentRepository(
+        api: NearMissIncidentApi,
+        gson: Gson,
+        businessContextManager: BusinessContextManager
+    ): NearMissIncidentRepository = NearMissIncidentRepository(
+        api = api,
+        gson = gson,
+        businessContextManager = businessContextManager
+    )
+
+    @Provides
+    @Singleton
+    fun provideHazardIncidentRepository(
+        api: HazardIncidentApi,
+        gson: Gson,
+        businessContextManager: BusinessContextManager
+    ): HazardIncidentRepository = HazardIncidentRepository(
+        api = api,
+        gson = gson,
+        businessContextManager = businessContextManager
+    )
+
+    @Provides
+    @Singleton
+    fun provideCollisionIncidentRepository(
+        api: CollisionIncidentApi,
+        gson: Gson,
+        businessContextManager: BusinessContextManager
+    ): ICollisionIncidentRepository = CollisionIncidentRepository(
+        api = api,
+        gson = gson,
+        businessContextManager = businessContextManager
+    )
+
+    @Provides
+    @Singleton
+    fun provideVehicleFailIncidentRepositoryImpl(
+        api: VehicleFailIncidentApi,
+        gson: Gson,
+        businessContextManager: BusinessContextManager
+    ): VehicleFailIncidentRepository = VehicleFailIncidentRepositoryImpl(
+        api = api,
+        gson = gson,
+        businessContextManager = businessContextManager
+    )
 }

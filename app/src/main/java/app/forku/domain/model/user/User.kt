@@ -25,7 +25,8 @@ data class User(
     val password: String,
     val businessId: String? = null,
     val siteId: String? = null,
-    val systemOwnerId: String? = null
+    val systemOwnerId: String? = null,
+    val userPreferencesId: String? = null
 ) {
     val fullName: String
         get() = "$firstName $lastName"

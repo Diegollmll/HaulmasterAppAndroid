@@ -6,5 +6,8 @@ data class OperatorsListState(
     val operators: List<OperatorSessionInfo> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val currentBusinessId: String? = null,
+    val currentSiteId: String? = null,
+    val hasBusinessContext: Boolean = false
 ) 

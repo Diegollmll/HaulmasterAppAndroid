@@ -29,6 +29,10 @@ open class IncidentDto(
     open val isNew: Boolean = true,
     @SerializedName("IsMarkedForDeletion")
     open val isMarkedForDeletion: Boolean = false,
+    @SerializedName("BusinessId")
+    open val businessId: String? = null,
+    @SerializedName("SiteId")
+    open val siteId: String? = null,
     @SerializedName("GOUser")
     @Contextual
     open val goUser: UserDto? = null

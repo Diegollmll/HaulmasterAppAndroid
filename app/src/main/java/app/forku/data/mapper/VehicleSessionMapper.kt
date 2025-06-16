@@ -30,7 +30,8 @@ object VehicleSessionMapper {
     }
 
     fun toDomain(dto: VehicleSessionDto): VehicleSession {
-        android.util.Log.d("VehicleSessionMapper", "Mapping session ${dto.Id} - GOUser present: ${dto.GOUser != null}, Vehicle present: ${dto.Vehicle != null}")
+        android.util.Log.d("VehicleSessionMapper", "VehicleSessionDto: ${dto}")
+        android.util.Log.d("VehicleSessionMapper", "Mapping session ${dto.Id} - GOUser present: ${dto.GOUser != null}, Vehicle present: ${dto.Vehicle != null}, ChecklistAnswer present: ${dto.ChecklistAnswer != null}")
         
         // Extract operator name from included GOUser data
         val operatorName = dto.GOUser?.let { user ->
@@ -71,7 +72,9 @@ object VehicleSessionMapper {
             closedBy = dto.ClosedBy,
             notes = null, // Not present in new DTO
             operatorName = operatorName,
-            vehicleName = vehicleName
+            vehicleName = vehicleName,
+            businessId = dto.BusinessId,
+            siteId = dto.siteId // ✅ Include siteId from DTO
         )
     }
 
@@ -92,7 +95,9 @@ object VehicleSessionMapper {
             IsDirty = true,
             IsNew = true,
             IsMarkedForDeletion = false,
-            Duration = domain.durationMinutes
+            Duration = domain.durationMinutes,
+            BusinessId = domain.businessId,
+            siteId = domain.siteId // ✅ Include siteId from domain
         )
     }
 

@@ -11,6 +11,10 @@ data class SafetyAlertDto(
     val goUserId: String = "",
     @SerializedName("VehicleId")
     val vehicleId: String = "",
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null,
     @SerializedName("IsDirty")
     val isDirty: Boolean = true,
     @SerializedName("IsNew")

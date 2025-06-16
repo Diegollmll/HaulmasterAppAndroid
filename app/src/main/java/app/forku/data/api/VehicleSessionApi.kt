@@ -40,7 +40,8 @@ interface VehicleSessionApi {
     suspend fun saveSession(
         @Header("X-CSRF-TOKEN") csrfToken: String,
         @Header("Cookie") cookie: String,
-        @Field("entity") entity: String
+        @Field("entity") entity: String,
+        @Query("businessId") businessId: String? = null
     ): Response<VehicleSessionDto>
 
     @DELETE("dataset/api/vehiclesession/{id}")

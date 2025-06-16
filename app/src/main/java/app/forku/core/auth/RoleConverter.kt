@@ -3,73 +3,43 @@ package app.forku.core.auth
 import android.util.Log
 import app.forku.domain.model.user.UserRole
 
+/**
+ * Legacy wrapper for UserRoleManager
+ * 
+ * @deprecated Use UserRoleManager directly for new code
+ * This class is maintained for backward compatibility only
+ */
 object RoleConverter {
+    
     /**
-     * Converts a string role to UserRole enum
-     * @param roleString The role string to convert
-     * @param defaultRole The default role to return if conversion fails (defaults to OPERATOR)
-     * @return The corresponding UserRole
+     * @deprecated Use UserRoleManager.fromString() instead
      */
+    @Deprecated("Use UserRoleManager.fromString() instead", ReplaceWith("UserRoleManager.fromString(roleString, defaultRole)"))
     fun fromString(roleString: String?, defaultRole: UserRole = UserRole.OPERATOR): UserRole {
-        Log.d("RoleConverter", "=== Converting role string ===")
-        Log.d("RoleConverter", "Input roleString: '$roleString'")
-        Log.d("RoleConverter", "Default role: $defaultRole")
-        
-        if (roleString == null) {
-            Log.d("RoleConverter", "Role string is null, returning default: $defaultRole")
-            return defaultRole
-        }
-        
-        val normalized = roleString.trim().lowercase().replace(" ", "")
-        Log.d("RoleConverter", "Normalized role string: '$normalized'")
-        
-        return try {
-            val result = when (normalized) {
-                "systemowner", "system_owner" -> UserRole.SYSTEM_OWNER
-                "superadmin", "super_admin" -> UserRole.SUPERADMIN
-                "admin", "administrator", "administrador" -> UserRole.ADMIN
-                "operator", "operador" -> UserRole.OPERATOR
-                else -> {
-                    Log.d("RoleConverter", "No direct match, trying enum parse...")
-                    // Try to parse as enum name directly
-                    try {
-                        val enumResult = UserRole.valueOf(roleString.uppercase())
-                        Log.d("RoleConverter", "Enum parse successful: $enumResult")
-                        enumResult
-                    } catch (e: IllegalArgumentException) {
-                        Log.w("RoleConverter", "Could not convert role string: '$roleString', using default role: $defaultRole")
-                        defaultRole
-                    }
-                }
-            }
-            Log.d("RoleConverter", "Final conversion result: $result")
-            result
-        } catch (e: Exception) {
-            Log.e("RoleConverter", "Error converting role string: '$roleString'", e)
-            defaultRole
-        }
+        return UserRoleManager.fromString(roleString, defaultRole)
     }
 
     /**
-     * Converts a UserRole to its corresponding API string representation
-     * @param role The UserRole to convert
-     * @return The string representation for the API
+     * @deprecated Use UserRoleManager.toApiString() instead
      */
+    @Deprecated("Use UserRoleManager.toApiString() instead", ReplaceWith("UserRoleManager.toApiString(role)"))
     fun toString(role: UserRole): String {
-        return when (role) {
-            UserRole.SYSTEM_OWNER -> "systemowner"
-            UserRole.SUPERADMIN -> "superadmin"
-            UserRole.ADMIN -> "administrator"
-            UserRole.OPERATOR -> "operator"
-        }
+        return UserRoleManager.toApiString(role)
     }
 
+    /**
+     * @deprecated Use UserRoleManager.toDisplayString() instead
+     */
+    @Deprecated("Use UserRoleManager.toDisplayString() instead", ReplaceWith("UserRoleManager.toDisplayString(role)"))
+    fun toDisplayString(role: UserRole): String {
+        return UserRoleManager.toDisplayString(role)
+    }
+
+    /**
+     * @deprecated Use UserRoleManager.getDashboardRoute() instead
+     */
+    @Deprecated("Use UserRoleManager.getDashboardRoute() instead", ReplaceWith("UserRoleManager.getDashboardRoute(role)"))
     fun getDashboardRouteForRole(role: UserRole): String {
-        return when (role) {
-            UserRole.SYSTEM_OWNER -> app.forku.presentation.navigation.Screen.SystemOwnerDashboard.route
-            UserRole.SUPERADMIN -> app.forku.presentation.navigation.Screen.SuperAdminDashboard.route
-            UserRole.ADMIN -> app.forku.presentation.navigation.Screen.AdminDashboard.route
-            UserRole.OPERATOR -> app.forku.presentation.navigation.Screen.Dashboard.route
-        }
+        return UserRoleManager.getDashboardRoute(role)
     }
 } 

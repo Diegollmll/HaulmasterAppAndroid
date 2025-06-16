@@ -4,20 +4,33 @@ import com.google.gson.annotations.SerializedName
 import app.forku.data.api.dto.multimedia.MultimediaDto
 
 data class IncidentMultimediaDto(
-    @SerializedName("id")
-    val id: String,
-    @SerializedName("incidentId")
-    val incidentId: String,
-    @SerializedName("multimediaId")
-    val multimediaId: String,
-    @SerializedName("description")
-    val description: String?,
-    @SerializedName("createdAt")
-    val createdAt: String,
-    @SerializedName("createdAt_WithTimezoneOffset")
-    val createdAtWithTimezoneOffset: String,
-    @SerializedName("multimedia")
-    val multimedia: MultimediaDto?,
+    @SerializedName("Id")
+    val id: String? = null,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null,
     @SerializedName("CreationDateTime")
-    val creationDateTime: String?
+    val creationDateTime: String? = null,
+    @SerializedName("EntityType")
+    val entityType: Int? = null,
+    @SerializedName("GOUserId")
+    val goUserId: String? = null,
+    @SerializedName("Image")
+    val image: String? = null,
+    @SerializedName("ImageFileSize")
+    val imageFileSize: Int? = null,
+    @SerializedName("ImageInternalName")
+    val imageInternalName: String? = null,
+    @SerializedName("ImageUrl")
+    val imageUrl: String? = null, // Calculated, puede venir solo en respuesta
+    @SerializedName("MultimediaType")
+    val multimediaType: Int? = null,
+    @SerializedName("IncidentId")
+    val incidentId: String? = null,
+    // Relaciones (opcional, solo si se usan en respuesta)
+    @SerializedName("Business")
+    val business: Map<String, Any>? = null,
+    @SerializedName("GOUser")
+    val goUser: Map<String, Any>? = null
 ) 

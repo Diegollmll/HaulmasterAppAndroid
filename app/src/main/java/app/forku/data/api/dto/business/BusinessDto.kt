@@ -4,7 +4,7 @@ import app.forku.data.api.dto.country.CountryDto
 import app.forku.data.api.dto.site.SiteItemDto
 import com.google.gson.annotations.SerializedName
 
-data class BusinessItemDto(
+data class BusinessDto(
     @SerializedName("Id")
     val id: String,
 

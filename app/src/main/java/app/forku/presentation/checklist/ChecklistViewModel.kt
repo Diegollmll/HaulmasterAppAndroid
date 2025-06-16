@@ -55,6 +55,7 @@ import androidx.core.content.FileProvider
 import android.os.Build
 import android.provider.MediaStore
 import android.content.ContentValues
+import app.forku.core.business.BusinessContextManager
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -80,7 +81,8 @@ class ChecklistViewModel @Inject constructor(
     private val gson: Gson,
     private val getChecklistItemAnswerMultimediaByAnswerIdUseCase: GetChecklistItemAnswerMultimediaByAnswerIdUseCase,
     private val headerManager: HeaderManager,
-    private val createSafetyAlertUseCase: CreateSafetyAlertUseCase
+    private val createSafetyAlertUseCase: CreateSafetyAlertUseCase,
+    private val businessContextManager: BusinessContextManager
 ) : ViewModel() {
 
     private val vehicleId = checkNotNull(savedStateHandle["vehicleId"])
@@ -193,21 +195,16 @@ class ChecklistViewModel @Inject constructor(
             android.util.Log.d("ChecklistViewModel", "INIT - Current session: $currentSession")
             
             if (currentSession != null) {
-                // Get the last completed check for this vehicle
-                val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId
-                android.util.Log.d("ChecklistViewModel", "INIT - Current user: $currentUser, businessId: $businessId")
+                // Use BusinessContextManager for business context
+                val businessId = businessContextManager.getCurrentBusinessId()
+                android.util.Log.d("ChecklistViewModel", "INIT - businessId from BusinessContextManager: $businessId")
                 
-                if (businessId != null) {
-                    val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId)
-                    android.util.Log.d("ChecklistViewModel", "INIT - Last completed check: $lastCompletedCheck")
-                    if (lastCompletedCheck != null) {
-                        loadExistingCheck(lastCompletedCheck.id)
-                    } else {
-                        loadChecklistData() // Fallback to normal flow if no check found
-                    }
+                val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId ?: "")
+                android.util.Log.d("ChecklistViewModel", "INIT - Last completed check: $lastCompletedCheck")
+                if (lastCompletedCheck != null) {
+                    loadExistingCheck(lastCompletedCheck.id)
                 } else {
-                    loadChecklistData() // Fallback if no business context
+                    loadChecklistData() // Fallback to normal flow if no check found
                 }
             } else {
                 loadChecklistData()
@@ -348,23 +345,13 @@ class ChecklistViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 android.util.Log.d("ChecklistViewModel", "Iniciando carga de checklist para vehicleId=$vehicleId")
-                // Get current user's business ID
-                val currentUser = userRepository.getCurrentUser()
-                android.util.Log.d("ChecklistViewModel", "Usuario actual: $currentUser")
-                val businessId = currentUser?.businessId ?: app.forku.core.Constants.BUSINESS_ID
-                android.util.Log.d("ChecklistViewModel", "businessId resolved: $businessId")
                 
-                if (businessId == null) {
-                    withContext(Dispatchers.Main) {
-                        android.util.Log.d("ChecklistViewModel", "No business context available para vehicleId=$vehicleId")
-                        _state.value = ChecklistState(
-                            vehicleId = vehicleId.toString(),
-                            vehicleStatus = VehicleStatus.AVAILABLE,
-                            checkStatus = CheckStatus.NOT_STARTED.toString(),
-                            error = "No business context available"
-                        )
-                    }
-                    return@launch
+                // Use BusinessContextManager for business context
+                val businessId = businessContextManager.getCurrentBusinessId()
+                android.util.Log.d("ChecklistViewModel", "businessId from BusinessContextManager: $businessId")
+                
+                if (businessId == app.forku.core.Constants.BUSINESS_ID) {
+                    android.util.Log.w("ChecklistViewModel", "Using fallback business ID: $businessId")
                 }
 
                 // Fetch all categories and build the map
@@ -503,7 +490,7 @@ class ChecklistViewModel @Inject constructor(
                 // 2. Crear o recuperar el check
                 android.util.Log.d("ChecklistViewModel", "Llamando a getLastPreShiftCheck para vehicleId=$vehicleId, businessId=$businessId")
                 val lastCheck = try {
-                    checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId).also {
+                    checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId ?: "").also {
                         android.util.Log.d("ChecklistViewModel", "lastCheck: $it")
                     }
                 } catch (e: Exception) {
@@ -656,6 +643,10 @@ class ChecklistViewModel @Inject constructor(
                         }
                     } catch (e: Exception) { null }
 
+                    // Get business context using BusinessContextManager
+                    val businessId = businessContextManager.getCurrentBusinessId()
+                    android.util.Log.d("ChecklistViewModel", "Creating AnsweredChecklistItem with businessId: $businessId")
+                    
                     val answeredItem = AnsweredChecklistItem(
                         id = existingAnsweredItem?.id ?: java.util.UUID.randomUUID().toString(),
                         checklistId = item.checklistId,
@@ -667,7 +658,8 @@ class ChecklistViewModel @Inject constructor(
                         createdAt = java.time.Instant.now().toString(),
                         isNew = existingAnsweredItem == null,
                         isDirty = true,
-                        userComment = item.userComment
+                        userComment = item.userComment,
+                        businessId = businessId
                     )
 
                     // Save the answered item
@@ -880,6 +872,10 @@ class ChecklistViewModel @Inject constructor(
         val userId = userRepository.getCurrentUser()?.id ?: ""
         val locationCoordinates = locationManager.locationState.value.location
         val currentVehicleId = state.value?.vehicleId ?: ""
+        
+        // Get business context using BusinessContextManager
+        val businessId = businessContextManager.getCurrentBusinessId()
+        android.util.Log.d("ChecklistViewModel", "Using businessId: $businessId for ChecklistAnswer")
 
         // Obtener el ID del checklist actual (plantilla)
         val currentChecklistId = state.value?.checklistId 
@@ -907,7 +903,8 @@ class ChecklistViewModel @Inject constructor(
                         locationCoordinates = locationCoordinates,
                         lastCheckDateTime = now,
                         vehicleId = currentVehicleId,
-                        duration = durationSeconds
+                        duration = durationSeconds,
+                        businessId = businessId
                     )
                 }
             } catch (e: Exception) {
@@ -931,7 +928,8 @@ class ChecklistViewModel @Inject constructor(
             isMarkedForDeletion = false,
             lastCheckDateTime = now,
             vehicleId = currentVehicleId,
-            duration = durationSeconds
+            duration = durationSeconds,
+            businessId = businessId
         )
     }
 
@@ -1487,6 +1485,12 @@ class ChecklistViewModel @Inject constructor(
         android.util.Log.d("ImageUpload", "[JSON] checklistAnswerId=$checklistAnswerId, goUserId=$goUserId")
         val file = uploadFile as app.forku.domain.model.gogroup.UploadFile
         val now = java.time.Instant.now().toString()
+        
+        // Get business and site context from current state (synchronous)
+        val businessContextState = businessContextManager.contextState.value
+        val businessId = businessContextState.businessId
+        val siteId = businessContextState.siteId
+        
         val dto = ChecklistItemAnswerMultimediaDto(
             checklistItemAnswerId = itemId,
             description = "",
@@ -1501,7 +1505,9 @@ class ChecklistViewModel @Inject constructor(
             multimediaType = 0,
             isNew = true,
             isDirty = true,
-            isMarkedForDeletion = false
+            isMarkedForDeletion = false,
+            businessId = businessId,
+            siteId = siteId
         )
         val json = gson.toJson(dto)
         android.util.Log.d("ImageUpload", "[JSON] JSON final generado: $json")

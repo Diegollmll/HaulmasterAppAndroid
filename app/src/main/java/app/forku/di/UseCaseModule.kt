@@ -32,6 +32,7 @@ import app.forku.domain.usecase.nearmiss_incident.SaveNearMissIncidentUseCase
 import app.forku.data.repository.NearMissIncidentRepository
 import app.forku.domain.usecase.vehiclefail_incident.SaveVehicleFailIncidentUseCase
 import app.forku.domain.repository.incident.VehicleFailIncidentRepository
+import app.forku.core.business.BusinessContextManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -76,9 +77,10 @@ object UseCaseModule {
     fun provideReportIncidentUseCase(
         repository: IncidentRepository,
         userRepository: UserRepository,
-        vehicleSessionRepository: VehicleSessionRepository
+        vehicleSessionRepository: VehicleSessionRepository,
+        businessContextManager: BusinessContextManager
     ): ReportIncidentUseCase {
-        return ReportIncidentUseCase(repository, userRepository, vehicleSessionRepository)
+        return ReportIncidentUseCase(repository, userRepository, vehicleSessionRepository, businessContextManager)
     }
 
     @Provides

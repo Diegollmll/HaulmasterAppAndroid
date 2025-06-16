@@ -22,6 +22,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -92,10 +93,20 @@ class QuestionaryChecklistViewModel @Inject constructor(
     private fun loadSites(businessId: String) {
         viewModelScope.launch {
             try {
-                val sites = siteRepository.getAllSites()
-                    .filter { it.businessId == businessId }
-                    .map { it.toDomain() }
-                _uiState.update { it.copy(sites = sites) }
+                siteRepository.getAllSites()
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { sites ->
+                                val filteredSites = sites
+                                    .filter { it.businessId == businessId }
+                                    .map { it.toDomain() }
+                                _uiState.update { it.copy(sites = filteredSites) }
+                            },
+                            onFailure = { error ->
+                                Log.e(TAG, "Error loading sites for business $businessId", error)
+                            }
+                        )
+                    }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading sites for business $businessId", e)
             }
@@ -267,16 +278,26 @@ class QuestionaryChecklistViewModel @Inject constructor(
                 // After loading sites, set the selected site
                 viewModelScope.launch {
                     try {
-                        val sites = siteRepository.getAllSites()
-                            .filter { it.businessId == businessId }
-                            .map { it.toDomain() }
-                        _uiState.update { it.copy(sites = sites) }
-                        // Find and set the selected site
-                        questionary.siteId?.let { siteId ->
-                            sites.find { it.id == siteId }?.let { site ->
-                                selectSite(site)
+                        siteRepository.getAllSites()
+                            .collect { result ->
+                                result.fold(
+                                    onSuccess = { sites ->
+                                        val filteredSites = sites
+                                            .filter { it.businessId == businessId }
+                                            .map { it.toDomain() }
+                                        _uiState.update { it.copy(sites = filteredSites) }
+                                        // Find and set the selected site
+                                        questionary.siteId?.let { siteId ->
+                                            filteredSites.find { it.id == siteId }?.let { site ->
+                                                selectSite(site)
+                                            }
+                                        }
+                                    },
+                                    onFailure = { error ->
+                                        Log.e(TAG, "Error loading sites for business $businessId", error)
+                                    }
+                                )
                             }
-                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error loading sites for business $businessId", e)
                     }

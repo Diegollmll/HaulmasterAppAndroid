@@ -17,7 +17,8 @@ fun ChecklistAnswer.toDto() = ChecklistAnswerDto(
     isMarkedForDeletion = isMarkedForDeletion,
     lastCheckDateTime = lastCheckDateTime,
     vehicleId = vehicleId,
-    duration = duration
+    duration = duration,
+    businessId = businessId
 )
 
 fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
@@ -34,6 +35,7 @@ fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
     lastCheckDateTime = lastCheckDateTime,
     vehicleId = vehicleId,
     duration = duration,
+    businessId = businessId,
     operatorName = goUser?.let { user ->
         when {
             !user.fullName.isNullOrBlank() -> user.fullName
@@ -47,7 +49,7 @@ fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
 )
 
 fun ChecklistAnswerDto.toJsonObject(): JsonObject {
-    android.util.Log.d("ChecklistAnswerMapper", "[toJsonObject] checklistId: $checklistId, endDateTime: $endDateTime, goUserId: $goUserId, id: $id, startDateTime: $startDateTime, status: $status, isDirty: $isDirty, isNew: $isNew, isMarkedForDeletion: $isMarkedForDeletion, locationCoordinates: $locationCoordinates, lastCheckDateTime: $lastCheckDateTime, vehicleId: $vehicleId")
+    android.util.Log.d("ChecklistAnswerMapper", "[toJsonObject] checklistId: $checklistId, endDateTime: $endDateTime, goUserId: $goUserId, id: $id, startDateTime: $startDateTime, status: $status, isDirty: $isDirty, isNew: $isNew, isMarkedForDeletion: $isMarkedForDeletion, locationCoordinates: $locationCoordinates, lastCheckDateTime: $lastCheckDateTime, vehicleId: $vehicleId, businessId: $businessId")
     return JsonObject().apply {
         // Add type information if needed by backend
         // addProperty("$type", "ChecklistAnswerDataObject")
@@ -64,5 +66,6 @@ fun ChecklistAnswerDto.toJsonObject(): JsonObject {
         addProperty("LastCheckDateTime", lastCheckDateTime)
         addProperty("VehicleId", vehicleId)
         duration?.let { addProperty("Duration", it) }
+        businessId?.let { addProperty("BusinessId", it) }
     }
 } 

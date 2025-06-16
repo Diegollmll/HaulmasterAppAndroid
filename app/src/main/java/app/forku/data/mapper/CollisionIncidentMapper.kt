@@ -9,7 +9,7 @@ import app.forku.domain.model.incident.IncidentTypeEnum
 import app.forku.domain.model.incident.IncidentStatus
 import com.google.gson.Gson
 
-fun IncidentReportState.toCollisionIncidentDto(): CollisionIncidentDto {
+fun IncidentReportState.toCollisionIncidentDto(businessId: String?): CollisionIncidentDto {
     val collisionFields = typeSpecificFields as? IncidentTypeFields.CollisionFields
         ?: IncidentTypeFields.CollisionFields()
 
@@ -55,7 +55,8 @@ fun IncidentReportState.toCollisionIncidentDto(): CollisionIncidentDto {
         isLoadCarried = isLoadCarried,
         loadBeingCarried = loadBeingCarried,
         loadWeight = loadWeightEnum?.ordinal,
-        othersInvolved = othersInvolved
+        othersInvolved = othersInvolved,
+        businessId = businessId // Ahora se inyecta aquí
     )
 
     // Log JSON para depuración
@@ -103,7 +104,9 @@ fun Incident.toCollisionIncidentDto(): CollisionIncidentDto {
         environmentalImpact = collisionFields.environmentalImpact.map { it.ordinal },
         isDirty = true,
         isNew = true,
-        isMarkedForDeletion = false
+        isMarkedForDeletion = false,
+        businessId = businessId,
+        siteId = siteId // ✅ Include siteId from incident
     )
 }
 
@@ -137,6 +140,8 @@ fun CollisionIncidentDto.toDomain(): Incident {
         injuries = "",
         injuryLocations = emptyList(),
         locationCoordinates = locationCoordinates,
-        creatorName = "Unknown" // This will be handled by the main IncidentDto mapper when using include=GOUser
+        creatorName = "Unknown", // This will be handled by the main IncidentDto mapper when using include=GOUser
+        businessId = businessId,
+        siteId = siteId // ✅ Include siteId from DTO
     )
 } 

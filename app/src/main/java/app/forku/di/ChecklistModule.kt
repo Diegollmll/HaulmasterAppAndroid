@@ -10,6 +10,7 @@ import app.forku.data.repository.checklist.ChecklistAnswerRepositoryImpl
 import app.forku.data.repository.checklist.AnsweredChecklistItemRepositoryImpl
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.domain.repository.checklist.AnsweredChecklistItemRepository
+import app.forku.core.business.BusinessContextManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,9 +53,10 @@ object ChecklistModule {
     fun provideChecklistAnswerRepository(
         api: ChecklistAnswerApi,
         gson: Gson,
-        headerManager: HeaderManager
+        headerManager: HeaderManager,
+        businessContextManager: BusinessContextManager
     ): ChecklistAnswerRepository {
-        return ChecklistAnswerRepositoryImpl(api, gson, headerManager)
+        return ChecklistAnswerRepositoryImpl(api, gson, headerManager, businessContextManager)
     }
 
     @Provides
@@ -70,9 +72,10 @@ object ChecklistModule {
     fun provideAnsweredChecklistItemRepository(
         api: AnsweredChecklistItemApi,
         gson: Gson,
-        headerManager: HeaderManager
+        headerManager: HeaderManager,
+        businessContextManager: BusinessContextManager
     ): AnsweredChecklistItemRepository {
-        return AnsweredChecklistItemRepositoryImpl(api, gson, headerManager)
+        return AnsweredChecklistItemRepositoryImpl(api, gson, headerManager, businessContextManager)
     }
     // Other providers can be added here if needed
 } 

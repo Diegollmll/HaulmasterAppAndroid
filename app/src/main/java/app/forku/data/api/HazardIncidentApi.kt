@@ -18,7 +18,8 @@ interface HazardIncidentApi {
     suspend fun save(
         @Field("entity") entity: String,
         @Field("include") include: String? = null,
-        @Field("dateformat") dateformat: String? = "ISO8601"
+        @Field("dateformat") dateformat: String? = "ISO8601",
+        @Query("businessId") businessId: String? = null
     ): HazardIncidentDto
 
     @DELETE("api/hazardincident/{id}")

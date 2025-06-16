@@ -12,5 +12,9 @@ data class VehicleListState(
     val lastPreShiftChecks: Map<String, PreShiftCheck?> = emptyMap(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val currentBusinessId: String? = null,
+    val hasBusinessContext: Boolean = false,
+    val availableSites: List<app.forku.domain.model.Site> = emptyList(),
+    val selectedSiteId: String? = null
 )

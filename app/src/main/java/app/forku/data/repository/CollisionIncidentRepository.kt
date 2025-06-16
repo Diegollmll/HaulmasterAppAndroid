@@ -8,11 +8,13 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.google.gson.Gson
+import app.forku.core.business.BusinessContextManager
 
 @Singleton
 class CollisionIncidentRepository @Inject constructor(
     private val api: CollisionIncidentApi,
-    private val gson: Gson
+    private val gson: Gson,
+    private val businessContextManager: BusinessContextManager
 ) : ICollisionIncidentRepository {
     override suspend fun getCollisionIncidentById(id: String): Flow<Result<CollisionIncidentDto>> = flow {
         try {
@@ -47,11 +49,36 @@ class CollisionIncidentRepository @Inject constructor(
         dateformat: String?
     ): Flow<Result<CollisionIncidentDto>> = flow {
         try {
-            val entityJson = gson.toJson(incident)
-            android.util.Log.d("CollisionIncidentDto", "JSON enviado a API: $entityJson")
-            val result = api.save(entity = entityJson, include = include, dateformat = dateformat)
+            // Get business and site context from BusinessContextManager
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            android.util.Log.d("CollisionIncidentRepo", "=== COLLISION INCIDENT REPOSITORY DEBUG ===")
+            android.util.Log.d("CollisionIncidentRepo", "Original DTO businessId: '${incident.businessId}', siteId: '${incident.siteId}'")
+            android.util.Log.d("CollisionIncidentRepo", "BusinessId from BusinessContextManager: '$businessId'")
+            android.util.Log.d("CollisionIncidentRepo", "SiteId from BusinessContextManager: '$siteId'")
+            
+            // Assign businessId and siteId to DTO copy
+            val incidentWithContext = incident.copy(
+                businessId = businessId,
+                siteId = siteId
+            )
+            android.util.Log.d("CollisionIncidentRepo", "Updated DTO businessId: '${incidentWithContext.businessId}', siteId: '${incidentWithContext.siteId}'")
+            
+            val entityJson = gson.toJson(incidentWithContext)
+            android.util.Log.d("CollisionIncidentRepo", "JSON enviado a API: $entityJson")
+            android.util.Log.d("CollisionIncidentRepo", "Calling API with businessId: '$businessId', siteId: '$siteId'")
+            
+            val result = api.save(
+                entity = entityJson, 
+                include = include, 
+                dateformat = dateformat, 
+                businessId = businessId
+            )
+            android.util.Log.d("CollisionIncidentRepo", "API response received successfully")
+            android.util.Log.d("CollisionIncidentRepo", "=========================================")
             emit(Result.success(result))
         } catch (e: Exception) {
+            android.util.Log.e("CollisionIncidentRepo", "Error saving collision incident: ${e.message}", e)
             emit(Result.failure(e))
         }
     }

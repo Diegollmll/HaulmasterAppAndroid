@@ -23,15 +23,21 @@ import app.forku.presentation.common.components.BaseScreen
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.runtime.mutableStateOf
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.Vehicle
 import coil.ImageLoader
 import javax.inject.Inject
+import app.forku.domain.model.Site
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -47,6 +53,7 @@ fun VehicleListScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
+    val businessContextState by viewModel.businessContextState.collectAsState()
     
     val pullRefreshState = rememberPullRefreshState(
         refreshing = state.isLoading && state.isRefreshing,
@@ -112,42 +119,96 @@ fun VehicleListScreen(
                 .padding(padding)
                 .pullRefresh(pullRefreshState)
         ) {
-            when {
-                state.error != null -> ErrorScreen(
-                    message = state.error!!,
-                    onRetry = { viewModel.loadVehicles(true) }
-                )
-                else -> {
-                    Box(
+            Column(modifier = Modifier.fillMaxSize()) {
+                // --- Mostrar contexto actual ---
+                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                    Text(
+                        text = "BusinessId: ${state.currentBusinessId ?: "-"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        text = "SiteId: ${state.selectedSiteId ?: "-"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                // --- Selector de sitio ---
+                if (state.availableSites.isNotEmpty()) {
+                    var showSiteDropdown by remember { mutableStateOf(false) }
+                    val selectedSite = state.availableSites.find { it.id == state.selectedSiteId }
+                    OutlinedTextField(
+                        value = selectedSite?.name ?: "All Sites",
+                        onValueChange = {},
+                        label = { Text("Site") },
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = { showSiteDropdown = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Site")
+                            }
+                        },
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.TopCenter
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+                    DropdownMenu(
+                        expanded = showSiteDropdown,
+                        onDismissRequest = { showSiteDropdown = false },
+                        modifier = Modifier.fillMaxWidth(0.9f)
                     ) {
-                        LazyColumn(
+                        DropdownMenuItem(
+                            text = { Text("All Sites") },
+                            onClick = {
+                                viewModel.selectSite(null)
+                                showSiteDropdown = false
+                            }
+                        )
+                        state.availableSites.forEach { site ->
+                            DropdownMenuItem(
+                                text = { Text(site.name) },
+                                onClick = {
+                                    viewModel.selectSite(site.id)
+                                    showSiteDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+                when {
+                    state.error != null -> ErrorScreen(
+                        message = state.error!!,
+                        onRetry = { viewModel.loadVehicles(true) }
+                    )
+                    else -> {
+                        Box(
                             modifier = Modifier
-                                .widthIn(max = 800.dp)
-                                .fillMaxSize(),
-                            contentPadding = PaddingValues(vertical = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.TopCenter
                         ) {
-                            items(sortedVehicles) { vehicle ->
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                                ) {
-                                    Box(modifier = Modifier.padding(12.dp)) {
-                                        VehicleItem(
-                                            vehicle = vehicle,
-                                            userRole = userRole,
-                                            sessionInfo = state.vehicleSessions[vehicle.id],
-                                            lastPreShiftCheck = state.lastPreShiftChecks[vehicle.id],
-                                            imageLoader = imageLoader,
-                                            checklistAnswer = checklistAnswers[vehicle.id],
-                                            onClick = { onVehicleClick(vehicle) }
-                                        )
+                            LazyColumn(
+                                modifier = Modifier
+                                    .widthIn(max = 800.dp)
+                                    .fillMaxSize(),
+                                contentPadding = PaddingValues(vertical = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(sortedVehicles) { vehicle ->
+                                    Card(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                                    ) {
+                                        Box(modifier = Modifier.padding(12.dp)) {
+                                            VehicleItem(
+                                                vehicle = vehicle,
+                                                userRole = userRole,
+                                                sessionInfo = state.vehicleSessions[vehicle.id],
+                                                lastPreShiftCheck = state.lastPreShiftChecks[vehicle.id],
+                                                imageLoader = imageLoader,
+                                                checklistAnswer = checklistAnswers[vehicle.id],
+                                                onClick = { onVehicleClick(vehicle) }
+                                            )
+                                        }
                                     }
                                 }
                             }

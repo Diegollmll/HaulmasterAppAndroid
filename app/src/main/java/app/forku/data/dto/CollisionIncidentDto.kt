@@ -61,5 +61,9 @@ data class CollisionIncidentDto(
     @SerializedName("LoadWeight")
     val loadWeight: Int? = null,
     @SerializedName("OthersInvolved")
-    val othersInvolved: String? = null
+    val othersInvolved: String? = null,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null
 )

@@ -3,6 +3,7 @@ package app.forku.data.api.dto.vehicle
 import app.forku.domain.model.vehicle.VehicleCategory
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import android.util.Log
 
 @Serializable
 data class VehicleCategoryDto(
@@ -25,14 +26,20 @@ data class VehicleCategoryDto(
     val requiresCertification: Boolean = false
 )
 
-fun VehicleCategoryDto.toDomain(): VehicleCategory = VehicleCategory(
-    id = id,
-    name = name,
-    description = description,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    requiresCertification = requiresCertification
-)
+fun VehicleCategoryDto.toDomain(): VehicleCategory? {
+    if (id.isBlank()) {
+        Log.e("VehicleCategoryMapper", "VehicleCategoryDto.id is null or blank! Data: $this")
+        return null
+    }
+    return VehicleCategory(
+        id = id,
+        name = name,
+        description = description,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        requiresCertification = requiresCertification
+    )
+}
 
 fun VehicleCategory.toDto(): VehicleCategoryDto = VehicleCategoryDto(
     id = id,

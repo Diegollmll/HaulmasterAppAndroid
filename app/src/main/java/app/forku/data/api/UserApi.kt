@@ -22,6 +22,7 @@ interface UserApi {
     /**
      * Get user by ID
      * @param id User ID
+     * @param include Optional comma-separated list of related data to include
      * @return User details
      */
     @GET("api/gouser/byid/{id}")
@@ -29,7 +30,10 @@ interface UserApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getUser(@Path("id") id: String): Response<UserDto>
+    suspend fun getUser(
+        @Path("id") id: String,
+        @Query("include") include: String? = null
+    ): Response<UserDto>
 
     /**
      * Create new user
@@ -45,15 +49,22 @@ interface UserApi {
 
     /**
      * Update user (now saveUser)
-     * @param user Updated user data
+     * @param entity User data as JSON string
+     * @param csrfToken CSRF token for authentication
+     * @param cookie Authentication cookie
      * @return Updated user
      */
+    @FormUrlEncoded
     @POST("api/gouser")
     @Headers(
-        "Content-Type: application/json",
+        "Content-Type: application/x-www-form-urlencoded",
         "Accept: text/plain"
     )
-    suspend fun saveUser(@Body user: UserDto): Response<UserDto>
+    suspend fun saveUser(
+        @Field("entity") entity: String,
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<UserDto>
 
     /**
      * Delete user

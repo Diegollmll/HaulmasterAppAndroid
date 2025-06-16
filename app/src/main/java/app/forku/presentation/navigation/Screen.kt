@@ -77,6 +77,7 @@ sealed class Screen(val route: String) {
     data object MaintenanceSchedule : Screen("maintenance_schedule")
     data object VehicleReports : Screen("vehicle_reports")
     data object SystemSettings : Screen("system_settings")
+    data object UserPreferencesSetup : Screen("user_preferences_setup")
     data object Subscriptions : Screen("subscriptions")
     data object SystemBackup : Screen("system_backup")
     data object TimeZones : Screen("timezones")

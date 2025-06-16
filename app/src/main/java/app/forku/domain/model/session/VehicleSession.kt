@@ -16,7 +16,9 @@ data class VehicleSession(
     val closedBy: String? = null,
     val notes: String? = null,
     val operatorName: String = "Unknown",
-    val vehicleName: String = "Unknown"
+    val vehicleName: String = "Unknown",
+    val businessId: String? = null,
+    val siteId: String? = null // ✅ Add siteId for multitenancy
 )
 
 enum class VehicleSessionStatus {

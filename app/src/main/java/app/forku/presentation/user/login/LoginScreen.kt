@@ -47,6 +47,15 @@ fun LoginScreen(
             // Ensure we're in a clean state before navigation
             tokenErrorHandler.resetAuthenticationState()
             onLoginSuccess(user)
+        } else if (state is LoginState.RequiresPreferencesSetup) {
+            val user = (state as LoginState.RequiresPreferencesSetup).user
+            Log.d("LoginScreen", "Login successful but user needs preferences setup, navigating to UserPreferencesSetup")
+            // Ensure we're in a clean state before navigation
+            tokenErrorHandler.resetAuthenticationState()
+            // Navigate to UserPreferencesSetup instead of SystemSettings
+            navController.navigate(Screen.UserPreferencesSetup.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
         }
     }
 

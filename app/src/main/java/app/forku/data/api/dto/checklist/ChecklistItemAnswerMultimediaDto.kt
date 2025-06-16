@@ -38,5 +38,9 @@ data class ChecklistItemAnswerMultimediaDto(
     @SerializedName("IsDirty")
     val isDirty: Boolean? = null,
     @SerializedName("IsNew")
-    val isNew: Boolean? = null
+    val isNew: Boolean? = null,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null
 ) 

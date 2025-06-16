@@ -1,6 +1,6 @@
 package app.forku.domain.model.user
 
-import app.forku.core.auth.RoleConverter
+import app.forku.core.auth.UserRoleManager
 
 enum class UserRole {
     SYSTEM_OWNER,
@@ -10,11 +10,11 @@ enum class UserRole {
 
     companion object {
         fun fromString(role: String): UserRole {
-            return RoleConverter.fromString(role)
+            return UserRoleManager.fromString(role)
         }
     }
 
     override fun toString(): String {
-        return RoleConverter.toString(this)
+        return UserRoleManager.toApiString(this)
     }
 }

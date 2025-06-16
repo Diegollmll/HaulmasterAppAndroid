@@ -29,7 +29,12 @@ interface UserRepository {
     
     suspend fun getUsersByRole(role: UserRole): List<User>
     
-    suspend fun getAllUsers(): List<User>
+    suspend fun getAllUsers(include: String? = null): List<User>
+    
+    /**
+     * Get user-site mappings from the last API call (temporary solution for site filtering)
+     */
+    suspend fun getUserSiteMappings(): Map<String, List<String>>
     
     suspend fun deleteUser(userId: String)
     
@@ -56,4 +61,25 @@ interface UserRepository {
      * @return The number of users or null if there was an error
      */
     suspend fun getUserCount(): Int?
+    
+    /**
+     * Get user with businesses (includes business assignments)
+     */
+    suspend fun getUserWithBusinesses(userId: String): User?
+    
+    /**
+     * Get sites assigned to the current user
+     */
+    suspend fun getCurrentUserAssignedSites(): List<String>
+    
+    /**
+     * Get businesses assigned to the current user
+     */
+    suspend fun getCurrentUserAssignedBusinesses(): List<String>
+    
+    /**
+     * Get current user's business ID (first business if multiple)
+     * @return Business ID or null if no business assigned
+     */
+    suspend fun getCurrentUserBusinessId(): String?
 } 

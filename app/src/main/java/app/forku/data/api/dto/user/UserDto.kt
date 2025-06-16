@@ -3,6 +3,7 @@ package app.forku.data.api.dto.user
 import com.google.gson.annotations.SerializedName
 import android.util.Log
 import app.forku.data.api.dto.gouserrole.GOUserRoleDto
+import app.forku.data.api.dto.userbusiness.UserBusinessDto
 
 data class UserDto(
     @SerializedName("Id")
@@ -58,8 +59,10 @@ data class UserDto(
     val incidentItems: List<Any>? = emptyList(),
     @SerializedName("notificationItems")
     val notificationItems: List<Any>? = emptyList(),
-    @SerializedName("userBusinesses")
-    val userBusinesses: List<Any>? = emptyList(),
+    @SerializedName("UserBusinesses")
+    val userBusinesses: List<UserBusinessDto>? = emptyList(),
+    @SerializedName("UserSiteItems")
+    val userSiteItems: List<UserSiteDto>? = emptyList(),
     @SerializedName("userChecklistItems")
     val userChecklistItems: List<Any>? = emptyList(),
     @SerializedName("userCollisionIncidentItems")
@@ -70,8 +73,10 @@ data class UserDto(
     val userMultimediaItems: List<Any>? = emptyList(),
     @SerializedName("userNearMissIncidentItems")
     val userNearMissIncidentItems: List<Any>? = emptyList(),
-    @SerializedName("userRoleItems")
+    @SerializedName("UserRoleItems")
     val userRoleItems: List<GOUserRoleDto>? = emptyList(),
+    @SerializedName("UserPreferencesId")
+    val userPreferencesId: String? = null,
     @SerializedName("Picture")
     val picture: String? = null,
     @SerializedName("PictureFileSize")

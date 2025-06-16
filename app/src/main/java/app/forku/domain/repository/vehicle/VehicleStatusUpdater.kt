@@ -8,11 +8,13 @@ interface VehicleStatusUpdater {
      * @param vehicleId The ID of the vehicle to update
      * @param status The new status to set
      * @param businessId The business context for the update
+     * @param siteId The site context for the update (optional)
      * @return true if update was successful, false otherwise
      */
     suspend fun updateVehicleStatus(
         vehicleId: String,
         status: VehicleStatus,
-        businessId: String
+        businessId: String,
+        siteId: String? = null
     ): Boolean
 } 

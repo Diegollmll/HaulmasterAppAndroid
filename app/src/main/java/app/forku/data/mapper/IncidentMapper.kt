@@ -23,7 +23,9 @@ fun Incident.toDto(): IncidentDto {
         status = status.ordinal,
         isDirty = true,
         isNew = true,
-        isMarkedForDeletion = false
+        isMarkedForDeletion = false,
+        businessId = businessId,
+        siteId = siteId // ✅ Include siteId from incident
     )
 }
 
@@ -72,6 +74,8 @@ fun IncidentDto.toDomain(): Incident {
         photos = emptyList(),
         weather = "",
         vehicleId = "",
+        businessId = businessId,
+        siteId = siteId, // ✅ Include siteId from DTO
         creatorName = creatorName
     )
 } 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +19,7 @@ fun DashboardHeader(
     userName: String,
     onNotificationClick: () -> Unit,
     onProfileClick: () -> Unit = {},
+    onSettingsClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     showNotifications: Boolean = true,
     showProfile: Boolean = false,
@@ -67,6 +69,19 @@ fun DashboardHeader(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notifications",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+            if (onSettingsClick != null) {
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "System Settings",
                         tint = Color.Gray,
                         modifier = Modifier.size(28.dp)
                     )

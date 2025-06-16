@@ -1,34 +1,41 @@
 package app.forku.data.api.dto.site
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import com.google.gson.annotations.SerializedName
 
-@Serializable
 data class SiteDto(
-    @SerialName("id")
+    @SerializedName("Id")
     val id: String,
     
-    @SerialName("name")
+    @SerializedName("Name")
     val name: String,
     
-    @SerialName("address")
-    val address: String,
+    @SerializedName("Address")
+    val address: String? = null,
     
-    @SerialName("business_id")
+    @SerializedName("BusinessId")
     val businessId: String,
     
-    @SerialName("latitude")
-    val latitude: Double,
+    @SerializedName("Latitude")
+    val latitude: Double? = null,
     
-    @SerialName("longitude")
-    val longitude: Double,
+    @SerializedName("Longitude")
+    val longitude: Double? = null,
     
-    @SerialName("is_active")
-    val isActive: Boolean,
+    @SerializedName("IsActive")
+    val isActive: Boolean = true,
     
-    @SerialName("created_at")
-    val createdAt: String,
+    @SerializedName("CreatedAt")
+    val createdAt: String? = null,
     
-    @SerialName("updated_at")
-    val updatedAt: String
+    @SerializedName("UpdatedAt")
+    val updatedAt: String? = null,
+    
+    @SerializedName("CountryId")
+    val countryId: String? = null,
+    
+    @SerializedName("CountryStateId")
+    val countryStateId: String? = null,
+    
+    @SerializedName("TimezoneId")
+    val timezoneId: String? = null
 ) 

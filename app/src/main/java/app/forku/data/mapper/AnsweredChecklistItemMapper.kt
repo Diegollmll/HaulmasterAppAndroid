@@ -14,7 +14,8 @@ fun AnsweredChecklistItemDto.toDomain(): AnsweredChecklistItem =
         answer = Answer.values().getOrNull(userAnswer)?.name ?: Answer.PASS.name,
         userId = goUserId,
         createdAt = "",
-        userComment = userComment
+        userComment = userComment,
+        businessId = businessId
     )
 
 fun AnsweredChecklistItem.toDto(): AnsweredChecklistItemDto =
@@ -27,5 +28,6 @@ fun AnsweredChecklistItem.toDto(): AnsweredChecklistItemDto =
         isDirty = isDirty,
         isNew = isNew,
         isMarkedForDeletion = false,
-        userComment = userComment
+        userComment = userComment,
+        businessId = businessId
     ) 

@@ -8,15 +8,43 @@ import app.forku.domain.model.certification.Certification
 import app.forku.domain.repository.certification.CertificationRepository
 import javax.inject.Inject
 import com.google.gson.Gson
+import app.forku.core.business.BusinessContextManager
 
 class CertificationRepositoryImpl @Inject constructor(
     private val api: CertificationApi,
-    private val authDataStore: AuthDataStore
+    private val authDataStore: AuthDataStore,
+    private val businessContextManager: BusinessContextManager
 ) : CertificationRepository {
 
     override suspend fun getCertifications(userId: String?): List<Certification> {
         return try {
-            val response = api.getCertifications(userId)
+            // Get business and site context
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            
+            // Apply filter for business and site context if userId is provided
+            val filter = when {
+                userId != null -> {
+                    if (siteId != null && siteId.isNotEmpty()) {
+                        "GOUserId == Guid.Parse(\"$userId\") && BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+                    } else {
+                        "GOUserId == Guid.Parse(\"$userId\") && BusinessId == Guid.Parse(\"$businessId\")"
+                    }
+                }
+                else -> {
+                    if (siteId != null && siteId.isNotEmpty()) {
+                        "BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+                    } else {
+                        "BusinessId == Guid.Parse(\"$businessId\")"
+                    }
+                }
+            }
+            
+            val csrfToken = authDataStore.getCsrfTokenSuspend() ?: ""
+            val cookie = authDataStore.getAntiforgeryCookieSuspend() ?: ""
+            
+            // Use filtered API call
+            val response = api.getCertificationsByUserId(filter, csrfToken, cookie)
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.map { it.toDomain() }
             } else {
@@ -44,10 +72,23 @@ class CertificationRepositoryImpl @Inject constructor(
 
     override suspend fun createCertification(certification: Certification, userId: String): Result<Certification> {
         return try {
+            // Get business and site context
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            
+            // Add businessId and siteId to certification
+            val certificationWithContext = certification.copy(
+                businessId = businessId,
+                siteId = siteId,
+                userId = userId
+            )
+            
             val csrfToken = authDataStore.getCsrfTokenSuspend() ?: ""
             val cookie = authDataStore.getAntiforgeryCookieSuspend() ?: ""
-            val entity = Gson().toJson(certification.toDto())
-            val response = api.createUpdateCertification(csrfToken, cookie, entity)
+            val entity = Gson().toJson(certificationWithContext.toDto())
+            
+            // Add businessId to query params
+            val response = api.createUpdateCertification(csrfToken, cookie, entity, businessId)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.toDomain())
             } else {
@@ -61,10 +102,22 @@ class CertificationRepositoryImpl @Inject constructor(
 
     override suspend fun updateCertification(certification: Certification): Result<Certification> {
         return try {
+            // Get business and site context
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            
+            // Ensure businessId and siteId are set
+            val certificationWithContext = certification.copy(
+                businessId = certification.businessId ?: businessId,
+                siteId = certification.siteId ?: siteId
+            )
+            
             val csrfToken = authDataStore.getCsrfTokenSuspend() ?: ""
             val cookie = authDataStore.getAntiforgeryCookieSuspend() ?: ""
-            val entity = Gson().toJson(certification.toDto())
-            val response = api.createUpdateCertification(csrfToken, cookie, entity)
+            val entity = Gson().toJson(certificationWithContext.toDto())
+            
+            // Add businessId to query params
+            val response = api.createUpdateCertification(csrfToken, cookie, entity, businessId)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.toDomain())
             } else {
@@ -78,9 +131,12 @@ class CertificationRepositoryImpl @Inject constructor(
 
     override suspend fun deleteCertification(id: String): Result<Boolean> {
         return try {
+            // Get business context
+            val businessId = businessContextManager.getCurrentBusinessId()
+            
             val csrfToken = authDataStore.getCsrfTokenSuspend() ?: ""
             val cookie = authDataStore.getAntiforgeryCookieSuspend() ?: ""
-            val response = api.deleteCertification(id, csrfToken, cookie)
+            val response = api.deleteCertification(id, csrfToken, cookie, businessId)
             if (response.isSuccessful) {
                 Result.success(true)
             } else {
@@ -92,11 +148,19 @@ class CertificationRepositoryImpl @Inject constructor(
         }
     }
 
-    suspend fun getCertificationsByGoUserId2(userGuid: String): List<Certification> {
+    suspend fun getCertificationsByGoUserId(userGuid: String): List<Certification> {
         return try {
+            // Get business and site context
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            
             val csrfToken = authDataStore.getCsrfTokenSuspend() ?: ""
             val cookie = authDataStore.getAntiforgeryCookieSuspend() ?: ""
-            val filter = "GOUserId2 == Guid.Parse(\"$userGuid\")"
+            val filter = if (siteId != null && siteId.isNotEmpty()) {
+                "GOUserId == Guid.Parse(\"$userGuid\") && BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+            } else {
+                "GOUserId == Guid.Parse(\"$userGuid\") && BusinessId == Guid.Parse(\"$businessId\")"
+            }
             val response = api.getCertificationsByUserId(filter, csrfToken, cookie)
             if (response.isSuccessful && response.body() != null) {
                 response.body()!!.map { it.toDomain() }
@@ -104,7 +168,7 @@ class CertificationRepositoryImpl @Inject constructor(
                 emptyList()
             }
         } catch (e: Exception) {
-            android.util.Log.e("Certification", "Error getting certifications by GOUserId2", e)
+            android.util.Log.e("Certification", "Error getting certifications by GOUserId", e)
             emptyList()
         }
     }

@@ -143,7 +143,8 @@ class AddVehicleViewModel @Inject constructor(
         photoModel: String,
         nextService: String,
         type: VehicleType,
-        serialNumber: String
+        serialNumber: String,
+        siteId: String? = null
     ) {
         viewModelScope.launch {
             try {
@@ -162,7 +163,6 @@ class AddVehicleViewModel @Inject constructor(
                 // Determine business ID based on role
                 val businessId: String? = when (currentUser.role) {
                     UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> {
-                        // Business ID is optional for these roles
                         _state.value.selectedBusinessId
                     }
                     else -> currentUser.businessId ?: run {
@@ -183,9 +183,7 @@ class AddVehicleViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Create vehicle
-                Log.d("AddVehicleViewModel", "Creating vehicle: codename=$codename, model=$model, type=$type, businessId=$businessId")
-                
+                // Compose all required fields for vehicle creation
                 vehicleRepository.createVehicle(
                     codename = codename,
                     model = model,
@@ -196,7 +194,8 @@ class AddVehicleViewModel @Inject constructor(
                     nextService = nextService,
                     type = type,
                     businessId = businessId,
-                    serialNumber = serialNumber
+                    serialNumber = serialNumber,
+                    siteId = siteId
                 )
 
                 _state.update { it.copy(

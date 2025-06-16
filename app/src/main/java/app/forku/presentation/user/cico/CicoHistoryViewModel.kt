@@ -175,7 +175,7 @@ class CicoHistoryViewModel @Inject constructor(
                     android.util.Log.d("CICO", "  - Operator: '${session.operatorName}'")
                     android.util.Log.d("CICO", "  - Vehicle: '${session.vehicleName}'")
                     android.util.Log.d("CICO", "  - StartTime: ${session.startTime}")
-                    
+
                     CicoEntry(
                         id = session.id,
                         operatorId = session.userId,

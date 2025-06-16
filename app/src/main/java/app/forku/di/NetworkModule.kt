@@ -28,6 +28,7 @@ import app.forku.data.repository.incident.IncidentMultimediaRepositoryImpl
 import app.forku.data.api.ChecklistItemAnswerMultimediaApi
 import app.forku.data.repository.checklist.ChecklistItemAnswerMultimediaRepositoryImpl
 import app.forku.domain.repository.checklist.ChecklistItemAnswerMultimediaRepository
+import app.forku.core.business.BusinessContextManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -226,8 +227,9 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideIncidentMultimediaRepository(
-        api: IncidentMultimediaApi
-    ): IncidentMultimediaRepository = IncidentMultimediaRepositoryImpl(api)
+        api: IncidentMultimediaApi,
+        businessContextManager: BusinessContextManager
+    ): IncidentMultimediaRepository = IncidentMultimediaRepositoryImpl(api, businessContextManager)
 
     @Provides
     @Singleton
@@ -286,6 +288,7 @@ object NetworkModule {
     @Singleton
     fun provideChecklistItemAnswerMultimediaRepository(
         api: ChecklistItemAnswerMultimediaApi,
-        headerManager: HeaderManager
-    ): ChecklistItemAnswerMultimediaRepository = ChecklistItemAnswerMultimediaRepositoryImpl(api, headerManager)
+        headerManager: HeaderManager,
+        businessContextManager: BusinessContextManager
+    ): ChecklistItemAnswerMultimediaRepository = ChecklistItemAnswerMultimediaRepositoryImpl(api, headerManager, businessContextManager)
 }

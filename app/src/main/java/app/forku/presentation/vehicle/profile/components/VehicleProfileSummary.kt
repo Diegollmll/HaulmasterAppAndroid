@@ -363,9 +363,9 @@ fun VehicleDetailsSection(
                             Text(
                                 text = "Checklist: $statusText",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = statusColor,
+                            color = statusColor,
                                 modifier = Modifier.padding(top = 2.dp)
-                            )
+                        )
                         }
                     }
 

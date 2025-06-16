@@ -12,7 +12,9 @@ interface ChecklistApi {
         "Accept: text/plain"
     )
     suspend fun getList(
-        @Query("include") include: String? = null
+        @Query("include") include: String? = null,
+        @Query("filter") filter: String? = null,
+        @Query("businessId") businessId: String? = null
     ): Response<List<ChecklistDto>>
 
     @GET("api/checklist/byid/{id}")

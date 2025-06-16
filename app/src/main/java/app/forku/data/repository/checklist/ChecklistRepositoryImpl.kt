@@ -35,25 +35,129 @@ class ChecklistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getChecklistItems(vehicleId: String): List<Checklist> {
-        try {
-            android.util.Log.d("ChecklistRepositoryImpl", "Llamando a api.getList() para vehicleId=$vehicleId")
-            val response = api.getList(include = "ChecklistChecklistQuestionItems,ChecklistVehicleTypeItems")
-            android.util.Log.d("ChecklistRepositoryImpl", "Respuesta cruda del API: ${response.body()}")
-            
-            if (!response.isSuccessful) {
-                android.util.Log.e("ChecklistRepositoryImpl", "Fallo al obtener checklist: code=${response.code()}")
-                throw Exception("Failed to get checklist: ${response.code()}")
+        var attempts = 0
+        val maxAttempts = 3
+        var delay = 1000L
+
+        // Get current user and business context
+        val currentUser = authDataStore.getCurrentUser()
+        val businessId = currentUser?.businessId
+        
+        while (attempts < maxAttempts) {
+            try {
+                android.util.Log.d("ChecklistRepo", "=== CHECKLIST FETCHING DEBUG ===")
+                android.util.Log.d("ChecklistRepo", "VehicleId: $vehicleId")
+                android.util.Log.d("ChecklistRepo", "Current User: ${currentUser?.username} (${currentUser?.id})")
+                android.util.Log.d("ChecklistRepo", "BusinessId: $businessId")
+                
+                var checklists: List<app.forku.data.api.dto.checklist.ChecklistDto> = emptyList()
+                
+                // Step 1: Try to get business-specific checklists first
+                if (businessId != null && businessId.isNotBlank() && businessId != "0") {
+                    android.util.Log.d("ChecklistRepo", "STEP 1: Fetching business-specific checklists...")
+                    
+                    // Try with businessId query parameter first
+                    val businessResponse = api.getList(
+                        include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems",
+                        businessId = businessId
+                    )
+                    
+                    android.util.Log.d("ChecklistRepo", "Business-specific API response: ${businessResponse.code()}")
+                    android.util.Log.d("ChecklistRepo", "Response body size: ${businessResponse.body()?.size}")
+                    
+                    if (businessResponse.isSuccessful && !businessResponse.body().isNullOrEmpty()) {
+                        checklists = businessResponse.body()!!
+                        android.util.Log.d("ChecklistRepo", "✅ Found ${checklists.size} business-specific checklists")
+                        checklists.forEach { dto ->
+                            android.util.Log.d("ChecklistRepo", "  - Checklist: ${dto.Title} (BusinessId: ${dto.businessId})")
+                        }
+                    } else {
+                        android.util.Log.d("ChecklistRepo", "❌ No business-specific checklists with query parameter")
+                        
+                        // Try with filter as fallback
+                        val filterResponse = api.getList(
+                            include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems",
+                            filter = "BusinessId == \"$businessId\""
+                        )
+                        
+                        android.util.Log.d("ChecklistRepo", "Business filter response: ${filterResponse.code()}")
+                        android.util.Log.d("ChecklistRepo", "Filter response body size: ${filterResponse.body()?.size}")
+                        
+                        if (filterResponse.isSuccessful && !filterResponse.body().isNullOrEmpty()) {
+                            checklists = filterResponse.body()!!
+                            android.util.Log.d("ChecklistRepo", "✅ Found ${checklists.size} business-specific checklists via filter")
+                            checklists.forEach { dto ->
+                                android.util.Log.d("ChecklistRepo", "  - Checklist: ${dto.Title} (BusinessId: ${dto.businessId})")
+                            }
+                        }
+                    }
+                }
+                
+                // Step 2: If no business-specific checklists, get default checklists
+                if (checklists.isEmpty()) {
+                    android.util.Log.d("ChecklistRepo", "STEP 2: No business-specific checklists found, fetching default checklists...")
+                    
+                    val defaultResponse = api.getList(
+                        include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems",
+                        filter = "BusinessId == null || BusinessId == \"\""
+                    )
+                    
+                    android.util.Log.d("ChecklistRepo", "Default checklists response: ${defaultResponse.code()}")
+                    android.util.Log.d("ChecklistRepo", "Default response body size: ${defaultResponse.body()?.size}")
+                    
+                    if (defaultResponse.isSuccessful && !defaultResponse.body().isNullOrEmpty()) {
+                        checklists = defaultResponse.body()!!
+                        android.util.Log.d("ChecklistRepo", "✅ Found ${checklists.size} default checklists")
+                        checklists.forEach { dto ->
+                            android.util.Log.d("ChecklistRepo", "  - Default Checklist: ${dto.Title} (BusinessId: ${dto.businessId})")
+                        }
+                    } else {
+                        android.util.Log.w("ChecklistRepo", "❌ No default checklists found either")
+                    }
+                }
+                
+                // Step 3: If still no checklists, try to get ALL and log what's available
+                if (checklists.isEmpty()) {
+                    android.util.Log.d("ChecklistRepo", "STEP 3: Getting ALL checklists for debugging...")
+                    val allResponse = api.getList(include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems")
+                    
+                    if (allResponse.isSuccessful) {
+                        val allChecklists = allResponse.body() ?: emptyList()
+                        android.util.Log.d("ChecklistRepo", "📋 Found ${allChecklists.size} total checklists in system:")
+                        allChecklists.forEach { dto ->
+                            android.util.Log.d("ChecklistRepo", "  - ${dto.Title} (BusinessId: '${dto.businessId}', Id: ${dto.Id})")
+                        }
+                        
+                        // Use any available checklist as last resort
+                        if (allChecklists.isNotEmpty()) {
+                            checklists = allChecklists
+                            android.util.Log.d("ChecklistRepo", "⚠️ Using all available checklists as last resort")
+                        }
+                    }
+                }
+
+                val mapped = checklists.map { dto ->
+                    android.util.Log.d("ChecklistRepositoryImpl", "Mapping ChecklistDto: ${dto.Title} with ${dto.ChecklistChecklistQuestionItems?.size ?: 0} questions")
+                    dto.toDomain()
+                }
+                
+                android.util.Log.d("ChecklistRepo", "=== FINAL RESULT ===")
+                android.util.Log.d("ChecklistRepo", "Total checklists mapped: ${mapped.size}")
+                android.util.Log.d("ChecklistRepo", "Checklist titles: ${mapped.map { it.title }}")
+                android.util.Log.d("ChecklistRepo", "=========================")
+                
+                return mapped
+            } catch (e: Exception) {
+                android.util.Log.e("ChecklistRepositoryImpl", "Error fetching checklist, attempt ${attempts + 1}/$maxAttempts", e)
+                if (attempts >= maxAttempts - 1) {
+                    return emptyList()
+                }
+                kotlinx.coroutines.delay(delay)
+                delay = (delay * 1.5).toLong().coerceAtMost(5000)
+                attempts++
             }
-            val mapped = response.body()?.map { dto ->
-                android.util.Log.d("ChecklistRepositoryImpl", "Mapeando ChecklistDto a dominio: $dto")
-                dto.toDomain()
-            } ?: throw Exception("Failed to get checklist items: Empty response")
-            android.util.Log.d("ChecklistRepositoryImpl", "Total checklists mapeados: ${mapped.size}")
-            return mapped
-        } catch (e: Exception) {
-            android.util.Log.e("ChecklistRepositoryImpl", "Error fetching checklist", e)
-            throw e
         }
+        return emptyList()
     }
 
     override suspend fun getLastPreShiftCheck(vehicleId: String, businessId: String): PreShiftCheck? {

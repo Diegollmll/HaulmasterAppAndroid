@@ -97,6 +97,8 @@ fun VehicleFailIncidentDto.toDomain(): app.forku.domain.model.incident.Incident 
         injuries = "",
         injuryLocations = emptyList(),
         locationCoordinates = locationCoordinates,
-        creatorName = "Unknown" // This will be handled by the main IncidentDto mapper when using include=GOUser
+        creatorName = "Unknown", // This will be handled by the main IncidentDto mapper when using include=GOUser
+        businessId = businessId,
+        siteId = siteId // ✅ Include siteId from DTO
     )
 } 

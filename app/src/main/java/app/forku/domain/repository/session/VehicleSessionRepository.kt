@@ -2,6 +2,7 @@ package app.forku.domain.repository.session
 
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.session.VehicleSessionClosedMethod
+import app.forku.domain.model.session.AdminDashboardData
 
 interface VehicleSessionRepository {
     suspend fun getCurrentSession(): VehicleSession?
@@ -19,4 +20,7 @@ interface VehicleSessionRepository {
     suspend fun getSessions(): List<VehicleSession>
     suspend fun getOperatingSessionsCount(businessId: String): Int
     suspend fun getSessionWithChecklistAnswer(sessionId: String): VehicleSession?
+    
+    // 🚀 OPTIMIZED: Get active sessions with all related data in one API call
+    suspend fun getActiveSessionsWithRelatedData(businessId: String): AdminDashboardData
 } 

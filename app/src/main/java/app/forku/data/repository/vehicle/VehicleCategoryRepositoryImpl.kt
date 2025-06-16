@@ -24,7 +24,7 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
                 Log.e("VehicleCategoryRepo", "Error fetching categories: ${response.code()}")
                 emptyList()
             } else {
-                response.body()?.map { it.toDomain() } ?: emptyList()
+                response.body()?.mapNotNull { it.toDomain() } ?: emptyList()
             }
         } catch (e: Exception) {
             Log.e("VehicleCategoryRepo", "Error fetching categories", e)

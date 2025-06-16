@@ -35,6 +35,10 @@ data class ChecklistAnswerDto(
     val vehicleId: String,
     @SerializedName("Duration")
     val duration: Int? = null,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null,
     @SerializedName("GOUser")
     @Contextual
     val goUser: UserDto? = null,

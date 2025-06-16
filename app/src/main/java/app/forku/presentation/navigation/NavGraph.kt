@@ -46,8 +46,13 @@ import app.forku.presentation.business.BusinessManagementScreen
 import app.forku.presentation.dashboard.SystemOwnerDashboardScreen
 import app.forku.presentation.user.management.UserManagementScreen
 import app.forku.presentation.system.SystemSettingsScreen
+import app.forku.presentation.system.UserPreferencesSetupScreen
 import app.forku.presentation.countries.CountriesScreen
 import app.forku.presentation.timezones.TimeZonesScreen
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+
 import app.forku.presentation.checklist.questionary.QuestionaryChecklistScreen
 import app.forku.presentation.checklist.item.QuestionaryChecklistItemScreen
 import androidx.compose.runtime.LaunchedEffect
@@ -67,8 +72,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import app.forku.presentation.checklist.questionary.QuestionaryChecklistViewModel
@@ -82,6 +86,14 @@ import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.auth.AuthenticationState
 import coil.ImageLoader
 import javax.inject.Inject
+import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.android.EntryPointAccessors
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface NavGraphEntryPoint {
+    fun businessContextManager(): app.forku.core.business.BusinessContextManager
+}
 
 
 @Composable
@@ -102,6 +114,16 @@ fun NavGraph(
     val hasToken by viewModel.hasToken.collectAsState()
     val authState by tokenErrorHandler.authenticationState.collectAsState()
 
+    // ✅ NEW: Business context validation for authenticated users
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val businessContextManager = remember { 
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NavGraphEntryPoint::class.java
+        ).businessContextManager()
+    }
+    val businessContextState by businessContextManager.contextState.collectAsState()
+
     LaunchedEffect(authState) {
         if (authState is AuthenticationState.RequiresAuthentication) {
             val currentRoute = navController.currentDestination?.route
@@ -112,6 +134,51 @@ fun NavGraph(
                     popUpTo(0) { inclusive = true }
                     launchSingleTop = true
                 }
+            }
+        }
+    }
+
+    // ✅ NEW: Validate user preferences after successful authentication
+    LaunchedEffect(isAuthenticated, hasToken) {
+        if (isAuthenticated && hasToken) {
+            try {
+                // Load business context to check preferences
+                businessContextManager.loadBusinessContext()
+                
+                // Check if user has valid preferences (both BusinessId AND SiteId)
+                val hasValidPreferences = businessContextManager.hasValidUserPreferences()
+                val currentRoute = navController.currentDestination?.route
+                
+                android.util.Log.d("NavGraph", "=== PREFERENCES VALIDATION ===")
+                android.util.Log.d("NavGraph", "IsAuthenticated: $isAuthenticated")
+                android.util.Log.d("NavGraph", "HasToken: $hasToken")
+                android.util.Log.d("NavGraph", "HasValidPreferences: $hasValidPreferences")
+                android.util.Log.d("NavGraph", "CurrentRoute: $currentRoute")
+                android.util.Log.d("NavGraph", "BusinessId: ${businessContextState.businessId}")
+                android.util.Log.d("NavGraph", "SiteId: ${businessContextState.siteId}")
+                
+                // If user doesn't have valid preferences, redirect to UserPreferencesSetup
+                if (!hasValidPreferences && 
+                    currentRoute != null && 
+                    !currentRoute.contains(Screen.UserPreferencesSetup.route) &&
+                    !currentRoute.contains(Screen.SystemSettings.route) &&
+                    !currentRoute.contains(Screen.Login.route) &&
+                    !currentRoute.contains(Screen.Register.route) &&
+                    !currentRoute.contains(Screen.Tour.route)) {
+                    
+                    android.util.Log.d("NavGraph", "❌ User needs to set preferences, redirecting to UserPreferencesSetup")
+                    navController.navigate(Screen.UserPreferencesSetup.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                } else if (hasValidPreferences) {
+                    android.util.Log.d("NavGraph", "✅ User has valid preferences")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("NavGraph", "Error validating user preferences", e)
             }
         }
     }
@@ -625,6 +692,16 @@ fun NavGraph(
                 navController = navController,
                 networkManager = networkManager,
                 tokenErrorHandler = tokenErrorHandler
+            )
+        }
+
+        composable(Screen.UserPreferencesSetup.route) {
+            UserPreferencesSetupScreen(
+                navController = navController,
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler,
+                userRoleManager = app.forku.core.auth.UserRoleManager
+                // onSetupComplete will be handled automatically based on user role
             )
         }
 

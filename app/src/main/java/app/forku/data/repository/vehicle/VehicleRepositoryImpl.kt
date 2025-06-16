@@ -215,7 +215,7 @@ class VehicleRepositoryImpl @Inject constructor(
         includeRelatedData: Boolean
     ): List<Vehicle> = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Fetching vehicles for business: $businessId")
+            Log.d(TAG, "Fetching vehicles for business: $businessId, site: $siteId")
             
             val headersResult = headerManager.getHeaders()
             if (headersResult.isFailure) {
@@ -248,7 +248,10 @@ class VehicleRepositoryImpl @Inject constructor(
                     
                     // Filter by businessId if provided
                     val filteredVehicles = if (businessId.isNotEmpty() && businessId != "0") {
-                        enrichedVehicles.filter { it.businessId == businessId }
+                        enrichedVehicles.filter {
+                            (businessId.isEmpty() || it.businessId == businessId) &&
+                            (siteId.isNullOrEmpty() || it.siteId == siteId)
+                        }
                     } else {
                         enrichedVehicles
                     }
@@ -308,13 +311,13 @@ class VehicleRepositoryImpl @Inject constructor(
             val headers = headerManager.getHeaders().getOrThrow()
             Log.d(TAG, "Got auth headers - CSRF Token: ${headers.csrfToken.take(10)}...")
 
-            // Convert to JsonObject with new status
-            val vehicleJson = currentVehicle.toDto().toJsonObject(newStatus = status)
+            // Convert to JSON string with new status
+            val vehicleJson = gson.toJson(currentVehicle.toDto())
             
             // Make the API call
             Log.d(TAG, "Making API call to update vehicle...")
             val response = api.saveVehicle(
-                updateDto = vehicleJson,
+                entity = vehicleJson,
                 csrfToken = headers.csrfToken,
                 cookie = headers.cookie
             )
@@ -349,14 +352,14 @@ class VehicleRepositoryImpl @Inject constructor(
         description: String,
         bestSuitedFor: String,
         photoModel: String,
-        energySource: String,
+        energyType: String,
         nextService: String,
         businessId: String?,
-        serialNumber: String
+        serialNumber: String,
+        siteId: String?
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
-            
             val vehicleDto = VehicleDto(
                 codename = codename,
                 model = model,
@@ -365,21 +368,20 @@ class VehicleRepositoryImpl @Inject constructor(
                 description = description,
                 bestSuitedFor = bestSuitedFor,
                 photoModel = photoModel,
-                energySource = EnergySourceEnum.fromString(energySource).apiValue,
+                energySource = EnergySourceEnum.fromString(energyType).apiValue,
                 nextServiceDateTime = nextService,
                 businessId = businessId,
+                siteId = siteId,
                 serialNumber = serialNumber,
-                status = VehicleStatus.AVAILABLE.toInt()
+                status = VehicleStatus.AVAILABLE.toInt(),
+                isMarkedForDeletion = false
             )
-            
-            val vehicleJson = vehicleDto.toJsonObject()
-            
+            val vehicleJson = gson.toJson(vehicleDto)
             val response = api.saveVehicle(
-                updateDto = vehicleJson,
+                entity = vehicleJson,
                 csrfToken = csrfToken,
                 cookie = cookie
             )
-            
             if (!response.isSuccessful) {
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Failed to create vehicle (Code: ${response.code()}): $errorBody")
@@ -398,9 +400,10 @@ class VehicleRepositoryImpl @Inject constructor(
         try {
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
-            val vehicleJson = updatedVehicle.toDto().toJsonObject()
+            // Convert to JSON string for update
+            val vehicleJson = gson.toJson(updatedVehicle.toDto())
             val response = api.saveVehicle(
-                updateDto = vehicleJson,
+                entity = vehicleJson,
                 csrfToken = csrfToken,
                 cookie = cookie
             )
@@ -426,17 +429,19 @@ class VehicleRepositoryImpl @Inject constructor(
         try {
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
-            val vehicleJson = updatedVehicle.toDto().toJsonObject()
-            val response = api.saveVehicle(
-                updateDto = vehicleJson,
+            // Convert to JSON string for update
+            val gson2 = Gson()
+            val vehicleJson2 = gson2.toJson(updatedVehicle.toDto())
+            val response2 = api.saveVehicle(
+                entity = vehicleJson2,
                 csrfToken = csrfToken,
                 cookie = cookie
             )
-            if (!response.isSuccessful) {
-                val errorBody = response.errorBody()?.string()
-                throw Exception("Failed to update vehicle (Code: ${response.code()}): $errorBody")
+            if (!response2.isSuccessful) {
+                val errorBody = response2.errorBody()?.string()
+                throw Exception("Failed to update vehicle (Code: ${response2.code()}): $errorBody")
             }
-            val result = response.body()?.toDomain()
+            val result = response2.body()?.toDomain()
                 ?: throw Exception("Vehicle data missing in response body after update")
             cache[vehicleId] = CachedVehicle(result, System.currentTimeMillis())
             result
@@ -471,15 +476,27 @@ class VehicleRepositoryImpl @Inject constructor(
             val headers = headersResult.getOrNull()!!
             Log.d(TAG, "Got auth headers, making optimized API call with includes")
             
-            // Single API call with all related data
+            // Build filter string for API
+            val filter = buildString {
+                append("BusinessId == Guid.Parse(\"$businessId\")")
+                if (!siteId.isNullOrBlank()) {
+                    append(" && SiteId == Guid.Parse(\"$siteId\")")
+                }
+            }
+            // Single API call with all related data and filter
             val response = api.getAllVehicles(
                 csrfToken = headers.csrfToken,
                 cookie = headers.cookie,
-                include = "VehicleType,ChecklistAnswerItems,VehicleSessionItems"
+                include = "VehicleType,ChecklistAnswerItems,VehicleSessionItems",
+                filter = filter
             )
 
             when (val apiResponse = response.toApiResponse()) {
                 is ApiResponse.Success -> {
+                    Log.d(TAG, "[DEBUG] Received ${apiResponse.data.size} vehicles from backend. Ejemplo primer vehicle: ${apiResponse.data.firstOrNull()?.codename}, siteId: ${apiResponse.data.firstOrNull()?.siteId}")
+                    apiResponse.data.forEach { dto ->
+                        Log.d(TAG, "[DEBUG] VehicleDto: id=${dto.id}, codename=${dto.codename}, businessId=${dto.businessId}, siteId=${dto.siteId}")
+                    }
                     // 🚀 OPTIMIZATION: Collect all unique user IDs first
                     val allUserIds = apiResponse.data.flatMap { dto ->
                         dto.vehicleSessionItems?.mapNotNull { sessionDto -> 
@@ -579,12 +596,8 @@ class VehicleRepositoryImpl @Inject constructor(
                         }
                     }
 
-                    // Filter by businessId if provided
-                    val filteredVehicles = if (businessId.isNotEmpty() && businessId != "0") {
-                        vehiclesWithData.filter { it.vehicle.businessId == businessId }
-                    } else {
-                        vehiclesWithData
-                    }
+                    // No need to filter by businessId or siteId here, API already filters
+                    val filteredVehicles = vehiclesWithData
 
                     Log.d("appflow VehicleRepo", "Successfully fetched ${filteredVehicles.size} vehicles with related data")
                     Log.d("VehicleListViewModel", "✅ OPTIMIZED: Loaded ${filteredVehicles.size} vehicles with 1 vehicle API call + ${allUserIds.size} unique user API calls instead of 1 + ${filteredVehicles.size * 5} calls")

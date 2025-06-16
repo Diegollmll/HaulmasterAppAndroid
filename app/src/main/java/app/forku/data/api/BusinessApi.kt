@@ -1,8 +1,7 @@
 package app.forku.data.api
 
 import app.forku.data.api.dto.user.UserDto
-import app.forku.data.api.dto.business.BusinessItemDto
-import app.forku.data.api.dto.business.BusinessStats
+import app.forku.data.api.dto.business.BusinessDto
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -12,14 +11,14 @@ interface BusinessApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getBusinessById(@Path("id") id: String): Response<BusinessItemDto>
+    suspend fun getBusinessById(@Path("id") id: String): Response<BusinessDto>
 
     @GET("api/business/list")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getAllBusinesses(): Response<List<BusinessItemDto>>
+    suspend fun getAllBusinesses(): Response<List<BusinessDto>>
 
     @GET("dataset/api/business/count")
     @Headers(
@@ -33,7 +32,7 @@ interface BusinessApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun saveBusiness(@Body business: BusinessItemDto): Response<BusinessItemDto>
+    suspend fun saveBusiness(@Body business: BusinessDto): Response<BusinessDto>
 
     @DELETE("dataset/api/business/{id}")
     @Headers(
@@ -47,21 +46,21 @@ interface BusinessApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getAllBusinessesDataset(): Response<List<BusinessItemDto>>
+    suspend fun getAllBusinessesDataset(): Response<List<BusinessDto>>
 
     @GET("dataset/api/business/byid/{id}")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getBusinessByIdDataset(@Path("id") id: String): Response<BusinessItemDto>
+    suspend fun getBusinessByIdDataset(@Path("id") id: String): Response<BusinessDto>
 
     @POST("dataset/api/business")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun createBusinessDataset(@Body business: BusinessItemDto): Response<BusinessItemDto>
+    suspend fun createBusinessDataset(@Body business: BusinessDto): Response<BusinessDto>
 
     @GET("api/business/{businessId}/user")
     @Headers(

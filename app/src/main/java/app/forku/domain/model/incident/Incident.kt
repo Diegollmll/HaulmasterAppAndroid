@@ -39,6 +39,10 @@ data class Incident(
     val injuryLocations: List<String> = emptyList(),
     val locationCoordinates: String? = null,
     
+    // Business context for multitenancy
+    val businessId: String? = null,
+    val siteId: String? = null, // ✅ Add siteId for multitenancy
+    
     // Creator info (included from API response)
     val creatorName: String = "Unknown"
 ) 

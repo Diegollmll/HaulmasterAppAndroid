@@ -6,20 +6,18 @@ data class GOUserRoleDto(
     @SerializedName("GOUserId")
     val GOUserId: String,
     
-    @SerializedName("Role")
-    val role: GORoleDto,
+    @SerializedName("GORoleName")
+    val gORoleName: String,
     
     @SerializedName("IsActive")
     val isActive: Boolean = true,
     
-    @SerializedName("CreatedAt")
-    val createdAt: String? = null,
+    @SerializedName("IsMarkedForDeletion")
+    val isMarkedForDeletion: Boolean = false,
     
-    @SerializedName("UpdatedAt")
-    val updatedAt: String? = null
-)
-
-data class GORoleDto(
-    @SerializedName("Name")
-    val Name: String
+    @SerializedName("IsDirty")
+    val isDirty: Boolean = false,
+    
+    @SerializedName("InternalObjectId")
+    val internalObjectId: Int? = null
 ) 

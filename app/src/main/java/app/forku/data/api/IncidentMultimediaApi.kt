@@ -10,7 +10,7 @@ interface IncidentMultimediaApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getIncidentMultimediaById(@Path("id") id: String): Response<IncidentMultimediaDto>
+    suspend fun getIncidentMultimediaById(@Path("Id") id: String): Response<IncidentMultimediaDto>
 
     @GET("api/incidentmultimedia/list")
     @Headers(
@@ -27,7 +27,7 @@ interface IncidentMultimediaApi {
         "Accept: text/plain"
     )
     suspend fun getIncidentMultimediaByIncidentId(
-        @Path("incidentId") incidentId: String
+        @Path("IncidentId") incidentId: String
     ): Response<List<IncidentMultimediaDto>>
 
     @FormUrlEncoded
@@ -36,7 +36,9 @@ interface IncidentMultimediaApi {
         "Accept: text/plain"
     )
     suspend fun saveIncidentMultimedia(
-        @Field("entity") incidentMultimedia: String
+        @Field("entity") incidentMultimedia: String,
+        @Query("BusinessId") businessId: String? = null,
+        @Query("SiteId") siteId: String? = null
     ): Response<IncidentMultimediaDto>
 
     @DELETE("api/incidentmultimedia/{id}")
@@ -44,7 +46,7 @@ interface IncidentMultimediaApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun deleteIncidentMultimedia(@Path("id") id: String): Response<Unit>
+    suspend fun deleteIncidentMultimedia(@Path("Id") id: String): Response<Unit>
 
     @GET("dataset/api/incidentmultimedia/count")
     @Headers(

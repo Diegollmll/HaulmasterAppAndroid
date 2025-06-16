@@ -20,7 +20,8 @@ interface VehicleApi {
     suspend fun getAllVehicles(
         @Header("X-CSRF-TOKEN") csrfToken: String,
         @Header("Cookie") cookie: String,
-        @Query("include") include: String? = null
+        @Query("include") include: String? = null,
+        @Query("filter") filter: String? = null
     ): Response<List<VehicleDto>>
 
     /**
@@ -61,7 +62,7 @@ interface VehicleApi {
         "Accept: text/plain"
     )
     suspend fun saveVehicle(
-        @Field("entity") updateDto: JsonObject,
+        @Field("entity") entity: String,
         @Header("X-CSRF-TOKEN") csrfToken: String,
         @Header("Cookie") cookie: String
     ): Response<VehicleDto>

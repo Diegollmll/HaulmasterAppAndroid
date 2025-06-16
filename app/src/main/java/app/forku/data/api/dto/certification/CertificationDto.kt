@@ -15,8 +15,8 @@ data class CertificationDto(
     val expiryDate: String?,
     @SerializedName("Status")
     val status: Int,
-    @SerializedName("GOUserId2")
-    val goUserId2: String?,
+    @SerializedName("GOUserId")
+    val goUserId: String?,
     @SerializedName("Issuer")
     val issuer: String,
     @SerializedName("CertificationCode")
@@ -30,7 +30,11 @@ data class CertificationDto(
     @SerializedName("isNew")
     val isNew: Boolean = false,
     @SerializedName("internalObjectId")
-    val internalObjectId: Int = 0
+    val internalObjectId: Int = 0,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null // ✅ Add siteId for multitenancy
 )
 
 

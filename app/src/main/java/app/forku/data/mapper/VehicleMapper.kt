@@ -18,6 +18,7 @@ import com.google.gson.JsonArray
 import app.forku.data.mapper.VehicleSessionMapper
 
 fun VehicleDto.toDomain(): Vehicle {
+    Log.d("VehicleMapper", "Mapping VehicleDto to Vehicle: id=${id}, codename=${codename}, businessId=${businessId}, siteId=${siteId}, vehicleTypeId=${vehicleTypeId}, categoryId=${categoryId}")
     val nextServiceHours = try {
         if (nextServiceDateTime != null) {
             val formatter = DateTimeFormatter.ISO_DATE_TIME
@@ -32,7 +33,6 @@ fun VehicleDto.toDomain(): Vehicle {
         "0"
     }
 
-    // Use the VehicleType from the DTO if available (when using includes), otherwise create placeholder
     val vehicleType = vehicleType?.toDomain() ?: VehicleType.createPlaceholder(
         Id = vehicleTypeId ?: "",
         Name = "Unknown",
@@ -54,8 +54,14 @@ fun VehicleDto.toDomain(): Vehicle {
         bestSuitedFor = bestSuitedFor ?: "",
         photoModel = photoModel ?: "",
         energyType = energySource?.let { EnergySourceEnum.fromInt(it).toString() } ?: "",
+        energySource = energySource ?: 1,
+        energySourceDisplayString = null,
         nextService = nextServiceHours,
-        businessId = businessId
+        businessId = businessId,
+        siteId = siteId,
+        isDirty = true,
+        isNew = true,
+        isMarkedForDeletion = isMarkedForDeletion
     )
 }
 
@@ -64,8 +70,8 @@ fun Vehicle.toDto(): VehicleDto {
     return VehicleDto(
         id = id,
         idOldValue = id, // Set old value to current id for updates
-        vehicleTypeId = type.Id,
-        categoryId = type.VehicleCategoryId,
+        vehicleTypeId = if (vehicleTypeId.isNotEmpty()) vehicleTypeId else type.Id,
+        categoryId = categoryId,
         status = when(status) {
             VehicleStatus.AVAILABLE -> 1
             VehicleStatus.IN_USE -> 2
@@ -79,14 +85,11 @@ fun Vehicle.toDto(): VehicleDto {
         photoModel = photoModel,
         codename = codename,
         model = model,
-        energySource = when(energyType.uppercase()) {
-            "ELECTRIC" -> 1
-            "DIESEL" -> 2
-            "GAS" -> 3
-            else -> 1
-        },
+        energySource = energySource,
         nextServiceDateTime = null, // TODO: Convert from hours if needed
         businessId = businessId,
+        siteId = siteId,
+        isMarkedForDeletion = isMarkedForDeletion,
         // Set new object IDs to null
         businessNewObjectId = null,
         siteNewObjectId = null,

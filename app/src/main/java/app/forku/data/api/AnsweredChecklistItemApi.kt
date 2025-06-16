@@ -31,7 +31,8 @@ interface AnsweredChecklistItemApi {
         @Header("Cookie") cookie: String,
         @Field("entity") entity: String,
         @Field("include") include: String = "",
-        @Field("dateformat") dateformat: String = "ISO8601"
+        @Field("dateformat") dateformat: String = "ISO8601",
+        @Query("businessId") businessId: String? = null
     ): Response<AnsweredChecklistItemDto>
 
     @DELETE("dataset/api/answeredchecklistitem")

@@ -7,13 +7,13 @@ fun SiteDto.toDomain(): Site {
     return Site(
         id = id,
         name = name,
-        address = address,
+        address = address ?: "",
         businessId = businessId,
-        latitude = latitude,
-        longitude = longitude,
+        latitude = latitude ?: 0.0,
+        longitude = longitude ?: 0.0,
         isActive = isActive,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        createdAt = createdAt ?: "",
+        updatedAt = updatedAt ?: ""
     )
 }
 
@@ -21,12 +21,12 @@ fun Site.toDto(): SiteDto {
     return SiteDto(
         id = id,
         name = name,
-        address = address,
+        address = address.takeIf { it.isNotEmpty() },
         businessId = businessId,
-        latitude = latitude,
-        longitude = longitude,
+        latitude = latitude.takeIf { it != 0.0 },
+        longitude = longitude.takeIf { it != 0.0 },
         isActive = isActive,
-        createdAt = createdAt,
-        updatedAt = updatedAt
+        createdAt = createdAt.takeIf { it.isNotEmpty() },
+        updatedAt = updatedAt.takeIf { it.isNotEmpty() }
     )
 } 

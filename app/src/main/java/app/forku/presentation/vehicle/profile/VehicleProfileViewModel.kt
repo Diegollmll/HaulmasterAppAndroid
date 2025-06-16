@@ -39,6 +39,7 @@ import app.forku.domain.model.vehicle.toDisplayString
 import android.util.Log
 import app.forku.core.Constants
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
+import app.forku.core.business.BusinessContextManager
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -50,6 +51,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val checklistRepository: ChecklistRepository,
     private val userRepository: UserRepository,
     private val checklistAnswerRepository: ChecklistAnswerRepository,
+    private val businessContextManager: BusinessContextManager,
     savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -389,7 +391,9 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
+                // 🚀 FIX: Use BusinessContextManager instead of currentUser.businessId
+                val businessId = businessContextManager.getCurrentBusinessId()
+                val siteId = businessContextManager.getCurrentSiteId()
                 
                 if (businessId == null) {
                     _state.update { 
@@ -421,7 +425,9 @@ class VehicleProfileViewModel @Inject constructor(
                     return@launch
                 }
                 
-                // End the session
+                Log.d("VehicleProfileVM", "[endVehicleSession] Using businessId: $businessId, siteId: $siteId from BusinessContextManager")
+                
+                // End the session - this will handle vehicle status update internally
                 vehicleSessionRepository.endSession(
                     sessionId = session.id,
                     closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED,
@@ -429,10 +435,8 @@ class VehicleProfileViewModel @Inject constructor(
                     notes = "Session ended by administrator"
                 )
 
-                // Update vehicle status to AVAILABLE
-                state.value.vehicle?.id?.let { vehicleId ->
-                    vehicleRepository.updateVehicleStatus(vehicleId, VehicleStatus.AVAILABLE, businessId)
-                }
+                // ❌ REMOVED: No need to call updateVehicleStatus here since endSession() already handles it
+                // This was causing the duplicate API call with wrong businessId
                 
                 // Reload vehicle state to reflect all changes
                 loadVehicle(showLoading = false)
@@ -455,7 +459,9 @@ class VehicleProfileViewModel @Inject constructor(
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
+                // 🚀 FIX: Use BusinessContextManager instead of currentUser.businessId
+                val businessId = businessContextManager.getCurrentBusinessId()
+                val siteId = businessContextManager.getCurrentSiteId()
                 
                 if (businessId == null) {
                     _state.update { 
@@ -486,8 +492,11 @@ class VehicleProfileViewModel @Inject constructor(
                     return@launch
                 }
 
+                Log.d("VehicleProfileVM", "[updateVehicleStatus] Using businessId: $businessId, siteId: $siteId from BusinessContextManager")
+
                 // If there's an active session and we're changing status, end it first
                 state.value.activeSession?.let { session ->
+                    Log.d("VehicleProfileVM", "[updateVehicleStatus] Ending active session first: ${session.id}")
                     vehicleSessionRepository.endSession(
                         sessionId = session.id,
                         closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED,
@@ -496,7 +505,8 @@ class VehicleProfileViewModel @Inject constructor(
                     )
                 }
 
-                // Update vehicle status
+                // Update vehicle status using VehicleStatusRepository (which uses correct context)
+                Log.d("VehicleProfileVM", "[updateVehicleStatus] Updating vehicle status to: $newStatus")
                 vehicleRepository.updateVehicleStatus(vehicleId, newStatus, businessId)
                 
                 // Reload vehicle state to reflect changes

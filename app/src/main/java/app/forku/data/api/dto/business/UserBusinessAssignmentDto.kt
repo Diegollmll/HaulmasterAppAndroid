@@ -6,6 +6,9 @@ data class UserBusinessAssignmentDto(
     @SerializedName("BusinessId")
     val businessId: String,
 
+    @SerializedName("SiteId")
+    val siteId: String? = null,
+
     @SerializedName("GOUserId")
     val userId: String,
 

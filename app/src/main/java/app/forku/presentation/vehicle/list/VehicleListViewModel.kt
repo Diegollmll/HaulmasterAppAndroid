@@ -26,6 +26,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.coroutineScope
+import app.forku.core.business.BusinessContextManager
+import app.forku.data.mapper.toDomain
+import app.forku.domain.repository.site.SiteRepository
+import app.forku.domain.model.Site
 
 @HiltViewModel
 class VehicleListViewModel @Inject constructor(
@@ -34,7 +38,9 @@ class VehicleListViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val checklistRepository: ChecklistRepository,
     private val checklistAnswerRepository: ChecklistAnswerRepository,
-    private val headerManager: HeaderManager
+    private val headerManager: HeaderManager,
+    private val businessContextManager: BusinessContextManager,
+    private val siteRepository: SiteRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(VehicleListState())
     val state = _state.asStateFlow()
@@ -48,8 +54,8 @@ class VehicleListViewModel @Inject constructor(
     private val _checklistAnswers = MutableStateFlow<Map<String, app.forku.domain.model.checklist.ChecklistAnswer>>(emptyMap())
     val checklistAnswers = _checklistAnswers.asStateFlow()
 
-    // Hardcoded business ID
-    private val hardcodedBusinessId = Constants.BUSINESS_ID
+    // Business context from BusinessContextManager
+    val businessContextState = businessContextManager.contextState
 
     // Add loading flag to prevent concurrent loads
     private var isLoading = false
@@ -65,8 +71,10 @@ class VehicleListViewModel @Inject constructor(
     init {
         loadCurrentUser()
         observeAuthState()
-        // Remove automatic loadVehicles() call from init
-        // Let the UI trigger it when ready
+        viewModelScope.launch {
+            businessContextManager.loadBusinessContext()
+            loadSites()
+        }
     }
     
     private fun loadCurrentUser() {
@@ -79,6 +87,8 @@ class VehicleListViewModel @Inject constructor(
             }
         }
     }
+    
+
 
     private fun observeAuthState() {
         viewModelScope.launch {
@@ -94,6 +104,30 @@ class VehicleListViewModel @Inject constructor(
         }
     }
 
+    private fun loadSites() {
+        viewModelScope.launch {
+            try {
+                siteRepository.getAllSites().collect { result ->
+                    result.fold(
+                        onSuccess = { sitesDto ->
+                            val sites = sitesDto.map { it.toDomain() }
+                            _state.value = _state.value.copy(availableSites = sites)
+                        },
+                        onFailure = { /* Manejar error si es necesario */ }
+                    )
+                }
+            } catch (e: Exception) {
+                // Manejar error si es necesario
+            }
+        }
+    }
+
+    fun selectSite(siteId: String?) {
+        businessContextManager.setCurrentSiteId(siteId)
+        _state.value = _state.value.copy(selectedSiteId = siteId)
+        loadVehicles(showLoading = true)
+    }
+
     fun loadVehicles(showLoading: Boolean = true) {
         if (isLoading) return
         
@@ -105,9 +139,12 @@ class VehicleListViewModel @Inject constructor(
                     isRefreshing = showLoading
                 )
 
-                // 🚀 OPTIMIZED: Single API call with all related data
+                val businessId = businessContextManager.getCurrentBusinessId()
+                val siteId = businessContextManager.getCurrentSiteId()
+                Log.d("VehicleListViewModel", "[MULTITENANCY] Loading vehicles for businessId: $businessId, siteId: $siteId")
+                
                 val vehiclesWithData = try {
-                    vehicleRepository.getVehiclesWithRelatedData(hardcodedBusinessId)
+                    vehicleRepository.getVehiclesWithRelatedData(businessId ?: "", siteId)
                 } catch (e: retrofit2.HttpException) {
                     if (e.code() == 401 || e.code() == 403) {
                         throw e
@@ -168,13 +205,14 @@ class VehicleListViewModel @Inject constructor(
                     lastPreShiftChecks = lastChecks,
                     isLoading = false,
                     isRefreshing = false,
-                    error = null
+                    error = null,
+                    currentBusinessId = businessId,
+                    selectedSiteId = siteId, // ✅ Update selectedSiteId from BusinessContextManager
+                    hasBusinessContext = businessContextManager.hasRealBusinessContext()
                 )
                 _checklistAnswers.value = checklistAnswers
 
-                // The actual number of API calls is now handled in the repository
-                // 1 vehicle call + N unique user calls (instead of 1 + vehicles * 5)
-                Log.d("VehicleListViewModel", "✅ OPTIMIZED: Loaded ${vehicles.size} vehicles with optimized API calls")
+                Log.d("VehicleListViewModel", "[MULTITENANCY] Loaded ${vehicles.size} vehicles for businessId: $businessId, siteId: $siteId")
 
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
@@ -194,5 +232,29 @@ class VehicleListViewModel @Inject constructor(
 
     fun refreshWithLoading() {
         loadVehicles(showLoading = true)
+    }
+    
+    /**
+     * Refresh business context and reload vehicles
+     * Useful when user switches business or business assignment changes
+     */
+    fun refreshBusinessContext() {
+        viewModelScope.launch {
+            try {
+                Log.d("VehicleListViewModel", "Refreshing business context...")
+                
+                // Use BusinessContextManager to refresh context
+                businessContextManager.refreshBusinessContext()
+                
+                // Reload vehicles with new context
+                loadVehicles(showLoading = true)
+                
+            } catch (e: Exception) {
+                Log.e("VehicleListViewModel", "Error refreshing business context: ${e.message}", e)
+                _state.value = _state.value.copy(
+                    error = "Failed to refresh business context: ${e.message}"
+                )
+            }
+        }
     }
 } 

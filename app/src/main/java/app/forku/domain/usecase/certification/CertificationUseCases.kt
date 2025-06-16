@@ -9,9 +9,9 @@ class GetUserCertificationsUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(userId: String? = null): List<Certification> =
         if (userId != null) {
-            // Use the new method for GOUserId2
+            // Use the new method for GOUserId
             if (repository is app.forku.data.repository.certification.CertificationRepositoryImpl) {
-                repository.getCertificationsByGoUserId2(userId)
+                repository.getCertificationsByGoUserId(userId)
             } else {
                 repository.getCertifications(userId)
             }

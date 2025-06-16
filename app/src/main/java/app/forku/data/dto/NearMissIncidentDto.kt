@@ -51,5 +51,9 @@ data class NearMissIncidentDto(
     @SerializedName("IsNew")
     val isNew: Boolean = true,
     @SerializedName("IsMarkedForDeletion")
-    val isMarkedForDeletion: Boolean = false
+    val isMarkedForDeletion: Boolean = false,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null
 ) 

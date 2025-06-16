@@ -66,7 +66,8 @@ class UserBusinessRepositoryImpl @Inject constructor(
                     UserBusinessAssignment(
                         businessId = dto.businessId,
                         userId = dto.userId,
-                        role = dto.role ?: UserRole.OPERATOR.name // Provide default role if null
+                        role = dto.role ?: UserRole.OPERATOR.name, // Provide default role if null
+                        siteId = dto.siteId
                     )
                 } ?: emptyList()
             }

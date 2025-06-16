@@ -18,9 +18,10 @@ class VehicleStatusRepositoryImpl @Inject constructor(
     override suspend fun updateVehicleStatus(
         vehicleId: String,
         status: VehicleStatus,
-        businessId: String
+        businessId: String,
+        siteId: String?
     ): Boolean {
-        return vehicleStatusUpdater.updateVehicleStatus(vehicleId, status, businessId)
+        return vehicleStatusUpdater.updateVehicleStatus(vehicleId, status, businessId, siteId)
     }
 
     override suspend fun isVehicleAvailable(vehicleId: String, businessId: String): Boolean {

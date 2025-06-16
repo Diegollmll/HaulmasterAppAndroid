@@ -50,10 +50,19 @@ fun AdminDashboardScreen(
     tokenErrorHandler: TokenErrorHandler
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Log.d("AdminDashboardScreen", "UI muestra operatingVehiclesCount: ${state.operatingVehiclesCount}")
-    Log.d("AdminDashboardScreen", "UI muestra userIncidentsCount: ${state.userIncidentsCount}")
-    Log.d("AdminDashboardScreen", "UI muestra totalIncidentsCount: ${state.totalIncidentsCount}")
-    Log.d("AdminDashboardScreen", "UI muestra safetyAlertsCount: ${state.safetyAlertsCount}")
+    
+    // Enhanced logging for debugging operating vehicles count
+    LaunchedEffect(state.operatingVehiclesCount, state.activeVehicleSessions.size) {
+        Log.d("AdminDashboardScreen", "=== UI STATE UPDATE ===")
+        Log.d("AdminDashboardScreen", "operatingVehiclesCount (from API): ${state.operatingVehiclesCount}")
+        Log.d("AdminDashboardScreen", "activeVehicleSessions.size (from UI): ${state.activeVehicleSessions.size}")
+        Log.d("AdminDashboardScreen", "userIncidentsCount: ${state.userIncidentsCount}")
+        Log.d("AdminDashboardScreen", "totalIncidentsCount: ${state.totalIncidentsCount}")
+        Log.d("AdminDashboardScreen", "safetyAlertsCount: ${state.safetyAlertsCount}")
+        Log.d("AdminDashboardScreen", "isLoading: ${state.isLoading}")
+        Log.d("AdminDashboardScreen", "error: ${state.error}")
+        Log.d("AdminDashboardScreen", "========================")
+    }
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
 
@@ -108,7 +117,8 @@ fun AdminDashboardScreen(
                     item { 
                         DashboardHeader(
                             userName = currentUser?.firstName ?: "",
-                            onNotificationClick = { navController.navigate(Screen.Notifications.route) }
+                            onNotificationClick = { navController.navigate(Screen.Notifications.route) },
+                            onSettingsClick = { navController.navigate(Screen.SystemSettings.route) }
                         )
                     }
                     

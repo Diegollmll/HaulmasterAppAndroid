@@ -15,7 +15,9 @@ import android.util.Log
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val userRepository: UserRepository,
-    private val tokenErrorHandler: TokenErrorHandler
+    private val tokenErrorHandler: TokenErrorHandler,
+    private val businessContextManager: app.forku.core.business.BusinessContextManager,
+    private val userPreferencesRepository: app.forku.domain.repository.user.UserPreferencesRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
@@ -34,8 +36,37 @@ class LoginViewModel @Inject constructor(
                         // Reset token error handler state on successful login
                         tokenErrorHandler.resetAuthenticationState()
                         
-                        Log.d("LoginViewModel", "Login successful")
-                        _state.value = LoginState.Success(user)
+                        Log.d("LoginViewModel", "Login successful, checking user preferences...")
+                        
+                        // Load business context with user preferences after successful login
+                        try {
+                            businessContextManager.loadBusinessContext()
+                            Log.d("LoginViewModel", "Business context loaded successfully")
+                            
+                            // Check if user needs to configure preferences using both repositories
+                            val needsSetupFromPrefs = userPreferencesRepository.userNeedsPreferencesSetup()
+                            val needsSetupFromContext = businessContextManager.userNeedsPreferencesSetup()
+                            val needsSetup = needsSetupFromPrefs || needsSetupFromContext
+                            
+                            Log.d("LoginViewModel", "Preferences setup check:")
+                            Log.d("LoginViewModel", "  From UserPreferences: $needsSetupFromPrefs")
+                            Log.d("LoginViewModel", "  From BusinessContext: $needsSetupFromContext")
+                            Log.d("LoginViewModel", "  Final decision: $needsSetup")
+                            
+                            if (needsSetup) {
+                                Log.d("LoginViewModel", "User needs preferences setup, redirecting to UserPreferencesSetup")
+                                _state.value = LoginState.RequiresPreferencesSetup(user)
+                            } else {
+                                Log.d("LoginViewModel", "User preferences are configured, proceeding to dashboard")
+                                _state.value = LoginState.Success(user)
+                            }
+                            
+                        } catch (e: Exception) {
+                            Log.w("LoginViewModel", "Failed to load business context after login", e)
+                            // If preferences check fails, assume setup is needed
+                            Log.d("LoginViewModel", "Preferences check failed, redirecting to UserPreferencesSetup as fallback")
+                            _state.value = LoginState.RequiresPreferencesSetup(user)
+                        }
                     },
                     onFailure = { exception ->
                         Log.e("LoginViewModel", "Login failed", exception)

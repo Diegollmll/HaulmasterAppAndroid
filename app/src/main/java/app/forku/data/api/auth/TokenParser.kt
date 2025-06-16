@@ -2,7 +2,7 @@ package app.forku.data.api.auth
 
 import android.util.Base64
 import android.util.Log
-import app.forku.core.auth.RoleConverter
+import app.forku.core.auth.UserRoleManager
 import app.forku.domain.model.user.UserRole
 import org.json.JSONObject
 import java.nio.charset.StandardCharsets
@@ -28,7 +28,7 @@ class TokenParser {
                 username = jsonObject.optString("unique_name", ""),
                 familyName = jsonObject.optString("family_name", ""),
                 is2FAEnabled = jsonObject.optString("Is2FAEnabled", "false").toBoolean(),
-                role = RoleConverter.fromString(jsonObject.optString("role", "")),
+                role = UserRoleManager.fromString(jsonObject.optString("role", "")),
                 expiration = jsonObject.optLong("exp", 0)
             )
         }

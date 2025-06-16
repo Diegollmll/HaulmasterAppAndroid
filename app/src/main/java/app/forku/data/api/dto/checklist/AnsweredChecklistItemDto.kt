@@ -20,5 +20,9 @@ data class AnsweredChecklistItemDto(
     @SerializedName("IsMarkedForDeletion")
     val isMarkedForDeletion: Boolean = false,
     @SerializedName("UserComment")
-    val userComment: String? = null
+    val userComment: String? = null,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null
 ) 

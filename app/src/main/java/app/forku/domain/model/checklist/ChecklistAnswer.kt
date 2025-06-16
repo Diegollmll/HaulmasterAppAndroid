@@ -14,6 +14,7 @@ data class ChecklistAnswer(
     val lastCheckDateTime: String = "",
     val vehicleId: String = "",
     val duration: Int? = null,
+    val businessId: String? = null,
     val operatorName: String = "Unknown",
     val vehicleName: String = "Unknown"
 ) 

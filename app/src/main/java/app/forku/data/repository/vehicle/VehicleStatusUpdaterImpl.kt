@@ -15,6 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import com.google.gson.JsonObject
 import com.google.gson.JsonArray
+import com.google.gson.Gson
 
 @Singleton
 class VehicleStatusUpdaterImpl @Inject constructor(
@@ -25,9 +26,18 @@ class VehicleStatusUpdaterImpl @Inject constructor(
     override suspend fun updateVehicleStatus(
         vehicleId: String,
         status: VehicleStatus,
-        businessId: String
+        businessId: String,
+        siteId: String?
     ): Boolean {
         return try {
+            android.util.Log.d("VehicleStatusUpdater", """
+                Updating vehicle status:
+                - Vehicle ID: $vehicleId
+                - New Status: $status
+                - Business ID: $businessId
+                - Site ID: $siteId
+            """.trimIndent())
+            
             // Get fresh CSRF token and cookie
             val csrfTokenResult = goServicesManager.getCsrfToken(forceRefresh = true)
             if (csrfTokenResult.isFailure) {
@@ -41,96 +51,64 @@ class VehicleStatusUpdaterImpl @Inject constructor(
                 throw Exception("Missing CSRF token or cookie")
             }
             
-            // Fetch the current vehicle
+            // Fetch the current vehicle with business context
+            android.util.Log.d("VehicleStatusUpdater", "Fetching vehicle $vehicleId with businessId: $businessId, siteId: $siteId")
             val currentResponse = api.getVehicleById(
                 id = vehicleId,
                 csrfToken = csrfToken,
                 cookie = antiforgeryCookie
             )
             if (!currentResponse.isSuccessful) {
+                android.util.Log.e("VehicleStatusUpdater", "Failed to fetch vehicle: ${currentResponse.code()}")
                 throw Exception("Failed to fetch vehicle: ${currentResponse.code()}")
             }
             val currentVehicleDto = currentResponse.body() ?: throw Exception("Vehicle not found")
             
-            // Create vehicle data matching the exact format required
-            val vehicleData = JsonObject().apply {
-                addProperty("Id", currentVehicleDto.id)
-                addProperty("Id_OldValue", currentVehicleDto.id)
-                addProperty("_business_NewObjectId", null as String?)
-                addProperty("_site_NewObjectId", null as String?)
-                addProperty("_vehicleCategory_NewObjectId", null as String?)
-                addProperty("_vehicleType_NewObjectId", null as String?)
-                addProperty("BestSuitedFor", currentVehicleDto.bestSuitedFor)
-                addProperty("BusinessId", currentVehicleDto.businessId)
-                addProperty("Codename", currentVehicleDto.codename)
-                addProperty("Description", currentVehicleDto.description)
-                addProperty("EnergySource", currentVehicleDto.energySource)
-                addProperty("Model", currentVehicleDto.model)
-                addProperty("NextServiceDateTime", null as String?)
-                addProperty("Picture", currentVehicleDto.photoModel)
-                addProperty("PictureFileSize", currentVehicleDto.pictureFileSize)
-                addProperty("PictureInternalName", currentVehicleDto.pictureInternalName)
-                addProperty("SerialNumber", currentVehicleDto.serialNumber)
-                addProperty("SiteId", null as String?)
-                addProperty("Status", status.toInt())
-                addProperty("VehicleCategoryId", currentVehicleDto.categoryId)
-                addProperty("VehicleTypeId", currentVehicleDto.vehicleTypeId)
-                addProperty("BusinessId_OldValue", currentVehicleDto.businessId)
-                addProperty("SiteId_OldValue", null as String?)
-                addProperty("VehicleCategoryId_OldValue", currentVehicleDto.categoryId)
-                addProperty("VehicleTypeId_OldValue", currentVehicleDto.vehicleTypeId)
-                addProperty("InternalObjectId", 4)
-                addProperty("IsDirty", true)
-                addProperty("IsNew", false)
-                addProperty("IsMarkedForDeletion", false)
-
-                // Add enum values arrays
-                add("energySourceEnumValues", JsonArray().apply {
-                    add(null as String?)
-                    add(1)
-                    add(2)
-                    add(3)
-                })
-                add("vehicleStatusEnumValues", JsonArray().apply {
-                    add(1)
-                    add(2)
-                    add(3)
-                    add(4)
-                })
-
-                // Add EnergySourceValues array
-                add("EnergySourceValues", JsonArray().apply {
-                    add(JsonObject().apply { addProperty("selectvalue", null as String?) })
-                    add(JsonObject().apply { addProperty("selectvalue", 1) })
-                    add(JsonObject().apply { addProperty("selectvalue", 2) })
-                    add(JsonObject().apply { addProperty("selectvalue", 3) })
-                })
-
-                // Add StatusValues array
-                add("StatusValues", JsonArray().apply {
-                    add(JsonObject().apply { addProperty("selectvalue", 1) })
-                    add(JsonObject().apply { addProperty("selectvalue", 2) })
-                    add(JsonObject().apply { addProperty("selectvalue", 3) })
-                    add(JsonObject().apply { addProperty("selectvalue", 4) })
-                })
-
-                addProperty("PrimaryKey", currentVehicleDto.id)
-                addProperty("NextServiceDateTime_DisplayString", null as String?)
-                addProperty("NextServiceDateTime_WithTimeDisplayString", null as String?)
+            // Verify the vehicle belongs to the correct business
+            if (currentVehicleDto.businessId != businessId) {
+                android.util.Log.e("VehicleStatusUpdater", "Vehicle businessId mismatch: expected $businessId, got ${currentVehicleDto.businessId}")
+                throw Exception("Vehicle does not belong to the specified business")
             }
             
+            // Verify the vehicle belongs to the correct site (if siteId is provided)
+            if (siteId != null && currentVehicleDto.siteId != siteId) {
+                android.util.Log.e("VehicleStatusUpdater", "Vehicle siteId mismatch: expected $siteId, got ${currentVehicleDto.siteId}")
+                throw Exception("Vehicle does not belong to the specified site")
+            }
+            
+            android.util.Log.d("VehicleStatusUpdater", "Current vehicle: ${currentVehicleDto.codename}, businessId: ${currentVehicleDto.businessId}, siteId: ${currentVehicleDto.siteId}, current status: ${currentVehicleDto.status}")
+
+            // Update only the status, keeping all other fields intact
+            val updatedVehicleDto = currentVehicleDto.copy(
+                status = status.toInt(),
+                // Ensure business and site context is preserved
+                businessId = businessId,
+                siteId = siteId ?: currentVehicleDto.siteId,
+                // Mark as update, not new
+                isNew = false,
+                isDirty = true
+            )
+            
+            val gson = Gson()
+            val vehicleJson = gson.toJson(updatedVehicleDto)
+            android.util.Log.d("VehicleStatusUpdater", "Updating vehicle with JSON payload (first 200 chars): ${vehicleJson.take(200)}...")
+
             // Save the updated vehicle
             val response = api.saveVehicle(
-                updateDto = vehicleData,
+                entity = vehicleJson,
                 csrfToken = csrfToken,
                 cookie = antiforgeryCookie
             )
             if (!response.isSuccessful) {
+                val errorBody = response.errorBody()?.string()
+                android.util.Log.e("VehicleStatusUpdater", "Failed to update vehicle status: ${response.code()}, error: $errorBody")
                 throw Exception("Failed to update vehicle status: ${response.code()}")
             }
+            
+            android.util.Log.d("VehicleStatusUpdater", "Successfully updated vehicle status to: $status")
             true
         } catch (e: Exception) {
-            android.util.Log.e("VehicleStatus", "Error updating vehicle status", e)
+            android.util.Log.e("VehicleStatusUpdater", "Error updating vehicle status for vehicleId: $vehicleId, businessId: $businessId, siteId: $siteId", e)
             false
         }
     }

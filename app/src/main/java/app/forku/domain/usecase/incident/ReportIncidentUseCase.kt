@@ -13,11 +13,13 @@ import app.forku.domain.model.incident.IncidentSeverityLevelEnum
 import app.forku.domain.model.incident.IncidentTypeFields
 import java.time.LocalTime
 import app.forku.domain.model.incident.LoadWeightEnum
+import app.forku.core.business.BusinessContextManager
 
 class ReportIncidentUseCase @Inject constructor(
     private val incidentRepository: IncidentRepository,
     private val userRepository: UserRepository,
-    private val vehicleSessionRepository: VehicleSessionRepository
+    private val vehicleSessionRepository: VehicleSessionRepository,
+    private val businessContextManager: BusinessContextManager
 ) {
     suspend operator fun invoke(
         type: IncidentTypeEnum,
@@ -48,6 +50,17 @@ class ReportIncidentUseCase @Inject constructor(
             ?: return Result.failure(Exception("User not authenticated"))
 
         return try {
+            // Get business context from BusinessContextManager
+            val businessId = businessContextManager.getCurrentBusinessId()
+            android.util.Log.d("ReportIncidentUseCase", "=== REPORT INCIDENT USE CASE DEBUG ===")
+            android.util.Log.d("ReportIncidentUseCase", "BusinessId from BusinessContextManager: '$businessId'")
+            android.util.Log.d("ReportIncidentUseCase", "Current user ID: '${currentUser.id}'")
+            android.util.Log.d("ReportIncidentUseCase", "Incident type: $type")
+            android.util.Log.d("ReportIncidentUseCase", "Vehicle ID: '$vehicleId'")
+            android.util.Log.d("ReportIncidentUseCase", "Session ID: '$sessionId'")
+            android.util.Log.d("ReportIncidentUseCase", "Creating incident domain object...")
+            android.util.Log.d("ReportIncidentUseCase", "======================================")
+
             val incident = Incident(
                 id = null,
                 type = type,
@@ -76,10 +89,16 @@ class ReportIncidentUseCase @Inject constructor(
                 isLoadCarried = isLoadCarried,
                 loadBeingCarried = loadBeingCarried,
                 loadWeight = loadWeight,
-                locationCoordinates = locationCoordinates
+                locationCoordinates = locationCoordinates,
+                businessId = businessId
             )
 
-            incidentRepository.reportIncident(incident)
+            android.util.Log.d("ReportIncidentUseCase", "Incident domain object created with businessId: '${incident.businessId}'")
+            android.util.Log.d("ReportIncidentUseCase", "Calling incidentRepository.reportIncident()...")
+            
+            val result = incidentRepository.reportIncident(incident)
+            android.util.Log.d("ReportIncidentUseCase", "Repository returned result: $result")
+            result
         } catch (e: Exception) {
             Result.failure(e)
         }

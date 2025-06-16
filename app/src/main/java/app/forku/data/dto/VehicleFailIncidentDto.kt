@@ -56,5 +56,9 @@ data class VehicleFailIncidentDto(
     @SerializedName("LocationCoordinates")
     val locationCoordinates: String? = null,
     @SerializedName("OthersInvolved")
-    val othersInvolved: String? = null
+    val othersInvolved: String? = null,
+    @SerializedName("BusinessId")
+    val businessId: String? = null,
+    @SerializedName("SiteId")
+    val siteId: String? = null
 ) 

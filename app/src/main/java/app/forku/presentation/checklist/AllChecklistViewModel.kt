@@ -68,14 +68,14 @@ class AllChecklistViewModel @Inject constructor(
                 // Use real server-side pagination
                 val answers = checklistAnswerRepository.getAllPaginated(page, _state.value.itemsPerPage)
                 val checkStates = answers.map { answer ->
-                    PreShiftCheckState(
-                        id = answer.id,
-                        vehicleId = answer.vehicleId,
+                        PreShiftCheckState(
+                            id = answer.id,
+                            vehicleId = answer.vehicleId,
                         vehicleCodename = answer.vehicleName,
                         operatorName = answer.operatorName,
-                        status = answer.status.toString(),
-                        lastCheckDateTime = answer.lastCheckDateTime.takeIf { it.isNotBlank() }
-                    )
+                            status = answer.status.toString(),
+                            lastCheckDateTime = answer.lastCheckDateTime.takeIf { it.isNotBlank() }
+                        )
                 }
                 
                 _state.update { currentState ->

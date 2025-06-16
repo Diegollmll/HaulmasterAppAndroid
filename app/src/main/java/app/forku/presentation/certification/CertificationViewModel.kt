@@ -8,6 +8,7 @@ import app.forku.domain.usecase.certification.CreateCertificationUseCase
 import app.forku.domain.usecase.certification.GetCertificationByIdUseCase
 import app.forku.domain.usecase.certification.UpdateCertificationUseCase
 import app.forku.domain.usecase.user.GetCurrentUserIdUseCase
+import app.forku.core.business.BusinessContextManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,13 +18,15 @@ import java.time.LocalDate
 import java.time.Instant
 import javax.inject.Inject
 import java.util.UUID
+import android.util.Log
 
 @HiltViewModel
 class CertificationViewModel @Inject constructor(
     private val createCertificationUseCase: CreateCertificationUseCase,
     private val updateCertificationUseCase: UpdateCertificationUseCase,
     private val getCertificationByIdUseCase: GetCertificationByIdUseCase,
-    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase
+    private val getCurrentUserIdUseCase: GetCurrentUserIdUseCase,
+    private val businessContextManager: BusinessContextManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CertificationState())
@@ -46,6 +49,7 @@ class CertificationViewModel @Inject constructor(
                         certificationCode = certification?.certificationCode,
                         status = certification?.status,
                         userId = certification?.userId,
+                        businessId = certification?.businessId,
                         isMarkedForDeletion = certification?.isMarkedForDeletion ?: false,
                         isDirty = certification?.isDirty ?: false,
                         isNew = certification?.isNew ?: false,
@@ -147,6 +151,10 @@ class CertificationViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Get current business context
+                val businessId = businessContextManager.getCurrentBusinessId()
+                Log.d("CertificationViewModel", "Creating certification with businessId: $businessId")
+
                 val isNew = state.value.id == null
                 val certification = Certification(
                     id = state.value.id ?: UUID.randomUUID().toString(),
@@ -163,8 +171,11 @@ class CertificationViewModel @Inject constructor(
                     isMarkedForDeletion = state.value.isMarkedForDeletion,
                     isDirty = state.value.isDirty,
                     isNew = isNew,
-                    internalObjectId = state.value.internalObjectId
+                    internalObjectId = state.value.internalObjectId,
+                    businessId = state.value.businessId ?: businessId // Use existing or current business ID
                 )
+                
+                Log.d("CertificationViewModel", "Saving certification: $certification")
                 val result = if (!isNew) {
                     updateCertificationUseCase(certification)
                 } else {
@@ -172,8 +183,10 @@ class CertificationViewModel @Inject constructor(
                 }
 
                 result.onSuccess {
+                    Log.d("CertificationViewModel", "Certification saved successfully: ${it.id}")
                     _state.update { it.copy(isLoading = false, isCompleted = true) }
                 }.onFailure { e ->
+                    Log.e("CertificationViewModel", "Error saving certification", e)
                     _state.update { 
                         it.copy(
                             isLoading = false,
@@ -182,6 +195,7 @@ class CertificationViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+                Log.e("CertificationViewModel", "Exception saving certification", e)
                 _state.update { 
                     it.copy(
                         isLoading = false,
@@ -211,6 +225,7 @@ data class CertificationState(
     val certificationCode: String? = null,
     val status: CertificationStatus? = null,
     val userId: String? = null,
+    val businessId: String? = null,
     val isMarkedForDeletion: Boolean = false,
     val isDirty: Boolean = false,
     val isNew: Boolean = false,

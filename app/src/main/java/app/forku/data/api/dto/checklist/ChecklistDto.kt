@@ -1,5 +1,7 @@
 package app.forku.data.api.dto.checklist
 
+import com.google.gson.annotations.SerializedName
+
 data class ChecklistDto(
     val `$type`: String = "ChecklistDataObject",
     val CriticalityLevels: List<Int>,
@@ -17,5 +19,7 @@ data class ChecklistDto(
     val ChecklistVehicleTypeItems: List<ChecklistVehicleTypeDto> = emptyList(),
     val ChecklistChecklistQuestionItems: List<ChecklistItemDto>? = emptyList(),
     val IsMarkedForDeletion: Boolean,
-    val InternalObjectId: Int
+    val InternalObjectId: Int,
+    @SerializedName("BusinessId")
+    val businessId: String? = null
 ) 

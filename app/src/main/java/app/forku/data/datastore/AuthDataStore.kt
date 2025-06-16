@@ -268,4 +268,25 @@ class AuthDataStore @Inject constructor(
         val expiration = getTokenExpirationDate()
         android.util.Log.d("AuthDataStore", "JWT token expires at: $expiration")
     }
+    
+    // Business context methods
+    suspend fun saveCurrentBusinessId(businessId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BUSINESS_ID] = businessId
+        }
+        android.util.Log.d("AuthDataStore", "Saved business context: $businessId")
+    }
+    
+    suspend fun getCurrentBusinessId(): String? {
+        val preferences = context.dataStore.data.first()
+        return preferences[PreferencesKeys.BUSINESS_ID]
+    }
+    
+    suspend fun clearBusinessContext() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.BUSINESS_ID)
+            preferences.remove(PreferencesKeys.SITE_ID)
+        }
+        android.util.Log.d("AuthDataStore", "Cleared business context")
+    }
 } 

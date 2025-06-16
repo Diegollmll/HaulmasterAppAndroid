@@ -39,7 +39,7 @@ import app.forku.presentation.common.components.LocationPermissionHandler
 import app.forku.core.location.LocationManager
 import coil.ImageLoader
 import app.forku.core.auth.TokenErrorHandler
-import app.forku.core.auth.RoleConverter
+import app.forku.core.auth.UserRoleManager
 import app.forku.domain.model.user.UserRole
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -245,8 +245,8 @@ fun ChecklistScreen(
             }
             is NavigationEvent.AfterSubmit -> {
                 Log.d("QRFlow", "ChecklistScreen - Navigating after submit, role: ${event.role}")
-                val userRole = RoleConverter.fromString(event.role)
-                val route = RoleConverter.getDashboardRouteForRole(userRole)
+                val userRole = UserRoleManager.fromString(event.role)
+                val route = UserRoleManager.getDashboardRoute(userRole)
                 navController.navigate(route) {
                     popUpTo(0) { inclusive = true }
                 }

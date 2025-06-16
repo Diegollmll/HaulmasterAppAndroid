@@ -20,7 +20,8 @@ interface ChecklistItemAnswerMultimediaApi {
     @POST("api/checklistitemanswermultimedia")
     @Headers("Accept: text/plain")
     suspend fun save(
-        @Field("entity") entity: String
+        @Field("entity") entity: String,
+        @Query("businessId") businessId: String? = null
     ): Response<ChecklistItemAnswerMultimediaDto>
 
     @DELETE("api/checklistitemanswermultimedia/{id}")

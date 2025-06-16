@@ -15,7 +15,9 @@ data class Certification(
     val isMarkedForDeletion: Boolean = false,
     val isDirty: Boolean = false,
     val isNew: Boolean = false,
-    val internalObjectId: Int = 0
+    val internalObjectId: Int = 0,
+    val businessId: String? = null,
+    val siteId: String? = null // ✅ Add siteId for multitenancy
 )
 
 enum class CertificationStatus {

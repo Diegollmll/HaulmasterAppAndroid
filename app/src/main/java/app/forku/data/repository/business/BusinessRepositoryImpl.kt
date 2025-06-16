@@ -3,7 +3,7 @@ package app.forku.data.repository.business
 import android.util.Log
 import app.forku.data.api.BusinessApi
 import app.forku.data.api.UserBusinessApi
-import app.forku.data.api.dto.business.BusinessItemDto
+import app.forku.data.api.dto.business.BusinessDto
 import app.forku.data.api.dto.business.UserBusinessAssignmentDto
 import app.forku.data.api.dto.business.BusinessStats
 import app.forku.domain.model.user.User
@@ -14,11 +14,8 @@ import app.forku.presentation.dashboard.Business
 import retrofit2.HttpException
 import retrofit2.Response
 import javax.inject.Inject
-import app.forku.data.api.CreateBusinessRequest
-import app.forku.data.api.UpdateBusinessRequest
 import app.forku.domain.model.business.BusinessStatus
 import app.forku.data.api.BusinessConfigurationApi
-import app.forku.data.api.dto.business.BusinessConfigurationDto
 
 
 class BusinessRepositoryImpl @Inject constructor(
@@ -47,7 +44,7 @@ class BusinessRepositoryImpl @Inject constructor(
         }
     }
 
-    private fun mapToDomain(businessDto: BusinessItemDto): Business {
+    private fun mapToDomain(businessDto: BusinessDto): Business {
         return try {
             Log.d("BusinessRepository", "Mapping DTO to Business")
             
@@ -100,7 +97,7 @@ class BusinessRepositoryImpl @Inject constructor(
             val currentUser = userRepository.getCurrentUser()
             when (currentUser?.role) {
                 UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> {
-                    val businessDto = BusinessItemDto(
+                    val businessDto = BusinessDto(
                         id = "",  // Will be assigned by server
                         name = name,
                         status = 0,  // PENDING status
@@ -303,7 +300,7 @@ class BusinessRepositoryImpl @Inject constructor(
                 throw SecurityException("Insufficient permissions to update business")
             }
 
-            val businessDto = BusinessItemDto(
+            val businessDto = BusinessDto(
                 id = business.id,
                 name = business.name,
                 status = when(business.status) {

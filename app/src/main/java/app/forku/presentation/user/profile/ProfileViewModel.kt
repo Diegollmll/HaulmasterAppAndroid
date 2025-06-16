@@ -21,7 +21,9 @@ class ProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val vehicleSessionRepository: VehicleSessionRepository,
     private val vehicleRepository: VehicleRepository,
-    private val incidentRepository: IncidentRepository
+    private val incidentRepository: IncidentRepository,
+    private val userPreferencesRepository: app.forku.domain.repository.user.UserPreferencesRepository,
+    private val businessContextManager: app.forku.core.business.BusinessContextManager
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProfileState())
     val state = _state.asStateFlow()
@@ -71,8 +73,22 @@ class ProfileViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch {
             try {
+                Log.d("ProfileViewModel", "Starting logout process...")
+                
+                // Clear user preferences
+                userPreferencesRepository.clearPreferences()
+                Log.d("ProfileViewModel", "User preferences cleared")
+                
+                // Clear business context
+                businessContextManager.clearBusinessContext()
+                Log.d("ProfileViewModel", "Business context cleared")
+                
+                // Perform actual logout
                 userRepository.logout()
+                Log.d("ProfileViewModel", "Logout completed successfully")
+                
             } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Error during logout", e)
                 _state.update { it.copy(error = "Error logging out: ${e.message}") }
             }
         }

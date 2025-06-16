@@ -7,11 +7,13 @@ import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.google.gson.Gson
+import app.forku.core.business.BusinessContextManager
 
 @Singleton
 class NearMissIncidentRepository @Inject constructor(
     private val api: NearMissIncidentApi,
-    private val gson: Gson
+    private val gson: Gson,
+    private val businessContextManager: BusinessContextManager
 ) {
     suspend fun getNearMissIncidentById(id: String): Flow<Result<NearMissIncidentDto>> = flow {
         try {
@@ -42,11 +44,34 @@ class NearMissIncidentRepository @Inject constructor(
 
     suspend fun saveNearMissIncident(incident: NearMissIncidentDto): Flow<Result<NearMissIncidentDto>> = flow {
         try {
-            val entityJson = gson.toJson(incident)
-            android.util.Log.d("NearMissIncidentDto", "JSON enviado a API: $entityJson")
-            val result = api.save(entity = entityJson)
+            // Get business and site context from BusinessContextManager
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            android.util.Log.d("NearMissIncidentRepo", "=== NEAR MISS INCIDENT REPOSITORY DEBUG ===")
+            android.util.Log.d("NearMissIncidentRepo", "Original DTO businessId: '${incident.businessId}', siteId: '${incident.siteId}'")
+            android.util.Log.d("NearMissIncidentRepo", "BusinessId from BusinessContextManager: '$businessId'")
+            android.util.Log.d("NearMissIncidentRepo", "SiteId from BusinessContextManager: '$siteId'")
+            
+            // Assign businessId and siteId to DTO copy
+            val incidentWithContext = incident.copy(
+                businessId = businessId,
+                siteId = siteId
+            )
+            android.util.Log.d("NearMissIncidentRepo", "Updated DTO businessId: '${incidentWithContext.businessId}', siteId: '${incidentWithContext.siteId}'")
+            
+            val entityJson = gson.toJson(incidentWithContext)
+            android.util.Log.d("NearMissIncidentRepo", "JSON enviado a API: $entityJson")
+            android.util.Log.d("NearMissIncidentRepo", "Calling API with businessId: '$businessId', siteId: '$siteId'")
+            
+            val result = api.save(
+                entity = entityJson, 
+                businessId = businessId
+            )
+            android.util.Log.d("NearMissIncidentRepo", "API response received successfully")
+            android.util.Log.d("NearMissIncidentRepo", "==========================================")
             emit(Result.success(result))
         } catch (e: Exception) {
+            android.util.Log.e("NearMissIncidentRepo", "Error saving near miss incident: ${e.message}", e)
             emit(Result.failure(e))
         }
     }

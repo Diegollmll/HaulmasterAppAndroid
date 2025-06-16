@@ -84,6 +84,7 @@ interface VehicleRepository {
      * @param nextService The vehicle's next service date
      * @param businessId The business context
      * @param serialNumber The vehicle's serial number
+     * @param siteId The site context
      */
     suspend fun createVehicle(
         codename: String,
@@ -95,7 +96,8 @@ interface VehicleRepository {
         energyType: String,
         nextService: String,
         businessId: String?,
-        serialNumber: String
+        serialNumber: String,
+        siteId: String? = null
     ): Vehicle
 
     /**

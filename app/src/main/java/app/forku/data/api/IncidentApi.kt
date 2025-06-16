@@ -22,12 +22,16 @@ interface IncidentApi {
     )
     suspend fun getIncidentById(@Path("id") id: String): Response<IncidentDto>
 
+    @FormUrlEncoded
     @POST("api/incident")
     @Headers(
         "Content-Type: application/x-www-form-urlencoded",
         "Accept: text/plain"
     )
-    suspend fun saveIncident(@Field("entity") incident: String): Response<IncidentDto>
+    suspend fun saveIncident(
+        @Field("entity") incident: String,
+        @Query("businessId") businessId: String? = null
+    ): Response<IncidentDto>
 
     @DELETE("dataset/api/incident/{id}")
     @Headers(

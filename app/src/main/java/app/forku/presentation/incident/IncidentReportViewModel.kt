@@ -67,6 +67,7 @@ import java.io.FileOutputStream
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import app.forku.core.business.BusinessContextManager
 
 
 @HiltViewModel
@@ -90,7 +91,8 @@ class IncidentReportViewModel @Inject constructor(
     private val fileUploaderApi: FileUploaderApi,
     private val addIncidentMultimediaUseCase: AddIncidentMultimediaUseCase,
     private val headerManager: HeaderManager,
-    private val uploadFileUseCase: UploadFileUseCase
+    private val uploadFileUseCase: UploadFileUseCase,
+    private val businessContextManager: BusinessContextManager
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(IncidentReportState())
@@ -187,10 +189,12 @@ class IncidentReportViewModel @Inject constructor(
                     android.util.Log.d("IncidentReport", "After refresh, current user: $user")
                 }
 
-                val businessId = user?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                // Get business context from BusinessContextManager  
+                val businessId = businessContextManager.getCurrentBusinessId()
+                android.util.Log.d("IncidentReport", "Using businessId from BusinessContextManager: $businessId")
                 
                 // Load available vehicles first
-                val vehicles = vehicleRepository.getVehicles(businessId)
+                val vehicles = vehicleRepository.getVehicles(businessId ?: "")
                 _state.update { it.copy(availableVehicles = vehicles) }
                 
                 // Set user information regardless of session
@@ -221,7 +225,7 @@ class IncidentReportViewModel @Inject constructor(
                 
                 session?.vehicleId?.let { vehicleId ->
                     try {
-                        val vehicle = vehicleRepository.getVehicle(vehicleId, businessId)
+                        val vehicle = vehicleRepository.getVehicle(vehicleId, businessId ?: "")
                         val lastCheck = checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicleId)
 
                         // Debug logs
@@ -264,7 +268,9 @@ class IncidentReportViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                // Get business context from BusinessContextManager
+                val businessId = businessContextManager.getCurrentBusinessId()
+                android.util.Log.d("IncidentReport", "[loadVehiclePreShiftCheck] Using businessId: $businessId")
                 val lastCheck = checklistAnswerRepository.getLastChecklistAnswerForVehicle(vehicleId)
                 _state.update { currentState -> 
                     currentState.copy(
@@ -313,11 +319,22 @@ class IncidentReportViewModel @Inject constructor(
             try {
                 _state.update { it.copy(attemptedSubmit = true) }
                 
+                // Log business context before submission
+                val businessId = businessContextManager.getCurrentBusinessId()
+                Log.d("IncidentReportVM", "=== INCIDENT SUBMISSION DEBUG ===")
+                Log.d("IncidentReportVM", "BusinessId from BusinessContextManager: '$businessId'")
+                Log.d("IncidentReportVM", "Current state userId: ${state.value.userId}")
+                Log.d("IncidentReportVM", "Current state vehicleId: ${state.value.vehicleId}")
+                Log.d("IncidentReportVM", "Current state sessionId: ${state.value.sessionId}")
+                Log.d("IncidentReportVM", "Current state type: ${state.value.type}")
+                Log.d("IncidentReportVM", "================================")
+                
                 when (val validationResult = state.value.validate()) {
                     is ValidationResult.Success -> {
                         _state.update { it.copy(isLoading = true) }
                         
                         try {
+                            Log.d("IncidentReportVM", "Calling reportIncidentUseCase with validated data...")
                             val result = reportIncidentUseCase(
                                 type = state.value.type ?: throw IllegalStateException("Incident type is required"),
                                 date = state.value.date,
@@ -657,8 +674,14 @@ class IncidentReportViewModel @Inject constructor(
                     is ValidationResult.Success -> {
                         _state.update { it.copy(isLoading = true) }
                         try {
+                            Log.d("IncidentReportVM", "=== COLLISION INCIDENT SUBMISSION ===")
                             Log.d("IncidentReportVM", "Starting collision incident submission")
-                            val collisionDto = state.value.toCollisionIncidentDto()
+                            val businessId = businessContextManager.getCurrentBusinessId()
+                            val collisionDto = state.value.toCollisionIncidentDto(businessId)
+                            Log.d("IncidentReportVM", "DTO created with businessId: '${collisionDto.businessId}'")
+                            Log.d("IncidentReportVM", "DTO vehicle ID: '${collisionDto.vehicleId}'")
+                            Log.d("IncidentReportVM", "DTO user ID: '${collisionDto.userId}'")
+                            Log.d("IncidentReportVM", "Calling saveCollisionIncidentUseCase...")
                             saveCollisionIncidentUseCase(collisionDto, include = null, dateformat = "ISO8601").collect { result ->
                                 result.onSuccess { collisionIncident ->
                                     Log.d("IncidentReportVM", "Collision incident saved successfully with ID: ${collisionIncident.id}")
@@ -875,7 +898,7 @@ class IncidentReportViewModel @Inject constructor(
     // Asociar fotos con el incidente
     private fun associatePhotosWithIncident(incidentId: String) {
         Log.d("IncidentReportVM", "Starting photo association for incident: $incidentId")
-        Log.d("IncidentReportVM", "Number of photos to associate: ${state.value.uploadedPhotos.size}")
+        Log.d("IncidentReportVM", "Number of photos to associate: "+state.value.uploadedPhotos.size)
         val goUserId = currentUser.value?.id ?: run {
             Log.e("IncidentReportVM", "No current user found for photo association")
             return
@@ -883,25 +906,30 @@ class IncidentReportViewModel @Inject constructor(
         state.value.uploadedPhotos.forEach { photo ->
             Log.d("IncidentReportVM", "\nProcessing photo:\n- Internal Name: ${photo.internalName}\n- Client Name: ${photo.clientName}\n- File Size: ${photo.fileSize}\n- Type: ${photo.type}")
 
-            // Build the JSON as required by the backend, including EntityType = 0
-            val entityMap = mapOf(
-                "GOUserId" to goUserId,
-                "IncidentId" to incidentId,
-                "EntityType" to 0, // Always send 0 for Incident
-                "MultimediaType" to 0, // Adjust if you have different types
-                "Image" to photo.internalName, // Usar internalName en lugar de clientName
-                "ImageInternalName" to photo.internalName,
-                "ImageFileSize" to photo.fileSize,
-                "IsNew" to true,
-                "IsDirty" to true,
-                "IsMarkedForDeletion" to false
-            )
-            val entityJson = com.google.gson.Gson().toJson(entityMap)
-
-            Log.d("IncidentReportVM", "Created entity JSON for IncidentMultimedia: $entityJson")
-
             viewModelScope.launch {
                 try {
+                    val businessId = businessContextManager.getCurrentBusinessId()
+                    val siteId = businessContextManager.getCurrentSiteId()
+                    val creationDateTime = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                    val entityMap = mapOf(
+                        "GOUserId" to goUserId,
+                        "IncidentId" to incidentId,
+                        "MultimediaType" to 0,
+                        "Image" to photo.internalName,
+                        "ImageInternalName" to photo.internalName,
+                        "ImageFileSize" to photo.fileSize,
+                        "IsNew" to true,
+                        "IsDirty" to true,
+                        "IsMarkedForDeletion" to false,
+                        "BusinessId" to businessId,
+                        "SiteId" to siteId,
+                        "CreationDateTime" to creationDateTime,
+                        "EntityType" to 0
+                    )
+                    val entityJson = com.google.gson.Gson().toJson(entityMap)
+
+                    Log.d("IncidentReportVM", "Created IncidentMultimediaDto JSON: $entityJson")
+
                     Log.d("IncidentReportVM", "Calling addIncidentMultimediaUseCase for photo: ${photo.internalName}")
                     val result = addIncidentMultimediaUseCase(entityJson)
                     result.onSuccess {

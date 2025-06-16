@@ -13,5 +13,6 @@ interface UserBusinessRepository {
 data class UserBusinessAssignment(
     val businessId: String,
     val userId: String,
-    val role: String
+    val role: String,
+    val siteId: String? = null
 ) 

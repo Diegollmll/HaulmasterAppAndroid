@@ -48,7 +48,8 @@ interface ChecklistAnswerApi {
         @Header("X-CSRF-TOKEN") csrfToken: String,
         @Header("Cookie") cookie: String,
         @Field("entity") saveUpdateDto: String,
-        @Field("include") include: String = ""
+        @Field("include") include: String = "",
+        @Query("businessId") businessId: String? = null
     ): Response<ChecklistAnswerDto>
 
     @DELETE("api/checklistanswer/{id}")

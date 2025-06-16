@@ -11,7 +11,10 @@ interface MultimediaApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getMultimediaById(@Path("id") id: String): Response<MultimediaDto>
+    suspend fun getMultimediaById(
+        @Path("id") id: String,
+        @Query("businessId") businessId: String? = null
+    ): Response<MultimediaDto>
 
     @GET("api/multimedia/list")
     @Headers(
@@ -19,28 +22,38 @@ interface MultimediaApi {
         "Accept: text/plain"
     )
     suspend fun getAllMultimedia(
-        @Query("filter") filter: String? = null
+        @Query("filter") filter: String? = null,
+        @Query("businessId") businessId: String? = null
     ): Response<List<MultimediaDto>>
 
     @GET("api/multimedia/file/{id}/Image")
     @Headers(
         "Accept: image/*"
     )
-    suspend fun getMultimediaImage(@Path("id") id: String): Response<ByteArray>
+    suspend fun getMultimediaImage(
+        @Path("id") id: String,
+        @Query("businessId") businessId: String? = null
+    ): Response<ByteArray>
 
     @POST("api/multimedia")
     @Headers(
         "Content-Type: application/x-www-form-urlencoded",
         "Accept: text/plain"
     )
-    suspend fun saveMultimedia(@Field("entity") multimedia: String): Response<MultimediaDto>
+    suspend fun saveMultimedia(
+        @Field("entity") multimedia: String,
+        @Query("businessId") businessId: String? = null
+    ): Response<MultimediaDto>
 
     @DELETE("api/multimedia/{id}")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun deleteMultimedia(@Path("id") id: String): Response<Unit>
+    suspend fun deleteMultimedia(
+        @Path("id") id: String,
+        @Query("businessId") businessId: String? = null
+    ): Response<Unit>
 
     @GET("dataset/api/multimedia/count")
     @Headers(
@@ -48,6 +61,7 @@ interface MultimediaApi {
         "Accept: text/plain"
     )
     suspend fun getMultimediaCount(
-        @Query("filter") filter: String? = null
+        @Query("filter") filter: String? = null,
+        @Query("businessId") businessId: String? = null
     ): Response<Int>
 } 
