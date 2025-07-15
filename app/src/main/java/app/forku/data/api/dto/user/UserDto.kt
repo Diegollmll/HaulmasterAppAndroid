@@ -47,32 +47,28 @@ data class UserDto(
     @SerializedName("NewEmailValidated")
     val newEmailValidated: Boolean? = null,
     // Array/relations (all optional, default to emptyList if not present)
-    @SerializedName("answeredChecklistItemItems")
+    @SerializedName("AnsweredChecklistItemItems")
     val answeredChecklistItemItems: List<Any>? = emptyList(),
-    @SerializedName("certificationItems2")
+    @SerializedName("CertificationItems2")
     val certificationItems2: List<Any>? = emptyList(),
-    @SerializedName("checklistAnswerItems")
+    @SerializedName("ChecklistAnswerItems")
     val checklistAnswerItems: List<Any>? = emptyList(),
-    @SerializedName("feedbackItems")
+    @SerializedName("FeedbackItems")
     val feedbackItems: List<Any>? = emptyList(),
-    @SerializedName("incidentItems")
+    @SerializedName("IncidentItems")
     val incidentItems: List<Any>? = emptyList(),
-    @SerializedName("notificationItems")
+    @SerializedName("NotificationItems")
     val notificationItems: List<Any>? = emptyList(),
     @SerializedName("UserBusinesses")
     val userBusinesses: List<UserBusinessDto>? = emptyList(),
     @SerializedName("UserSiteItems")
     val userSiteItems: List<UserSiteDto>? = emptyList(),
-    @SerializedName("userChecklistItems")
-    val userChecklistItems: List<Any>? = emptyList(),
-    @SerializedName("userCollisionIncidentItems")
-    val userCollisionIncidentItems: List<Any>? = emptyList(),
-    @SerializedName("userGroupItems")
+    @SerializedName("UserChecklistItems")
+    val UserChecklistItems: List<Any>? = emptyList(),
+    @SerializedName("UserGroupItems")
     val userGroupItems: List<Any>? = emptyList(),
-    @SerializedName("userMultimediaItems")
+    @SerializedName("MultimediaItems")
     val userMultimediaItems: List<Any>? = emptyList(),
-    @SerializedName("userNearMissIncidentItems")
-    val userNearMissIncidentItems: List<Any>? = emptyList(),
     @SerializedName("UserRoleItems")
     val userRoleItems: List<GOUserRoleDto>? = emptyList(),
     @SerializedName("UserPreferencesId")

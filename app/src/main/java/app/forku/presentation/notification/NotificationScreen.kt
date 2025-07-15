@@ -53,7 +53,7 @@ fun NotificationScreen(
         showTopBar = true,
         topBarTitle = "Notifications",
         showBottomBar = false,
-        onRefresh = { viewModel.loadNotifications(true) },
+        onAppResume = { viewModel.loadNotifications(true) },
         showLoadingOnRefresh = false,
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler

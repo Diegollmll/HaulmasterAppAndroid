@@ -73,6 +73,18 @@ interface VehicleRepository {
     ): VehicleStatus
 
     /**
+     * Updates the current hour meter reading for a vehicle
+     * @param vehicleId The ID of the vehicle
+     * @param currentHourMeter The new hour meter reading
+     * @param businessId The business context
+     */
+    suspend fun updateCurrentHourMeter(
+        vehicleId: String,
+        currentHourMeter: String,
+        businessId: String
+    ): Vehicle
+
+    /**
      * Creates a new vehicle
      * @param codename The vehicle's codename
      * @param model The vehicle's model

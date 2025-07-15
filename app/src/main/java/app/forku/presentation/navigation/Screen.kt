@@ -32,12 +32,28 @@ sealed class Screen(val route: String) {
             "profile${if (operatorId != null) "?operatorId=$operatorId" else ""}"
     }
     data object IncidentList : Screen("incidents?userId={userId}&source={source}") {
-        fun createRoute(userId: String? = null, source: String? = null): String =
-            "incidents${if (userId != null) "?userId=$userId" else ""}${if (source != null) "&source=$source" else ""}"
+        fun createRoute(userId: String? = null, source: String? = null): String = buildString {
+            append("incidents")
+            val params = mutableListOf<String>()
+            userId?.let { params.add("userId=$it") }
+            source?.let { params.add("source=$it") }
+            if (params.isNotEmpty()) {
+                append("?")
+                append(params.joinToString("&"))
+            }
+        }
     }
     data object OperatorsCICOHistory : Screen("cico_history?operatorId={operatorId}&source={source}") {
-        fun createRoute(operatorId: String? = null, source: String? = null): String =
-            "cico_history${if (operatorId != null) "?operatorId=$operatorId" else ""}${if (source != null) "&source=$source" else ""}"
+        fun createRoute(operatorId: String? = null, source: String? = null): String = buildString {
+            append("cico_history")
+            val params = mutableListOf<String>()
+            operatorId?.let { params.add("operatorId=$it") }
+            source?.let { params.add("source=$it") }
+            if (params.isNotEmpty()) {
+                append("?")
+                append(params.joinToString("&"))
+            }
+        }
     }
     data object VehiclesList : Screen("vehicles")
     data object VehicleCategories : Screen("vehicle_categories")
@@ -77,7 +93,10 @@ sealed class Screen(val route: String) {
     data object MaintenanceSchedule : Screen("maintenance_schedule")
     data object VehicleReports : Screen("vehicle_reports")
     data object SystemSettings : Screen("system_settings")
-    data object UserPreferencesSetup : Screen("user_preferences_setup")
+    data object UserPreferencesSetup : Screen("user_preferences_setup?showBack={showBack}") {
+        fun createRoute(showBack: Boolean = false): String =
+            "user_preferences_setup?showBack=$showBack"
+    }
     data object Subscriptions : Screen("subscriptions")
     data object SystemBackup : Screen("system_backup")
     data object TimeZones : Screen("timezones")
@@ -97,29 +116,30 @@ sealed class Screen(val route: String) {
     data object ChecklistSubcategories : Screen("checklist_subcategories") {
         fun createRoute(): String = "checklist_subcategories"
     }
-    data object Questionaries : Screen("questionaries")
-    data object QuestionaryItems : Screen("questionary_items?questionaryId={questionaryId}") {
-        fun createRoute(questionaryId: String? = null) =
-            "questionary_items" + (questionaryId?.let { "?questionaryId=$it" } ?: "")
+    data object Questionnaires : Screen("questionaries")
+    data object QuestionaryItems : Screen("questionary_items?questionaryId={questionaryId}&isEditable={isEditable}") {
+        fun createRoute(questionaryId: String? = null, isEditable: Boolean = true) =
+            "questionary_items" + (questionaryId?.let { "?questionaryId=$it" } ?: "?questionaryId=") + "&isEditable=$isEditable"
     }
     data object EditChecklistCategory : Screen("edit_checklist_category/{categoryId}") {
         fun createRoute(categoryId: String) = "edit_checklist_category/$categoryId"
     }
-    data object EditQuestionaryChecklistItemCategory : Screen("edit_questionary_checklist_item_category/{categoryId}") {
-        fun createRoute(categoryId: String) = "edit_questionary_checklist_item_category/$categoryId"
-    }
-    data object QuestionaryChecklistItemSubcategory : Screen("checklist_subcategory/{categoryId}") {
-        fun createRoute(categoryId: String): String = "checklist_subcategory/$categoryId"
-    }
-    data object EditQuestionaryChecklistItemSubcategory : Screen("edit_questionary_checklist_item_subcategory/{subcategoryId}?categoryId={categoryId}") {
-        fun createRoute(subcategoryId: String?, categoryId: String? = null): String {
-            return if (subcategoryId != null) {
-                "edit_questionary_checklist_item_subcategory/$subcategoryId" + (categoryId?.let { "?categoryId=$it" } ?: "")
-            } else {
-                "edit_questionary_checklist_item_subcategory/new" + (categoryId?.let { "?categoryId=$it" } ?: "")
-            }
-        }
-    }
+    // TODO: Re-implement with proper ChecklistItem system
+    // data object EditQuestionaryChecklistItemCategory : Screen("edit_questionary_checklist_item_category/{categoryId}") {
+    //     fun createRoute(categoryId: String) = "edit_questionary_checklist_item_category/$categoryId"
+    // }
+    // data object QuestionaryChecklistItemSubcategory : Screen("checklist_subcategory/{categoryId}") {
+    //     fun createRoute(categoryId: String): String = "checklist_subcategory/$categoryId"
+    // }
+    // data object EditQuestionaryChecklistItemSubcategory : Screen("edit_questionary_checklist_item_subcategory/{subcategoryId}?categoryId={categoryId}") {
+    //     fun createRoute(subcategoryId: String?, categoryId: String? = null): String {
+    //         return if (subcategoryId != null) {
+    //             "edit_questionary_checklist_item_subcategory/$subcategoryId" + (categoryId?.let { "?categoryId=$it" } ?: "")
+    //         } else {
+    //             "edit_questionary_checklist_item_subcategory/new" + (categoryId?.let { "?categoryId=$it" } ?: "")
+    //         }
+    //     }
+    // }
     data object QuestionaryChecklist : Screen("questionary_checklist") {
         fun createRoute(): String = "questionary_checklist"
     }
@@ -139,6 +159,9 @@ sealed class Screen(val route: String) {
 
         fun createRoute(groupName: String) = "group_role_management/$groupName"
     }
+
+    // Reports Module
+    data object Reports : Screen("reports")
 
     companion object {
         fun Profile.withOperatorId(operatorId: String?) = 

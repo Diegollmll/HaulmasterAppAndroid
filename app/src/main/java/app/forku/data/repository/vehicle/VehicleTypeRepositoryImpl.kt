@@ -3,8 +3,8 @@ package app.forku.data.repository.vehicle
 import android.util.Log
 import app.forku.data.api.VehicleTypeApi
 import app.forku.data.api.dto.vehicle.VehicleTypeDto
-import app.forku.data.api.dto.vehicle.toDto
 import app.forku.data.mapper.toDomain
+import app.forku.data.mapper.toDto
 import app.forku.domain.model.vehicle.VehicleType
 import app.forku.domain.repository.vehicle.VehicleTypeRepository
 import javax.inject.Inject

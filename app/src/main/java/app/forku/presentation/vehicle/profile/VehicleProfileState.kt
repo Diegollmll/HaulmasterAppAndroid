@@ -21,5 +21,7 @@ data class VehicleProfileState(
     val navigateToChecklist: Boolean = false,
     val currentUserRole: UserRole? = null,
     val lastChecklistAnswer: app.forku.domain.model.checklist.ChecklistAnswer? = null,
-    val lastChecklistOperator: app.forku.domain.model.user.User? = null
+    val lastChecklistOperator: app.forku.domain.model.user.User? = null,
+    // ✅ New: Final hour meter dialog state
+    val showFinalHourMeterDialog: Boolean = false
 ) 

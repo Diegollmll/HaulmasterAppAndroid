@@ -40,21 +40,23 @@ class GOSecurityProviderRepository @Inject constructor(
 
     override suspend fun authenticate(username: String, password: String): Result<User> {
         return try {
-            Log.d(TAG, "Starting authentication for user: $username")
+            Log.d(TAG, "[AUDIT] Starting authentication for username: $username")
+            Log.d(TAG, "[AUDIT] Starting authentication for password: $password")
             
             // Get fresh CSRF token and cookie
-            Log.d(TAG, "Getting fresh CSRF token and cookie...")
+            Log.d(TAG, "[AUDIT] Getting fresh CSRF token and cookie...")
             val csrfTokenResult = goServicesManager.getCsrfToken(forceRefresh = true)
             if (csrfTokenResult.isFailure) {
-                Log.e(TAG, "Failed to get CSRF token")
+                Log.e(TAG, "[AUDIT] Failed to get CSRF token: ${csrfTokenResult.exceptionOrNull()?.message}")
                 return Result.failure(Exception("Failed to get CSRF token"))
             }
 
             val csrfToken = csrfTokenResult.getOrNull()
             val antiforgeryCookie = authDataStore.getAntiforgeryCookie()
+            Log.d(TAG, "[AUDIT] CSRF Token: $csrfToken, Antiforgery Cookie: $antiforgeryCookie")
 
             if (csrfToken == null || antiforgeryCookie == null) {
-                Log.e(TAG, "CSRF token or cookie is missing. Token: ${csrfToken != null}, Cookie: ${antiforgeryCookie != null}")
+                Log.e(TAG, "[AUDIT] CSRF token or cookie is missing. Token: ${csrfToken != null}, Cookie: ${antiforgeryCookie != null}")
                 return Result.failure(Exception("Missing CSRF token or cookie"))
             }
 
@@ -87,13 +89,17 @@ class GOSecurityProviderRepository @Inject constructor(
                 useCookies = useCookiesPart
             )
 
+            Log.d(TAG, "[AUDIT] HTTP Response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
+            Log.d(TAG, "[AUDIT] HTTP Headers: ${response.headers()}")
             if (response.isSuccessful) {
                 Log.d(TAG, "Authentication successful")
                 val authResponse = response.body()
+                Log.d(TAG, "[AUDIT] Authentication response body: $authResponse")
                 if (authResponse != null) {
                     Log.d(TAG, "Processing authentication response...")
                     val applicationToken = authResponse.getApplicationToken()
                     val authenticationToken = authResponse.getAuthenticationToken()
+                    Log.d(TAG, "[AUDIT] Tokens from response: applicationToken=${applicationToken?.take(20)}, authenticationToken=${authenticationToken?.take(20)}")
 
                     if (applicationToken != null && authenticationToken != null) {
                         // Save tokens
@@ -138,11 +144,11 @@ class GOSecurityProviderRepository @Inject constructor(
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                Log.e(TAG, "Authentication failed. Status: ${response.code()}, Error: $errorBody")
+                Log.e(TAG, "[AUDIT] Authentication failed. Status: ${response.code()}, Error: $errorBody")
                 Result.failure(Exception("Authentication failed: ${response.code()} - $errorBody"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception during authentication", e)
+            Log.e(TAG, "[AUDIT] Exception during authentication", e)
             Result.failure(e)
         }
     }
@@ -279,11 +285,145 @@ class GOSecurityProviderRepository @Inject constructor(
     }
 
     override suspend fun keepAlive(): Result<Unit> = try {
-        val response = api.keepAlive()
+        val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+        val response = api.keepAlive(csrfToken, cookie)
         if (response.isSuccessful) Result.success(Unit)
         else Result.failure(Exception("Keep alive failed: ${response.code()}"))
     } catch (e: Exception) {
         Result.failure(e)
+    }
+
+    override suspend fun renewToken(): Result<User> {
+        return try {
+            Log.d(TAG, "🔄 Starting token renewal process...")
+            
+            // Get current user for context
+            val currentUser = authDataStore.getCurrentUser()
+            if (currentUser == null) {
+                Log.e(TAG, "❌ No current user found for token renewal")
+                return Result.failure(Exception("No current user found"))
+            }
+        
+        Log.d(TAG, "🔍 Current user context: ${currentUser.username} (${currentUser.id})")
+        
+        // Get fresh headers for renewal (CSRF token AND cookies as per working curl)
+        Log.d(TAG, "🔍 Getting headers for renewal (CSRF token AND cookies)...")
+        val headersResult = headerManager.getHeaders()
+        if (headersResult.isFailure) {
+            Log.e(TAG, "❌ Failed to get headers for token renewal: ${headersResult.exceptionOrNull()?.message}")
+            return Result.failure(headersResult.exceptionOrNull() ?: Exception("Failed to get headers"))
+        }
+        
+        val headers = headersResult.getOrNull()!!
+        
+        // 🚨 CRITICAL DEBUG: Check if ApplicationToken exists
+        if (headers.applicationToken == null) {
+            Log.e(TAG, "🚨 CRITICAL: No ApplicationToken in headers!")
+            Log.e(TAG, "💡 This explains why server says 'No authentication token found'")
+            
+            // Try to get token directly from datastore
+            val storedToken = authDataStore.getApplicationToken()
+            if (storedToken != null) {
+                Log.w(TAG, "📦 Found ApplicationToken in datastore: ${storedToken.take(20)}...")
+                Log.w(TAG, "🔧 HeaderManager may not be building cookies properly")
+            } else {
+                Log.e(TAG, "💀 No ApplicationToken in datastore either - user needs to re-authenticate")
+                return Result.failure(Exception("No authentication token available"))
+            }
+        }
+        
+        Log.d(TAG, "🔍 Got headers for renewal:")
+        Log.d(TAG, "  - CSRF Token: ${headers.csrfToken.take(20)}...")
+        Log.d(TAG, "  - Raw Cookie: ${headers.cookie.take(100)}...")
+        Log.d(TAG, "  - ApplicationToken: ${headers.applicationToken?.take(20) ?: "NULL"}...")
+        
+        // 🔧 MANUAL COOKIE CONSTRUCTION for debugging
+        val applicationToken = headers.applicationToken ?: authDataStore.getApplicationToken()
+        if (applicationToken == null) {
+            Log.e(TAG, "💀 Cannot construct cookie - no ApplicationToken available")
+            return Result.failure(Exception("No ApplicationToken available for renewal"))
+        }
+        
+        val debugCookie = "ApplicationToken=${applicationToken}; BearerToken=${applicationToken}; ${headers.cookie}"
+        Log.d(TAG, "🔧 Debug cookie constructed: ${debugCookie.take(150)}...")
+        Log.d(TAG, "🌐 Sending token renewal request with debug cookie...")
+        val response = api.renewToken(headers.csrfToken, debugCookie)
+        
+        Log.d(TAG, "📡 Token renewal response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
+        
+        if (response.isSuccessful) {
+            response.body()?.let { authResponse ->
+                Log.d(TAG, "✅ Token renewal successful, processing response...")
+                
+                // Update tokens if provided in response
+                val newApplicationToken = authResponse.getApplicationToken()
+                
+                if (newApplicationToken != null) {
+                    Log.d(TAG, "🔄 New application token received, updating stored data...")
+                    authDataStore.saveApplicationToken(newApplicationToken)
+                    val updatedUser = currentUser.copy(token = newApplicationToken)
+                    authDataStore.setCurrentUser(updatedUser)
+                    Log.d(TAG, "✅ Token renewal completed successfully")
+                    Result.success(updatedUser)
+                } else {
+                    // Token renewed but no new token provided - this is okay
+                    Log.d(TAG, "✅ Token renewal successful (no new token provided)")
+                    Result.success(currentUser)
+                }
+            } ?: run {
+                Log.e(TAG, "❌ Token renewal response body is null")
+                Result.failure(Exception("Token renewal response is null"))
+            }
+        } else {
+            // Enhanced error handling for different status codes
+            val errorBody = response.errorBody()?.string()
+            val errorMessage = when (response.code()) {
+                500 -> {
+                    Log.e(TAG, "🚨 Server Error (500) during token renewal")
+                    Log.e(TAG, "💡 This usually indicates a server-side issue with token processing")
+                    Log.e(TAG, "🔍 Error body: $errorBody")
+                    "Server error during token renewal. Please try again later."
+                }
+                401 -> {
+                    Log.e(TAG, "🔒 Unauthorized (401) - token may be expired")
+                    "Authentication failed - please log in again"
+                }
+                403 -> {
+                    Log.e(TAG, "🚫 Forbidden (403) - insufficient permissions or CSRF issue")
+                    Log.e(TAG, "💡 This may indicate CSRF token mismatch")
+                    "Access forbidden - authentication issue"
+                }
+                404 -> {
+                    Log.e(TAG, "🔍 Not Found (404) - renewal endpoint may be incorrect")
+                    "Token renewal service not found"
+                }
+                else -> {
+                    Log.e(TAG, "❌ Unexpected error (${response.code()}) during token renewal")
+                    "Token renewal failed: ${response.code()}"
+                }
+            }
+            
+            // For 500 errors, add debugging information
+            if (response.code() == 500) {
+                Log.d(TAG, "🔧 Debug info for 500 error:")
+                Log.d(TAG, "  - Request URL: ${response.raw().request.url}")
+                Log.d(TAG, "  - Request headers: ${response.raw().request.headers}")
+                Log.d(TAG, "  - Current time: ${System.currentTimeMillis()}")
+                Log.d(TAG, "  - User agent: ${response.raw().request.header("User-Agent")}")
+            }
+            
+            Result.failure(Exception(errorMessage))
+        }
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Exception during token renewal", e)
+            val errorMessage = when {
+                e.message?.contains("timeout") == true -> "Token renewal timed out - network issue"
+                e.message?.contains("network") == true -> "Network error during token renewal"
+                e.message?.contains("SSL") == true -> "SSL/TLS error during token renewal"
+                else -> "Token renewal failed: ${e.message}"
+            }
+            Result.failure(Exception(errorMessage, e))
+        }
     }
 
     override suspend fun blockUser(userId: String): Result<Unit> = try {

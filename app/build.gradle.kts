@@ -131,6 +131,11 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
+    // WorkManager for background tasks
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    kapt(libs.hilt.compiler)
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)

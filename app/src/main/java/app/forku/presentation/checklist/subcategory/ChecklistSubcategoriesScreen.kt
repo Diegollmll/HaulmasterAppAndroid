@@ -14,8 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.forku.core.network.NetworkConnectivityManager
-import app.forku.data.api.dto.QuestionaryChecklistItemCategoryDto
-import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategoryViewModel
+// TODO: Re-implement with proper ChecklistItem system
+// import app.forku.data.api.dto.QuestionaryChecklistItemCategoryDto
+// import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategoryViewModel
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
 import androidx.navigation.NavController
@@ -26,100 +27,60 @@ fun ChecklistSubcategoriesScreen(
     navController: NavController,
     networkManager: NetworkConnectivityManager,
     tokenErrorHandler: TokenErrorHandler,
-    viewModel: QuestionaryChecklistItemCategoryViewModel = hiltViewModel()
+    // TODO: Replace with proper ChecklistItemCategoryViewModel when implemented
+    // viewModel: QuestionaryChecklistItemCategoryViewModel = hiltViewModel()
 ) {
-    // Use the category viewModel to get the list of categories
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        viewModel.loadCategories()
-    }
-
+    // TODO: This screen needs to be reimplemented with the new ChecklistItem system
+    
     BaseScreen(
         navController = navController,
         showBottomBar = false,
         showTopBar = true,
         showBackButton = true,
-        topBarTitle = "Select Category for Subcategories",
+        topBarTitle = "Checklist Subcategories",
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+            contentAlignment = Alignment.Center
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Default.Build,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
-            } else if (uiState.categories.isEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "No categories found",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { navController.navigate(Screen.ChecklistCategories.route) }
-                    ) {
-                        Text("Create Categories First")
-                    }
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Select a category to manage its subcategories:",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.categories) { category ->
-                            CategoryCard(
-                                category = category,
-                                onClick = { 
-                                    category.id?.let { categoryId ->
-                                        navController.navigate(
-                                            Screen.QuestionaryChecklistItemSubcategory.createRoute(categoryId)
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Error Dialog
-            uiState.error?.let { error ->
-                AlertDialog(
-                    onDismissRequest = { viewModel.clearError() },
-                    title = { Text("Error") },
-                    text = { Text(error) },
-                    confirmButton = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("OK")
-                        }
-                    }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Category Management",
+                    style = MaterialTheme.typography.headlineSmall
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "This feature is being updated to use the new checklist system.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { navController.navigateUp() }
+                ) {
+                    Text("Go Back")
+                }
             }
         }
     }
 }
 
+// TODO: Re-implement CategoryCard with proper ChecklistItemCategory when system is ready
+/*
 @Composable
 private fun CategoryCard(
     category: QuestionaryChecklistItemCategoryDto,
@@ -181,4 +142,5 @@ private fun CategoryCard(
             }
         }
     }
-} 
+}
+*/ 

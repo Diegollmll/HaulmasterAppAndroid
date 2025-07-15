@@ -13,6 +13,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
+import app.forku.presentation.common.components.BusinessSiteFilters
+import app.forku.presentation.common.components.updateBusinessContext
+import app.forku.presentation.common.components.updateSiteContext
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.core.auth.TokenErrorHandler
@@ -38,11 +41,33 @@ fun SafetyAlertsScreen(
         viewModel = viewModel,
         topBarTitle = "Safety Alerts",
         networkManager = networkManager,
-        onRefresh = { viewModel.loadSafetyAlerts() },
+        onAppResume = { viewModel.loadSafetyAlerts() },
         tokenErrorHandler = tokenErrorHandler
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
-            when {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // Business and Site Filters
+            BusinessSiteFilters(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                onBusinessChanged = { businessId ->
+                    viewModel.updateBusinessContext(businessId)
+                },
+                onSiteChanged = { siteId ->
+                    viewModel.updateSiteContext(siteId)
+                },
+                showBusinessFilter = false, // ✅ Hide business filter
+                isCollapsible = true, // ✅ Make filters collapsible
+                initiallyExpanded = false, // ✅ Start collapsed
+                businessContextManager = viewModel.businessContextManager,
+                title = "Filter Safety Alerts by Context"
+            )
+            
+            // Content
+            Box(modifier = Modifier.fillMaxSize()) {
+                when {
                 state.isLoading -> {
                     LoadingOverlay()
                 }
@@ -77,6 +102,7 @@ fun SafetyAlertsScreen(
             }
         }
     }
+}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -182,8 +182,10 @@ fun ProfileScreen(
                             }
                             
                             // Navigate to Certifications with the appropriate user ID
-                            userId?.let {
-                                navController.navigate(Screen.CertificationsList.createRoute(userId = it))
+                            if (userId != null) {
+                                navController.navigate(Screen.CertificationsList.createRoute(userId = userId))
+                            } else {
+                                android.util.Log.w("ProfileScreen", "Cannot navigate to certifications: no valid userId available")
                             }
                         },
                         onIncidentReportsClick = {
@@ -194,7 +196,13 @@ fun ProfileScreen(
                             } else {
                                 // Viewing specific operator's incidents or operator viewing their own incidents
                                 val userId = operatorId ?: state.user?.id
+                                // Only navigate if we have a valid userId
+                                if (userId != null) {
                                 navController.navigate(Screen.IncidentList.createRoute(userId = userId, source = "profile"))
+                                } else {
+                                    // Log warning if no userId is available
+                                    android.util.Log.w("ProfileScreen", "Cannot navigate to incidents: no valid userId available")
+                                }
                             }
                         },
                         onTrainingRecordClick = { /* Navigate to training */ },
@@ -208,10 +216,14 @@ fun ProfileScreen(
                             }
                             
                             // Navigate to CICO History with the appropriate source
+                            if (userId != null) {
                             navController.navigate(Screen.OperatorsCICOHistory.createRoute(
                                 operatorId = userId,
                                 source = if (operatorId == null) "profile" else "operator_profile"
                             ))
+                            } else {
+                                android.util.Log.w("ProfileScreen", "Cannot navigate to CICO history: no valid userId available")
+                            }
                         },
                         isCurrentUser = operatorId == null,
                         navController = navController
@@ -367,101 +379,69 @@ private fun ProfileHeader(
 
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // Statistics Row - Only show for operational roles, not for admin roles
-                        if (!isAdminRole) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                        // Business and Site Context - Show for all users (moved from bottom)
+                        if (state.currentBusinessName != null || state.currentSiteName != null) {
+                            Column(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
+                                Text(
+                                    text = "Current Context",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(bottom = 4.dp)
+                                )
+                                
+                                state.currentBusinessName?.let { businessName ->
                                     Row(
-                                        horizontalArrangement = Arrangement.Center,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(vertical = 1.dp)
                                     ) {
                                         Text(
-                                            textAlign = TextAlign.Center,
-                                            text = "%.1f".format(state.user?.totalHours ?: 0f),
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-
-                                        Spacer(Modifier.width(1.dp))
-
-                                        Text(
-                                            textAlign = TextAlign.Center,
-                                            text = "hrs",
-                                            style = MaterialTheme.typography.titleMedium,
+                                            text = "Business: ",
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = Color.Gray
                                         )
+                                        Text(
+                                            text = businessName,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
-                                    Text(
-                                        textAlign = TextAlign.Center,
-                                        text = "Total Time",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
-                                    )
                                 }
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                
+                                state.currentSiteName?.let { siteName ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(vertical = 1.dp)
                                 ) {
                                     Text(
-                                        textAlign = TextAlign.Center,
-                                        text = "${state.user?.sessionsCompleted ?: 0}",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        textAlign = TextAlign.Center,
-                                        text = "Sessions",
+                                            text = "Site: ",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color.Gray
                                     )
-                                }
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
                                     Text(
-                                        textAlign = TextAlign.Center,
-                                        text = "${state.user?.incidentsReported ?: 0}",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                    Text(
-                                        textAlign = TextAlign.Center,
-                                        text = "Incidents R.",
+                                            text = siteName,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
-                                    )
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
                             }
+                        } else if (!isAdminRole) {
+                            // Show a placeholder for operational users without context
+                            Text(
+                                text = "No business context set",
+                                style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
                         } else {
-                            // Alternative content for admin roles (System Owner, Super Admin)
+                            // For admin roles, show administrator info
                             Text(
                                 text = "Administrator Account",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-//                        Performance Report button - only for operational roles
-//                        Commented for the future use
-//                        if (!isAdminRole) {
-//                            Row {
-//                                Button(
-//                                    onClick = {
-//                                        navController.navigate(Screen.PerformanceReport.route)
-//                                    },
-//                                    colors = ButtonDefaults.buttonColors(
-//                                        containerColor = Color(0xFFFFA726)
-//                                    ),
-//                                    modifier = Modifier.fillMaxWidth()
-//                                ) {
-//                                    Text("Performance Report")
-//                                }
-//                            }
-//                        }
                     }
                 }
 

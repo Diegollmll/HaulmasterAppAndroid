@@ -2,6 +2,7 @@ package app.forku.data.repository
 
 import app.forku.data.api.NearMissIncidentApi
 import app.forku.data.dto.NearMissIncidentDto
+import app.forku.core.utils.safeEmitFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -20,7 +21,7 @@ class NearMissIncidentRepository @Inject constructor(
             val result = api.getById(id)
             emit(Result.success(result))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -29,7 +30,7 @@ class NearMissIncidentRepository @Inject constructor(
             val result = api.getList()
             emit(Result.success(result))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -38,7 +39,7 @@ class NearMissIncidentRepository @Inject constructor(
             val result = api.getCount()
             emit(Result.success(result))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -72,7 +73,7 @@ class NearMissIncidentRepository @Inject constructor(
             emit(Result.success(result))
         } catch (e: Exception) {
             android.util.Log.e("NearMissIncidentRepo", "Error saving near miss incident: ${e.message}", e)
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -81,7 +82,7 @@ class NearMissIncidentRepository @Inject constructor(
             api.deleteById(id)
             emit(Result.success(Unit))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 } 

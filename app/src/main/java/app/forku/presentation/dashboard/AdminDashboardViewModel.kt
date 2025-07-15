@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 import app.forku.presentation.common.utils.parseDateTime
 import kotlinx.coroutines.flow.update
@@ -33,9 +34,11 @@ import app.forku.data.service.GOServicesManager
 import app.forku.data.api.VehicleSessionApi
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.usecase.incident.GetUserIncidentCountUseCase
+import app.forku.domain.usecase.incident.GetAdminIncidentCountUseCase
 import app.forku.domain.usecase.safetyalert.GetSafetyAlertCountUseCase
 import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
-import app.forku.core.business.BusinessContextManager
+import app.forku.domain.repository.user.UserPreferencesRepository
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
 
 sealed class AuthEvent {
     object NavigateToLogin : AuthEvent()
@@ -53,9 +56,10 @@ class AdminDashboardViewModel @Inject constructor(
     private val goServicesManager: GOServicesManager,
     private val vehicleSessionApi: VehicleSessionApi,
     private val getUserIncidentCountUseCase: GetUserIncidentCountUseCase,
+    private val getAdminIncidentCountUseCase: GetAdminIncidentCountUseCase,
     private val getSafetyAlertCountUseCase: GetSafetyAlertCountUseCase,
     private val submitFeedbackUseCase: SubmitFeedbackUseCase,
-    private val businessContextManager: BusinessContextManager
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _authEvent = MutableSharedFlow<AuthEvent>()
@@ -70,17 +74,11 @@ class AdminDashboardViewModel @Inject constructor(
     private val _checklistAnswers = MutableStateFlow<Map<String, app.forku.domain.model.checklist.ChecklistAnswer>>(emptyMap())
     val checklistAnswers: StateFlow<Map<String, app.forku.domain.model.checklist.ChecklistAnswer>> = _checklistAnswers.asStateFlow()
 
-    // Business context from BusinessContextManager
-    val businessContextState = businessContextManager.contextState
+    // ✅ REMOVED: businessContextState - Admin doesn't use business context
 
     init {
         loadCurrentUser()
-        // Load business context first, then dashboard data
-        viewModelScope.launch {
-            businessContextManager.loadBusinessContext()
-            loadDashboardData()
-            loadOperatingVehiclesCount() // Automatically load operating vehicles count
-        }
+        // ✅ Admin doesn't need business context - all data loading is filter-based
     }
 
     private fun loadCurrentUser() {
@@ -160,18 +158,58 @@ class AdminDashboardViewModel @Inject constructor(
         }
     }
 
-    private fun loadIncidentCountForDashboard(user: User?) {
+    /**
+     * Load incident count specifically for Admin Dashboard
+     * This method is ONLY for Admin users and counts ALL incidents in the business context
+     * - For "All Sites": counts ALL incidents from ALL sites in the business
+     * - For specific site: counts ALL incidents from that specific site
+     */
+    private fun loadIncidentCountForAdminDashboard(user: User?, businessId: String?, siteId: String?) {
         viewModelScope.launch {
             try {
-                val count = when (user?.role) {
-                    UserRole.ADMIN -> getUserIncidentCountUseCase() // total
-                    else -> if (user != null) getUserIncidentCountUseCase(user.id) else 0
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] === 🚀 INICIANDO CARGA DE CONTADOR DE INCIDENTES (ADMIN DASHBOARD) ===")
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 📍 CONTEXT: This method is ONLY for Admin Dashboard")
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] INPUTS: user=${user?.id}, role=${user?.role}, businessId=$businessId, siteId=$siteId")
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] USER DETAILS: name=${user?.fullName}, username=${user?.username}")
+                
+                // Only proceed if user is Admin
+                if (user?.role != UserRole.ADMIN) {
+                    android.util.Log.w("AdminDashboard", "[loadIncidentCountForAdminDashboard] ⚠️ User is not Admin (${user?.role}), skipping incident count")
+                    _state.update { it.copy(
+                        userIncidentsCount = 0,
+                        totalIncidentsCount = 0
+                    ) }
+                    return@launch
                 }
+                
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 🎯 ADMIN CONFIRMED: Proceeding with Admin incident count logic")
+                
+                // For Admin Dashboard: always count ALL incidents (not user-specific)
+                val count = if (siteId == null) {
+                    // "All Sites" selected - count ALL incidents from ALL sites in business
+                    android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 🌐 ALL SITES MODE: Counting ALL incidents from ALL sites in business")
+                    android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 📊 ALL SITES LOGIC: Will count incidents from all users, all sites in business")
+                    getAdminIncidentCountUseCase(businessId, null).also {
+                        android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] ✅ ALL SITES RESULT: getAdminIncidentCountUseCase($businessId, null) = $it")
+                    }
+                } else {
+                    // Specific site selected - count ALL incidents from that specific site
+                    android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 🎯 SPECIFIC SITE MODE: Counting ALL incidents from site: $siteId")
+                    android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 📊 SPECIFIC SITE LOGIC: Will count incidents from all users in specific site")
+                    getAdminIncidentCountUseCase(businessId, siteId).also {
+                        android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] ✅ SPECIFIC SITE RESULT: getAdminIncidentCountUseCase($businessId, $siteId) = $it")
+                    }
+                }
+                
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] 🎯 FINAL COUNT: $count incidents")
+                android.util.Log.d("AdminDashboard", "[loadIncidentCountForAdminDashboard] === ✅ CONTADOR DE INCIDENTES CARGADO (ADMIN DASHBOARD) ===")
+                
                 _state.update { it.copy(
                     userIncidentsCount = count,
                     totalIncidentsCount = count
                 ) }
             } catch (e: Exception) {
+                android.util.Log.e("AdminDashboard", "[loadIncidentCountForAdminDashboard] ❌ EXCEPTION: ${e.message}", e)
                 _state.update { it.copy(
                     userIncidentsCount = 0,
                     totalIncidentsCount = 0
@@ -180,164 +218,184 @@ class AdminDashboardViewModel @Inject constructor(
         }
     }
 
-    fun loadDashboardData() {
+    // ✅ REMOVED: loadDashboardData() - Admin always uses loadDashboardDataWithFilters()
+    // This prevents confusion and ensures Admin never uses user context
+
+    fun clearError() {
+        _state.value = _state.value.copy(error = null)
+    }
+
+    // ✅ NEW: Load dashboard data with specific filters
+    fun loadDashboardDataWithFilters(filterBusinessId: String?, filterSiteId: String?) {
         viewModelScope.launch {
-            android.util.Log.d("AdminDashboard", "[loadDashboardData] === 🚀 INICIANDO CARGA OPTIMIZADA DE DASHBOARD ===")
+            android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] === 🚀 INICIANDO CARGA CON FILTROS ESPECÍFICOS ===")
+            android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] INPUTS: filterBusinessId=$filterBusinessId, filterSiteId=$filterSiteId")
             try {
                 _state.value = _state.value.copy(isLoading = true)
 
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = businessContextManager.getCurrentBusinessId()
+                
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 🏢 Filter BusinessId: '$filterBusinessId'")
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 🏭 Filter SiteId: '$filterSiteId' (null = All Sites)")
+                
                 if (currentUser != null) {
-                    loadIncidentCountForDashboard(currentUser)
+                    android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 👤 Calling loadIncidentCountForAdminDashboard for user: ${currentUser.id} (${currentUser.role})")
+                    android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 📊 Incident count parameters: businessId=$filterBusinessId, siteId=$filterSiteId")
+                    loadIncidentCountForAdminDashboard(currentUser, filterBusinessId, filterSiteId)
+                } else {
+                    android.util.Log.w("AdminDashboard", "[loadDashboardDataWithFilters] ⚠️ No current user found, skipping incident count")
                 }
 
-                android.util.Log.d("AdminDashboard", "[loadDashboardData] 🌐 Llamando a getActiveSessionsWithRelatedData con businessId: '$businessId'")
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 🌐 Llamando a getActiveSessionsWithRelatedData con businessId: '$filterBusinessId', siteId: '$filterSiteId'")
                 
                 // 🚀 OPTIMIZED: Single API call with all related data
-                val dashboardData = vehicleSessionRepository.getActiveSessionsWithRelatedData(businessId  ?: "")
+                // ✅ FIXED: Pass the filterSiteId to respect "All Sites" selection
+                val activeSessions = vehicleSessionRepository.getActiveSessionsWithRelatedData(
+                    businessId = filterBusinessId ?: "",
+                    siteId = filterSiteId // ✅ This will be null for "All Sites"
+                )
                 
-                android.util.Log.d("AdminDashboard", "[loadDashboardData] ✅ Datos recibidos - Sessions: ${dashboardData.activeSessions.size}, Vehicles: ${dashboardData.vehicles.size}, Operators: ${dashboardData.operators.size}, ChecklistAnswers: ${dashboardData.checklistAnswers.size}")
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] ✅ Active sessions loaded: ${activeSessions.activeSessions.size}")
                 
-                // Update checklistAnswers for UI compatibility
-                _checklistAnswers.value = dashboardData.checklistAnswers
-                
-                // Create VehicleSessionInfo from optimized data (no additional API calls needed!)
-                val activeSessions = dashboardData.activeSessions.mapNotNull { session ->
+                // Create active operators from optimized data (no additional API calls!)
+                val activeOperators = activeSessions.activeSessions.mapNotNull { session ->
                     try {
-                        val vehicle = dashboardData.vehicles[session.vehicleId]
-                        val operator = dashboardData.operators[session.userId]
-                        
-                        if (vehicle == null) {
-                            android.util.Log.w("AdminDashboard", "[loadDashboardData] ⚠️ Vehicle not found for session ${session.id}")
-                            return@mapNotNull null
-                        }
-                        
-                        val operatorFullName = when {
-                            !operator?.firstName.isNullOrBlank() || !operator?.lastName.isNullOrBlank() ->
-                                listOfNotNull(operator?.firstName, operator?.lastName).joinToString(" ").trim()
-                            !operator?.username.isNullOrBlank() -> operator?.username ?: "Sin nombre"
-                            else -> "Sin nombre"
-                        }
-                        
-                        val startTime = parseDateTime(session.startTime)
-                        val now = OffsetDateTime.now()
-                        val elapsedMinutes = java.time.Duration.between(startTime, now).toMinutes()
-                        val progress = (elapsedMinutes.toFloat() / (8 * 60)).coerceIn(0f, 1f)
-                        
-                        android.util.Log.d("AdminDashboard", "[loadDashboardData] ✅ Mapped session for vehicle: ${vehicle.codename}, operator: $operatorFullName")
-                        
-                        VehicleSessionInfo(
-                            vehicle = vehicle,
-                            vehicleId = vehicle.id,
-                            vehicleType = vehicle.type.Name,
-                            codename = vehicle.codename,
-                            vehicleImage = vehicle.photoModel,
-                            session = session,
-                            operator = operator,
-                            operatorName = operatorFullName,
-                            operatorImage = operator?.photoUrl?.takeIf { !it.isNullOrBlank() },
+                        val operator = activeSessions.operators[session.userId] ?: app.forku.domain.model.user.User(
+                            id = session.userId,
+                            token = "",
+                            refreshToken = "",
+                            email = "",
+                            username = session.operatorName ?: "Sin nombre",
+                            firstName = session.operatorName ?: "",
+                            lastName = "",
+                            photoUrl = null,
+                            role = UserRole.OPERATOR,
+                            certifications = emptyList(),
+                            points = 0,
+                            totalHours = 0f,
+                            totalDistance = 0,
+                            sessionsCompleted = 0,
+                            incidentsReported = 0,
+                            lastMedicalCheck = null,
+                            lastLogin = null,
+                            isActive = true,
+                            isApproved = false,
+                            password = "",
+                            businessId = null,
+                            siteId = null,
+                            systemOwnerId = null,
+                            userPreferencesId = null
+                        )
+                        val displayName = listOfNotNull(operator.firstName, operator.lastName)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" ")
+                            .ifBlank { operator.username ?: "Sin nombre" }
+                        android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] ✅ Operator from optimized data: $displayName")
+                        OperatorSessionInfo(
+                            name = displayName,
+                            fullName = operator.fullName,
+                            username = operator.username,
+                            image = operator.photoUrl?.takeIf { !it.isNullOrBlank() },
+                            isActive = true,
+                            userId = operator.id,
                             sessionStartTime = session.startTime,
-                            userRole = operator?.role ?: UserRole.OPERATOR,
-                            progress = progress
+                            role = operator.role
                         )
                     } catch (e: Exception) {
-                        android.util.Log.e("AdminDashboard", "[loadDashboardData] ❌ Error mapping session ${session.id}: ${e.message}", e)
+                        android.util.Log.e("AdminDashboard", "[loadDashboardDataWithFilters] ❌ Error creating operator info: ${e.message}", e)
                         null
                     }
                 }
 
-                // Get last preshift checks (still needed as separate call)
-                val lastChecks = coroutineScope {
-                    activeSessions.map { session ->
-                        async {
-                            try {
-                                delay(50) // Reduced delay
-                                val lastCheck = checklistRepository.getLastPreShiftCheck(session.vehicle.id, businessId ?: "")
-                                session.vehicle.id to lastCheck
-                            } catch (e: Exception) {
-                                android.util.Log.e("AdminDashboard", "Error getting last check for vehicle ${session.vehicle.id}", e)
-                                session.vehicle.id to null
-                            }
-                        }
-                    }.awaitAll().toMap()
-                }
+                // Get other dashboard data (safety alerts)
+                val safetyAlertsCount = getSafetyAlertCountUseCase(filterBusinessId, filterSiteId)
 
-                // Create active operators from optimized data (no additional API calls!)
-                val activeOperators = activeSessions.mapNotNull { session ->
-                    try {
-                        session.operator?.let { operator ->
-                            val displayName = listOfNotNull(operator.firstName, operator.lastName)
-                                .filter { it.isNotBlank() }
-                                .joinToString(" ")
-                                .ifBlank { operator.username ?: "Sin nombre" }
-                            
-                            android.util.Log.d("AdminDashboard", "[loadDashboardData] ✅ Operator from optimized data: $displayName")
-                            
-                            OperatorSessionInfo(
-                                name = displayName,
-                                fullName = operator.fullName,
-                                username = operator.username,
-                                image = operator.photoUrl?.takeIf { !it.isNullOrBlank() },
-                                isActive = true,
-                                userId = operator.id,
-                                sessionStartTime = session.sessionStartTime ?: "",
-                                role = operator.role
-                            )
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("AdminDashboard", "[loadDashboardData] ❌ Error creating operator info: ${e.message}", e)
-                        null
-                    }
-                }
-
-                // Get other dashboard data (incidents, safety alerts)
-                val safetyAlertsCount = getSafetyAlertCountUseCase()
+                // ✅ UPDATED: Use repository method to get operating vehicles count with filters for consistency
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 🚗 Getting operating vehicles count with filters: businessId='$filterBusinessId', siteId='$filterSiteId'")
+                val operatingVehiclesCount = vehicleSessionRepository.getOperatingSessionsCount(filterBusinessId ?: "", filterSiteId)
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 🚗 Operating vehicles count from repository: $operatingVehiclesCount")
 
                 _state.value = _state.value.copy(
-                    operatingVehiclesCount = _state.value.operatingVehiclesCount,
+                    operatingVehiclesCount = operatingVehiclesCount,
                     safetyAlertsCount = safetyAlertsCount,
-                    activeVehicleSessions = activeSessions,
+                    activeVehicleSessions = activeSessions.activeSessions.map { session ->
+                        // Puedes usar aquí el mismo mapeo que en loadDashboardData para crear VehicleSessionInfo
+                        // Ejemplo básico:
+                        VehicleSessionInfo(
+                            vehicle = activeSessions.vehicles[session.vehicleId]!!,
+                            vehicleId = session.vehicleId,
+                            vehicleType = activeSessions.vehicles[session.vehicleId]?.type?.Name,
+                            codename = activeSessions.vehicles[session.vehicleId]?.codename,
+                            vehicleImage = activeSessions.vehicles[session.vehicleId]?.photoModel,
+                            session = session,
+                            operator = activeSessions.operators[session.userId],
+                            operatorName = activeSessions.operators[session.userId]?.let { op ->
+                                listOfNotNull(op.firstName, op.lastName).joinToString(" ").ifBlank { op.username ?: "Sin nombre" }
+                            } ?: session.operatorName,
+                            operatorImage = activeSessions.operators[session.userId]?.photoUrl?.takeIf { !it.isNullOrBlank() },
+                            sessionStartTime = session.startTime,
+                            userRole = activeSessions.operators[session.userId]?.role ?: UserRole.OPERATOR,
+                            progress = null // Puedes calcular el progreso si lo necesitas
+                        )
+                    },
                     activeOperators = activeOperators,
-                    lastPreShiftChecks = lastChecks,
                     isLoading = false,
                     error = null
                 )
                 
-                android.util.Log.d("AdminDashboard", "[loadDashboardData] === 🎉 OPTIMIZED DASHBOARD LOADED ===")
-                android.util.Log.d("AdminDashboard", "[loadDashboardData] ✅ Sessions: ${activeSessions.size}, Operators: ${activeOperators.size}")
-                android.util.Log.d("AdminDashboard", "[loadDashboardData] 🚀 Performance: 1 API call vs ${activeSessions.size * 3 + 1} traditional calls")
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] === 🎉 DASHBOARD CON FILTROS CARGADO ===")
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] ✅ Sessions: ${activeSessions.activeSessions.size}, Operators: ${activeOperators.size}")
+                android.util.Log.d("AdminDashboard", "[loadDashboardDataWithFilters] 🚗 Operating Vehicles: $operatingVehiclesCount")
                 
-                loadOperatingVehiclesCount()
             } catch (e: Exception) {
-                android.util.Log.e("AdminDashboard", "Error in loadDashboardData", e)
+                android.util.Log.e("AdminDashboard", "[loadDashboardDataWithFilters] ❌ Error: ${e.message}", e)
                 _state.value = _state.value.copy(
-                    error = "Failed to load dashboard data. Please try again.",
+                    error = "Failed to load dashboard data with filters. Please try again.",
                     isLoading = false
                 )
             }
         }
     }
 
-    fun clearError() {
-        _state.value = _state.value.copy(error = null)
-    }
-
-    // Refresh con loading para pull-to-refresh o acciones explícitas del usuario
-    fun refreshWithLoading() {
+    // ✅ CENTRALIZED: Single refresh function for Admin Dashboard
+    // Admin always uses filters, never context
+    fun refreshDashboard(
+        filterBusinessId: String?, 
+        filterSiteId: String?, 
+        showLoading: Boolean = true
+    ) {
         viewModelScope.launch {
-            android.util.Log.d("AdminDashboard", "[refreshWithLoading] Iniciando refresh con loading...")
-            _state.value = _state.value.copy(isLoading = true)
-            loadDashboardData()
+            android.util.Log.d("AdminDashboard", "[refreshDashboard] === 🔄 CENTRALIZED REFRESH ===")
+            android.util.Log.d("AdminDashboard", "[refreshDashboard] Filters: businessId=$filterBusinessId, siteId=$filterSiteId")
+            android.util.Log.d("AdminDashboard", "[refreshDashboard] showLoading=$showLoading")
+            
+            try {
+                if (showLoading) {
+                    _state.value = _state.value.copy(isLoading = true)
+                }
+                
+                // Load dashboard data with filters ONLY
+                loadDashboardDataWithFilters(filterBusinessId, filterSiteId)
+                
+                android.util.Log.d("AdminDashboard", "[refreshDashboard] === ✅ REFRESH COMPLETED ===")
+                
+            } catch (e: Exception) {
+                android.util.Log.e("AdminDashboard", "[refreshDashboard] ❌ Error: ${e.message}", e)
+                _state.value = _state.value.copy(
+                    error = "Failed to refresh dashboard: ${e.message}",
+                    isLoading = false
+                )
+            }
         }
     }
-
-    // Refresh silencioso (sin loading) cuando volvemos a la pantalla
-    fun refresh() {
-        viewModelScope.launch {
-            android.util.Log.d("AdminDashboard", "[refresh] Iniciando refresh...")
-            loadDashboardData()
-        }
+    
+    // ✅ CONVENIENCE: Legacy functions that call the centralized refresh
+    fun refreshWithLoading(filterBusinessId: String?, filterSiteId: String?) {
+        refreshDashboard(filterBusinessId, filterSiteId, showLoading = true)
+    }
+    
+    fun refresh(filterBusinessId: String?, filterSiteId: String?) {
+        refreshDashboard(filterBusinessId, filterSiteId, showLoading = false)
     }
 
     fun submitFeedback(rating: Int, feedback: String, canContactMe: Boolean) {
@@ -354,44 +412,45 @@ class AdminDashboardViewModel @Inject constructor(
     }
 
     /**
-     * Refresh business context and reload dashboard data
-     * Useful when user switches business or business assignment changes
+     * ✅ REMOVED: refreshBusinessContext() - Admin doesn't need business context refresh
+     * Admin always uses filters, never context
      */
-    fun refreshBusinessContext() {
-        viewModelScope.launch {
-            try {
-                android.util.Log.d("AdminDashboard", "Refreshing business context...")
-                
-                // Use BusinessContextManager to refresh context
-                businessContextManager.refreshBusinessContext()
-                
-                // Reload dashboard data with new context
-                loadDashboardData()
-                
-            } catch (e: Exception) {
-                android.util.Log.e("AdminDashboard", "Error refreshing business context: ${e.message}", e)
-                _state.value = _state.value.copy(
-                    error = "Failed to refresh business context: ${e.message}"
-                )
-            }
-        }
-    }
+    // This function was removed because Admin should never use business context
+    // All data loading should be based on explicit filters
 
-    // Nuevo método para obtener el conteo de vehículos en operación usando business context
-    fun loadOperatingVehiclesCount() {
+    // ✅ UPDATED: Method to get operating vehicles count using admin filters
+    fun loadOperatingVehiclesCount(
+        filterBusinessId: String? = null,
+        filterSiteId: String? = null,
+        isAllSitesSelected: Boolean = false
+    ) {
         viewModelScope.launch {
             android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] === INICIANDO CONTEO DE VEHÍCULOS OPERANDO ===")
             try {
-                // Check business context first
-                val businessContextState = businessContextManager.contextState.value
-                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] BusinessContextState: hasRealBusinessContext=${businessContextState.hasRealBusinessContext}, businessId=${businessContextState.businessId}, isLoading=${businessContextState.isLoading}")
+                // Get current user to check if admin
+                val currentUser = userRepository.getCurrentUser()
+                val isAdmin = currentUser?.role in listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER)
                 
-                // Get business ID from BusinessContextManager
-                val businessId = businessContextManager.getCurrentBusinessId()
-                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] Business ID obtenido: '$businessId'")
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] User role: ${currentUser?.role}, isAdmin: $isAdmin")
                 
-                if (businessId == null || businessId == "") {
-                    android.util.Log.w("AdminDashboard", "[loadOperatingVehiclesCount] BusinessId está vacío, no se puede obtener conteo")
+                // Get business ID and site filter based on user role
+                val businessId: String
+                val siteId: String?
+
+                // For Admin: use filter business ID and site filter
+                businessId = filterBusinessId ?: ""
+                siteId = if (isAllSitesSelected) null else filterSiteId
+
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] 🎯 ADMIN MODE:")
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount]   - Filter BusinessId: '$filterBusinessId'")
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount]   - Filter SiteId: '$filterSiteId'")
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount]   - Is All Sites Selected: $isAllSitesSelected")
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount]   - Effective BusinessId: '$businessId'")
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount]   - Effective SiteId: '$siteId' (null = All Sites)")
+
+
+                if (businessId.isBlank()) {
+                    android.util.Log.w("AdminDashboard", "[loadOperatingVehiclesCount] BusinessId is empty, cannot get count")
                     _state.value = _state.value.copy(
                         operatingVehiclesCount = 0,
                         error = "No business context available"
@@ -405,10 +464,10 @@ class AdminDashboardViewModel @Inject constructor(
                     android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount]   Sesión $index: vehicleId=${session.vehicleId}, codename=${session.codename}, sessionId=${session.session.id}")
                 }
                 
-                // Use repository method with business context
-                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] Llamando a vehicleSessionRepository.getOperatingSessionsCount('$businessId')...")
-                val count = vehicleSessionRepository.getOperatingSessionsCount(businessId)
-                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] ✅ Conteo recibido para business '$businessId': $count")
+                // ✅ UPDATED: Use repository method with business context AND site filter
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] Llamando a vehicleSessionRepository.getOperatingSessionsCount('$businessId', '$siteId')...")
+                val count = vehicleSessionRepository.getOperatingSessionsCount(businessId, siteId)
+                android.util.Log.d("AdminDashboard", "[loadOperatingVehiclesCount] ✅ Conteo recibido para business '$businessId', site '$siteId': $count")
                 
                 _state.value = _state.value.copy(
                     operatingVehiclesCount = count,
@@ -427,5 +486,21 @@ class AdminDashboardViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * ✅ REMOVED: reloadData() - Admin should never use business context
+     * Admin always uses filters, never context
+     */
+    fun reloadData() {
+        android.util.Log.e("AdminDashboard", "[reloadData] ❌ ERROR: Admin should never use reloadData()")
+        android.util.Log.e("AdminDashboard", "[reloadData] Admin must use refreshDashboard() with explicit filter parameters")
+        android.util.Log.e("AdminDashboard", "[reloadData] This method uses business context which is incorrect for Admin")
+        
+        // ❌ ERROR: Admin should never use business context
+        // This method is intentionally left empty to prevent incorrect usage
+        _state.value = _state.value.copy(
+            error = "Admin must use filters, not business context. Use refreshDashboard() instead."
+        )
     }
 } 

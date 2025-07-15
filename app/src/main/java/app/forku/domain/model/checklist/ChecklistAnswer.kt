@@ -3,6 +3,7 @@ package app.forku.domain.model.checklist
 data class ChecklistAnswer(
     val id: String = "",
     val checklistId: String = "",
+    val checklistVersion: String = "1.0",
     val goUserId: String = "",
     val startDateTime: String = "",
     val endDateTime: String = "",

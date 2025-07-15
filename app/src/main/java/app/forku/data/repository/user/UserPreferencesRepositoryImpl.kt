@@ -13,6 +13,7 @@ import app.forku.domain.model.user.UserPreferences
 import app.forku.domain.repository.user.UserPreferencesRepository
 import app.forku.domain.repository.user.UserRepository
 import app.forku.core.auth.HeaderManager
+
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,23 +40,31 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun getCurrentUserPreferences(): UserPreferences? = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Getting current user preferences via UserRepository include")
+            Log.d(TAG, "🔍 getCurrentUserPreferences called - starting user preferences loading")
             
             // Use UserRepository to get user with preferences included
             val userRepositoryImpl = userRepository as app.forku.data.repository.user.UserRepositoryImpl
+            Log.d(TAG, "🔍 About to call getCurrentUserWithPreferences...")
+            
             val (user, preferences) = userRepositoryImpl.getCurrentUserWithPreferences()
             
+            Log.d(TAG, "🔍 getCurrentUserWithPreferences completed:")
+            Log.d(TAG, "  - User found: ${user != null}")
+            Log.d(TAG, "  - User ID: ${user?.id}")
+            Log.d(TAG, "  - User name: ${user?.username}")
+            Log.d(TAG, "  - Preferences found: ${preferences != null}")
+            
             if (user == null) {
-                Log.w(TAG, "No current user found")
+                Log.w(TAG, "❌ No current user found")
                 return@withContext null
             }
             
             if (preferences == null) {
-                Log.d(TAG, "No preferences found for user ${user.id}")
+                Log.d(TAG, "❌ No preferences found for user ${user.id} - user needs setup")
                 return@withContext null // Don't create automatically, let individual methods handle it
             }
             
-            Log.d(TAG, "Successfully loaded preferences for user ${user.id}")
+            Log.d(TAG, "✅ Successfully loaded preferences for user ${user.id}")
             Log.d(TAG, "  Business ID: ${preferences.businessId}")
             Log.d(TAG, "  Site ID: ${preferences.siteId}")
             Log.d(TAG, "  Last Selected Business: ${preferences.lastSelectedBusinessId}")
@@ -98,18 +107,25 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun saveUserPreferences(preferences: UserPreferences): UserPreferences = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Saving user preferences for user: ${preferences.getUserId()}")
+            val userId = preferences.getUserId() ?: userRepository.getCurrentUser()?.id
+            Log.d(TAG, "Saving user preferences for user: $userId")
             
-            val saveDto = preferences.toDto()
+            val saveDto = preferences.toDto(userId)
             val entityJson = gson.toJson(saveDto)
             
             Log.d(TAG, "Sending UserPreferences JSON: $entityJson")
             
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            
+            // ✅ Get businessId from preferences - it must be present when saving
+            val businessId = preferences.businessId 
+                ?: throw Exception("No businessId in preferences - cannot save without business context")
+                
             val response = api.saveUserPreferences(
                 entity = entityJson,
                 csrfToken = csrfToken,
-                cookie = cookie
+                cookie = cookie,
+                businessId = businessId
             )
             
             if (!response.isSuccessful) {
@@ -165,9 +181,15 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             }
             
             Log.d(TAG, "Updating user ${currentUser.id} with UserPreferencesId: $userPreferencesId")
+            Log.d(TAG, "updateUserPreferencesId currentUser ${currentUser}")
             
             // ⚠️ CRITICAL FIX: Get current user data to preserve password
-            val currentUserResponse = userApi.getUser(currentUser.id)
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val currentUserResponse = userApi.getUser(
+                id = currentUser.id,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
             val currentUserData = currentUserResponse.body()
             val currentPassword = currentUserData?.password
             
@@ -176,11 +198,40 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             Log.d(TAG, "  Current user data found: ${currentUserData != null}")
             Log.d(TAG, "  Password found: ${!currentPassword.isNullOrBlank()}")
             Log.d(TAG, "  Password length: ${currentPassword?.length ?: 0}")
+            Log.d(TAG, "  currentUserResponse.body()?.email: '${currentUserResponse.body()?.email }'")
+            Log.d(TAG, "  currentUserData: '${currentUserData }'")
+            
+            // ✅ NEW: Log email values before creating DTO
+            Log.d(TAG, "=== EMAIL FIELD DEBUG ===")
+            Log.d(TAG, "  currentUser.email: '${currentUser.email}'")
+            Log.d(TAG, "  currentUserData?.email: '${currentUserData?.email}'")
+            Log.d(TAG, "  currentUserData?.email length: ${currentUserData?.email?.length ?: 0}")
+            Log.d(TAG, "  currentUser.email length: ${currentUser.email?.length ?: 0}")
+            Log.d(TAG, "  currentUser.email is blank: ${currentUser.email.isBlank()}")
+            Log.d(TAG, "  currentUser.email is null: ${currentUser.email == null}")
+            Log.d(TAG, "=========================")
+            
+            // ✅ CRITICAL FIX: Use email from API if available, otherwise from memory if valid
+            val emailFromApi = currentUserData?.email?.takeIf { it.isNotBlank() && it != "null" }
+            val emailFromMemory = currentUser.email.takeIf { email ->
+                email.isNotBlank() && 
+                email != "null" && 
+                email.contains("@") && 
+                email.contains(".")
+            }
+            
+            // Priority: API email > Memory email > null
+            val validEmail = emailFromApi ?: emailFromMemory
+            
+            Log.d(TAG, "Email resolution:")
+            Log.d(TAG, "  Email from API: '$emailFromApi'")
+            Log.d(TAG, "  Email from memory: '$emailFromMemory'")
+            Log.d(TAG, "  Final email: '$validEmail'")
             
             // Create updated user DTO with UserPreferencesId
             val updatedUserDto = UserDto(
                 id = currentUser.id,
-                email = currentUser.email,
+                email = validEmail, // ✅ Only send if it's a valid email
                 username = currentUser.username,
                 firstName = currentUser.firstName,
                 lastName = currentUser.lastName,
@@ -195,12 +246,34 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                 isMarkedForDeletion = false
             )
             
+            // ✅ NEW: Detailed logging of updatedUserDto
+            Log.d(TAG, "=== UPDATED USER DTO DEBUG ===")
+            Log.d(TAG, "  id: '${updatedUserDto.id}'")
+            Log.d(TAG, "  email: '${updatedUserDto.email}'")
+            Log.d(TAG, "  username: '${updatedUserDto.username}'")
+            Log.d(TAG, "  firstName: '${updatedUserDto.firstName}'")
+            Log.d(TAG, "  lastName: '${updatedUserDto.lastName}'")
+            Log.d(TAG, "  fullName: '${updatedUserDto.fullName}'")
+            Log.d(TAG, "  password: '${updatedUserDto.password?.take(10)}...' (length: ${updatedUserDto.password?.length ?: 0})")
+            Log.d(TAG, "  picture: '${updatedUserDto.picture}'")
+            Log.d(TAG, "  userPreferencesId: '${updatedUserDto.userPreferencesId}'")
+            Log.d(TAG, "  isDirty: ${updatedUserDto.isDirty}")
+            Log.d(TAG, "  isNew: ${updatedUserDto.isNew}")
+            Log.d(TAG, "  isMarkedForDeletion: ${updatedUserDto.isMarkedForDeletion}")
+            Log.d(TAG, "===============================")
+            
             // Convert to JSON string like VehicleApi does
             val userJson = gson.toJson(updatedUserDto)
+            
+            // ✅ NEW: Log the complete JSON being sent
+            Log.d(TAG, "=== USER JSON BEING SENT ===")
+            Log.d(TAG, "userJson: $userJson")
+            Log.d(TAG, "JSON length: ${userJson.length}")
+            Log.d(TAG, "=============================")
+            
             Log.d(TAG, "Sending User JSON: $userJson")
             
-            // Get headers like VehicleApi does
-            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            // ✅ FIXED: Reuse existing csrfToken and cookie instead of redeclaring
             
             // Call API with FormUrlEncoded format like VehicleApi
             val response = userApi.saveUser(
@@ -231,7 +304,11 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val currentPrefs = getCurrentUserPreferences() 
             ?: throw Exception("No current user preferences found")
         
-        val updatedPrefs = currentPrefs.copy(businessId = businessId)
+        val updatedPrefs = currentPrefs.copy(
+            businessId = businessId,
+            isDirty = true,
+            isNew = false // ✅ CRITICAL: Mark as update, not new creation
+        )
         return saveUserPreferences(updatedPrefs)
     }
 
@@ -239,7 +316,11 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val currentPrefs = getCurrentUserPreferences() 
             ?: throw Exception("No current user preferences found")
         
-        val updatedPrefs = currentPrefs.copy(siteId = siteId)
+        val updatedPrefs = currentPrefs.copy(
+            siteId = siteId,
+            isDirty = true,
+            isNew = false // ✅ CRITICAL: Mark as update, not new creation
+        )
         return saveUserPreferences(updatedPrefs)
     }
 
@@ -247,7 +328,11 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val currentPrefs = getCurrentUserPreferences() 
             ?: throw Exception("No current user preferences found")
         
-        val updatedPrefs = currentPrefs.copy(lastSelectedBusinessId = businessId)
+        val updatedPrefs = currentPrefs.copy(
+            lastSelectedBusinessId = businessId,
+            isDirty = true,
+            isNew = false // ✅ CRITICAL: Mark as update, not new creation
+        )
         return saveUserPreferences(updatedPrefs)
     }
 
@@ -255,7 +340,11 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         val currentPrefs = getCurrentUserPreferences() 
             ?: throw Exception("No current user preferences found")
         
-        val updatedPrefs = currentPrefs.copy(lastSelectedSiteId = siteId)
+        val updatedPrefs = currentPrefs.copy(
+            lastSelectedSiteId = siteId,
+            isDirty = true,
+            isNew = false // ✅ CRITICAL: Mark as update, not new creation
+        )
         return saveUserPreferences(updatedPrefs)
     }
 
@@ -323,13 +412,16 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                     theme = "system",
                     language = "en",
                     notificationsEnabled = true,
-                    isActive = true,
                     isDirty = true,
                     isNew = true
                 )
             } else {
                 // Update existing preferences
-                currentPrefs = currentPrefs.copy(businessId = businessId)
+                currentPrefs = currentPrefs.copy(
+                    businessId = businessId,
+                    isDirty = true,
+                    isNew = false // ✅ CRITICAL: Mark as update, not new creation
+                )
             }
             
             saveUserPreferences(currentPrefs)
@@ -365,13 +457,16 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                     theme = "system",
                     language = "en",
                     notificationsEnabled = true,
-                    isActive = true,
                     isDirty = true,
                     isNew = true
                 )
             } else {
                 // Update existing preferences
-                currentPrefs = currentPrefs.copy(siteId = siteId)
+                currentPrefs = currentPrefs.copy(
+                    siteId = siteId,
+                    isDirty = true,
+                    isNew = false // ✅ CRITICAL: Mark as update, not new creation
+                )
             }
             
             saveUserPreferences(currentPrefs)
@@ -403,7 +498,8 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                 currentPrefs = currentPrefs.copy(
                     businessId = businessId,
                     lastSelectedBusinessId = businessId,
-                    isDirty = true
+                    isDirty = true,
+                    isNew = false // ✅ CRITICAL: Mark as update, not new creation
                 )
                 
                 saveUserPreferences(currentPrefs)
@@ -431,7 +527,8 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                     // businessId = currentPrefs.businessId, // ✅ Keep existing business
                     siteId = siteId, // ✅ Update site
                     lastSelectedSiteId = siteId,
-                    isDirty = true
+                    isDirty = true,
+                    isNew = false // ✅ CRITICAL: Mark as update, not new creation
                 )
                 
                 saveUserPreferences(currentPrefs)
@@ -449,47 +546,36 @@ class UserPreferencesRepositoryImpl @Inject constructor(
      */
     override suspend fun createPreferencesWithBusinessAndSite(businessId: String, siteId: String): UserPreferences {
         try {
-            Log.d(TAG, "Creating/updating preferences with BusinessId: $businessId and SiteId: $siteId")
-            
             val currentUser = userRepository.getCurrentUser()
             if (currentUser == null) {
                 Log.e(TAG, "Cannot create preferences: No current user found")
                 throw Exception("No current user found")
             }
-            
-            // ✅ Check if preferences already exist for this user
             val existingPrefs = getCurrentUserPreferences()
-            
             val prefsToSave = if (existingPrefs != null) {
-                Log.d(TAG, "Updating existing preferences instead of creating new ones")
-                // Update existing preferences
                 existingPrefs.copy(
                     businessId = businessId,
                     siteId = siteId,
                     lastSelectedBusinessId = businessId,
                     lastSelectedSiteId = siteId,
                     isDirty = true,
-                    isNew = false // Mark as update, not new
+                    isNew = false
                 )
             } else {
-                Log.d(TAG, "Creating new preferences")
-                // Create new preferences matching working Postman structure
                 UserPreferences(
                     id = null,
                     user = currentUser,
-                    businessId = businessId, // ✅ Primary business
-                    siteId = siteId, // ✅ Primary site
-                    lastSelectedBusinessId = businessId, // ✅ Set same as BusinessId for consistency
-                    lastSelectedSiteId = siteId, // ✅ Set same as SiteId for consistency
+                    businessId = businessId,
+                    siteId = siteId,
+                    lastSelectedBusinessId = businessId,
+                    lastSelectedSiteId = siteId,
                     theme = "system",
                     language = "en",
                     notificationsEnabled = true,
-                    isActive = true,
                     isDirty = true,
                     isNew = true
                 )
             }
-            
             return saveUserPreferences(prefsToSave)
         } catch (e: Exception) {
             Log.e(TAG, "Error creating/updating preferences with business and site", e)
@@ -513,7 +599,6 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             theme = "system",
             language = "en",
             notificationsEnabled = true,
-            isActive = true,
             isDirty = true,
             isNew = true
         )
@@ -525,6 +610,51 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Failed to save default preferences to backend, returning in-memory version", e)
             defaultPrefs
+        }
+    }
+
+    override suspend fun isVehicleInUserContext(vehicleBusinessId: String, vehicleSiteId: String): Boolean {
+        return try {
+            Log.d(TAG, "🔍 Checking if vehicle belongs to user's assigned business and site")
+            Log.d(TAG, "  - Vehicle Business ID: '$vehicleBusinessId'")
+            Log.d(TAG, "  - Vehicle Site ID: '$vehicleSiteId'")
+            
+            val userPreferences = getCurrentUserPreferences()
+            if (userPreferences == null) {
+                Log.w(TAG, "❌ No user preferences found - user needs setup")
+                return false
+            }
+            
+            val userBusinessId = userPreferences.getEffectiveBusinessId()
+            val userSiteId = userPreferences.getEffectiveSiteId()
+            
+            if (userBusinessId.isNullOrBlank()) {
+                Log.w(TAG, "❌ No business assigned to user")
+                return false
+            }
+            
+            if (userSiteId.isNullOrBlank()) {
+                Log.w(TAG, "❌ No site assigned to user")
+                return false
+            }
+            
+            val isSameBusiness = userBusinessId == vehicleBusinessId
+            val isSameSite = userSiteId == vehicleSiteId
+            val isInUserContext = isSameBusiness && isSameSite
+            
+            Log.d(TAG, "🔍 Context validation result:")
+            Log.d(TAG, "  - User's business: '$userBusinessId'")
+            Log.d(TAG, "  - Vehicle's business: '$vehicleBusinessId'")
+            Log.d(TAG, "  - Business match: $isSameBusiness")
+            Log.d(TAG, "  - User's site: '$userSiteId'")
+            Log.d(TAG, "  - Vehicle's site: '$vehicleSiteId'")
+            Log.d(TAG, "  - Site match: $isSameSite")
+            Log.d(TAG, "  - Final result: $isInUserContext")
+            
+            isInUserContext
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error checking vehicle context validation", e)
+            false
         }
     }
 } 

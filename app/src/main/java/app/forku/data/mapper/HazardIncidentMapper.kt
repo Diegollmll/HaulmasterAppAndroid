@@ -18,7 +18,7 @@ fun IncidentReportState.toHazardIncidentDto(): HazardIncidentDto {
     val currentDateTime = LocalDateTime.now()
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
-    // Si tienes incidentTime, úsalo para la hora
+            // If you have incidentTime, use it for the time
     val incidentDateTime = incidentTime?.let {
         LocalDateTime.now().withHour(it.hour).withMinute(it.minute).withSecond(0)
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))

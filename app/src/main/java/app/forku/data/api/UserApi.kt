@@ -16,6 +16,8 @@ interface UserApi {
         "Accept: text/plain"
     )
     suspend fun getUsers(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
         @Query("include") include: String? = null
     ): Response<List<UserDto>>
 
@@ -32,20 +34,29 @@ interface UserApi {
     )
     suspend fun getUser(
         @Path("id") id: String,
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
         @Query("include") include: String? = null
     ): Response<UserDto>
 
     /**
      * Create new user
-     * @param user User data
+     * @param entity User data as JSON string
+     * @param csrfToken CSRF token for authentication
+     * @param cookie Authentication cookie
      * @return Created user
      */
+    @FormUrlEncoded
     @POST("api/gouser")
     @Headers(
-        "Content-Type: application/json",
+        "Content-Type: application/x-www-form-urlencoded",
         "Accept: text/plain"
     )
-    suspend fun createUser(@Body user: UserDto): Response<UserDto>
+    suspend fun createUser(
+        @Field("entity") entity: String,
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<UserDto>
 
     /**
      * Update user (now saveUser)
@@ -69,16 +80,24 @@ interface UserApi {
     /**
      * Delete user
      * @param id User ID
+     * @param csrfToken CSRF token for authentication
+     * @param cookie Authentication cookie
      */
     @DELETE("api/gouser/{id}")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun deleteUser(@Path("id") id: String): Response<Unit>
+    suspend fun deleteUser(
+        @Path("id") id: String,
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<Unit>
 
     /**
      * Get the total count of users in the system
+     * @param csrfToken CSRF token for authentication
+     * @param cookie Authentication cookie
      * @return The total number of users
      */
     @GET("dataset/api/gouser/count")
@@ -86,12 +105,10 @@ interface UserApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getUserCount(): Response<Int>
+    suspend fun getUserCount(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<Int>
 
-    @GET("api/gouser/search")
-    @Headers(
-        "Content-Type: application/json",
-        "Accept: text/plain"
-    )
-    suspend fun searchUsers(@Query("query") query: String): Response<List<UserDto>>
+
 } 

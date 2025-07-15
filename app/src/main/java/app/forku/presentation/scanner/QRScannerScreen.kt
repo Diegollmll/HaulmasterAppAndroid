@@ -168,6 +168,7 @@ fun QRScannerScreen(
                                     return@setAnalyzer
                                 }
 
+                                @androidx.camera.core.ExperimentalGetImage
                                 val mediaImage = imageProxy.image
                                 if (mediaImage != null) {
                                     Log.d("QRFlow", "[ImageAnalyzer] Processing new frame")

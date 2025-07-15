@@ -52,8 +52,10 @@ class ReportIncidentUseCase @Inject constructor(
         return try {
             // Get business context from BusinessContextManager
             val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
             android.util.Log.d("ReportIncidentUseCase", "=== REPORT INCIDENT USE CASE DEBUG ===")
             android.util.Log.d("ReportIncidentUseCase", "BusinessId from BusinessContextManager: '$businessId'")
+            android.util.Log.d("ReportIncidentUseCase", "SiteId from BusinessContextManager: '$siteId'")
             android.util.Log.d("ReportIncidentUseCase", "Current user ID: '${currentUser.id}'")
             android.util.Log.d("ReportIncidentUseCase", "Incident type: $type")
             android.util.Log.d("ReportIncidentUseCase", "Vehicle ID: '$vehicleId'")
@@ -90,7 +92,8 @@ class ReportIncidentUseCase @Inject constructor(
                 loadBeingCarried = loadBeingCarried,
                 loadWeight = loadWeight,
                 locationCoordinates = locationCoordinates,
-                businessId = businessId
+                businessId = businessId,
+                siteId = siteId
             )
 
             android.util.Log.d("ReportIncidentUseCase", "Incident domain object created with businessId: '${incident.businessId}'")

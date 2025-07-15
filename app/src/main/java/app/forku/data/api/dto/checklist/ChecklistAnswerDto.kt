@@ -11,6 +11,8 @@ import app.forku.data.api.dto.vehicle.VehicleDto
 data class ChecklistAnswerDto(
     @SerializedName("ChecklistId")
     val checklistId: String,
+    @SerializedName("ChecklistVersion")
+    val checklistVersion: String = "1.0",
     @SerializedName("EndDateTime")
     val endDateTime: String?,
     @SerializedName("GOUserId")

@@ -2,6 +2,7 @@ package app.forku.data.repository
 
 import app.forku.data.api.HazardIncidentApi
 import app.forku.data.dto.HazardIncidentDto
+import app.forku.core.utils.safeEmitFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -51,8 +52,8 @@ class HazardIncidentRepository @Inject constructor(
             emit(Result.success(result))
         } catch (e: Exception) {
             android.util.Log.e("HazardIncidentRepo", "Error saving hazard incident: ${e.message}", e)
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
-    // Puedes agregar métodos getById, getList, etc. si los necesitas
+    // You can add getById, getList, etc. methods if you need them
 } 

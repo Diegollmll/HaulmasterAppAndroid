@@ -20,6 +20,7 @@ data class Vehicle(
     val energySource: Int = 1,
     val energySourceDisplayString: String? = null,
     val nextService: String = "",
+    val currentHourMeter: String? = null,
     val hasIssues: Boolean = false,
     val businessId: String? = null,
     val siteId: String? = null,

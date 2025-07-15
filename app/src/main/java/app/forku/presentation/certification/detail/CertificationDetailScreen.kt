@@ -74,15 +74,31 @@ fun CertificationDetailScreen(
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler,
         topBarActions = {
-            IconButton(onClick = {
-                navController.navigate(
-                    Screen.CertificationEdit.createRoute(certificationId)
-                )
-            }) {
-                Icon(Icons.Default.Edit, "Edit")
-            }
-            IconButton(onClick = { showDeleteDialog = true }) {
-                Icon(Icons.Default.Delete, "Delete")
+            Row {
+                IconButton(
+                    onClick = {
+                        navController.navigate(
+                            Screen.CertificationEdit.createRoute(certificationId)
+                        )
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Edit, 
+                        contentDescription = "Edit Certification",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete, 
+                        contentDescription = "Delete Certification",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         },
         content = { padding ->

@@ -9,4 +9,16 @@ interface SiteRepository {
     suspend fun saveSite(site: SiteDto): Flow<Result<SiteDto>>
     suspend fun deleteSite(id: String): Flow<Result<Unit>>
     suspend fun getSiteCount(): Flow<Result<Int>>
+    
+    /**
+     * ✅ NEW: Get only the sites assigned to the current user
+     * This filters by both business and user's site context
+     */
+    suspend fun getUserAssignedSites(): Flow<Result<List<SiteDto>>>
+    
+    /**
+     * ✅ NEW: Get all sites for a specific business (for admin filtering)
+     * This bypasses user context and loads all sites for the given business
+     */
+    suspend fun getSitesForBusiness(businessId: String): Flow<Result<List<SiteDto>>>
 } 

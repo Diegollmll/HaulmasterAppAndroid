@@ -98,11 +98,15 @@ fun SuperAdminDashboardScreen(
                         DashboardHeader(
                             userName = currentUser?.firstName ?: "",
                             onNotificationClick = { navController?.navigate(Screen.Notifications.route) },
-                            onProfileClick = { navController?.navigate(Screen.Profile.route) }
+                            onProfileClick = { navController?.navigate(Screen.Profile.route) },
+                            showNotifications = false
                         )
                     }
                     
                     item { SystemOverviewSection(dashboardState, navController) }
+                    
+                    // NEW: SuperAdmin Tools Section with Reports
+                    item { SuperAdminToolsSection(navController) }
                     
                     item { UserAndSettingsSection(dashboardState, navController) }
                     
@@ -495,4 +499,127 @@ private fun BusinessItem(
         )
     }
     Divider()
+}
+
+@Composable
+private fun SuperAdminToolsSection(navController: NavController) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "SuperAdmin Tools",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // First row of tools
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SuperAdminToolButton(
+                    icon = Icons.Default.Business,
+                    label = "Businesses",
+                    description = "Manage businesses",
+                    onClick = { navController.navigate(Screen.BusinessManagement.route) },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                SuperAdminToolButton(
+                    icon = Icons.Default.People,
+                    label = "Users",
+                    description = "Manage all users",
+                    onClick = { navController.navigate(Screen.UserManagement.route) },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                SuperAdminToolButton(
+                    icon = Icons.Default.Security,
+                    label = "Groups",
+                    description = "Group management",
+                    onClick = { navController.navigate(Screen.GroupManagement.route) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Second row of tools
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SuperAdminToolButton(
+                    icon = Icons.Default.Settings,
+                    label = "Settings",
+                    description = "System configuration",
+                    onClick = { navController.navigate(Screen.SystemSettings.route) },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                SuperAdminToolButton(
+                    icon = Icons.Default.DirectionsCar,
+                    label = "Vehicles",
+                    description = "Fleet management",
+                    onClick = { navController.navigate(Screen.AdminVehiclesList.route) },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Placeholder for future tool - removed to avoid clutter
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuperAdminToolButton(
+    icon: ImageVector,
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Text(
+                text = description,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                maxLines = 1,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 } 

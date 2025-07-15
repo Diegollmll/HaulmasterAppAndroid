@@ -200,6 +200,9 @@ fun VehicleItem(
                     Spacer(Modifier.weight(1f))
                 }
 
+                // Log para depuración del tipo de vehículo
+                Log.d("VehicleItem", "vehicle.type: ${vehicle.type}")
+                Log.d("VehicleItem", "vehicle.type.Name: ${vehicle.type.Name}")
                 Text(
                     text = vehicle.type.Name,
                     style = TextStyle(

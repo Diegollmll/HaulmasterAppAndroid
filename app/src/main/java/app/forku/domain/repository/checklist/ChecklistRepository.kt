@@ -4,8 +4,6 @@ import app.forku.domain.model.checklist.Checklist
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.CheckStatus
-import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategory
-import app.forku.presentation.checklist.category.QuestionaryChecklistItemSubcategory
 
 interface ChecklistRepository {
     suspend fun getChecklistItems(vehicleId: String): List<Checklist>
@@ -27,4 +25,12 @@ interface ChecklistRepository {
     suspend fun hasChecklistInCreation(vehicleId: String): Boolean
 
     suspend fun canStartCheck(vehicleId: String): Boolean
+    
+    // Admin methods for checklist management
+    suspend fun getAllChecklists(businessId: String? = null): List<Checklist>
+    suspend fun getChecklistsForManagement(businessId: String?): List<Checklist>
+    suspend fun getChecklistById(id: String): Checklist?
+    suspend fun createChecklist(checklist: Checklist): Checklist
+    suspend fun updateChecklist(id: String, checklist: Checklist): Checklist
+    suspend fun deleteChecklist(id: String): Boolean
 } 

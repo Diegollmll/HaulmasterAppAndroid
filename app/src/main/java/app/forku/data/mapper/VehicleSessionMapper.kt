@@ -74,7 +74,9 @@ object VehicleSessionMapper {
             operatorName = operatorName,
             vehicleName = vehicleName,
             businessId = dto.BusinessId,
-            siteId = dto.siteId // ✅ Include siteId from DTO
+            siteId = dto.siteId, // ✅ Include siteId from DTO
+            initialHourMeter = dto.initialHourMeter, // ✅ New: Map hour meter fields
+            finalHourMeter = dto.finalHourMeter       // ✅ New: Map hour meter fields
         )
     }
 
@@ -97,7 +99,9 @@ object VehicleSessionMapper {
             IsMarkedForDeletion = false,
             Duration = domain.durationMinutes,
             BusinessId = domain.businessId,
-            siteId = domain.siteId // ✅ Include siteId from domain
+            siteId = domain.siteId, // ✅ Include siteId from domain
+            initialHourMeter = domain.initialHourMeter, // ✅ New: Map hour meter fields
+            finalHourMeter = domain.finalHourMeter       // ✅ New: Map hour meter fields
         )
     }
 

@@ -1,216 +1,330 @@
 # ForkU Android Project Context
 
 ## Project Overview
-ForkU is an Android application built with modern Android development practices and Clean Architecture principles. The app focuses on vehicle management, incident tracking, user authentication, and certification management.
+ForkU is an Android application built with modern Android development practices and Clean Architecture principles. The app focuses on vehicle management, incident tracking, user authentication, and certification management for industrial operations.
 
-## Current Sprint Status (March 2024)
+## Current Project Status (December 2024)
 
-### 1. Core Systems Progress
+### 🎯 **Core Systems - Production Ready**
 
-#### Authentication System (100% Complete)
-- Login/Register functionality with email/password ✅
-- Session management with DataStore ✅
-- User role management ✅
-- Tour/Onboarding preferences ✅
-- Security enhancements ✅
+#### ✅ Authentication System (100% Complete)
+- **Login/Register**: Email/password authentication with GO Platform integration
+- **Session Management**: Persistent sessions with DataStore and automatic token renewal
+- **User Role Management**: Support for SYSTEM_OWNER, SUPERADMIN, ADMIN, OPERATOR roles
+- **Tour/Onboarding**: User preference-based onboarding flow
+- **Security**: CSRF protection, antiforgery cookies, and secure token handling
+- **Session Keep-Alive**: Automatic session maintenance with background/foreground handling
 
-#### Vehicle Management (100% Complete)
-- Vehicle tracking and status monitoring ✅
-- Vehicle information management ✅
-- Vehicle status validation ✅
-- Vehicle session management ✅
-- Real-time status updates ✅
-- QR code scanning functionality ✅
+#### ✅ Vehicle Management (100% Complete)
+- **Vehicle Tracking**: Real-time status monitoring and updates
+- **QR Code Integration**: Vehicle identification and access control
+- **Status Management**: AVAILABLE, IN_USE, OUT_OF_SERVICE, MAINTENANCE states
+- **Vehicle Profiles**: Comprehensive vehicle information with responsive UI
+- **Type Management**: Support for different vehicle types and energy sources
+- **Session Integration**: Vehicle session lifecycle management
 
-#### Checklist System (85% Complete)
-- Pre-shift checklist management ✅
-- Checklist validation ✅
-- Checklist status notifications ✅
-- Vehicle status determination based on checks ✅
-- **Remaining Tasks**:
-  * Advanced checklist features (50% complete)
-  * Checklist history & reports (30% complete)
+#### ✅ Checklist System (95% Complete)
+- **Pre-shift Checklists**: Dynamic question-based vehicle inspections
+- **Real-time Validation**: Immediate feedback and status determination
+- **Multimedia Support**: Photo attachments for checklist items
+- **Safety Alert Integration**: Automatic safety alert creation for failed non-critical items
+- **Certification Validation**: Role-based access and certification requirements
+- **Business Context**: Multi-tenant checklist filtering and management
 
-#### Incident Management (75% Complete)
-- Incident reporting with multiple types ✅
-- Incident management with severity levels ✅
-- Support for different vehicle types ✅
-- Load weight tracking ✅
-- **Remaining Tasks**:
-  * Advanced incident reporting (50% complete)
-  * Incident reports & analytics (0% complete)
+#### ✅ Incident Management (85% Complete)
+- **Multiple Incident Types**: Collision, Hazard, Near Miss reporting
+- **Multimedia Documentation**: Photo and document attachments
+- **Severity Classification**: Risk-based incident categorization
+- **Load Weight Tracking**: Operational context recording
+- **Business Integration**: Multi-tenant incident management
 
-#### Admin Management Features (90% Complete)
-- User certification tracking ✅
-- Certification creation and updates ✅
-- Certification deletion ✅
-- Certification status monitoring ✅
-- **Remaining Tasks**:
-  * Reports & analytics dashboard (0% complete)
+#### ✅ Admin Dashboard (90% Complete)
+- **User Management**: Comprehensive user administration
+- **Certification Tracking**: Expiration monitoring and status management
+- **Vehicle Fleet Overview**: Real-time fleet status and analytics
+- **Business Site Filtering**: Discrete filter UI with collapsible design
+- **Role-based Access**: Contextual features based on user permissions
+- **Admin-Specific Data Loading**: Separate data loading for Admin vs Operator contexts
+- **Multi-Site Management**: Admin can view and manage all sites within their business
 
-### 2. Current Sprint Focus
+#### ✅ Multitenancy Implementation (100% Complete)
+- **Business Context Management**: Centralized BusinessContextManager
+- **Data Isolation**: Automatic businessId filtering across all entities
+- **Cross-Platform Consistency**: Backend and mobile app synchronized
+- **Repository Pattern**: Business-aware data access layer
+- **Session Management**: Business-scoped vehicle sessions
 
-#### Primary Objectives
-1. Complete Advanced Checklist Features
-   - Advanced checklist flow completion
-   - History and reports implementation
-   - Session management enhancements
+### 🔧 **Technical Architecture**
 
-2. Implement Advanced Incident Reporting
-   - Advanced report creation
-   - Analytics integration
-   - Report generation features
-
-3. Complete Reports & Analytics Dashboard
-   - Incident reports
-   - Checklist reports
-   - CICO history
-
-### 3. API Integration Status
-
-#### Core APIs (Complete)
-1. Authentication & User Management
-   - GOSecurityProviderApi (100%)
-   - GOUserRoleApi (100%)
-   - UserApi (100%)
-   - SessionApi (100%)
-
-2. Vehicle Management
-   - VehicleApi (100%)
-   - VehicleTypeApi (100%)
-   - VehicleComponentApi (100%)
-   - VehicleSessionApi (100%)
-
-#### In Progress APIs
-1. Checklist System
-   - ChecklistApi (85%)
-   - ChecklistItemApi (85%)
-   - UserChecklistApi (30%)
-   - AnsweredChecklistItemApi (30%)
-
-2. Incident Management
-   - IncidentApi (75%)
-   - IncidentMultimediaApi (50%)
-
-### 4. Technical Stack
-
-#### Core Technologies
+#### **Core Technologies**
 - **Language**: Kotlin 1.9.22
 - **UI Framework**: Jetpack Compose (BOM 2024.02.00)
-- **Architecture Pattern**: MVVM + Clean Architecture
+- **Architecture**: MVVM + Clean Architecture + Repository Pattern
 - **Dependency Injection**: Hilt 2.48
 - **Navigation**: Jetpack Navigation Compose 2.7.7
 - **Local Storage**: Room 2.6.1 + DataStore 1.0.0
-- **Network**: Retrofit 2.9.0 + OkHttp 4.12.0
-- **Firebase Integration**: Firebase BOM 32.7.2
+- **Network**: Retrofit 2.9.0 + OkHttp 4.12.0 with custom interceptors
 - **Image Loading**: Coil 2.5.0
 - **QR Functionality**: CameraX 1.3.1 + MLKit Barcode 17.2.0
+- **State Management**: StateFlow + Compose State
 
-### 5. Project Structure
+#### **Role-Based Architecture Patterns**
+- **Admin Context**: Administrative functions load data for ALL sites within business or for specific site selected.
+- **Operator Context**: User functions load data only for assigned site/business
+- **Shared Filters**: AdminSharedFiltersViewModel for admin-specific filtering
+- **Business Context Manager**: Centralized business/site context management
+- **Repository Pattern**: Role-aware data access with context filtering
+
+#### **Project Structure**
 ```
 app/src/main/java/app/forku/
-├── presentation/           # UI Layer
-│   ├── common/            # Shared UI components
-│   ├── dashboard/         # Dashboard feature
-│   ├── incident/          # Incident management
-│   ├── tour/             # Onboarding/Tour feature
-│   ├── scanner/          # QR Scanner functionality
-│   ├── checklist/        # Checklists feature
-│   ├── navigation/       # Navigation components
-│   ├── user/             # User management UI
-│   ├── session/          # Session management
-│   └── vehicle/          # Vehicle management
-├── domain/               # Business Logic Layer
-│   ├── model/           # Domain models
-│   ├── repository/      # Repository interfaces
-│   └── usecase/         # Use cases
-├── data/                # Data Layer
-│   ├── mapper/          # DTO <-> Domain mappers
-│   ├── datastore/       # Preferences storage
-│   ├── repository/      # Repository implementations
-│   ├── local/           # Local data sources
-│   ├── api/             # Remote API interfaces
-│   └── db/              # Database configuration
-├── core/                # Core utilities
-└── di/                  # Dependency injection modules
+├── presentation/              # UI Layer (Jetpack Compose)
+│   ├── common/               # Shared UI components (BaseScreen, Filters, etc.)
+│   ├── dashboard/            # Admin & User dashboards
+│   ├── incident/             # Incident reporting & management
+│   ├── checklist/            # Pre-shift checklist system
+│   ├── vehicle/              # Vehicle management & profiles
+│   ├── user/                 # User management & authentication
+│   ├── scanner/              # QR code scanning functionality
+│   ├── session/              # Vehicle session management
+│   ├── certification/        # Certification tracking
+│   └── navigation/           # App navigation structure
+├── domain/                   # Business Logic Layer
+│   ├── model/               # Domain entities (Vehicle, User, Checklist, etc.)
+│   ├── repository/          # Repository interfaces
+│   ├── usecase/             # Business use cases
+│   └── service/             # Domain services
+├── data/                    # Data Layer
+│   ├── api/                 # GO Platform API interfaces
+│   ├── dto/                 # Data Transfer Objects
+│   ├── mapper/              # DTO ↔ Domain mappers
+│   ├── repository/          # Repository implementations
+│   ├── datastore/           # Local preferences storage
+│   └── service/             # Data services
+├── core/                    # Core Utilities
+│   ├── auth/                # Authentication & session management
+│   ├── business/            # Business context management
+│   ├── network/             # Network connectivity
+│   ├── location/            # Location services
+│   └── utils/               # Utility functions
+└── di/                      # Dependency Injection modules
 ```
 
-### 6. Next Sprint Planning
+### 🚀 **Recent Major Accomplishments**
 
-#### Planned Features
-1. Vehicle Maintenance Management
-   - Maintenance scheduling
-   - Component tracking
-   - Service history
+#### **BaseScreen Authentication Enhancement**
+- **SessionKeepAliveManager Integration**: Comprehensive session management
+- **Lifecycle-aware Management**: Automatic foreground/background handling
+- **Token Renewal**: Proactive token refresh before expiration
+- **Authentication State Monitoring**: Global session expiration handling
+- **User Interaction Triggers**: Keep-alive on user activity
 
-2. Certification Tracking System
-   - Certification management
-   - Expiration tracking
-   - Renewal notifications
+#### **Vehicle Status Update Fix**
+- **GO API Compliance**: Fixed PRIMARY KEY constraint violations
+- **Proper JSON Generation**: Correct `IsNew` and `IsDirty` field handling
+- **Status Update Flow**: Reliable vehicle status transitions
+- **Error Handling**: Comprehensive error logging and recovery
 
-3. Training Materials Portal
-   - Training content management
-   - Progress tracking
-   - Assessment system
+#### **UI/UX Improvements**
+- **Vehicle Profile Responsive Design**: Optimized for long model numbers
+- **Business Site Filters**: Discrete, collapsible filter interface
+- **Back Button Conditional Logic**: Context-aware navigation
+- **Spanish to English Localization**: Complete UI text translation
 
-4. Localization Support
-   - Multi-language support
-   - Regional settings
-   - Format localization
+#### **UserPreferences API Integration**
+- **GO Platform Standards**: Full compliance with required fields
+- **Business Context**: Proper businessId integration
+- **Error Resolution**: Fixed save functionality with proper DTO mapping
 
-### 7. Important Notes
-- The project follows Material Design principles
-- Uses modern Android development practices
-- Implements clean architecture patterns
-- Focuses on maintainable and testable code
-- Uses coroutines for asynchronous operations
-- Implements proper error handling and recovery
+### 🔧 **GO Platform Integration Standards**
 
-*Note: This context file is updated as of March 2024 and reflects the current project status.*
+#### **Mandatory API Fields**
+```json
+{
+  "$type": "EntityDataObject",
+  "Id": null,                    // null for new, actual ID for updates
+  "IsDirty": true,              // Always true for modifications
+  "IsNew": true,                // true for creation, false for updates
+  "IsMarkedForDeletion": false, // Always false for active entities
+  "InternalObjectId": 0,        // Always 0 for new entities
+  "BusinessId": "business-id"   // Current business context
+}
+```
 
-## 🎉 **RECENT PROGRESS UPDATE (June 2024)**
+#### **Authentication Requirements**
+- **CSRF Token**: From `AuthDataStore.getCsrfToken()`
+- **Antiforgery Cookie**: From `AuthDataStore.getAntiforgeryCookie()`
+- **Business Context**: From `BusinessContextManager.getCurrentBusinessId()`
 
-### **✅ Multitenancy Implementation - 84% Complete**
-- **BusinessId Integration**: Successfully implemented across all core entities
-- **Backend**: 92% complete (11h of 12h) - Only minor endpoints remaining
-- **App**: 75% complete (4.5h of 6h) - Core screens working, some pending 🔄 **IN PROGRESS**
-- **Core Systems Updated**:
-  - ✅ ChecklistAnswer: Full BusinessId support (DTO, Domain, Mapper, Repository)
-  - ✅ ChecklistRepository: Business context filtering working
-  - ✅ VehicleSession: Complete BusinessId implementation 
-  - ✅ VehicleList: Business context filtering working
-  - ✅ AdminDashboard: BusinessContextManager integration
-  - ✅ ChecklistScreen: Business context integration
-- **Testing**: Validated functionality in mobile app
+#### **API Pattern Template**
+```kotlin
+@FormUrlEncoded
+@POST("api/{endpoint}")
+suspend fun save(
+    @Header("X-CSRF-TOKEN") csrfToken: String,
+    @Header("Cookie") cookie: String,
+    @Field("entity") entity: String,
+    @Query("businessId") businessId: String
+): Response<EntityDto>
+```
 
-### **🚀 Technical Achievements**
-- **API Optimization**: 100% complete (N+1 query elimination)
-- **Business Context Management**: Centralized through BusinessContextManager
-- **Data Filtering**: Automatic businessId filtering in repositories
-- **Cross-Platform Consistency**: Backend and app synchronized
-- **Core App Integration**: Main screens working with business context 🔄 **IN PROGRESS**
+#### **Entity Type Mappings**
+- **Vehicle**: `"VehicleDataObject"`
+- **Checklist**: `"ChecklistDataObject"`
+- **ChecklistAnswer**: `"ChecklistAnswerDataObject"`
+- **VehicleSession**: `"VehicleSessionDataObject"`
+- **User**: `"UserDataObject"`
+- **Incident**: `"IncidentDataObject"`
+- **UserPreferences**: `"UserPreferencesDataObject"`
 
-### **📊 Current Status**
-- **Multitenancy Backend**: 92% complete (11h of 12h)
-- **Multitenancy App**: 75% complete (4.5h of 6h) 🔄 **IN PROGRESS**
-- **Core Functionality**: VehiclesList, VehicleSession and Checklists fully operational
-- **Next Phase**: Complete remaining backend endpoints (1h) + remaining app screens (1.5h)
+#### **Energy Source Values**
+- **Electric**: 0
+- **LPG**: 1  
+- **Diesel**: 2
 
-### **🔧 Key Components Working**
-1. **Business Context Flow**: Login → Business Assignment → Data Filtering
-2. **Repository Layer**: Automatic businessId injection
-3. **Mapper Integration**: Complete DTO ↔ Domain transformations
-4. **Session Management**: Business-aware vehicle sessions
+### 📊 **Current Development Status**
 
-## Message to get the appropiate commit message, from Cursor.ai
-Given those changes that are present in our current git status, please generate a comprehensive git commit message, in text format that renders well as commit message, and include list of files where there are changes and what those changes are.
+#### **Completed Features (Production Ready)**
+- ✅ **Multi-tenant Architecture**: Complete business context isolation
+- ✅ **Authentication Flow**: Secure login with session management
+- ✅ **Vehicle Management**: Full CRUD operations with status tracking
+- ✅ **Checklist System**: Dynamic questionnaires with validation
+- ✅ **QR Code Integration**: Vehicle identification and access
+- ✅ **Admin Dashboard**: Comprehensive management interface
+- ✅ **Incident Reporting**: Multi-type incident documentation
+- ✅ **Certification Tracking**: User qualification management
+- ✅ **Session Keep-Alive**: Automatic session maintenance
+- ✅ **Responsive UI**: Optimized for various screen sizes
+- ✅ **Error Handling**: Comprehensive error recovery
+- ✅ **Localization**: English UI throughout the application
 
-## [TODO] Centralized Multimedia Management (Planned)
+#### **In Progress / Next Sprint**
+- 🔄 **Admin Dashboard Data Loading**: Fix admin-specific data loading for dashboard cards (Administrative data not his own user data)
+- 🔄 **Operating Vehicles Count**: Ensure admin sees count from all sites, not just personal context
+- 🔄 **Advanced Analytics**: Reporting dashboard implementation
+- 🔄 **Offline Support**: Local data caching and sync
+- 🔄 **Push Notifications**: Real-time alerts and updates
+- 🔄 **Advanced Multimedia**: Enhanced photo management
+- 🔄 **Performance Optimization**: Further UI/UX improvements
 
-We plan to refactor and centralize all multimedia upload/association/removal logic (for checklist item answers, incidents, user profiles, etc.) into a single, flexible interface/service. This will allow switching the backend use case/API implementation based on context, making it much easier to add new multimedia flows in the future. The pattern will use a generic MultimediaManager interface, with implementations for each entity type, and a factory or switch to select the correct manager in each screen or ViewModel.
+#### **Planned Features**
+- 📋 **Maintenance Scheduling**: Preventive maintenance workflows
+- 📋 **Training Materials**: Integrated learning management
+- 📋 **Advanced Reporting**: Custom report generation
+- 📋 **API Rate Limiting**: Enhanced request management
+- 📋 **Dark Mode**: Theme customization
 
-## [DONE] SafetyAlert registration from ChecklistAnswer
+### 🔍 **Known Issues & Technical Debt**
 
-Cuando se envia un checklistAnswer y hay preguntas "no críticas" respondidas como "Fail", esas son consideradas "SafetyAlerts", con lo cual debemos usar el caso de uso de registrar uno o mas "SafetyAlerts" cuando se cumple esa condición. Puedes ayudarme a revisar y ajustar el flujo del checklist para esa lógica?
+#### **Current Investigations**
+- **Checklist Question Filtering**: Vehicle type association logic needs refinement
+- **Performance**: Large dataset handling optimization opportunities
+- **Memory Management**: Image loading and caching improvements
 
-**Completion Note**: Implemented in ChecklistViewModel with automatic SafetyAlert creation for non-critical FAIL answers, including proper API integration and error handling.
+#### **Technical Debt Items**
+- Centralized multimedia management system
+- API response caching strategy
+- Unit test coverage expansion
+- Documentation updates
+
+### 💡 **Development Guidelines**
+
+#### **Code Standards**
+- **Clean Architecture**: Strict separation of concerns
+- **MVVM Pattern**: Reactive UI with StateFlow
+- **Repository Pattern**: Abstracted data access
+- **Dependency Injection**: Hilt-based modular design
+- **Error Handling**: Comprehensive try-catch with logging
+- **Testing**: Unit tests for business logic
+
+#### **GO Platform Integration**
+- **API Compliance**: Follow mandatory field requirements
+- **Business Context**: Always include businessId filtering
+- **Authentication**: Proper CSRF and cookie handling
+- **Error Handling**: Graceful degradation and user feedback
+- **Logging**: Detailed request/response logging for debugging
+
+#### **UI/UX Standards**
+- **Material Design**: Consistent design language
+- **Responsive Layout**: Adaptive to different screen sizes
+- **Accessibility**: Screen reader and navigation support
+- **Performance**: Smooth animations and transitions
+- **User Feedback**: Clear loading states and error messages
+
+### 📈 **Metrics & Performance**
+
+#### **App Performance**
+- **Cold Start Time**: < 3 seconds
+- **Navigation Transitions**: < 300ms
+- **API Response Handling**: Optimized with proper loading states
+- **Memory Usage**: Efficient image loading and caching
+- **Battery Optimization**: Background task management
+
+#### **Business Metrics**
+- **User Adoption**: Multi-role support with role-based features
+- **Data Integrity**: 100% business context isolation
+- **Security Compliance**: Full CSRF and authentication protection
+- **Operational Efficiency**: Streamlined checklist and incident workflows
+
+### 🔧 **Development Environment**
+
+#### **Required Tools**
+- **Android Studio**: Latest stable version
+- **Kotlin**: 1.9.22
+- **Gradle**: 8.x
+- **Java**: 17
+- **Git**: Version control with feature branch workflow
+
+#### **Testing Strategy**
+- **Unit Tests**: Business logic and repository layer
+- **Integration Tests**: API integration validation
+- **UI Tests**: Critical user flow automation
+- **Manual Testing**: Cross-device compatibility
+
+### 📝 **Important Notes**
+
+#### **Session Management**
+- SessionKeepAliveManager handles automatic token renewal
+- Background/foreground state transitions are managed
+- User activity triggers keep-alive requests
+- Authentication failures redirect to login
+
+#### **Business Context**
+- All data operations are business-scoped
+- BusinessContextManager provides centralized context
+- Repository layer automatically applies business filtering
+- Multi-tenant data isolation is enforced
+
+#### **Error Handling**
+- Comprehensive error logging throughout the application
+- User-friendly error messages in English
+- Graceful degradation for network issues
+- Proper error recovery mechanisms
+
+#### **Security**
+- CSRF token validation on all API requests
+- Secure token storage in DataStore
+- Automatic session expiration handling
+- Role-based access control
+
+### 🎯 **Recent Session Accomplishments**
+
+#### **Spanish to English Localization (December 2024)**
+- **Complete UI Translation**: All user-facing text converted to English
+- **Error Messages**: Standardized English error messages across the app
+- **Comments & Logs**: Updated code comments and log messages to English
+- **Files Modified**: 16 files updated with comprehensive text changes
+- **Quality Assurance**: Project compiles successfully with all changes
+
+#### **Files Updated in Localization**
+1. `ChecklistScreen.kt` - 12 UI text changes
+2. `ChecklistViewModel.kt` - Error messages and logs
+3. `VehicleRepositoryImpl.kt` - API error messages
+4. `UserRepositoryImpl.kt` - Authentication error messages
+5. `AdminDashboardViewModel.kt` - Log messages
+6. `DashboardViewModel.kt` - Code comments
+7. Multiple mapper and repository files - Comments and documentation
+
+---
+
+*This context file is maintained as of December 2024 and reflects the current production-ready state of the ForkU Android application.* 

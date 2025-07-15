@@ -1,5 +1,7 @@
 package app.forku.domain.model.certification
 
+import app.forku.domain.model.vehicle.VehicleType
+
 data class Certification(
     val id: String,
     val name: String,
@@ -17,7 +19,9 @@ data class Certification(
     val isNew: Boolean = false,
     val internalObjectId: Int = 0,
     val businessId: String? = null,
-    val siteId: String? = null // ✅ Add siteId for multitenancy
+    val siteId: String? = null, // ✅ Add siteId for multitenancy
+    val vehicleTypes: List<VehicleType> = emptyList(), // ✅ Associated vehicle types
+    val vehicleTypeIds: List<String> = emptyList() // ✅ For easier form handling
 )
 
 enum class CertificationStatus {

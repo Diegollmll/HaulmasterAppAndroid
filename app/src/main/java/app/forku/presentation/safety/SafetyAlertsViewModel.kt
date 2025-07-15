@@ -4,6 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.data.api.dto.safetyalert.SafetyAlertDto
 import app.forku.domain.repository.safetyalert.SafetyAlertRepository
+import app.forku.core.business.BusinessContextManager
+import app.forku.domain.repository.user.UserPreferencesRepository
+import app.forku.presentation.common.components.BusinessContextUpdater
+import app.forku.presentation.common.components.updateBusinessContext
+import app.forku.presentation.common.components.updateSiteContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,8 +19,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SafetyAlertsViewModel @Inject constructor(
-    private val repository: SafetyAlertRepository
-) : ViewModel() {
+    private val repository: SafetyAlertRepository,
+    override val businessContextManager: BusinessContextManager,
+    override val userPreferencesRepository: UserPreferencesRepository
+) : ViewModel(), BusinessContextUpdater {
 
     private val _state = MutableStateFlow(SafetyAlertsState())
     val state: StateFlow<SafetyAlertsState> = _state.asStateFlow()
@@ -145,5 +152,13 @@ class SafetyAlertsViewModel @Inject constructor(
 
     fun clearError() {
         _state.update { it.copy(error = null) }
+    }
+    
+    /**
+     * Implementation of BusinessContextUpdater interface
+     * Reloads safety alerts when context changes
+     */
+    override fun reloadData() {
+        loadSafetyAlerts()
     }
 } 

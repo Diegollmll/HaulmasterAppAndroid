@@ -54,6 +54,7 @@ import app.forku.core.utils.hideKeyboardOnTapOutside
 import android.Manifest
 import android.content.pm.PackageManager
 import app.forku.presentation.common.components.ForkuButton
+import app.forku.presentation.common.components.HourMeterDialog
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -307,7 +308,7 @@ fun ChecklistScreen(
         viewModel = viewModel,
         topBarTitle = "Pre-Shift Checklist",
         networkManager = networkManager,
-        onRefresh = {},
+        onAppResume = {},
         tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(
@@ -327,7 +328,13 @@ fun ChecklistScreen(
                             LoadingOverlay()
                         }
                         
-                        if (currentState.error != null) {
+                        // Solo mostrar ErrorScreen si NO es un error de certificación
+                        val isCertificationError = currentState.error?.contains("Certification Required") == true ||
+                                                  currentState.error?.contains("No certification found") == true ||
+                                                  currentState.error?.contains("Certification for") == true ||
+                                                  currentState.error?.contains("Error validating certification") == true
+                        
+                        if (currentState.error != null && !isCertificationError) {
                             ErrorScreen(
                                 message = currentState.error,
                                 onRetry = { viewModel.loadChecklistData() }
@@ -545,6 +552,18 @@ fun ChecklistScreen(
                         message = "Are you sure you want to discard this checklist? All progress will be lost."
                     )
                 }
+
+                // Hour Meter Dialog for session start - Updated with validation
+                HourMeterDialog(
+                    isVisible = state?.showInitialHourMeterDialog ?: false,
+                    currentValue = state?.vehicle?.currentHourMeter ?: "0",
+                    title = "Enter Initial Hour Meter",
+                    subtitle = "Enter the current hour meter reading to start your vehicle session",
+                    onDismiss = { viewModel.onInitialHourMeterDismissed() },
+                    onConfirm = { hourMeter -> viewModel.onInitialHourMeterConfirmed(hourMeter) },
+                    isLoading = state?.isLoading ?: false,
+                    allowEqual = true // Initial hour meter can equal vehicle's current reading
+                )
             }
         }
     )
@@ -585,91 +604,102 @@ fun NoChecklistItemsMessage(
         ) {
             when {
                 state.noCompatibleChecklists -> {
-                    // No compatible checklists for this vehicle type
-                    androidx.compose.material.icons.Icons.Default.Warning.let { icon ->
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = "Warning",
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    // Check if it's a certification error
+                    val isCertificationError = state.error?.contains("Certification Required") == true ||
+                                              state.error?.contains("No certification found") == true ||
+                                              state.error?.contains("Certification for") == true ||
+                                              state.error?.contains("Error validating certification") == true
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text(
-                        text = "No hay checklists disponibles",
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    val vehicleTypeName = state.vehicle?.type?.Name ?: "este tipo de vehículo"
-                    
-                    Text(
-                        text = "No se encontraron checklists configurados para:",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = vehicleTypeName,
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Estadísticas del Sistema",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (isCertificationError) {
+                        // Certification error UI
+                        androidx.compose.material.icons.Icons.Default.Warning.let { icon ->
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = "Certification Required",
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.error
                             )
-                            
-                            Spacer(modifier = Modifier.height(12.dp))
-                            
-                            StatisticRow("Total de checklists", state.totalChecklistsFound.toString())
-                            StatisticRow("Específicos para este tipo", state.specificChecklistsFound.toString())
-                            StatisticRow("Por defecto/universales", state.defaultChecklistsFound.toString())
-                            StatisticRow("Compatibles finales", state.compatibleChecklistsFound.toString())
                         }
-                    }
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Action buttons
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(
+                            text = "Certification Required",
+                            style = MaterialTheme.typography.headlineSmall,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        val vehicleTypeName = state.vehicle?.type?.Name ?: "this vehicle type"
+                        
+                        Text(
+                            text = "You don't have valid certification to operate: $vehicleTypeName",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                Text(
+                                    text = "Possible causes:",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                                
+                                Text(
+                                    text = "• You don't have certification for this vehicle type",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                
+                                Text(
+                                    text = "• Your certification has expired (validity: 3 years)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                
+                                Text(
+                                    text = "• Your certification is inactive",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(32.dp))
+                        
+                        // Action buttons - only these, no duplicates
                         ForkuButton(
                             onClick = onContactSupport,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Contactar al Administrador")
+                            Text("Contact Administrator")
                         }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
                         
                         OutlinedButton(
                             onClick = onRetry,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Reintentar")
+                            Text("Retry")
                         }
                     }
                 }
@@ -688,27 +718,28 @@ fun NoChecklistItemsMessage(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "No hay checklists configurados",
+                        text = "No checklists configured",
                         style = MaterialTheme.typography.headlineSmall,
                         textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "No se encontraron checklists configurados en el sistema.",
+                        text = "No checklists were found configured in the system.",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                     
                     ForkuButton(
                         onClick = onRetry,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Reintentar")
+                        Text("Retry")
                     }
                 }
                 
@@ -726,27 +757,28 @@ fun NoChecklistItemsMessage(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Checklist sin preguntas",
+                        text = "Checklist without questions",
                         style = MaterialTheme.typography.headlineSmall,
                         textAlign = TextAlign.Center
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     Text(
-                        text = "Este checklist no tiene preguntas configuradas.",
+                        text = "This checklist has no configured questions.",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp)
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
                     
                     ForkuButton(
                         onClick = onRetry,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Reintentar")
+                        Text("Retry")
                     }
                 }
             }

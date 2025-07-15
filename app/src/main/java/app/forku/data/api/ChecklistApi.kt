@@ -22,14 +22,31 @@ interface ChecklistApi {
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun getById(@Path("id") id: String): Response<ChecklistDto>
+    suspend fun getById(
+        @Path("id") id: String,
+        @Query("include") include: String? = null
+    ): Response<ChecklistDto>
 
+    @FormUrlEncoded
     @POST("api/checklist")
+    @Headers(
+        "Content-Type: application/x-www-form-urlencoded",
+        "Accept: text/plain"
+    )
+    suspend fun save(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
+        @Field("entity") entity: String,
+        @Query("businessId") businessId: String? = null,
+        @Query("include") include: String? = null
+    ): Response<ChecklistDto>
+
+    @GET("api/checklist/metadata")
     @Headers(
         "Content-Type: application/json",
         "Accept: text/plain"
     )
-    suspend fun save(@Body checklist: ChecklistDto): Response<ChecklistDto>
+    suspend fun getDefaultMetadata(): Response<ChecklistDefaultsDto>
 
     @DELETE("dataset/api/checklist/{id}")
     @Headers(
@@ -65,4 +82,13 @@ interface ChecklistApi {
         "Accept: text/plain"
     )
     suspend fun saveDataset(@Body checklist: ChecklistDto): Response<ChecklistDto>
-} 
+}
+
+data class ChecklistDefaultsDto(
+    val defaultCriticalityLevels: List<Int> = listOf(0, 1),
+    val defaultEnergySources: List<Int> = listOf(0, 1, 2),
+    val defaultMaxQuestionsPerCheck: Int = 10,
+    val defaultCriticalQuestionMinimum: Int = 3,
+    val defaultStandardQuestionMaximum: Int = 5,
+    val defaultRotationGroups: Int = 2
+) 

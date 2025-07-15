@@ -42,7 +42,7 @@ fun CertificationsScreen(
     BaseScreen(
         navController = navController,
         showTopBar = true,
-        topBarTitle = if (userId != null) "User Certifications" else "All Certifications",
+        topBarTitle = if (userId != null) "User Certifications" else "My Certifications",
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler,
         topBarActions = {
@@ -69,11 +69,32 @@ fun CertificationsScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "No certifications found",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "No certifications found",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = if (userId != null) "This user has no certifications yet" else "You haven't created any certifications yet",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                if (userId == null) { // Only show add button for current user
+                                    Button(
+                                        onClick = { navController.navigate(Screen.CertificationCreate.route) }
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Add Your First Certification")
+                                    }
+                                }
+                            }
                         }
                     }
                     else -> {
@@ -90,7 +111,8 @@ fun CertificationsScreen(
                                         navController.navigate(
                                             Screen.CertificationDetail.createRoute(certification.id)
                                         )
-                                    }
+                                    },
+                                    showDeleteButton = userId == null // Only show delete for current user
                                 )
                             }
                         }
@@ -110,11 +132,11 @@ fun CertificationsScreen(
 private fun CertificationCard(
     certification: Certification,
     onDelete: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    showDeleteButton: Boolean = true
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         onClick = onClick
     ) {
         Column(
@@ -167,14 +189,34 @@ private fun CertificationCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    
+                    // Show expiry date if available
+                    certification.expiryDate?.let { expiryDate ->
+                        Text(
+                            text = "Expires: $expiryDate",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    // Show associated vehicle types
+                    if (certification.vehicleTypes.isNotEmpty()) {
+                        Text(
+                            text = "Vehicle Types: ${certification.vehicleTypes.joinToString(", ") { it.Name }}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                if (showDeleteButton) {
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }

@@ -7,45 +7,32 @@ import android.util.Log
 
 @Serializable
 data class VehicleCategoryDto(
-    @SerialName("id")
-    val id: String,
+    @SerialName("\$type")
+    val type: String = "VehicleCategoryDataObject",
     
-    @SerialName("name")
+    @SerialName("Id")
+    val id: String? = null,
+    
+    @SerialName("Name")
     val name: String,
     
-    @SerialName("description")
+    @SerialName("Description")
     val description: String? = null,
     
-    @SerialName("created_at")
-    val createdAt: Long,
+    @SerialName("RequiresCertification")
+    val requiresCertification: Boolean = false,
     
-    @SerialName("updated_at")
-    val updatedAt: Long,
+    @SerialName("IsDirty")
+    val isDirty: Boolean = true,
     
-    @SerialName("requires_certification")
-    val requiresCertification: Boolean = false
+    @SerialName("IsNew")
+    val isNew: Boolean = true,
+    
+    @SerialName("IsMarkedForDeletion")
+    val isMarkedForDeletion: Boolean = false,
+    
+    @SerialName("InternalObjectId")
+    val internalObjectId: Int = 0
 )
 
-fun VehicleCategoryDto.toDomain(): VehicleCategory? {
-    if (id.isBlank()) {
-        Log.e("VehicleCategoryMapper", "VehicleCategoryDto.id is null or blank! Data: $this")
-        return null
-    }
-    return VehicleCategory(
-        id = id,
-        name = name,
-        description = description,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        requiresCertification = requiresCertification
-    )
-}
-
-fun VehicleCategory.toDto(): VehicleCategoryDto = VehicleCategoryDto(
-    id = id,
-    name = name,
-    description = description,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-    requiresCertification = requiresCertification
-) 
+ 

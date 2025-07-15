@@ -59,6 +59,9 @@ data class VehicleDto(
     @SerializedName("NextServiceDateTime_WithTimezoneOffset")
     val nextServiceDateTimeWithTimezoneOffset: String? = null,
 
+    @SerializedName("CurrentHourMeter")
+    val currentHourMeter: String? = null,
+
     @SerializedName("IsMarkedForDeletion")
     val isMarkedForDeletion: Boolean = false,
 

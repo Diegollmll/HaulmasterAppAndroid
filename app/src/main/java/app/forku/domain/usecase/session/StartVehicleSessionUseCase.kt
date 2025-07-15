@@ -11,7 +11,11 @@ class StartVehicleSessionUseCase @Inject constructor(
     private val vehicleSessionRepository: VehicleSessionRepository,
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke(vehicleId: String, checkId: String): Result<VehicleSession> {
+    suspend operator fun invoke(
+        vehicleId: String, 
+        checkId: String, 
+        initialHourMeter: String? = null
+    ): Result<VehicleSession> {
         val currentUser = userRepository.getCurrentUser()
             ?: return Result.failure(Exception("User not logged in"))
 
@@ -26,7 +30,7 @@ class StartVehicleSessionUseCase @Inject constructor(
 
         // Continuar con la lógica de inicio de sesión
         return try {
-            val session = vehicleSessionRepository.startSession(vehicleId, checkId)
+            val session = vehicleSessionRepository.startSession(vehicleId, checkId, initialHourMeter)
             Log.d("StartVehicleSessionUseCase", "Session started successfully: $session")
             Result.success(session)
         } catch (e: Exception) {

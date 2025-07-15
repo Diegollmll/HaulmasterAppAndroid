@@ -7,6 +7,5 @@ data class ChecklistItemCategoryDto(
     @SerializedName("Id")
     val id: String = "",
     @SerializedName("Name")
-    val name: String = "",
-    val description: String? = null
+    val name: String = ""
 ) 

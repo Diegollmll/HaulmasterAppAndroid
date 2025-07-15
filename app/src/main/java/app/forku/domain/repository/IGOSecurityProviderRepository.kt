@@ -12,6 +12,7 @@ interface IGOSecurityProviderRepository {
     suspend fun resetPassword(token: String, newPassword: String): Result<Unit>
     suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit>
     suspend fun keepAlive(): Result<Unit>
+    suspend fun renewToken(): Result<User>
     suspend fun blockUser(userId: String): Result<Unit>
     suspend fun approveUser(userId: String): Result<Unit>
     suspend fun validateRegistration(token: String): Result<Unit>

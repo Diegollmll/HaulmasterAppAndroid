@@ -23,7 +23,7 @@ data class IncidentMultimediaDto(
     @SerializedName("ImageInternalName")
     val imageInternalName: String? = null,
     @SerializedName("ImageUrl")
-    val imageUrl: String? = null, // Calculated, puede venir solo en respuesta
+    val imageUrl: String? = null, // Calculated, may come only in response
     @SerializedName("MultimediaType")
     val multimediaType: Int? = null,
     @SerializedName("IncidentId")

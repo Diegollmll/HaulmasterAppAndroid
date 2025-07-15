@@ -57,10 +57,11 @@ fun VehicleDto.toDomain(): Vehicle {
         energySource = energySource ?: 1,
         energySourceDisplayString = null,
         nextService = nextServiceHours,
+        currentHourMeter = currentHourMeter,
         businessId = businessId,
         siteId = siteId,
-        isDirty = true,
-        isNew = true,
+        isDirty = isDirty,
+        isNew = isNew,
         isMarkedForDeletion = isMarkedForDeletion
     )
 }
@@ -87,9 +88,12 @@ fun Vehicle.toDto(): VehicleDto {
         model = model,
         energySource = energySource,
         nextServiceDateTime = null, // TODO: Convert from hours if needed
+        currentHourMeter = currentHourMeter,
         businessId = businessId,
         siteId = siteId,
         isMarkedForDeletion = isMarkedForDeletion,
+        isDirty = isDirty,
+        isNew = isNew,
         // Set new object IDs to null
         businessNewObjectId = null,
         siteNewObjectId = null,
@@ -101,7 +105,7 @@ fun Vehicle.toDto(): VehicleDto {
 fun VehicleDto.toFormMap(): Map<String, Any> {
     val map = mutableMapOf<String, Any?>()
     
-    // Campos requeridos que no pueden ser nulos
+            // Required fields that cannot be null
     map["Id"] = id ?: ""
     map["BusinessId"] = businessId ?: ""
     map["VehicleTypeId"] = vehicleTypeId
@@ -111,7 +115,7 @@ fun VehicleDto.toFormMap(): Map<String, Any> {
     map["Model"] = model ?: ""
     map["EnergySource"] = energySource ?: 1
     
-    // Campos opcionales que pueden ser omitidos si son nulos
+            // Optional fields that can be omitted if null
     if (siteId != null) map["SiteId"] = siteId
     if (serialNumber != null) map["SerialNumber"] = serialNumber
     if (description != null) map["Description"] = description
@@ -143,10 +147,10 @@ fun Vehicle.toUpdateDto(internalObjectId: Int = 4): UpdateVehicleDto {
         serialNumber = serialNumber,
         status = status.toInt(),
         energySource = when(energyType.uppercase()) {
-            "ELECTRIC" -> 1
-            "DIESEL" -> 2
-            "GAS" -> 3
-            else -> 1
+            "ELECTRIC" -> 0  // ✅ Fixed: Backend Electric = 0
+            "DIESEL" -> 2    // ✅ Correct: Backend Diesel = 2  
+            "LPG", "GAS" -> 1  // ✅ Fixed: Backend Lpg = 1
+            else -> 0        // ✅ Default to Electric
         },
         vehicleTypeId = type.Id,
         vehicleTypeIdOldValue = type.Id,

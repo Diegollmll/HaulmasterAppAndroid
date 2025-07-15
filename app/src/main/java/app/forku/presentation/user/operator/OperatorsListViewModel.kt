@@ -10,6 +10,10 @@ import app.forku.presentation.dashboard.OperatorSessionInfo
 import app.forku.domain.model.user.UserRole
 import app.forku.core.business.BusinessContextManager
 import app.forku.core.auth.UserRoleManager
+import app.forku.domain.repository.user.UserPreferencesRepository
+import app.forku.presentation.common.components.BusinessContextUpdater
+import app.forku.presentation.common.components.updateBusinessContext
+import app.forku.presentation.common.components.updateSiteContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,6 +24,7 @@ import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 import kotlinx.coroutines.delay
 import app.forku.core.Constants
+import app.forku.domain.model.session.AdminDashboardData
 
 @HiltViewModel
 class OperatorsListViewModel @Inject constructor(
@@ -27,20 +32,31 @@ class OperatorsListViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val userBusinessRepository: UserBusinessRepository,
     private val vehicleRepository: VehicleRepository,
-    private val businessContextManager: BusinessContextManager
-) : ViewModel() {
+    override val businessContextManager: BusinessContextManager,
+    override val userPreferencesRepository: UserPreferencesRepository
+) : ViewModel(), BusinessContextUpdater {
 
     private val _state = MutableStateFlow(OperatorsListState())
     val state = _state.asStateFlow()
 
     // Business context from BusinessContextManager
     val businessContextState = businessContextManager.contextState
+    
+    // ✅ Expose current user for UI to determine admin features
+    private val _currentUser = MutableStateFlow<app.forku.domain.model.user.User?>(null)
+    val currentUser = _currentUser.asStateFlow()
+
+    // ✅ NEW: Loading control to prevent duplicate requests
+    private var isLoadingOperators = false
+    private var isLoadingOperatorsWithFilters = false
 
     init {
-        // Load business context first, then operators
+        // ✅ FIXED: Only load current user and business context
+        // Remove initial loadOperators() call to let UI control data loading based on filters and user role
         viewModelScope.launch {
+            _currentUser.value = userRepository.getCurrentUser()
             businessContextManager.loadBusinessContext()
-        loadOperators()
+            // ✅ REMOVED: loadOperators() - UI will handle loading based on filters and user role
         }
     }
 
@@ -62,14 +78,21 @@ class OperatorsListViewModel @Inject constructor(
     }
 
     fun loadOperators(showLoading: Boolean = true) {
+        // ✅ ADDED: Prevent duplicate requests
+        if (isLoadingOperators) {
+            android.util.Log.d("OperatorsList", "🔄 loadOperators: Already loading, skipping duplicate request")
+            return
+        }
+        
         viewModelScope.launch {
-            android.util.Log.d("OperatorsList", "=== 🚀 OPTIMIZED LOADING OPERATORS WITH BUSINESS FILTER ===")
-            
+            try {
+                isLoadingOperators = true
+                android.util.Log.d("OperatorsList", "=== 🚀 OPTIMIZED LOADING OPERATORS WITH BUSINESS FILTER ===")
+                
                 if (showLoading) {
                     _state.value = _state.value.copy(isLoading = true)
                 }
                 
-            try {
                 // Get business and site context from BusinessContextManager
                 val businessId = businessContextManager.getCurrentBusinessId()
                 val siteId = businessContextManager.getCurrentSiteId()
@@ -79,7 +102,7 @@ class OperatorsListViewModel @Inject constructor(
                 
                 // 🚀 OPTIMIZATION: Use parallel API calls instead of sequential
                 val deferredUsersWithSites = async { userRepository.getAllUsers(include = "UserSiteItems,UserBusinesses") }
-                val deferredDashboardData = async { vehicleSessionRepository.getActiveSessionsWithRelatedData(businessId?:"") }
+                val deferredDashboardData = async { vehicleSessionRepository.getActiveSessionsWithRelatedData(businessId?:"", null) }
                 
                 // Wait for both API calls to complete
                 val allUsersWithSites = deferredUsersWithSites.await()
@@ -316,23 +339,23 @@ class OperatorsListViewModel @Inject constructor(
                     
                     // Process business users and mark them as active/inactive using optimized data
                     val userInfos = businessUsers.map { user ->
-                    val activeSessionStartTime = activeOperatorIds[user.id]
+                        val activeSessionStartTime = activeOperatorIds[user.id]
                         android.util.Log.d("OperatorsList", "=== Processing Business User ===")
-                    android.util.Log.d("OperatorsList", "User ID: ${user.id}")
-                    android.util.Log.d("OperatorsList", "User fullName: ${user.fullName}")
-                    android.util.Log.d("OperatorsList", "User email: ${user.email}")
-                    android.util.Log.d("OperatorsList", "User username: ${user.username}")
-                    android.util.Log.d("OperatorsList", "User role: ${user.role}")
-                    android.util.Log.d("OperatorsList", "Active session: ${activeSessionStartTime != null}")
-                    
-                    val operatorInfo = createOperatorSessionInfo(
-                        user = user,
+                        android.util.Log.d("OperatorsList", "User ID: ${user.id}")
+                        android.util.Log.d("OperatorsList", "User fullName: ${user.fullName}")
+                        android.util.Log.d("OperatorsList", "User email: ${user.email}")
+                        android.util.Log.d("OperatorsList", "User username: ${user.username}")
+                        android.util.Log.d("OperatorsList", "User role: ${user.role}")
+                        android.util.Log.d("OperatorsList", "Active session: ${activeSessionStartTime != null}")
+                        
+                        val operatorInfo = createOperatorSessionInfo(
+                            user = user,
                             activeSession = activeSessionStartTime != null,
                             sessionStartTime = activeSessionStartTime
                         )
-                    
-                    android.util.Log.d("OperatorsList", "Created OperatorSessionInfo with role: ${operatorInfo.role}")
-                    operatorInfo
+                        
+                        android.util.Log.d("OperatorsList", "Created OperatorSessionInfo with role: ${operatorInfo.role}")
+                        operatorInfo
                 }.sortedWith(
                     compareByDescending<OperatorSessionInfo> { it.isActive }
                     .thenByDescending { it.sessionStartTime }
@@ -368,6 +391,9 @@ class OperatorsListViewModel @Inject constructor(
                     isRefreshing = false,
                     error = "Error loading operators: ${e.message}"
                 )
+            } finally {
+                // ✅ ADDED: Always reset loading flag
+                isLoadingOperators = false
             }
         }
     }
@@ -402,5 +428,183 @@ class OperatorsListViewModel @Inject constructor(
                 )
             }
         }
+    }
+    
+    /**
+     * Implementation of BusinessContextUpdater interface
+     * Reloads operators when context changes
+     */
+    override fun reloadData() {
+        loadOperators(showLoading = true)
+    }
+    
+    /**
+     * ✅ NEW: Load operators with temporary filters (VIEW_FILTER mode)
+     * Does NOT change user's personal context/preferences
+     * Used for admin filtering across different sites
+     */
+    fun loadOperatorsWithFilters(filterBusinessId: String?, filterSiteId: String?) {
+        // ✅ ADDED: Prevent duplicate requests
+        if (isLoadingOperatorsWithFilters) {
+            android.util.Log.d("OperatorsList", "🔄 loadOperatorsWithFilters: Already loading, skipping duplicate request")
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                isLoadingOperatorsWithFilters = true
+                android.util.Log.d("OperatorsList", "=== 🚀 VIEW_FILTER: LOADING OPERATORS WITH FILTERS (UserPreferences) ===")
+                _state.value = _state.value.copy(isLoading = true)
+                
+                val businessId = filterBusinessId ?: businessContextManager.getCurrentBusinessId()
+                val siteId = filterSiteId
+                android.util.Log.d("OperatorsList", "🔧 VIEW_FILTER: Loading operators with filters - businessId: $businessId, siteId: $siteId (null = All Sites)")
+                
+                if (businessId == null) {
+                    android.util.Log.w("OperatorsList", "🔧 VIEW_FILTER: No business ID available, cannot load operators")
+                    _state.value = _state.value.copy(
+                        isLoading = false,
+                        error = "No business context available"
+                    )
+                    return@launch
+                }
+                
+                // Fetch all users (with UserSiteItems, UserBusinesses)
+                val allUsersWithSites = userRepository.getAllUsers(include = "UserSiteItems,UserBusinesses")
+                
+                // Fetch UserPreferences for all users in parallel
+                val userPreferencesMap = allUsersWithSites.associate { user ->
+                    user.id to kotlin.runCatching { userPreferencesRepository.getUserPreferences(user.id) }.getOrNull()
+                }
+                
+                // Filtering logic: use UserPreferences for businessId and siteId if available
+                val usersWithAssignments = allUsersWithSites.filter { user ->
+                    val prefs = userPreferencesMap[user.id]
+                    val userBusinessId = prefs?.getEffectiveBusinessId() ?: user.businessId
+                    val userSiteId = prefs?.getEffectiveSiteId() ?: user.siteId
+                    val businessMatch = userBusinessId == businessId
+                    val siteMatch = if (siteId == null) true else userSiteId == siteId
+                    businessMatch && siteMatch
+                }
+                
+                android.util.Log.d("OperatorsList", "Users matching business and site filters (UserPreferences): ${usersWithAssignments.size}")
+                
+                // Create a map of user roles (using user.role from domain model)
+                val businessUserRoles = usersWithAssignments.associateBy({ it.id }, { it.role.name })
+                val usersInBusinessAndSite = usersWithAssignments.map { it.id }
+                
+                // Use dashboard data for active sessions
+                val dashboardData = vehicleSessionRepository.getActiveSessionsWithRelatedData(businessId, siteId)
+                val allUsers = dashboardData.operators.values.toList()
+                val activeUserIds = allUsers.map { it.id }.toSet()
+                val missingUserIds = usersInBusinessAndSite.filter { !activeUserIds.contains(it) }
+                
+                val missingUsers = missingUserIds.mapNotNull { userId ->
+                    try { userRepository.getUserById(userId) } catch (_: Exception) { null }
+                }
+                
+                val completeUserList = allUsers + missingUsers
+                val userInfos = processUsersForDisplay(completeUserList, usersInBusinessAndSite, businessUserRoles, businessId, dashboardData)
+                
+                _state.value = _state.value.copy(
+                    operators = userInfos,
+                    isLoading = false,
+                    isRefreshing = false,
+                    error = null,
+                    currentBusinessId = businessId,
+                    currentSiteId = siteId,
+                    hasBusinessContext = true
+                )
+                
+            } catch (e: Exception) {
+                android.util.Log.e("OperatorsList", "🔧 VIEW_FILTER: Error loading operators with filters (UserPreferences)", e)
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    isRefreshing = false,
+                    error = "Error loading operators: ${e.message}"
+                )
+            } finally {
+                // ✅ ADDED: Always reset loading flag
+                isLoadingOperatorsWithFilters = false
+            }
+        }
+    }
+    
+    /**
+     * Helper function to process users and create operator info
+     */
+    private fun processUsersForDisplay(
+        allUsers: List<app.forku.domain.model.user.User>,
+        usersInBusinessAndSite: List<String>,
+        businessUserRoles: Map<String, String>,
+        businessId: String,
+        dashboardData: AdminDashboardData
+    ): List<OperatorSessionInfo> {
+        // Filter users by business and site assignment and update their roles using UserRoleManager
+        val businessUsers = allUsers.filter { user ->
+            usersInBusinessAndSite.contains(user.id)
+        }.map { user ->
+            // Use UserRoleManager to determine the effective role
+            val businessRole = businessUserRoles[user.id]?.let { 
+                UserRoleManager.fromString(it) 
+            }
+            
+            // Get UserRoleItems from the user if available (from optimized data)
+            val userRoleItems = if (user.id in dashboardData.operators) {
+                // Try to get UserRoleItems from the session data if available
+                null // We'll enhance this later when we have access to UserRoleItems in the optimized data
+            } else null
+            
+            val finalRole = UserRoleManager.getEffectiveRole(
+                user = user,
+                userRoleItems = userRoleItems,
+                businessRole = businessRole,
+                businessId = businessId
+            )
+            
+            android.util.Log.d("OperatorsList", "User ${user.fullName}: Effective role determined as $finalRole (general: ${user.role}, business: $businessRole)")
+            
+            // Create a new user instance with the correct role for this business
+            user.copy(role = finalRole)
+        }
+        
+        android.util.Log.d("OperatorsList", "Users filtered by business context: ${businessUsers.size}")
+        businessUsers.forEach { user ->
+            android.util.Log.d("OperatorsList", "  - Filtered User: ${user.fullName} (${user.id}), Final Role: ${user.role}, BusinessId: ${user.businessId}")
+        }
+        
+        // 🚀 OPTIMIZATION: Use sessions from optimized dashboard data (no additional API calls!)
+        val activeSessions = dashboardData.activeSessions
+        android.util.Log.d("OperatorsList", "✅ Using ${activeSessions.size} active sessions from optimized data")
+        
+        // Create a map of operator IDs to their active sessions (no API calls needed!)
+        val activeOperatorIds = activeSessions.associate { session -> 
+            session.userId to session.startTime 
+        }
+        android.util.Log.d("OperatorsList", "Active operators in sessions: ${activeOperatorIds.keys}")
+        
+        // Process business users and mark them as active/inactive using optimized data
+        return businessUsers.map { user ->
+            val activeSessionStartTime = activeOperatorIds[user.id]
+            android.util.Log.d("OperatorsList", "=== Processing Business User ===")
+            android.util.Log.d("OperatorsList", "User ID: ${user.id}")
+            android.util.Log.d("OperatorsList", "User fullName: ${user.fullName}")
+            android.util.Log.d("OperatorsList", "User email: ${user.email}")
+            android.util.Log.d("OperatorsList", "User username: ${user.username}")
+            android.util.Log.d("OperatorsList", "User role: ${user.role}")
+            android.util.Log.d("OperatorsList", "Active session: ${activeSessionStartTime != null}")
+            
+            val operatorInfo = createOperatorSessionInfo(
+                user = user,
+                activeSession = activeSessionStartTime != null,
+                sessionStartTime = activeSessionStartTime
+            )
+            
+            android.util.Log.d("OperatorsList", "Created OperatorSessionInfo with role: ${operatorInfo.role}")
+            operatorInfo
+        }.sortedWith(
+            compareByDescending<OperatorSessionInfo> { it.isActive }
+            .thenByDescending { it.sessionStartTime }
+        )
     }
 } 

@@ -9,17 +9,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
-
+import android.util.Log
 import app.forku.core.auth.TokenErrorHandler
 
 @Composable
@@ -83,7 +81,7 @@ fun SystemSettingsScreen(
 //            }
 
 
-
+/*
             item {
                 Text(
                     text = "Vehicle Management",
@@ -92,9 +90,9 @@ fun SystemSettingsScreen(
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
-
-            item {
-                SettingsCard {
+*/
+            //item {
+                //SettingsCard {
 //                    SettingsItem(
 //                        icon = Icons.Default.Category,
 //                        title = "Vehicle Categories",
@@ -116,14 +114,17 @@ fun SystemSettingsScreen(
 //                        onClick = { navController.navigate(Screen.VehicleComponents.route) }
 //                    )
 //                    Divider()
+
+                    /*
                     SettingsItem(
                         icon = Icons.Default.AddCircle,
                         title = "Create Vehicle",
                         subtitle = "Add a new vehicle to the system",
                         onClick = { navController.navigate(Screen.AddVehicle.route) }
                     )
-                }
-            }
+                    */
+               // }
+            //}
             
             // Sección para manejo de checklists
             item {
@@ -154,8 +155,11 @@ fun SystemSettingsScreen(
                     SettingsItem(
                         icon = Icons.Default.Assignment,
                         title = "Checklists",
-                        subtitle = "Create and edit checklist questionary rules",
-                        onClick = { navController.navigate(Screen.Questionaries.route) }
+                        subtitle = "Create and edit checklist questionnaire rules",
+                        onClick = { 
+                            Log.d("SystemSettingsScreen", "✅ Checklists button clicked - navigating to: ${Screen.Questionnaires.route}")
+                            navController.navigate(Screen.Questionnaires.route)
+                        }
                     )
 //                    Divider()
 //                    SettingsItem(
@@ -183,7 +187,31 @@ fun SystemSettingsScreen(
                         icon = Icons.Default.Settings,
                         title = "Setup User Preferences",
                         subtitle = "Configure business and site preferences",
-                        onClick = { navController.navigate(Screen.UserPreferencesSetup.route) }
+                        onClick = { navController.navigate(Screen.UserPreferencesSetup.createRoute(showBack = true)) }
+                    )
+                }
+            }
+
+            // Sección para reportes y análisis
+            item {
+                Text(
+                    text = "Reports & Analytics",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            item {
+                SettingsCard {
+                    SettingsItem(
+                        icon = Icons.Default.Analytics,
+                        title = "System Reports",
+                        subtitle = "Generate and export comprehensive system reports",
+                        onClick = {
+                            Log.d("SystemSettingsScreen", "System Reports button clicked")
+                            navController.navigate(Screen.Reports.route)
+                        }
                     )
                 }
             }

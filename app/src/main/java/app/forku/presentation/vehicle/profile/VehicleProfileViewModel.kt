@@ -40,6 +40,7 @@ import android.util.Log
 import app.forku.core.Constants
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.core.business.BusinessContextManager
+import app.forku.domain.repository.user.UserPreferencesRepository
 
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -52,6 +53,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val checklistAnswerRepository: ChecklistAnswerRepository,
     private val businessContextManager: BusinessContextManager,
+    private val userPreferencesRepository: UserPreferencesRepository,
     savedStateHandle: SavedStateHandle,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -105,19 +107,31 @@ class VehicleProfileViewModel @Inject constructor(
                 
                 val currentUser = userRepository.getCurrentUser()
                 if (currentUser == null) {
-                    _state.update { it.copy(isLoading = false, error = "User not authenticated") }
-                    return@launch
+                    Log.w("VehicleProfile", "User is null, attempting to refresh...")
+                    // Instead of failing immediately, try to continue with default business context
+                    // The authentication might be temporarily unavailable but tokens are valid
                 }
-                Log.d("VehicleProfileVM_Debug", "User details before determining effectiveBusinessId: Role=${currentUser.role}, UserBusinessId=${currentUser.businessId}, NavBusinessId=$navBusinessId")
+                Log.d("VehicleProfileVM_Debug", "User details before determining effectiveBusinessId: Role=${currentUser?.role}, UserBusinessId=${currentUser?.businessId}, NavBusinessId=$navBusinessId")
                 
-                val userRole = currentUser.role
+                val userRole = currentUser?.role ?: UserRole.OPERATOR
                 _state.update { it.copy(currentUserRole = userRole) }
 
                 // Determine the businessId to use for fetching based on role and nav args
                 val effectiveBusinessId = when (userRole) {
-                    UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> navBusinessId ?: Constants.BUSINESS_ID
-                    else -> currentUser.businessId ?: Constants.BUSINESS_ID
+                    UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> navBusinessId ?: businessContextManager.getCurrentBusinessId()
+                    else -> currentUser?.businessId ?: businessContextManager.getCurrentBusinessId()
                 }
+                
+                if (effectiveBusinessId == null) {
+                    _state.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = "No business context available to load vehicle"
+                        )
+                    }
+                    return@launch
+                }
+                
                 Log.d("VehicleProfileVM_Debug", "Determined effectiveBusinessId: $effectiveBusinessId based on Role=$userRole")
 
                 Log.d("VehicleProfileVM", "Attempting to load vehicle $vehicleId with optimized API call")
@@ -267,15 +281,30 @@ class VehicleProfileViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                
-                // Get current user and business context
                 val currentUser = userRepository.getCurrentUser()
-                val businessId = currentUser?.businessId ?: Constants.BUSINESS_ID
-                
-                if (businessId == null) {
+                val businessId = currentUser?.businessId ?: businessContextManager.getCurrentBusinessId()
+                val vehicle = state.value.vehicle
+                if (businessId == null || vehicle == null) {
                     _state.update { 
                         it.copy(
-                            error = "No business context available",
+                            error = "No business context or vehicle available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                // 🚦 VALIDATE business/site context with logging
+                val vehicleBusinessId = vehicle.businessId ?: ""
+                val vehicleSiteId = vehicle.siteId ?: ""
+                val userBusinessId = userPreferencesRepository.getEffectiveBusinessId()
+                val userSiteId = userPreferencesRepository.getEffectiveSiteId()
+                Log.d("VehicleProfileVM", "[Validation] User business: $userBusinessId, site: $userSiteId | Vehicle business: $vehicleBusinessId, site: $vehicleSiteId")
+                val isInUserContext = userPreferencesRepository.isVehicleInUserContext(vehicleBusinessId, vehicleSiteId)
+                Log.d("VehicleProfileVM", "[Validation] isVehicleInUserContext result: $isInUserContext")
+                if (!isInUserContext) {
+                    _state.update {
+                        it.copy(
+                            error = "You can only start a session for vehicles in your active business and site. Change your preferences to access this vehicle.",
                             isLoading = false
                         )
                     }
@@ -314,7 +343,35 @@ class VehicleProfileViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
-                
+                val vehicle = state.value.vehicle
+                if (vehicle == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "Vehicle not loaded",
+                            isLoading = false,
+                            canStartCheck = false
+                        )
+                    }
+                    return@launch
+                }
+                // 🚦 VALIDATE business/site context with logging
+                val vehicleBusinessId = vehicle.businessId ?: ""
+                val vehicleSiteId = vehicle.siteId ?: ""
+                val userBusinessId = userPreferencesRepository.getEffectiveBusinessId()
+                val userSiteId = userPreferencesRepository.getEffectiveSiteId()
+                Log.d("VehicleProfileVM", "[Validation] User business: $userBusinessId, site: $userSiteId | Vehicle business: $vehicleBusinessId, site: $vehicleSiteId")
+                val isInUserContext = userPreferencesRepository.isVehicleInUserContext(vehicleBusinessId, vehicleSiteId)
+                Log.d("VehicleProfileVM", "[Validation] isVehicleInUserContext result: $isInUserContext")
+                if (!isInUserContext) {
+                    _state.update {
+                        it.copy(
+                            error = "You can only start a checklist for vehicles in your active business and site. Change your preferences to access this vehicle.",
+                            isLoading = false,
+                            canStartCheck = false
+                        )
+                    }
+                    return@launch
+                }
                 val canStartCheck = checklistRepository.canStartCheck(vehicleId)
                 if (!canStartCheck) {
                     _state.update { 
@@ -350,18 +407,19 @@ class VehicleProfileViewModel @Inject constructor(
     suspend fun getLastPreShiftCheck(vehicleId: String): PreShiftCheck? {
         val currentUser = userRepository.getCurrentUser()
         if (currentUser == null) {
-            Log.e("VehicleProfile", "User not authenticated for getLastPreShiftCheck")
-            return null
+            Log.w("VehicleProfile", "User not available for getLastPreShiftCheck, using default context")
+            // Instead of returning null, continue with default business context
         }
 
         // Determine the correct business context for fetching the check
         val vehicleFromState = _state.value.vehicle // Get the already loaded vehicle
-        val effectiveBusinessId = when (currentUser.role) {
+        val userRole = currentUser?.role ?: UserRole.OPERATOR
+        val effectiveBusinessId = when (userRole) {
             UserRole.SYSTEM_OWNER, UserRole.SUPERADMIN -> vehicleFromState?.businessId ?: "0" // Use vehicle's ID or placeholder '0'
-            else -> currentUser.businessId // Use user's business ID for non-admins
+            else -> currentUser?.businessId ?: businessContextManager.getCurrentBusinessId() // Use user's business ID for non-admins or current context
         }
 
-        if (effectiveBusinessId == null && currentUser.role != UserRole.SYSTEM_OWNER && currentUser.role != UserRole.SUPERADMIN) {
+        if (effectiveBusinessId == null && userRole != UserRole.SYSTEM_OWNER && userRole != UserRole.SUPERADMIN) {
             Log.e("VehicleProfile", "No business context available for user to get last check")
             return null
         }
@@ -425,27 +483,19 @@ class VehicleProfileViewModel @Inject constructor(
                     return@launch
                 }
                 
-                Log.d("VehicleProfileVM", "[endVehicleSession] Using businessId: $businessId, siteId: $siteId from BusinessContextManager")
+                Log.d("VehicleProfileVM", "[endVehicleSession] Showing final hour meter dialog for session: ${session.id}")
                 
-                // End the session - this will handle vehicle status update internally
-                vehicleSessionRepository.endSession(
-                    sessionId = session.id,
-                    closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED,
-                    adminId = currentUser.id,
-                    notes = "Session ended by administrator"
-                )
-
-                // ❌ REMOVED: No need to call updateVehicleStatus here since endSession() already handles it
-                // This was causing the duplicate API call with wrong businessId
-                
-                // Reload vehicle state to reflect all changes
-                loadVehicle(showLoading = false)
-                
-                _state.update { it.copy(isLoading = false) }
+                // Show final hour meter dialog instead of ending session immediately
+                _state.update { 
+                    it.copy(
+                        showFinalHourMeterDialog = true,
+                        isLoading = false
+                    ) 
+                }
             } catch (e: Exception) {
                 _state.update { 
                     it.copy(
-                        error = "Error ending session: ${e.message}",
+                        error = "Error preparing to end session: ${e.message}",
                         isLoading = false
                     )
                 }
@@ -521,6 +571,141 @@ class VehicleProfileViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun updateCurrentHourMeter(newHourMeter: String) {
+        viewModelScope.launch {
+            try {
+                _state.update { it.copy(isLoading = true) }
+                
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = businessContextManager.getCurrentBusinessId()
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "No business context available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                if (currentUser?.role != UserRole.ADMIN) {
+                    _state.update { 
+                        it.copy(
+                            error = "Only administrators can update hour meter",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                val vehicleId = state.value.vehicle?.id ?: return@launch
+                
+                // Validate that the hour meter is a valid number
+                val hourMeterValue = newHourMeter.toDoubleOrNull()
+                if (hourMeterValue == null || hourMeterValue < 0) {
+                    _state.update { 
+                        it.copy(
+                            error = "Please enter a valid hour meter reading (positive number)",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+
+                Log.d("VehicleProfileVM", "[updateCurrentHourMeter] Updating hour meter for vehicle $vehicleId to $newHourMeter")
+
+                // Update current hour meter using repository
+                vehicleRepository.updateCurrentHourMeter(vehicleId, newHourMeter, businessId)
+                
+                // Reload vehicle state to reflect changes
+                loadVehicle(showLoading = false)
+                
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = "Error updating hour meter: ${e.message}",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle final hour meter confirmation and end vehicle session
+     */
+    fun onFinalHourMeterConfirmed(finalHourMeter: String) {
+        viewModelScope.launch {
+            try {
+                _state.update { 
+                    it.copy(
+                        showFinalHourMeterDialog = false,
+                        isLoading = true
+                    ) 
+                }
+                
+                val currentUser = userRepository.getCurrentUser()
+                val businessId = businessContextManager.getCurrentBusinessId()
+                val siteId = businessContextManager.getCurrentSiteId()
+                
+                if (businessId == null) {
+                    _state.update { 
+                        it.copy(
+                            error = "No business context available",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                val session = state.value.activeSession ?: run {
+                    _state.update { 
+                        it.copy(
+                            error = "No active session to end",
+                            isLoading = false
+                        )
+                    }
+                    return@launch
+                }
+                
+                Log.d("VehicleProfileVM", "[onFinalHourMeterConfirmed] Ending session with final hour meter: $finalHourMeter")
+                
+                // End the session with final hour meter
+                vehicleSessionRepository.endSession(
+                    sessionId = session.id,
+                    closeMethod = VehicleSessionClosedMethod.ADMIN_CLOSED,
+                    adminId = currentUser?.id,
+                    notes = "Session ended by administrator",
+                    finalHourMeter = finalHourMeter
+                )
+                
+                // Reload vehicle state to reflect all changes
+                loadVehicle(showLoading = false)
+                
+                _state.update { it.copy(isLoading = false) }
+            } catch (e: Exception) {
+                _state.update { 
+                    it.copy(
+                        error = "Error ending session: ${e.message}",
+                        isLoading = false,
+                        showFinalHourMeterDialog = false
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Dismiss final hour meter dialog
+     */
+    fun onFinalHourMeterDismissed() {
+        _state.update { 
+            it.copy(showFinalHourMeterDialog = false) 
         }
     }
 }

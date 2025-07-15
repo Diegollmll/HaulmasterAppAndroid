@@ -65,17 +65,64 @@ class ChecklistAnswerRepositoryImpl @Inject constructor(
 
     override suspend fun getAll(): List<ChecklistAnswer> {
         return try {
-            val response = api.getList(
-                include = "GOUser,Vehicle",
-                sortColumn = "LastCheckDateTime",
-                sortOrder = "desc"
-            )
-            if (response.isSuccessful && response.body() != null) {
-                response.body()!!.map { it.toDomain() }
+            // Get business and site context for filtering
+            val businessId = businessContextManager.getCurrentBusinessId()
+            val siteId = businessContextManager.getCurrentSiteId()
+            android.util.Log.d("ChecklistAnswerRepo", "🔍 Getting all checklist answers for businessId: $businessId, siteId: $siteId")
+            
+            val filter = if (businessId != null && businessId.isNotEmpty()) {
+                if (siteId != null && siteId.isNotEmpty()) {
+                    "BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+                } else {
+                    "BusinessId == Guid.Parse(\"$businessId\")"
+                }
+            } else null
+            
+            android.util.Log.d("ChecklistAnswerRepo", "🔍 Using filter: $filter")
+            
+            val response = if (filter != null) {
+                android.util.Log.d("ChecklistAnswerRepo", "📡 Calling getListFiltered with filter")
+                api.getListFiltered(
+                    filter = filter,
+                    sortColumn = "LastCheckDateTime",
+                    sortOrder = "desc",
+                    include = "GOUser,Vehicle"
+                )
             } else {
+                android.util.Log.d("ChecklistAnswerRepo", "📡 Calling getList without filter")
+                api.getList(
+                    include = "GOUser,Vehicle",
+                    sortColumn = "LastCheckDateTime",
+                    sortOrder = "desc"
+                )
+            }
+            
+            android.util.Log.d("ChecklistAnswerRepo", "📡 API response - successful: ${response.isSuccessful}, code: ${response.code()}")
+            
+            if (response.isSuccessful && response.body() != null) {
+                val rawData = response.body()!!
+                android.util.Log.d("ChecklistAnswerRepo", "📋 Raw data size: ${rawData.size}")
+                
+                rawData.forEachIndexed { index, dto ->
+                    android.util.Log.d("ChecklistAnswerRepo", "📋 Item $index: id=${dto.id}, checklistId=${dto.checklistId}, vehicleId=${dto.vehicleId}, businessId=${dto.businessId}, goUserId=${dto.goUserId}")
+                }
+                
+                val domainObjects = rawData.map { dto ->
+                    android.util.Log.d("ChecklistAnswerRepo", "🔄 Mapping DTO to domain: ${dto.id}")
+                    val domain = dto.toDomain()
+                    android.util.Log.d("ChecklistAnswerRepo", "✅ Mapped domain object: id=${domain.id}, businessId=${domain.businessId}")
+                    domain
+                }
+                
+                android.util.Log.d("ChecklistAnswerRepo", "🎯 Final domain objects count: ${domainObjects.size}")
+                domainObjects
+            } else {
+                android.util.Log.e("ChecklistAnswerRepo", "❌ API call failed - code: ${response.code()}, message: ${response.message()}")
+                android.util.Log.e("ChecklistAnswerRepo", "❌ Error body: ${response.errorBody()?.string()}")
                 emptyList()
             }
         } catch (e: Exception) {
+            android.util.Log.e("ChecklistAnswerRepo", "❌ Exception in getAll()", e)
             emptyList()
         }
     }
@@ -157,6 +204,55 @@ class ChecklistAnswerRepositoryImpl @Inject constructor(
                 emptyList()
             }
         } catch (e: Exception) {
+            emptyList()
+        }
+    }
+    
+    /**
+     * ✅ NEW: Get checklist answers with explicit business and site filters (VIEW_FILTER mode)
+     * Does NOT use user's personal context, uses provided filter parameters
+     * Used for admin filtering across different sites
+     */
+    override suspend fun getAllWithFilters(businessId: String, siteId: String?, page: Int, pageSize: Int): List<ChecklistAnswer> {
+        return try {
+            android.util.Log.d("ChecklistAnswerRepo", "[getAllWithFilters] === 🚀 ADMIN CHECKLIST FILTERS ===")
+            android.util.Log.d("ChecklistAnswerRepo", "[getAllWithFilters] INPUTS: businessId=$businessId, siteId=$siteId, page=$page, pageSize=$pageSize")
+            
+            // ✅ Build filter string for API - handle "All Sites" case
+            val filter = buildString {
+                append("BusinessId == Guid.Parse(\"$businessId\")")
+                if (!siteId.isNullOrBlank() && siteId != "null") {
+                    append(" && SiteId == Guid.Parse(\"$siteId\")")
+                }
+            }
+            
+            android.util.Log.d("ChecklistAnswerRepo", "[getAllWithFilters] 🎯 Filter constructed: '$filter'")
+            
+            if (siteId == null) {
+                android.util.Log.d("ChecklistAnswerRepo", "[getAllWithFilters] 🎯 ALL SITES MODE: Filter will return checks from all sites in business")
+            } else {
+                android.util.Log.d("ChecklistAnswerRepo", "[getAllWithFilters] 🎯 SPECIFIC SITE MODE: Filter will return checks from site: $siteId")
+            }
+            
+            val response = api.getListFiltered(
+                filter = filter,
+                sortColumn = "LastCheckDateTime",
+                sortOrder = "desc",
+                pageNumber = page,
+                pageSize = pageSize,
+                include = "GOUser,Vehicle"
+            )
+            
+            if (response.isSuccessful && response.body() != null) {
+                val checklistAnswers = response.body()!!.map { it.toDomain() }
+                android.util.Log.d("ChecklistAnswerRepo", "[getAllWithFilters] ✅ Found ${checklistAnswers.size} checklist answers with filter: '$filter'")
+                checklistAnswers
+            } else {
+                android.util.Log.e("ChecklistAnswerRepo", "[getAllWithFilters] ❌ Failed to fetch checklist answers: ${response.code()} - ${response.errorBody()?.string()}")
+                emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistAnswerRepo", "[getAllWithFilters] ❌ Exception", e)
             emptyList()
         }
     }

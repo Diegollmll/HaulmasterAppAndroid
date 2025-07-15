@@ -23,13 +23,13 @@ data class CertificationDto(
     val certificationCode: String?,
     @SerializedName("Timestamp")
     val timestamp: String,
-    @SerializedName("isMarkedForDeletion")
+    @SerializedName("IsMarkedForDeletion")
     val isMarkedForDeletion: Boolean = false,
-    @SerializedName("isDirty")
+    @SerializedName("IsDirty")
     val isDirty: Boolean = false,
-    @SerializedName("isNew")
+    @SerializedName("IsNew")
     val isNew: Boolean = false,
-    @SerializedName("internalObjectId")
+    @SerializedName("InternalObjectId")
     val internalObjectId: Int = 0,
     @SerializedName("BusinessId")
     val businessId: String? = null,

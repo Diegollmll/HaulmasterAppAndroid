@@ -25,15 +25,13 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
     
     // Determine role from included userRoleItems if available, else use override, else default to OPERATOR
     val mappedRole = roleOverride ?: if (!userRoleItems.isNullOrEmpty()) {
-        val activeRole = userRoleItems!!.find { it.isActive }
-        if (activeRole != null) {
-            android.util.Log.d("UserMapper", "Found active role: ${activeRole.gORoleName}")
-            UserRoleManager.fromString(activeRole.gORoleName)
-        } else {
-            val firstRole = userRoleItems!!.firstOrNull()
-            android.util.Log.d("UserMapper", "No active role found, using first role: ${firstRole?.gORoleName}")
-            firstRole?.let { UserRoleManager.fromString(it.gORoleName) } ?: UserRole.OPERATOR
-        }
+        // Use UserRoleManager's priority logic instead of just finding first active role
+        android.util.Log.d("UserMapper", "Using UserRoleManager.getEffectiveRole for proper priority handling")
+        UserRoleManager.getEffectiveRole(
+            userRoleItems = userRoleItems!!,
+            businessRole = null,
+            businessId = null
+        )
     } else {
         android.util.Log.w("UserMapper", "No userRoleItems found for user $id, using fallback detection")
         
@@ -66,8 +64,10 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
     
     android.util.Log.d("UserMapper", "Final mapped role for user $id: ${mappedRole.name.lowercase()}")
 
-    // Use default businessId if not present
-    val resolvedBusinessId = this.userBusinesses?.firstOrNull()?.toString() ?: Constants.BUSINESS_ID
+    // Use businessId from user businesses if available
+    val resolvedBusinessId = this.userBusinesses?.firstOrNull()?.businessId
+    Log.d("UserMapper", "UserBusinesses: $userBusinesses")
+    Log.d("UserMapper", "Resolved businessId: $resolvedBusinessId")
 
     Log.d("UserMapper", "Processing user photo: id=$id, picture=$picture, pictureInternalName=$pictureInternalName")
     val imageUrl = if (!picture.isNullOrBlank() || !pictureInternalName.isNullOrBlank()) {
@@ -86,7 +86,7 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
         id = id ?: "",
         token = "", // Not present in UserDto, set as empty
         refreshToken = "", // Not present in UserDto, set as empty
-        email = email ?: "",
+        email = email?.takeIf { it.isNotBlank() && it != "null" } ?: "", // ✅ FIXED: Handle "null" string as empty
         username = username ?: "",
         firstName = firstName ?: "",
         lastName = lastName ?: "",
@@ -98,7 +98,7 @@ fun UserDto.toDomain(roleOverride: UserRole? = null): User {
         isActive = !(blocked ?: false),
         isApproved = userValidated ?: false,
         password = password ?: "",
-        businessId = userBusinesses?.firstOrNull()?.businessId,
+        businessId = resolvedBusinessId,
         siteId = userSiteItems?.firstOrNull()?.siteId,
         systemOwnerId = null, // TODO: Add if needed
         userPreferencesId = userPreferencesId

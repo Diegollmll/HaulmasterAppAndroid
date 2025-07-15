@@ -129,28 +129,25 @@ class SafetyAlertRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getSafetyAlertCount(): Int {
-        return         try {
-            // Get business and site context from BusinessContextManager
-            val businessId = businessContextManager.getCurrentBusinessId()
-            val siteId = businessContextManager.getCurrentSiteId()
-            android.util.Log.d("SafetyAlertRepo", "Getting safety alert count for business: '$businessId', site: '$siteId'")
-            
-            // Create filter for business and site context
-            val businessFilter = if (siteId != null && siteId.isNotEmpty()) {
-                "BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+    override suspend fun getSafetyAlertCount(businessId: String?, siteId: String?): Int {
+        return try {
+            // Usar los parámetros si se proveen, si no, usar el contexto
+            val effectiveBusinessId = businessId ?: businessContextManager.getCurrentBusinessId()
+            val effectiveSiteId = siteId ?: businessContextManager.getCurrentSiteId()
+            android.util.Log.d("SafetyAlertRepo", "Getting safety alert count for business: '$effectiveBusinessId', site: '$effectiveSiteId'")
+            // Crear filtro
+            val businessFilter = if (effectiveSiteId != null && effectiveSiteId.isNotEmpty()) {
+                "BusinessId == Guid.Parse(\"$effectiveBusinessId\") && SiteId == Guid.Parse(\"$effectiveSiteId\")"
             } else {
-                "BusinessId == Guid.Parse(\"$businessId\")"
+                "BusinessId == Guid.Parse(\"$effectiveBusinessId\")"
             }
-            
             val headers = headerManager.getHeaders().getOrThrow()
             val response = api.getDatasetSafetyAlertCount(
                 csrfToken = headers.csrfToken,
                 filter = businessFilter
             )
-            
             val count = if (response.isSuccessful) response.body() ?: 0 else 0
-            android.util.Log.d("SafetyAlertRepo", "Safety alert count for business '$businessId': $count")
+            android.util.Log.d("SafetyAlertRepo", "Safety alert count for business '$effectiveBusinessId': $count")
             count
         } catch (e: Exception) {
             android.util.Log.e("SafetyAlertRepo", "Error getting safety alert count: ${e.message}", e)

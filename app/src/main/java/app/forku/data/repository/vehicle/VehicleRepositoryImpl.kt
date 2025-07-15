@@ -71,6 +71,37 @@ class VehicleRepositoryImpl @Inject constructor(
         private const val CACHE_DURATION_MS = 30_000L // 30 seconds
         private const val TAG = "appflow VehicleRepo"
     }
+    
+    /**
+     * Create proper JSON for vehicle update following GO API standards
+     */
+    private fun createVehicleUpdateJson(vehicle: Vehicle): String {
+        val jsonObject = mutableMapOf<String, Any?>(
+            "\$type" to "VehicleDataObject",
+            "Id" to vehicle.id,
+            "BusinessId" to vehicle.businessId,
+            "IsMarkedForDeletion" to false,
+            "InternalObjectId" to 0,
+            "IsDirty" to true,
+            "IsNew" to false, // ✅ CRITICAL: Set to false for updates
+            
+            // Required fields for vehicle update
+            "Codename" to vehicle.codename,
+            "Model" to vehicle.model,
+            "Description" to vehicle.description,
+            "BestSuitedFor" to vehicle.bestSuitedFor,
+            "SerialNumber" to vehicle.serialNumber,
+            "Status" to vehicle.status.toInt(),
+            "EnergySource" to vehicle.energySource,
+            "VehicleTypeId" to vehicle.type.Id,
+            "VehicleCategoryId" to vehicle.categoryId,
+            "SiteId" to vehicle.siteId,
+            "Picture" to vehicle.photoModel,
+            "CurrentHourMeter" to vehicle.currentHourMeter
+        )
+        
+        return gson.toJson(jsonObject)
+    }
 
     private fun isCacheValid(cachedVehicle: CachedVehicle): Boolean {
         val now = System.currentTimeMillis()
@@ -149,8 +180,12 @@ class VehicleRepositoryImpl @Inject constructor(
             try {
                 val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
                 Log.d(TAG, "Calling api.getVehicleById with id=$id, csrfToken=${csrfToken.take(8)}..., cookie=${cookie.take(8)}...")
-                var vehicle = api.getVehicleById(id, csrfToken, cookie)
-                    .body()?.toDomain() ?: run {
+                var vehicle = api.getVehicleById(
+                    id = id, 
+                    csrfToken = csrfToken, 
+                    cookie = cookie,
+                    include = "VehicleType"
+                ).body()?.toDomain() ?: run {
                         Log.e(TAG, "Vehicle not found for id=$id")
                         throw Exception("Vehicle not found")
                     }
@@ -182,19 +217,20 @@ class VehicleRepositoryImpl @Inject constructor(
             val response = api.getVehicleById(
                 id = code,
                 csrfToken = csrfToken,
-                cookie = cookie
+                cookie = cookie,
+                include = "VehicleType"
             )
             
             if (!response.isSuccessful) {
                 when (response.code()) {
-                    404 -> throw Exception("Vehículo no encontrado")
-                    429 -> throw Exception("Demasiadas solicitudes. Por favor intente más tarde.")
-                    in 500..599 -> throw Exception("Error del servidor. Por favor intente más tarde.")
-                    else -> throw Exception("Error al obtener el vehículo: ${response.code()}")
+                    404 -> throw Exception("Vehicle not found")
+                    429 -> throw Exception("Too many requests. Please try again later.")
+                    in 500..599 -> throw Exception("Server error. Please try again later.")
+                    else -> throw Exception("Error getting vehicle: ${response.code()}")
                 }
             }
             val vehicle = response.body()?.toDomain()
-                ?: throw Exception("Vehículo no encontrado")
+                ?: throw Exception("Vehicle not found")
             if (checkAvailability) {
                 // Check vehicle status
                 val status = vehicleStatusRepository.getVehicleStatus(vehicle.id, vehicle.businessId ?: businessId ?: "")
@@ -205,7 +241,7 @@ class VehicleRepositoryImpl @Inject constructor(
             vehicle
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Error getting vehicle by QR $code", e)
-            throw Exception("Vehículo no encontrado o no disponible: ${e.message}")
+            throw Exception("Vehicle not found or not available: ${e.message}")
         }
     }
 
@@ -311,8 +347,10 @@ class VehicleRepositoryImpl @Inject constructor(
             val headers = headerManager.getHeaders().getOrThrow()
             Log.d(TAG, "Got auth headers - CSRF Token: ${headers.csrfToken.take(10)}...")
 
-            // Convert to JSON string with new status
-            val vehicleJson = gson.toJson(currentVehicle.toDto())
+            // ✅ FIX: Create proper JSON for vehicle status update with new status
+            val updatedVehicle = currentVehicle.copy(status = status)
+            val vehicleJson = createVehicleUpdateJson(updatedVehicle)
+            Log.d(TAG, "Created vehicle JSON for status update with IsNew=false")
             
             // Make the API call
             Log.d(TAG, "Making API call to update vehicle...")
@@ -400,8 +438,8 @@ class VehicleRepositoryImpl @Inject constructor(
         try {
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
-            // Convert to JSON string for update
-            val vehicleJson = gson.toJson(updatedVehicle.toDto())
+            // ✅ FIX: Use helper function for consistent vehicle update JSON
+            val vehicleJson = createVehicleUpdateJson(updatedVehicle)
             val response = api.saveVehicle(
                 entity = vehicleJson,
                 csrfToken = csrfToken,
@@ -429,25 +467,109 @@ class VehicleRepositoryImpl @Inject constructor(
         try {
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
-            // Convert to JSON string for update
-            val gson2 = Gson()
-            val vehicleJson2 = gson2.toJson(updatedVehicle.toDto())
-            val response2 = api.saveVehicle(
-                entity = vehicleJson2,
+            // ✅ FIX: Use helper function for consistent vehicle update JSON
+            val vehicleJson = createVehicleUpdateJson(updatedVehicle)
+            val response = api.saveVehicle(
+                entity = vehicleJson,
                 csrfToken = csrfToken,
                 cookie = cookie
             )
-            if (!response2.isSuccessful) {
-                val errorBody = response2.errorBody()?.string()
-                throw Exception("Failed to update vehicle (Code: ${response2.code()}): $errorBody")
+            if (!response.isSuccessful) {
+                val errorBody = response.errorBody()?.string()
+                throw Exception("Failed to update vehicle (Code: ${response.code()}): $errorBody")
             }
-            val result = response2.body()?.toDomain()
+            val result = response.body()?.toDomain()
                 ?: throw Exception("Vehicle data missing in response body after update")
             cache[vehicleId] = CachedVehicle(result, System.currentTimeMillis())
             result
         } catch (e: Exception) {
             Log.e(TAG, "Error in updateVehicle", e)
             throw Exception("Failed to update vehicle: ${e.message}")
+        }
+    }
+
+    override suspend fun updateCurrentHourMeter(
+        vehicleId: String,
+        currentHourMeter: String,
+        businessId: String
+    ): Vehicle = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Updating current hour meter for vehicle $vehicleId to $currentHourMeter")
+            
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            
+            // Get current vehicle data first
+            val currentVehicle = getVehicle(vehicleId, businessId)
+            
+            // ✅ VALIDATION: Ensure hour meter can only increase
+            val validationResult = app.forku.core.validation.HourMeterValidator.validateVehicleHourMeterUpdate(
+                newValue = currentHourMeter,
+                currentValue = currentVehicle.currentHourMeter
+            )
+            
+            if (!validationResult.isValid) {
+                Log.e(TAG, "Hour meter validation failed: ${validationResult.errorMessage}")
+                throw Exception("Invalid hour meter update: ${validationResult.errorMessage}")
+            }
+            
+            Log.d(TAG, "Hour meter validation passed: ${validationResult.validatedValue}")
+            val formattedHourMeter = app.forku.core.validation.HourMeterValidator.formatHourMeter(currentHourMeter)
+            
+            // Create simplified JSON object following GO API standards
+            val jsonObject = mutableMapOf<String, Any?>(
+                "\$type" to "VehicleDataObject",
+                "Id" to currentVehicle.id,
+                "BusinessId" to currentVehicle.businessId,
+                "IsMarkedForDeletion" to false,
+                "InternalObjectId" to 0,
+                "IsDirty" to true,
+                "IsNew" to false, // ✅ CRITICAL: Set to false for updates
+                
+                // Required fields for vehicle update
+                "Codename" to currentVehicle.codename,
+                "Model" to currentVehicle.model,
+                "Description" to currentVehicle.description,
+                "BestSuitedFor" to currentVehicle.bestSuitedFor,
+                "SerialNumber" to currentVehicle.serialNumber,
+                "Status" to currentVehicle.status.toInt(),
+                "VehicleTypeId" to (currentVehicle.vehicleTypeId.takeIf { it.isNotBlank() } ?: currentVehicle.type.Id), // ✅ Fix vehicleTypeId
+                "VehicleCategoryId" to currentVehicle.categoryId,
+                "EnergySource" to currentVehicle.energySource,
+                "SiteId" to currentVehicle.siteId,
+                
+                // ✅ NEW: The field we're updating
+                "CurrentHourMeter" to formattedHourMeter
+            )
+            
+            val vehicleJson = gson.toJson(jsonObject)
+            Log.d(TAG, "Updating vehicle hour meter with JSON: ${vehicleJson.take(300)}...")
+            
+            val response = api.saveVehicle(
+                entity = vehicleJson,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                businessId = businessId
+            )
+            
+            if (!response.isSuccessful) {
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "Failed to update current hour meter. Response code: ${response.code()}")
+                Log.e(TAG, "Error body: $errorBody")
+                Log.e(TAG, "Request JSON: $vehicleJson")
+                throw Exception("Failed to update current hour meter (Code: ${response.code()}): $errorBody")
+            }
+            
+            val result = response.body()?.toDomain()
+                ?: throw Exception("Vehicle data missing in response body after hour meter update")
+            
+            // Update cache
+            cache[vehicleId] = CachedVehicle(result, System.currentTimeMillis())
+            
+            Log.d(TAG, "Successfully updated current hour meter for vehicle $vehicleId to $currentHourMeter")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating current hour meter for vehicle $vehicleId", e)
+            throw Exception("Failed to update current hour meter: ${e.message}")
         }
     }
 
@@ -476,13 +598,27 @@ class VehicleRepositoryImpl @Inject constructor(
             val headers = headersResult.getOrNull()!!
             Log.d(TAG, "Got auth headers, making optimized API call with includes")
             
-            // Build filter string for API
+            // LOG explícito para depuración de siteId
+            Log.d(TAG, "[DEBUG] getVehiclesWithRelatedData: businessId=$businessId, siteId=$siteId (null = All Sites)")
+            // ✅ Build filter string for API - handle "All Sites" case
             val filter = buildString {
                 append("BusinessId == Guid.Parse(\"$businessId\")")
-                if (!siteId.isNullOrBlank()) {
+                if (!siteId.isNullOrBlank() && siteId != "null") {
                     append(" && SiteId == Guid.Parse(\"$siteId\")")
                 }
             }
+            
+            Log.d(TAG, "🔍 [getVehiclesWithRelatedData] Filter construction:")
+            Log.d(TAG, "  - businessId: '$businessId'")
+            Log.d(TAG, "  - siteId: '$siteId' (null = All Sites)")
+            Log.d(TAG, "  - Final filter: '$filter'")
+            
+            if (siteId == null) {
+                Log.d(TAG, "🎯 ALL SITES MODE: Filter will return vehicles from ALL sites in business")
+            } else {
+                Log.d(TAG, "🎯 SINGLE SITE MODE: Filter will return vehicles only from site '$siteId'")
+            }
+            
             // Single API call with all related data and filter
             val response = api.getAllVehicles(
                 csrfToken = headers.csrfToken,
@@ -493,9 +629,28 @@ class VehicleRepositoryImpl @Inject constructor(
 
             when (val apiResponse = response.toApiResponse()) {
                 is ApiResponse.Success -> {
-                    Log.d(TAG, "[DEBUG] Received ${apiResponse.data.size} vehicles from backend. Ejemplo primer vehicle: ${apiResponse.data.firstOrNull()?.codename}, siteId: ${apiResponse.data.firstOrNull()?.siteId}")
-                    apiResponse.data.forEach { dto ->
-                        Log.d(TAG, "[DEBUG] VehicleDto: id=${dto.id}, codename=${dto.codename}, businessId=${dto.businessId}, siteId=${dto.siteId}")
+                    Log.d(TAG, "📡 [getVehiclesWithRelatedData] API Response received:")
+                    Log.d(TAG, "  - Total vehicles: ${apiResponse.data.size}")
+                    
+                    // ✅ Group vehicles by siteId to verify "All Sites" behavior
+                    val vehiclesBySite = apiResponse.data.groupBy { it.siteId }
+                    Log.d(TAG, "  - Vehicles grouped by site:")
+                    vehiclesBySite.forEach { (siteId, vehicles) ->
+                        Log.d(TAG, "    * Site '$siteId': ${vehicles.size} vehicles")
+                        vehicles.take(3).forEach { vehicle ->
+                            Log.d(TAG, "      - ${vehicle.codename} (${vehicle.id})")
+                        }
+                        if (vehicles.size > 3) {
+                            Log.d(TAG, "      - ... and ${vehicles.size - 3} more")
+                        }
+                    }
+                    
+                    if (siteId == null && vehiclesBySite.keys.size > 1) {
+                        Log.d(TAG, "✅ ALL SITES CONFIRMED: Received vehicles from ${vehiclesBySite.keys.size} different sites")
+                    } else if (siteId != null && vehiclesBySite.keys.size == 1 && vehiclesBySite.keys.first() == siteId) {
+                        Log.d(TAG, "✅ SINGLE SITE CONFIRMED: All vehicles belong to site '$siteId'")
+                    } else if (siteId != null && vehiclesBySite.keys.size > 1) {
+                        Log.w(TAG, "⚠️ UNEXPECTED: Expected single site '$siteId' but got vehicles from ${vehiclesBySite.keys.size} sites")
                     }
                     // 🚀 OPTIMIZATION: Collect all unique user IDs first
                     val allUserIds = apiResponse.data.flatMap { dto ->

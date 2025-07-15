@@ -1,5 +1,6 @@
 package app.forku.presentation.dashboard
 
+import android.util.Log
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -109,7 +110,6 @@ fun DashboardScreen(
         currentCheckId = dashboardState.lastChecklistAnswer?.id,
         dashboardState = dashboardState,
         networkManager = networkManager,
-        onRefresh = null,  // Explicitly set to null to prevent auto-refresh on resume
         tokenErrorHandler = tokenErrorHandler
     ) { paddingValues ->
         Box(
@@ -131,9 +131,15 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
+                        Log.d("DashboardScreen", "Creating DashboardHeader with onSettingsClick for Operator")
                         DashboardHeader(
                             userName = currentUser?.firstName ?: "",
-                            onNotificationClick = { navController.navigate(Screen.Notifications.route) }
+                            onNotificationClick = { navController.navigate(Screen.Notifications.route) },
+                            onSettingsClick = { 
+                                Log.d("DashboardScreen", "Settings button clicked - navigating to UserPreferencesSetup")
+                                navController.navigate(Screen.UserPreferencesSetup.createRoute(showBack = true)) 
+                            },
+                            showNotifications = false
                         )
                     }
 
@@ -461,6 +467,8 @@ private fun DashboardNavigationButtons(
                     textSize = if (isExpanded) 14.sp else 10.sp
                 )
             }
+
+
 
 
         }

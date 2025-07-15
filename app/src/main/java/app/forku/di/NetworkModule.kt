@@ -72,9 +72,10 @@ object NetworkModule {
     @Singleton
     fun provideAuthInterceptor(
         headerManager: HeaderManager,
-        tokenErrorHandler: TokenErrorHandler
+        tokenErrorHandler: TokenErrorHandler,
+        sessionKeepAliveManager: app.forku.core.auth.SessionKeepAliveManager? = null
     ): AuthInterceptor {
-        return AuthInterceptor(headerManager, tokenErrorHandler)
+        return AuthInterceptor(headerManager, tokenErrorHandler, sessionKeepAliveManager)
     }
 
     @Provides

@@ -5,8 +5,7 @@ import app.forku.domain.model.checklist.ChecklistItemCategory
 
 fun ChecklistItemCategoryDto.toDomain(): ChecklistItemCategory {
     return ChecklistItemCategory(
-        id = id,
-        name = name,
-        description = description
+        id = this.id,
+        name = this.name
     )
 } 

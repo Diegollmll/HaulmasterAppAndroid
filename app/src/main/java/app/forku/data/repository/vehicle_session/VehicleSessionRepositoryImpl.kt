@@ -15,6 +15,7 @@ import app.forku.domain.model.vehicle.isAvailable
 import app.forku.domain.repository.session.VehicleSessionRepository
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
 import app.forku.domain.repository.vehicle.VehicleStatusRepository
+import app.forku.domain.repository.vehicle.VehicleRepository
 import app.forku.core.location.LocationManager
 import app.forku.core.business.BusinessContextManager
 import app.forku.domain.model.session.AdminDashboardData
@@ -33,9 +34,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     private val api: VehicleSessionApi,
     private val authDataStore: AuthDataStore,
     private val vehicleStatusRepository: VehicleStatusRepository,
+    private val vehicleRepository: VehicleRepository,
     private val checklistAnswerRepository: ChecklistAnswerRepository,
     private val locationManager: LocationManager,
-    private val businessContextManager: BusinessContextManager
+    private val businessContextManager: BusinessContextManager,
+    private val validateUserCertificationUseCase: app.forku.domain.usecase.certification.ValidateUserCertificationUseCase
 ) : VehicleSessionRepository {
     override suspend fun getCurrentSession(): VehicleSession? {
         val currentUser = authDataStore.getCurrentUser() ?: return null
@@ -62,7 +65,11 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun startSession(vehicleId: String, checkId: String): VehicleSession {
+    override suspend fun startSession(
+        vehicleId: String, 
+        checkId: String, 
+        initialHourMeter: String?
+    ): VehicleSession {
         val currentUser = authDataStore.getCurrentUser()
             ?: throw Exception("No user logged in")
 
@@ -70,6 +77,39 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         val businessId = businessContextManager.getCurrentBusinessId()
         val siteId = businessContextManager.getCurrentSiteId()
         android.util.Log.d("VehicleSessionRepo", "[startSession] Using businessId from BusinessContextManager: '$businessId', siteId: '$siteId'")
+
+        // ✅ VALIDATE USER CERTIFICATIONS FOR THIS VEHICLE TYPE
+        try {
+            android.util.Log.d("VehicleSessionRepo", "🔐 Validating user certification for vehicle: $vehicleId")
+            val validationResult = validateUserCertificationUseCase(currentUser.id, vehicleId)
+            
+            if (!validationResult.isValid) {
+                android.util.Log.e("VehicleSessionRepo", "❌ Certification validation failed: ${validationResult.message}")
+                throw Exception("Certification Required: ${validationResult.message}")
+            } else {
+                android.util.Log.d("VehicleSessionRepo", "✅ Certification validation passed: ${validationResult.message}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VehicleSessionRepo", "❌ Error validating certification: ${e.message}")
+            throw Exception("Certification validation failed: ${e.message}")
+        }
+        
+        // ✅ VALIDATION: Validate initial hour meter if provided
+        if (!initialHourMeter.isNullOrBlank()) {
+            // Get vehicle to check current hour meter
+            val vehicle = vehicleRepository.getVehicle(vehicleId, businessId ?: "")
+            val validationResult = app.forku.core.validation.HourMeterValidator.validateInitialHourMeter(
+                initialValue = initialHourMeter,
+                vehicleCurrentValue = vehicle.currentHourMeter
+            )
+            
+            if (!validationResult.isValid) {
+                android.util.Log.e("VehicleSessionRepo", "❌ Initial hour meter validation failed: ${validationResult.errorMessage}")
+                throw Exception("Invalid initial hour meter: ${validationResult.errorMessage}")
+            }
+            
+            android.util.Log.d("VehicleSessionRepo", "✅ Initial hour meter validation passed: ${validationResult.validatedValue}")
+        }
 
         // Get vehicle status using VehicleStatusRepository instead
         val vehicleStatus = vehicleStatusRepository.getVehicleStatus(
@@ -131,7 +171,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 closedBy = null,
                 notes = null,
                 businessId = businessId, // Use BusinessContextManager business ID
-                siteId = siteId // ✅ Use BusinessContextManager site ID
+                siteId = siteId, // ✅ Use BusinessContextManager site ID
+                initialHourMeter = initialHourMeter, // ✅ New: Store initial hour meter
+                finalHourMeter = null
             )
             val dto = VehicleSessionMapper.toDto(newSession)
             val gson = Gson()
@@ -175,7 +217,8 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         sessionId: String, 
         closeMethod: VehicleSessionClosedMethod,
         adminId: String?,
-        notes: String?
+        notes: String?,
+        finalHourMeter: String?
     ): VehicleSession {
         val sessionResponse = api.getSessionById(sessionId)
         if (!sessionResponse.isSuccessful) {
@@ -209,6 +252,21 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         val businessId = businessContextManager.getCurrentBusinessId()
         val siteId = businessContextManager.getCurrentSiteId()
         android.util.Log.d("VehicleSessionRepo", "[endSession] Using businessId from BusinessContextManager: '$businessId', siteId: '$siteId'")
+        
+        // ✅ VALIDATION: Validate final hour meter if provided
+        if (!finalHourMeter.isNullOrBlank()) {
+            val validationResult = app.forku.core.validation.HourMeterValidator.validateFinalHourMeter(
+                finalValue = finalHourMeter,
+                initialValue = existingSession.initialHourMeter
+            )
+            
+            if (!validationResult.isValid) {
+                android.util.Log.e("VehicleSessionRepo", "❌ Final hour meter validation failed: ${validationResult.errorMessage}")
+                throw Exception("Invalid final hour meter: ${validationResult.errorMessage}")
+            }
+            
+            android.util.Log.d("VehicleSessionRepo", "✅ Final hour meter validation passed: ${validationResult.validatedValue}")
+        }
             
         try {
             // Update vehicle status back to AVAILABLE
@@ -241,7 +299,8 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 closedBy = closedBy,
                 notes = notes,
                 endLocationCoordinates = locationCoordinates,
-                durationMinutes = duration
+                durationMinutes = duration,
+                finalHourMeter = finalHourMeter // ✅ New: Store final hour meter
             )
             
             // Antes de enviar el DTO para cerrar sesión, asegúrate de que IsNew=false
@@ -268,6 +327,23 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                     siteId = siteId
                 )
                 throw Exception("Failed to end session: ${response.code()}")
+            }
+            
+            // ✅ NEW: Update vehicle's CurrentHourMeter if finalHourMeter is provided
+            if (!finalHourMeter.isNullOrBlank()) {
+                try {
+                    android.util.Log.d("VehicleSessionRepo", "[endSession] Updating vehicle CurrentHourMeter to: $finalHourMeter")
+                    vehicleRepository.updateCurrentHourMeter(
+                        vehicleId = existingSession.vehicleId,
+                        currentHourMeter = finalHourMeter,
+                        businessId = businessId ?: ""
+                    )
+                    android.util.Log.d("VehicleSessionRepo", "[endSession] Successfully updated vehicle CurrentHourMeter")
+                } catch (e: Exception) {
+                    android.util.Log.w("VehicleSessionRepo", "[endSession] Failed to update vehicle CurrentHourMeter: ${e.message}", e)
+                    // Note: We don't throw here to avoid failing the session end process
+                    // The session is already ended successfully, this is just a bonus update
+                }
             }
             
             return response.body()?.let { VehicleSessionMapper.toDomain(it) }
@@ -396,9 +472,10 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     }
 
     // Nuevo método: obtener el conteo de vehículos en operación usando el endpoint optimizado
-    override suspend fun getOperatingSessionsCount(businessId: String): Int {
+    override suspend fun getOperatingSessionsCount(businessId: String, siteId: String?): Int {
         android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] === INICIANDO CONTEO EN REPOSITORY ===")
         android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] BusinessId recibido: '$businessId'")
+        android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] SiteId filter recibido: '$siteId' (null = All Sites)")
         
         try {
             val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
@@ -407,9 +484,9 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
             android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] Cookie obtenido: ${cookie.take(20)}...")
             
-            // ✅ FIX: Include SiteId in filter for multi-tenancy support
-            val siteId = businessContextManager.getCurrentSiteId()
-            android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] SiteId obtenido: '$siteId'")
+            // ✅ FIXED: Use provided siteId parameter instead of business context
+            // If siteId is null, it means "All Sites" - count all sites in the business
+            android.util.Log.d("VehicleSessionRepo", "[getOperatingSessionsCount] Using filter siteId: '$siteId'")
             
             // Filter by Status, BusinessId and SiteId using Guid.Parse for GO Platform compatibility
             val filter = if (siteId != null && siteId.isNotBlank()) {
@@ -457,23 +534,32 @@ class VehicleSessionRepositoryImpl @Inject constructor(
     }
 
     // 🚀 OPTIMIZED: Get active sessions with all related data in one API call for AdminDashboard
-    override suspend fun getActiveSessionsWithRelatedData(businessId: String): AdminDashboardData {
+    override suspend fun getActiveSessionsWithRelatedData(businessId: String, siteId: String?): AdminDashboardData {
         android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] === 🚀 OPTIMIZED API CALL FOR ADMIN DASHBOARD ===")
         android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] BusinessId: '$businessId'")
+        android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] SiteId filter: '$siteId' (null = All Sites)")
         
         return try {
-            // ✅ FIX: Include SiteId for consistent filtering
-            val siteId = businessContextManager.getCurrentSiteId()
-            android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] SiteId: '$siteId'")
+            // ✅ FIXED: Use provided siteId filter instead of user's context
+            // If siteId is null, it means "All Sites" - show all sites in the business
+            android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] Using filter siteId: '$siteId'")
             
             // Single API call with all related data included
-            val include = "GOUser,GOUser.UserRoleItems,Vehicle,ChecklistAnswer"
+            val include = "GOUser,GOUser.UserRoleItems,Vehicle,Vehicle.VehicleType,ChecklistAnswer"
             android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] 🌐 API call with include: '$include'")
+            
+            // ✅ FIX: Include SiteId in API filter for better performance and accuracy
+            val filter = if (siteId != null && siteId.isNotBlank()) {
+                "Status == 0 && EndTime == null && BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+            } else {
+                "Status == 0 && EndTime == null && BusinessId == Guid.Parse(\"$businessId\")"
+            }
+            android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] 🔍 API Filter: '$filter'")
             
             val response = api.getAllSessions(
                 businessId = businessId,
                 include = include,
-                filter = "Status == 0 && EndTime == null" // Only active sessions
+                filter = filter
             )
             
             android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] 📡 Response: isSuccessful=${response.isSuccessful}, code=${response.code()}")
@@ -487,10 +573,17 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 
                 // ✅ FIX: Filter by exact business and site match for consistency
                 val filteredDtos = sessionDtos.filter { dto -> 
-                    dto.Status == 0 && 
-                    dto.EndTime == null &&
-                    dto.BusinessId == businessId &&
-                    (siteId == null || siteId.isBlank() || dto.siteId == siteId) // Include SiteId filter
+                    val businessMatch = dto.BusinessId == businessId
+                    val siteMatch = if (siteId != null && siteId.isNotBlank()) {
+                        dto.siteId == siteId
+                    } else {
+                        true // If no specific site is selected, show all for this business
+                    }
+                    val statusMatch = dto.Status == 0 && dto.EndTime == null
+                    
+                    android.util.Log.d("VehicleSessionRepo", "[FILTER-DEBUG] Session ${dto.Id}: businessMatch=$businessMatch (${dto.BusinessId} == $businessId), siteMatch=$siteMatch (${dto.siteId} == $siteId), statusMatch=$statusMatch")
+                    
+                    businessMatch && siteMatch && statusMatch
                 }
                 android.util.Log.d("VehicleSessionRepo", "[getActiveSessionsWithRelatedData] 🔍 Filtered active sessions for business '$businessId', site '$siteId': ${filteredDtos.size}")
                 

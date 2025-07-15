@@ -66,6 +66,9 @@ data class VehicleObjectData(
     @SerializedName("NextServiceDateTime")
     val nextServiceDateTime: String? = null,
     
+    @SerializedName("CurrentHourMeter")
+    val currentHourMeter: String? = null,
+    
     @SerializedName("Picture")
     val picture: String,
     

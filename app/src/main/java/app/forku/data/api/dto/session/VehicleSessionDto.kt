@@ -26,6 +26,10 @@ data class VehicleSessionDto(
     val BusinessId: String? = null,
     @SerializedName("SiteId")
     val siteId: String? = null,
+    @SerializedName("InitialHourMeter")
+    val initialHourMeter: String? = null,
+    @SerializedName("FinalHourMeter")
+    val finalHourMeter: String? = null,
     val GOUser: UserDto? = null,
     val Vehicle: VehicleDto? = null,
     val ChecklistAnswer: ChecklistAnswerDto? = null

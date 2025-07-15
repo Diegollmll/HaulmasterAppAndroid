@@ -38,6 +38,10 @@ navigation-compose = "2.7.7"
 hilt = "2.48"
 hilt-navigation-compose = "1.1.0"
 
+# WorkManager
+work = "2.9.0"
+hilt-work = "1.1.0"
+
 # Networking
 retrofit = "2.9.0"
 okhttp = "4.12.0"
@@ -96,6 +100,10 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation-compose" }
+
+# WorkManager
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hilt-work" }
 
 # Retrofit
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }

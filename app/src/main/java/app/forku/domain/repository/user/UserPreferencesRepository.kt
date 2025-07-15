@@ -89,4 +89,12 @@ interface UserPreferencesRepository {
      * Create preferences with both BusinessId and SiteId (matching working API structure)
      */
     suspend fun createPreferencesWithBusinessAndSite(businessId: String, siteId: String): UserPreferences
+
+    /**
+     * Check if a vehicle belongs to the user's assigned business and site
+     * @param vehicleBusinessId The business ID of the vehicle
+     * @param vehicleSiteId The site ID of the vehicle
+     * @return true if the vehicle belongs to the user's business and site, false otherwise
+     */
+    suspend fun isVehicleInUserContext(vehicleBusinessId: String, vehicleSiteId: String): Boolean
 } 

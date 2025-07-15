@@ -9,17 +9,23 @@ fun ChecklistItemDto.toDomain(): ChecklistItem {
     return ChecklistItem(
         id = Id,
         checklistId = ChecklistId,
+        version = version ?: "1.0", // ✅ FIX: Handle null version with default
         expectedAnswer = Answer.values()[ExpectedAnswer],
         rotationGroup = RotationGroup,
         userAnswer = userAnswer?.let { Answer.values()[it] },
         category = ChecklistItemCategoryId,
         subCategory = ChecklistItemSubcategoryId,
         energySourceEnum = EnergySource.map { EnergySourceEnum.values()[it] },
-        vehicleType = emptyList(), // TODO: Map vehicle types
-        component = VehicleComponent.toString(),
+        vehicleType = emptyList(), // Will be populated by repository with vehicle type relationships
+        component = VehicleComponentEnum.fromValue(VehicleComponent) ?: VehicleComponentEnum.FORKS,
         question = Question,
         description = Description,
-        isCritical = IsCritical
+        isCritical = IsCritical,
+        supportedVehicleTypeIds = emptySet(), // Will be populated by repository
+        goUserId = goUserId, // ✅ New: Map creator user ID
+        allVehicleTypesEnabled = AllVehicleTypesEnabled ?: false, // ✅ New: Map all vehicle types enabled flag
+        createdAt = createdAt, // ✅ NEW: Map creation timestamp
+        modifiedAt = modifiedAt // ✅ NEW: Map modification timestamp
     )
 }
 
@@ -94,6 +100,9 @@ fun ChecklistItem.toDto(): ChecklistItemDto {
     return ChecklistItemDto(
         `$type` = "ChecklistItemDataObject",
         ChecklistId = checklistId,
+        version = version, // ✅ NEW: Map question version
+        createdAt = createdAt, // ✅ NEW: Map creation timestamp
+        modifiedAt = modifiedAt, // ✅ NEW: Map modification timestamp
         ChecklistItemCategoryId = category,
         ChecklistItemSubcategoryId = subCategory,
         Description = description,
@@ -103,10 +112,12 @@ fun ChecklistItem.toDto(): ChecklistItemDto {
         IsCritical = isCritical,
         Question = question,
         RotationGroup = rotationGroup,
-        VehicleComponent = component.toIntOrNull() ?: 0,
+        VehicleComponent = component.value,
         IsMarkedForDeletion = false,
         InternalObjectId = 0,
-        userAnswer = userAnswer?.ordinal
+        goUserId = goUserId, // ✅ New: Map creator user ID
+        userAnswer = userAnswer?.ordinal,
+        AllVehicleTypesEnabled = allVehicleTypesEnabled // ✅ New: Map all vehicle types enabled flag
     )
 }
 
@@ -123,6 +134,7 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
             ChecklistItem(
                 id = it.Id,
                 checklistId = it.ChecklistId,
+                version = it.version ?: "1.0", // ✅ FIX: Handle null version with default
                 expectedAnswer = Answer.values()[it.ExpectedAnswer],
                 userAnswer = it.userAnswer?.let { answer -> 
                     try {
@@ -137,11 +149,15 @@ fun PerformChecklistResponseDto.toDomain(): PreShiftCheck {
                     EnergySourceEnum.values()[source]
                 },
                 vehicleType = emptyList(), // TODO: Map vehicle types
-                component = it.VehicleComponent.toString(),
+                component = VehicleComponentEnum.fromValue(it.VehicleComponent) ?: VehicleComponentEnum.FORKS,
                 question = it.Question,
                 description = it.Description,
                 isCritical = it.IsCritical,
-                rotationGroup = it.RotationGroup
+                rotationGroup = it.RotationGroup,
+                goUserId = it.goUserId, // ✅ New: Map creator user ID
+                allVehicleTypesEnabled = it.AllVehicleTypesEnabled ?: false, // ✅ New: Map all vehicle types enabled flag
+                createdAt = it.createdAt, // ✅ NEW: Map creation timestamp
+                modifiedAt = it.modifiedAt // ✅ NEW: Map modification timestamp
             )
         }
     )
@@ -154,10 +170,17 @@ fun ChecklistDto.toDomain(): Checklist {
     val supportedVehicleTypeIds = ChecklistVehicleTypeItems?.map { it.VehicleTypeId }?.toSet() ?: emptySet()
     android.util.Log.d("ChecklistMapper", "Checklist ${this.Id} supports vehicle types: $supportedVehicleTypeIds")
     
+    // Extract category IDs from ChecklistChecklistItemCategoryItems (handle null case)
+    val requiredCategoryIds = ChecklistChecklistItemCategoryItems?.map { it.checklistItemCategoryId }?.toSet() ?: emptySet()
+    android.util.Log.d("ChecklistMapper", "Checklist ${this.Id} requires categories: $requiredCategoryIds")
+    
     return Checklist(
         id = Id,
         title = Title,
         description = Description ?: "",
+        version = version ?: "1.0", // ✅ FIX: Handle null version with default
+        businessId = businessId,
+        goUserId = goUserId,
         items = (ChecklistChecklistQuestionItems ?: emptyList()).map { 
             it.toDomain().copy(checklistId = Id)
         },
@@ -171,7 +194,11 @@ fun ChecklistDto.toDomain(): Checklist {
         isMarkedForDeletion = IsMarkedForDeletion,
         internalObjectId = InternalObjectId,
         allVehicleTypesEnabled = AllVehicleTypesEnabled,
-        supportedVehicleTypeIds = supportedVehicleTypeIds
+        supportedVehicleTypeIds = supportedVehicleTypeIds,
+        requiredCategoryIds = requiredCategoryIds,
+        createdAt = createdAt, // ✅ NEW: Map creation timestamp
+        modifiedAt = modifiedAt, // ✅ NEW: Map modification timestamp
+        isActive = isActive // ✅ NEW: Map active status
     )
 }
 
@@ -181,6 +208,12 @@ fun Checklist.toDto(): ChecklistDto {
         Id = id,
         Title = title,
         Description = description,
+        version = version, // ✅ NEW: Map checklist version
+        createdAt = createdAt, // ✅ NEW: Map creation timestamp
+        modifiedAt = modifiedAt, // ✅ NEW: Map modification timestamp
+        isActive = isActive, // ✅ NEW: Map active status
+        businessId = businessId,
+        goUserId = goUserId,
         ChecklistChecklistQuestionItems = items.map { it.toDto() },
         CriticalityLevels = criticalityLevels,
         CriticalQuestionMinimum = criticalQuestionMinimum,
@@ -200,6 +233,73 @@ fun Checklist.toDto(): ChecklistDto {
                 IsMarkedForDeletion = false,
                 InternalObjectId = index + 1
             )
-        }
+        },
+        ChecklistChecklistItemCategoryItems = requiredCategoryIds.mapIndexed { index, categoryId ->
+            app.forku.data.api.dto.checklist.ChecklistChecklistItemCategoryDto(
+                checklistId = id,
+                id = java.util.UUID.randomUUID().toString(),
+                checklistItemCategoryId = categoryId,
+                isMarkedForDeletion = false,
+                internalObjectId = index + 1
+            )
+        },
+        // Additional fields to match the working CURL
+        IsDirty = true,
+        IsNew = id.isEmpty(), // New if ID is empty
+        criticalityLevelsEnumValues = criticalityLevels,
+        energySourceEnumValues = energySources,
+        CriticalityLevelsValues = criticalityLevels.map { app.forku.data.api.dto.checklist.SelectValue(it) },
+        EnergySourcesValues = energySources.map { app.forku.data.api.dto.checklist.SelectValue(it) }
     )
+}
+
+/**
+ * Extension function to populate vehicle type relationships for ChecklistItem
+ * This should be called after the basic domain mapping to enrich the object with vehicle type data
+ */
+suspend fun ChecklistItem.withVehicleTypeRelationships(
+    questionVehicleTypes: List<ChecklistQuestionVehicleType>,
+    allVehicleTypes: List<VehicleType>
+): ChecklistItem {
+    val supportedTypeIds = questionVehicleTypes
+        .filter { it.checklistItemId == this.id }
+        .map { it.vehicleTypeId }
+        .toSet()
+    
+    val supportedTypes = allVehicleTypes.filter { vehicleType ->
+        supportedTypeIds.contains(vehicleType.Id)
+    }
+    
+    return this.copy(
+        supportedVehicleTypeIds = supportedTypeIds,
+        vehicleType = supportedTypes
+    )
+}
+
+/**
+ * Extension function to populate vehicle type relationships for a list of ChecklistItems
+ */
+suspend fun List<ChecklistItem>.withVehicleTypeRelationships(
+    questionVehicleTypes: List<ChecklistQuestionVehicleType>,
+    allVehicleTypes: List<VehicleType>
+): List<ChecklistItem> {
+    return this.map { item ->
+        item.withVehicleTypeRelationships(questionVehicleTypes, allVehicleTypes)
+    }
+}
+
+/**
+ * Function to create ChecklistQuestionVehicleType relationships from ChecklistItem
+ * Used when saving checklist items with vehicle type associations
+ */
+fun ChecklistItem.toQuestionVehicleTypeRelationships(): List<ChecklistQuestionVehicleType> {
+    return this.supportedVehicleTypeIds.mapIndexed { index, vehicleTypeId ->
+        ChecklistQuestionVehicleType(
+            id = "", // Will be generated by backend
+            checklistItemId = this.id,
+            vehicleTypeId = vehicleTypeId,
+            isMarkedForDeletion = false,
+            internalObjectId = index + 1
+        )
+    }
 }

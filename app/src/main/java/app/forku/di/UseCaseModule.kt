@@ -33,6 +33,7 @@ import app.forku.data.repository.NearMissIncidentRepository
 import app.forku.domain.usecase.vehiclefail_incident.SaveVehicleFailIncidentUseCase
 import app.forku.domain.repository.incident.VehicleFailIncidentRepository
 import app.forku.core.business.BusinessContextManager
+import app.forku.domain.repository.IGOSecurityProviderRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -58,9 +59,10 @@ object UseCaseModule {
     @Singleton
     fun provideGetVehicleUseCase(
         repository: VehicleRepository,
-        userRepository: UserRepository
+        userRepository: UserRepository,
+        businessContextManager: BusinessContextManager
     ): GetVehicleUseCase {
-        return GetVehicleUseCase(repository, userRepository)
+        return GetVehicleUseCase(repository, userRepository, businessContextManager)
     }
 
     @Provides
@@ -119,9 +121,9 @@ object UseCaseModule {
     @Provides
     @Singleton
     fun provideLoginUseCase(
-        userRepository: UserRepository
+        goSecurityProviderRepository: IGOSecurityProviderRepository
     ): LoginUseCase {
-        return LoginUseCase(userRepository)
+        return LoginUseCase(goSecurityProviderRepository)
     }
 
     @Provides

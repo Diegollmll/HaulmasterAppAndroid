@@ -1,5 +1,6 @@
 package app.forku.presentation.dashboard
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.forku.domain.repository.vehicle.VehicleRepository
@@ -14,6 +15,8 @@ import app.forku.domain.usecase.checklist.GetLastPreShiftCheckByVehicleUseCase
 import app.forku.presentation.user.login.LoginState
 import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
 import app.forku.domain.repository.checklist.ChecklistAnswerRepository
+import app.forku.data.datastore.AuthDataStore
+import app.forku.core.business.BusinessContextManager
 
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +39,9 @@ class DashboardViewModel @Inject constructor(
     private val getLastPreShiftCheckCurrentUserUseCase: GetLastPreShiftCheckCurrentUserUseCase,
     private val getLastPreShiftCheckUseCase: GetLastPreShiftCheckByVehicleUseCase,
     private val submitFeedbackUseCase: SubmitFeedbackUseCase,
-    private val checklistAnswerRepository: ChecklistAnswerRepository
+    private val checklistAnswerRepository: ChecklistAnswerRepository,
+    private val authDataStore: AuthDataStore,
+    private val businessContextManager: BusinessContextManager
 ) : ViewModel() {
     
     private val _state = MutableStateFlow(DashboardState())
@@ -62,6 +67,7 @@ class DashboardViewModel @Inject constructor(
         loadTourCompletionStatus()
         checkLoginState()
         checkAuthToken()
+        checkAutoLogin()
     }
     
     private fun loadCurrentUser() {
@@ -69,8 +75,9 @@ class DashboardViewModel @Inject constructor(
             try {
                 val user = userRepository.getCurrentUser()
                 android.util.Log.d("DashboardViewModel", "[loadCurrentUser] user original: $user")
-                // Si el usuario no tiene businessId, asigna el de Constants
-                val fixedUser = if (user != null && user.businessId == null) user.copy(businessId = app.forku.core.Constants.BUSINESS_ID) else user
+                // Use BusinessContextManager to get the current business context
+                val businessId = businessContextManager.getCurrentBusinessId()
+                val fixedUser = if (user != null && user.businessId == null && businessId != null) user.copy(businessId = businessId) else user
                 android.util.Log.d("DashboardViewModel", "[loadCurrentUser] fixedUser: $fixedUser")
                 _currentUser.value = fixedUser
             } catch (e: Exception) {
@@ -113,6 +120,99 @@ class DashboardViewModel @Inject constructor(
         }
     }
     
+    /**
+     * 🔄 Check for automatic login on app start
+     */
+    private fun checkAutoLogin() {
+        viewModelScope.launch {
+            try {
+                val savedUser = authDataStore.getCurrentUser()
+                val applicationToken = authDataStore.getApplicationToken()
+                
+                if (savedUser != null && !applicationToken.isNullOrBlank()) {
+                    Log.d("DashboardViewModel", "🔍 Found saved user and token - validating session")
+                    
+                    // Check token expiration
+                    val tokenExpiration = authDataStore.getTokenExpirationDate()
+                    val isTokenValid = tokenExpiration?.time?.let { expTime ->
+                        expTime > System.currentTimeMillis() + (5 * 60 * 1000) // 5 minutes buffer
+                    } ?: false
+                    
+                    if (isTokenValid) {
+                        Log.d("DashboardViewModel", "✅ Token is valid - performing silent login")
+                        _currentUser.value = savedUser
+                        _hasToken.value = true
+                        
+                        // Update presence
+                        authDataStore.updatePresence(true)
+                        
+                        Log.d("DashboardViewModel", "🎉 Silent login successful for user: ${savedUser.fullName}")
+                    } else {
+                        Log.w("DashboardViewModel", "⚠️ Token expired - attempting token renewal")
+                        // Try to refresh token silently
+                        attemptSilentTokenRefresh()
+                    }
+                } else {
+                    Log.d("DashboardViewModel", "ℹ️ No saved user or token found - user needs to login")
+                }
+            } catch (e: Exception) {
+                Log.e("DashboardViewModel", "❌ Error during auto-login check", e)
+                // Clear potentially corrupted auth data
+                authDataStore.clearAuth()
+            }
+        }
+    }
+    
+    /**
+     * 🔄 Attempt silent token refresh using stored refresh token
+     */
+    private suspend fun attemptSilentTokenRefresh() {
+        try {
+            val authToken = authDataStore.getAuthenticationToken()
+            if (!authToken.isNullOrBlank()) {
+                Log.d("DashboardViewModel", "🔄 Attempting silent token refresh")
+                
+                // Here you would call your token refresh endpoint
+                // For now, we'll check if the session is still valid on the server
+                val isSessionValid = validateSessionOnServer()
+                
+                if (isSessionValid) {
+                    val savedUser = authDataStore.getCurrentUser()
+                    if (savedUser != null) {
+                        _currentUser.value = savedUser
+                        _hasToken.value = true
+                        authDataStore.updatePresence(true)
+                        Log.d("DashboardViewModel", "✅ Silent token refresh successful")
+                    }
+                } else {
+                    Log.w("DashboardViewModel", "❌ Silent token refresh failed - session expired")
+                    authDataStore.clearAuth()
+                }
+            } else {
+                Log.w("DashboardViewModel", "❌ No refresh token available")
+                authDataStore.clearAuth()
+            }
+        } catch (e: Exception) {
+            Log.e("DashboardViewModel", "❌ Error during silent token refresh", e)
+            authDataStore.clearAuth()
+        }
+    }
+    
+    /**
+     * 🔍 Validate session on server (placeholder - implement with your API)
+     */
+    private suspend fun validateSessionOnServer(): Boolean {
+        return try {
+            // This would be a lightweight API call to validate the session
+            // For example, a simple user profile fetch or session check endpoint
+            val user = userRepository.getCurrentUser()
+            user != null
+        } catch (e: Exception) {
+            Log.e("DashboardViewModel", "Session validation failed", e)
+            false
+        }
+    }
+    
     private suspend fun loadDashboard(showLoading: Boolean = false) {
         if (showLoading) {
             android.util.Log.d("DashboardViewModel", "Setting loading state to true")
@@ -122,7 +222,8 @@ class DashboardViewModel @Inject constructor(
         try {
             // Usar siempre el usuario corregido del StateFlow
             val user = _currentUser.value
-            val currentUser = if (user != null && user.businessId == null) user.copy(businessId = app.forku.core.Constants.BUSINESS_ID) else user
+            val contextBusinessId = businessContextManager.getCurrentBusinessId()
+            val currentUser = if (user != null && user.businessId == null && contextBusinessId != null) user.copy(businessId = contextBusinessId) else user
             android.util.Log.d("DashboardViewModel", "[loadDashboard] currentUser (from _currentUser): $currentUser")
 
             if (currentUser == null) {

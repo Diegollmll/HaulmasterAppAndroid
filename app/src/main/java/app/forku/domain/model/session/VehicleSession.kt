@@ -18,7 +18,9 @@ data class VehicleSession(
     val operatorName: String = "Unknown",
     val vehicleName: String = "Unknown",
     val businessId: String? = null,
-    val siteId: String? = null // ✅ Add siteId for multitenancy
+    val siteId: String? = null, // ✅ Add siteId for multitenancy
+    val initialHourMeter: String? = null, // ✅ New: Hour meter reading when session started
+    val finalHourMeter: String? = null    // ✅ New: Hour meter reading when session ended
 )
 
 enum class VehicleSessionStatus {

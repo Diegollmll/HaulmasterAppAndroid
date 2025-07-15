@@ -14,7 +14,7 @@ class GOServicesPreferences @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
     private companion object {
-        val CSRF_TOKEN = stringPreferencesKey("go_services_csrf_token")
+        val CSRF_TOKEN = stringPreferencesKey("csrf_token")
     }
 
     val csrfToken: Flow<String?> = dataStore.data

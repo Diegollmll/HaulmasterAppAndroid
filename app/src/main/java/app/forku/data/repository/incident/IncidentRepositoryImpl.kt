@@ -189,29 +189,122 @@ class IncidentRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getIncidentCountForUser(userId: String?): Int {
-        val businessId = businessContextManager.getCurrentBusinessId()
-        val siteId = businessContextManager.getCurrentSiteId()
-        val filter = if (userId.isNullOrBlank()) {
-            if (siteId != null) {
-                "BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
+    /**
+     * ✅ NEW: Get incident count specifically for Admin Dashboard
+     * Counts ALL incidents in business/site context (not filtered by user)
+     * @param businessId The business ID to filter by
+     * @param siteId The site ID to filter by (null = all sites in business)
+     * @return Total count of incidents
+     */
+    override suspend fun getIncidentCountForAdmin(businessId: String?, siteId: String?): Int {
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] === 🚀 ADMIN INCIDENT COUNT ===")
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] INPUTS: businessId=$businessId, siteId=$siteId")
+        
+        val effectiveBusinessId = businessId ?: businessContextManager.getCurrentBusinessId()
+        val effectiveSiteId = siteId // Don't use context for Admin - use provided filter
+        
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] Effective businessId=$effectiveBusinessId, siteId=$effectiveSiteId")
+        
+        if (effectiveBusinessId.isNullOrBlank()) {
+            android.util.Log.w("IncidentRepository", "[getIncidentCountForAdmin] ❌ No business ID available")
+            return 0
+        }
+        
+        // Build filter for Admin: ALL incidents in business/site (no user filter)
+        val filter = buildString {
+            append("BusinessId == Guid.Parse(\"$effectiveBusinessId\")")
+            if (!effectiveSiteId.isNullOrBlank() && effectiveSiteId != "null") {
+                append(" && SiteId == Guid.Parse(\"$effectiveSiteId\")")
+                android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] 🎯 SPECIFIC SITE MODE: Counting incidents for site $effectiveSiteId")
             } else {
-                "BusinessId == Guid.Parse(\"$businessId\")"
-            }
-        } else {
-            if (siteId != null) {
-                "GOUserId == Guid.Parse(\"$userId\") && BusinessId == Guid.Parse(\"$businessId\") && SiteId == Guid.Parse(\"$siteId\")"
-            } else {
-                "GOUserId == Guid.Parse(\"$userId\") && BusinessId == Guid.Parse(\"$businessId\")"
+                android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] 🎯 ALL SITES MODE: Counting incidents from ALL sites in business")
             }
         }
-        android.util.Log.d("IncidentRepository", "[getIncidentCountForUser] Filter: $filter")
+        
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] Final filter: '$filter'")
+        
+        val response = incidentApi.getIncidentCount(filter)
+        
+        if (response.isSuccessful) {
+            val count = response.body() ?: 0
+            android.util.Log.d("IncidentRepository", "[getIncidentCountForAdmin] ✅ SUCCESS: Found $count incidents")
+            return count
+        } else {
+            android.util.Log.e("IncidentRepository", "[getIncidentCountForAdmin] ❌ ERROR: Failed to fetch incident count: ${response.code()} - ${response.errorBody()?.string()}")
+            throw Exception("Failed to fetch incident count: ${response.code()}")
+        }
+    }
+
+    override suspend fun getIncidentCountForUser(userId: String?, businessId: String?, siteId: String?): Int {
+        // Add detailed logging for debugging
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForUser] CALLED with userId=$userId, businessId=$businessId, siteId=$siteId")
+        val effectiveBusinessId = businessId ?: businessContextManager.getCurrentBusinessId()
+        val effectiveSiteId = siteId ?: businessContextManager.getCurrentSiteId()
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForUser] Effective businessId=$effectiveBusinessId, siteId=$effectiveSiteId")
+        val filter = if (userId.isNullOrBlank()) {
+            if (effectiveSiteId != null) {
+                "BusinessId == Guid.Parse(\"$effectiveBusinessId\") && SiteId == Guid.Parse(\"$effectiveSiteId\")"
+            } else {
+                "BusinessId == Guid.Parse(\"$effectiveBusinessId\")"
+            }
+        } else {
+            if (effectiveSiteId != null) {
+                "GOUserId == Guid.Parse(\"$userId\") && BusinessId == Guid.Parse(\"$effectiveBusinessId\") && SiteId == Guid.Parse(\"$effectiveSiteId\")"
+            } else {
+                "GOUserId == Guid.Parse(\"$userId\") && BusinessId == Guid.Parse(\"$effectiveBusinessId\")"
+            }
+        }
+        android.util.Log.d("IncidentRepository", "[getIncidentCountForUser] Final filter: $filter")
         val response = incidentApi.getIncidentCount(filter)
         android.util.Log.d("IncidentRepository", "getIncidentCountForUser: filter=$filter, responseCode=${response.code()}, body=${response.body()}")
         if (response.isSuccessful) {
+            android.util.Log.d("IncidentRepository", "[getIncidentCountForUser] SUCCESS: count=${response.body()}")
             return response.body() ?: 0
         } else {
+            android.util.Log.e("IncidentRepository", "[getIncidentCountForUser] ERROR: Failed to fetch incident count: ${response.code()} - ${response.errorBody()?.string()}")
             throw Exception("Failed to fetch incident count: ${response.code()}")
+        }
+    }
+
+    /**
+     * ✅ NEW: Get incidents with explicit business and site filters (VIEW_FILTER mode)
+     * Does NOT use user's personal context, uses provided filter parameters
+     * Used for admin filtering across different sites
+     */
+    override suspend fun getIncidentsWithFilters(businessId: String, siteId: String?): Result<List<Incident>> {
+        return try {
+            // LOG explícito para depuración de siteId
+            android.util.Log.d("IncidentRepository", "[DEBUG] getIncidentsWithFilters: businessId=$businessId, siteId=$siteId (null = All Sites)")
+            
+            // ✅ Build filter string for API - handle "All Sites" case
+            val filter = buildString {
+                append("BusinessId == Guid.Parse(\"$businessId\")")
+                if (!siteId.isNullOrBlank() && siteId != "null") {
+                    append(" && SiteId == Guid.Parse(\"$siteId\")")
+                }
+            }
+            
+            android.util.Log.d("IncidentRepository", "🎯 Filter constructed: '$filter'")
+            
+            if (siteId == null) {
+                android.util.Log.d("IncidentRepository", "🎯 ALL SITES MODE: Filter will return incidents from all sites in business")
+            } else {
+                android.util.Log.d("IncidentRepository", "🎯 SPECIFIC SITE MODE: Filter will return incidents from site: $siteId")
+            }
+            
+            val response = incidentApi.getAllIncidents(filter = filter, include = "GOUser")
+            
+            if (response.isSuccessful) {
+                val allIncidents = response.body()?.map { it.toDomain() } ?: emptyList()
+                android.util.Log.d("IncidentRepository", "✅ getIncidentsWithFilters: Found ${allIncidents.size} incidents with filter: '$filter'")
+                Result.success(allIncidents)
+            } else {
+                android.util.Log.e("IncidentRepository", "❌ getIncidentsWithFilters: Failed to fetch incidents: ${response.code()} - ${response.errorBody()?.string()}")
+                Result.failure(Exception("Failed to fetch incidents: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("IncidentRepository", "❌ getIncidentsWithFilters: Exception", e)
+            Result.failure(e)
         }
     }
 } 

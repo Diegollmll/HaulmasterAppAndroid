@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 
 fun ChecklistAnswer.toDto() = ChecklistAnswerDto(
     checklistId = checklistId,
+    checklistVersion = checklistVersion,
     endDateTime = endDateTime,
     goUserId = goUserId,
     id = id,
@@ -23,17 +24,18 @@ fun ChecklistAnswer.toDto() = ChecklistAnswerDto(
 
 fun ChecklistAnswerDto.toDomain() = ChecklistAnswer(
     id = id ?: "",
-    checklistId = checklistId,
-    goUserId = goUserId,
-    startDateTime = startDateTime,
+    checklistId = checklistId ?: "",
+    checklistVersion = checklistVersion ?: "1.0",
+    goUserId = goUserId ?: "",
+    startDateTime = startDateTime ?: "",
     endDateTime = endDateTime ?: "",
-    status = status,
+    status = status ?: 0,
     locationCoordinates = locationCoordinates,
-    isDirty = isDirty,
-    isNew = isNew,
-    isMarkedForDeletion = isMarkedForDeletion,
-    lastCheckDateTime = lastCheckDateTime,
-    vehicleId = vehicleId,
+    isDirty = isDirty ?: true,
+    isNew = isNew ?: true,
+    isMarkedForDeletion = isMarkedForDeletion ?: false,
+    lastCheckDateTime = lastCheckDateTime ?: "",
+    vehicleId = vehicleId ?: "",
     duration = duration,
     businessId = businessId,
     operatorName = goUser?.let { user ->

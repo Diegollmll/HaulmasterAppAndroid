@@ -29,6 +29,13 @@ import java.time.format.FormatStyle
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.domain.model.checklist.getPreShiftStatusText
+import app.forku.presentation.common.components.BusinessSiteFilters
+import app.forku.presentation.common.components.BusinessSiteFilterMode
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
+import androidx.navigation.NavHostController
+import android.util.Log
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 
 @Composable
 fun AllChecklistScreen(
@@ -37,8 +44,46 @@ fun AllChecklistScreen(
     networkManager: NetworkConnectivityManager,
     tokenErrorHandler: TokenErrorHandler
 ) {
+    val navHostController = navController as? NavHostController
+    val owner = LocalViewModelStoreOwner.current
+    val sharedFiltersViewModel: AdminSharedFiltersViewModel = hiltViewModel(viewModelStoreOwner = owner!!)
+
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
+    val filterBusinessId by sharedFiltersViewModel.filterBusinessId.collectAsStateWithLifecycle()
+    val filterSiteId by sharedFiltersViewModel.filterSiteId.collectAsStateWithLifecycle()
+    val isAllSitesSelected by sharedFiltersViewModel.isAllSitesSelected.collectAsStateWithLifecycle()
+    // ✅ REMOVED: availableSites - BusinessSiteFilters handles sites internally
+
+    // ✅ SIMPLIFIED: Estado para saber si los filtros ya han sido inicializados desde DataStore
+    var filtersInitialized by remember { mutableStateOf(false) }
+    // Bandera para saber si ya se leyó cada filtro al menos una vez
+    var businessIdRead by remember { mutableStateOf(false) }
+    var siteIdRead by remember { mutableStateOf(false) }
+    var allSitesRead by remember { mutableStateOf(false) }
+
+    // Observa los cambios y marca como leído cuando cada filtro se inicializa
+    LaunchedEffect(filterBusinessId) { if (!businessIdRead && filterBusinessId != null) businessIdRead = true }
+    LaunchedEffect(filterSiteId) { if (!siteIdRead) siteIdRead = true }
+    LaunchedEffect(isAllSitesSelected) { if (!allSitesRead) allSitesRead = true }
+    // Cuando los tres han sido leídos, marca filtersInitialized
+    LaunchedEffect(businessIdRead, siteIdRead, allSitesRead) {
+        if (businessIdRead && siteIdRead && allSitesRead) filtersInitialized = true
+    }
+
+    // ✅ REMOVED: LaunchedEffect for loading sites - BusinessSiteFilters handles this internally
+    
+    // ✅ CENTRALIZED: Single function to handle all checklist loading scenarios
+    fun loadChecklistData(page: Int = 1, append: Boolean = false) {
+        if (filtersInitialized && filterBusinessId != null) {
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            Log.d("AllChecklistScreen", "[UI] loadChecklistData called: page=$page, append=$append")
+            Log.d("AllChecklistScreen", "[UI] Parameters: businessId=$filterBusinessId, siteId=$effectiveSiteId")
+            viewModel.loadChecksWithFilters(filterBusinessId, effectiveSiteId, page, append)
+        } else {
+            Log.d("AllChecklistScreen", "[UI] loadChecklistData skipped: filtersInitialized=$filtersInitialized, filterBusinessId=$filterBusinessId")
+        }
+    }
     
     // Calculate if we should load more items
     val shouldLoadMore by remember {
@@ -48,12 +93,28 @@ fun AllChecklistScreen(
         }
     }
     
-    // Trigger load more when we're close to the end
+    // ✅ SIMPLIFIED: Single LaunchedEffect for initial load and filter changes
+    LaunchedEffect(filterBusinessId, filterSiteId, isAllSitesSelected, filtersInitialized) {
+        Log.d("AllChecklistScreen", "=== CHECKLIST LOAD TRIGGERED ===")
+        Log.d("AllChecklistScreen", "[UI] LaunchedEffect triggered: filtersInitialized=$filtersInitialized, filterBusinessId=$filterBusinessId")
+        loadChecklistData(page = 1, append = false)
+    }
+    
+    // ✅ CENTRALIZED: Pagination loading
     LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore && !state.isLoading && !state.isLoadingMore && state.hasMoreItems) {
-            viewModel.loadNextPage()
+            Log.d("AllChecklistScreen", "[UI] Pagination triggered: shouldLoadMore=$shouldLoadMore")
+            loadChecklistData(page = state.currentPage + 1, append = true)
         }
     }
+
+    // ✅ CENTRALIZED: Single refresh function
+    fun handleRefresh() {
+        Log.d("AllChecklistScreen", "🔄 CENTRALIZED REFRESH: Loading with filters")
+        loadChecklistData(page = 1, append = false)
+    }
+
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
     BaseScreen(
         navController = navController,
@@ -61,62 +122,94 @@ fun AllChecklistScreen(
         showBottomBar = false,
         topBarTitle = "All Checks",
         networkManager = networkManager,
-        tokenErrorHandler = tokenErrorHandler,
-        onRefresh = { viewModel.loadChecks() }
+        tokenErrorHandler = tokenErrorHandler
     ) { padding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (state.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else if (state.checks.isEmpty()) {
-                Text(
-                    text = "No checks found",
-                    modifier = Modifier.align(Alignment.Center),
-                    color = Color.Gray
-                )
-            } else {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(state.checks) { check ->
-                            CheckCard(
-                                check = check,
-                                onClick = {
-                                    navController.navigate(Screen.CheckDetail.createRoute(check.id))
-                                }
+            // ✅ Business and Site Filters with shared persistence
+            BusinessSiteFilters(
+                mode = BusinessSiteFilterMode.VIEW_FILTER,
+                currentUserRole = currentUser?.role, // Pass the actual user role
+                selectedBusinessId = filterBusinessId,
+                selectedSiteId = filterSiteId,
+                isAllSitesSelected = isAllSitesSelected,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                onBusinessChanged = { businessId ->
+                    Log.d("AllChecklistScreen", "[UI] onBusinessChanged: $businessId")
+                    sharedFiltersViewModel.setBusinessId(businessId)
+                    // ✅ Data reload will be handled by LaunchedEffect observing filter changes
+                },
+                onSiteChanged = { siteId ->
+                    Log.d("AllChecklistScreen", "[UI] onSiteChanged: $siteId")
+                    if (siteId == "ALL_SITES") {
+                        Log.d("AllChecklistScreen", "[UI] ALL_SITES selected")
+                        sharedFiltersViewModel.setSiteId(null)
+                    } else {
+                        sharedFiltersViewModel.setSiteId(siteId)
+                    }
+                },
+                showBusinessFilter = false,
+                isCollapsible = true,
+                initiallyExpanded = false,
+                title = "Filter Checks",
+                adminSharedFiltersViewModel = sharedFiltersViewModel
+            )
+            
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (state.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else if (state.checks.isEmpty()) {
+                    Text(
+                        text = "No checks found",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.Gray
+                    )
+                } else {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(state.checks) { check ->
+                                CheckCard(
+                                    check = check,
+                                    onClick = {
+                                        navController.navigate(Screen.CheckDetail.createRoute(check.id))
+                                    }
+                                )
+                            }
+                        }
+                        
+                        // Show loading indicator at bottom while loading more
+                        if (state.isLoadingMore) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(16.dp)
                             )
                         }
                     }
-                    
-                    // Show loading indicator at bottom while loading more
-                    if (state.isLoadingMore) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(16.dp)
-                        )
-                    }
                 }
-            }
-
-            state.error?.let { error ->
-                Text(
-                    text = error,
-                    color = Color.Red,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(16.dp)
-                )
+                
+                state.error?.let { error ->
+                    Text(
+                        text = error,
+                        color = Color.Red,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp)
+                    )
+                }
             }
         }
     }
@@ -206,7 +299,7 @@ public fun StatusChip(status: String) {
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = statusEnum?.toFriendlyString() ?: status,
+                text = status,
                 color = when (statusEnum) {
                     CheckStatus.COMPLETED_PASS -> Color(0xFF4CAF50)
                     CheckStatus.COMPLETED_FAIL -> Color.Red
@@ -230,4 +323,4 @@ private fun formatDateTime(dateTime: String): String {
     } catch (e: Exception) {
         dateTime
     }
-} 
+}

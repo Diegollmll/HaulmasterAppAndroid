@@ -70,8 +70,14 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserById(userId: String): User? = withContext(Dispatchers.IO) {
         try {
             Log.d("UserRepository", "Getting user by ID: $userId")
-            // Include userRoleItems to get the user's roles
-            val response = api.getUser(userId, include = "UserRoleItems")
+            // Include userRoleItems, userBusinesses, userSiteItems, and userPreferencesId to get all user data
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = userId,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             Log.d("UserRepository", "API response code: ${response.code()}")
             
             if (!response.isSuccessful) {
@@ -85,11 +91,11 @@ class UserRepositoryImpl @Inject constructor(
                 return@withContext null
             }
 
-            Log.d("UserRepository", "Received user DTO: id=${userDto.id}, userRoleItems count: ${userDto.userRoleItems?.size ?: 0}")
+            Log.d("UserRepository", "Received user DTO: id=${userDto.id}, userRoleItems count: ${userDto.userRoleItems?.size ?: 0}, userBusinesses count: ${userDto.userBusinesses?.size ?: 0}, userSiteItems count: ${userDto.userSiteItems?.size ?: 0}")
             
-            // Map to domain model using the included userRoleItems (no need for separate API call)
+            // Map to domain model using the included data
             val user = userDto.toDomain()
-            Log.d("UserRepository", "Mapped user: id=${user.id}, role=${user.role}, photoUrl=${user.photoUrl}")
+            Log.d("UserRepository", "Mapped user: id=${user.id}, role=${user.role}, businessId=${user.businessId}, siteId=${user.siteId}, photoUrl=${user.photoUrl}")
             user
         } catch (e: Exception) {
             Log.e("UserRepository", "Error getting user: ${e.message}", e)
@@ -97,101 +103,10 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun login(email: String, password: String): Result<User> = withContext(Dispatchers.IO) {
-        try {
-            // 1. Fetch CSRF token and antiforgery cookie from GOServicesApi
-            val csrfResponse = goServicesApi.getCsrfToken()
-            if (!csrfResponse.isSuccessful) {
-                Log.e(TAG, "Failed to fetch CSRF token: ${csrfResponse.code()}")
-                return@withContext Result.failure(Exception("No se pudo obtener el token CSRF. Intenta de nuevo."))
-            }
-            val csrfToken = csrfResponse.body()?.csrfToken
-            val cookieHeader = csrfResponse.headers()["Set-Cookie"]
-            if (csrfToken.isNullOrBlank() || cookieHeader.isNullOrBlank()) {
-                Log.e(TAG, "CSRF token or antiforgery cookie missing in response")
-                return@withContext Result.failure(Exception("No se pudo obtener el token CSRF o la cookie antiforgery."))
-            }
-            authDataStore.saveCsrfToken(csrfToken)
-            authDataStore.saveAntiforgeryCookie(cookieHeader)
-
-            // 2. Prepare multipart form data
-            val usernamePart = email.toRequestBody("text/plain".toMediaType())
-            val passwordPart = password.toRequestBody("text/plain".toMediaType())
-            val useCookiesPart = "true".toRequestBody("text/plain".toMediaType())
-
-            // 3. Use the freshly fetched CSRF token and cookie
-            val response = securityApi.authenticate(
-                csrfToken = csrfToken,
-                cookie = cookieHeader,
-                username = usernamePart,
-                password = passwordPart,
-                useCookies = useCookiesPart
-            )
-
-            if (response.isSuccessful) {
-                val authResponse = response.body()
-                if (authResponse != null) {
-                    val applicationToken = authResponse.getApplicationToken()
-                    val authenticationToken = authResponse.getAuthenticationToken()
-
-                    if (applicationToken != null && authenticationToken != null) {
-                        // Save tokens
-                        authDataStore.saveApplicationToken(applicationToken)
-                        authDataStore.saveAuthenticationToken(authenticationToken)
-                        authDataStore.logTokenExpirationDate()
-
-                        // Parse user from token
-                        val tokenClaims = app.forku.data.api.auth.TokenParser.parseJwtToken(applicationToken)
-                        val user = app.forku.domain.model.user.User(
-                            id = tokenClaims.userId,
-                            email = email,
-                            username = tokenClaims.username,
-                            firstName = tokenClaims.username,
-                            lastName = tokenClaims.familyName.ifEmpty { "" },
-                            token = applicationToken,
-                            refreshToken = authenticationToken,
-                            photoUrl = null,
-                            role = tokenClaims.role,
-                            password = password,
-                            certifications = emptyList(),
-                            lastMedicalCheck = null,
-                            lastLogin = System.currentTimeMillis().toString(),
-                            isActive = true,
-                            isApproved = true,
-                            businessId = null,
-                            siteId = null,
-                            systemOwnerId = null
-                        )
-                        authDataStore.setCurrentUser(user)
-                        tokenErrorHandler.resetAuthenticationState()
-                        
-                        // Get user with business context after successful login
-                        try {
-                            Log.d(TAG, "Getting business context for user: ${user.id}")
-                            getUserWithBusinesses(user.id)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed to get business context, continuing with login: ${e.message}")
-                        }
-                        
-                        Result.success(user)
-                    } else {
-                        Log.e(TAG, "No tokens found in response")
-                        Result.failure(Exception("No tokens found in response"))
-                    }
-                } else {
-                    Log.e(TAG, "Empty response body")
-                    Result.failure(Exception("Empty response body"))
-                }
-            } else {
-                val errorBody = response.errorBody()?.string()
-                Log.e(TAG, "Authentication failed. Status: "+response.code()+", Error: "+errorBody)
-                Result.failure(Exception("Authentication failed: "+response.code()+" - "+errorBody))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Login failed", e)
-            Result.failure(e)
-        }
-    }
+//    override suspend fun login(email: String, password: String): Result<User> = withContext(Dispatchers.IO) {
+//        // Delegar la autenticación exclusivamente al repositorio de seguridad
+//        goSecurityProviderRepository.authenticate(email, password)
+//    }
 
     override suspend fun register(
         firstName: String,
@@ -202,7 +117,8 @@ class UserRepositoryImpl @Inject constructor(
     ): Result<User> = withContext(Dispatchers.IO) {
         try {
             // Verificar si el usuario ya existe buscando en la lista de usuarios
-            val existingUsers = api.getUsers()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val existingUsers = api.getUsers(csrfToken = csrfToken, cookie = cookie)
             if (!existingUsers.isSuccessful) {
                 return@withContext Result.failure(Exception("Failed to check existing users"))
             }
@@ -225,7 +141,15 @@ class UserRepositoryImpl @Inject constructor(
                 pictureInternalName = null
             )
 
-            val response = api.createUser(newUser)
+            // Convert to JSON string for entity parameter
+            val gson = com.google.gson.Gson()
+            val userJson = gson.toJson(newUser)
+            
+            val response = api.createUser(
+                entity = userJson,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
             if (!response.isSuccessful) {
                 return@withContext Result.failure(Exception("Registration failed"))
             }
@@ -260,7 +184,13 @@ class UserRepositoryImpl @Inject constructor(
             Log.d(TAG, "Getting current user from API to check UserPreferencesId: ${currentUser.id}")
             
             // Get user from API to get UserPreferencesId
-            val response = api.getUser(currentUser.id)
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = currentUser.id,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             
             if (!response.isSuccessful) {
                 Log.e(TAG, "Failed to get user from API: ${response.code()}")
@@ -331,7 +261,13 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun refreshCurrentUser(): Result<User> = withContext(Dispatchers.IO) {
         try {
             val currentUser = getCurrentUser() ?: return@withContext Result.failure(Exception("No user logged in"))
-            val response = api.getUser(currentUser.id)
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = currentUser.id,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             
             if (response.isSuccessful) {
                 response.body()?.let { userDto ->
@@ -358,7 +294,7 @@ class UserRepositoryImpl @Inject constructor(
             
             val updatedUserDto = UserDto(
                 id = user.id,
-                email = user.email,
+                email = user.email.takeIf { it.isNotBlank() && it != "null" }, // ✅ FIXED: Don't send empty/null email
                 password = "", // No incluimos el password en la actualización
                 username = user.username,
                 firstName = user.firstName,
@@ -368,9 +304,30 @@ class UserRepositoryImpl @Inject constructor(
                 pictureInternalName = null
             )
 
+            // ✅ NEW: Detailed logging of updatedUserDto in updateUserRole
+            Log.d("UserRepository", "=== UPDATE USER ROLE DTO DEBUG ===")
+            Log.d("UserRepository", "  id: '${updatedUserDto.id}'")
+            Log.d("UserRepository", "  email: '${updatedUserDto.email}'")
+            Log.d("UserRepository", "  username: '${updatedUserDto.username}'")
+            Log.d("UserRepository", "  firstName: '${updatedUserDto.firstName}'")
+            Log.d("UserRepository", "  lastName: '${updatedUserDto.lastName}'")
+            Log.d("UserRepository", "  password: '${updatedUserDto.password?.take(10)}...' (length: ${updatedUserDto.password?.length ?: 0})")
+            Log.d("UserRepository", "  picture: '${updatedUserDto.picture}'")
+            Log.d("UserRepository", "  userPreferencesId: '${updatedUserDto.userPreferencesId}'")
+            Log.d("UserRepository", "  isDirty: ${updatedUserDto.isDirty}")
+            Log.d("UserRepository", "  isNew: ${updatedUserDto.isNew}")
+            Log.d("UserRepository", "  isMarkedForDeletion: ${updatedUserDto.isMarkedForDeletion}")
+            Log.d("UserRepository", "=====================================")
+
             // Convert to JSON string and get headers like the working pattern
             val gson = com.google.gson.Gson()
             val userJson = gson.toJson(updatedUserDto)
+            
+            // ✅ NEW: Log the complete JSON being sent in updateUserRole
+            Log.d("UserRepository", "=== UPDATE USER ROLE JSON BEING SENT ===")
+            Log.d("UserRepository", "userJson: $userJson")
+            Log.d("UserRepository", "JSON length: ${userJson.length}")
+            Log.d("UserRepository", "=========================================")
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             val response = api.saveUser(
@@ -404,7 +361,12 @@ class UserRepositoryImpl @Inject constructor(
             Log.d("UserRepository", "Update details: isApproved=${user.isApproved}, role=${user.role}")
             
             // Get the current user data to preserve the password
-            val currentUserResponse = api.getUser(user.id)
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val currentUserResponse = api.getUser(
+                id = user.id,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
             val currentUserData = currentUserResponse.body()
             val currentPassword = currentUserData?.password
             
@@ -414,12 +376,29 @@ class UserRepositoryImpl @Inject constructor(
             Log.d("UserRepository", "  Password found: ${!currentPassword.isNullOrBlank()}")
             Log.d("UserRepository", "  Password length: ${currentPassword?.length ?: 0}")
             
+            // ✅ CRITICAL FIX: Use email from API if available, otherwise from parameter if valid
+            val emailFromApi = currentUserData?.email?.takeIf { it.isNotBlank() && it != "null" }
+            val emailFromParameter = user.email.takeIf { email ->
+                email.isNotBlank() && 
+                email != "null" && 
+                email.contains("@") && 
+                email.contains(".")
+            }
+            
+            // Priority: API email > Parameter email > null
+            val validEmail = emailFromApi ?: emailFromParameter
+            
+            Log.d("UserRepository", "Email resolution in updateUser:")
+            Log.d("UserRepository", "  Email from API: '$emailFromApi'")
+            Log.d("UserRepository", "  Email from parameter: '$emailFromParameter'")
+            Log.d("UserRepository", "  Final email: '$validEmail'")
+            
             // ⚠️ CRITICAL FIX: Don't include password field if it's null/empty to avoid overwriting
             // Only include password if we have a valid one from the API
             val userDto = if (!currentPassword.isNullOrBlank()) {
                 UserDto(
                     id = user.id,
-                    email = user.email,
+                    email = validEmail, // ✅ Only send if it's a valid email
                     password = currentPassword, // Only include if we have a valid password
                     username = user.username,
                     firstName = user.firstName,
@@ -432,7 +411,7 @@ class UserRepositoryImpl @Inject constructor(
                 // Don't include password field at all if we don't have one
                 UserDto(
                     id = user.id,
-                    email = user.email,
+                    email = validEmail, // ✅ Only send if it's a valid email
                     password = null, // Explicitly set to null to avoid sending empty string
                     username = user.username,
                     firstName = user.firstName,
@@ -443,12 +422,33 @@ class UserRepositoryImpl @Inject constructor(
                 )
             }
 
+            // ✅ NEW: Detailed logging of userDto in updateUser
+            Log.d("UserRepository", "=== UPDATE USER DTO DEBUG ===")
+            Log.d("UserRepository", "  id: '${userDto.id}'")
+            Log.d("UserRepository", "  email: '${userDto.email}'")
+            Log.d("UserRepository", "  username: '${userDto.username}'")
+            Log.d("UserRepository", "  firstName: '${userDto.firstName}'")
+            Log.d("UserRepository", "  lastName: '${userDto.lastName}'")
+            Log.d("UserRepository", "  password: '${userDto.password?.take(10)}...' (length: ${userDto.password?.length ?: 0})")
+            Log.d("UserRepository", "  picture: '${userDto.picture}'")
+            Log.d("UserRepository", "  userPreferencesId: '${userDto.userPreferencesId}'")
+            Log.d("UserRepository", "  isDirty: ${userDto.isDirty}")
+            Log.d("UserRepository", "  isNew: ${userDto.isNew}")
+            Log.d("UserRepository", "  isMarkedForDeletion: ${userDto.isMarkedForDeletion}")
+            Log.d("UserRepository", "=================================")
+
             Log.d("UserRepository", "Sending update request to API")
             
             // Convert to JSON string and get headers like the working pattern
             val gson = com.google.gson.Gson()
             val userJson = gson.toJson(userDto)
-            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            
+            // ✅ NEW: Log the complete JSON being sent in updateUser
+            Log.d("UserRepository", "=== UPDATE USER JSON BEING SENT ===")
+            Log.d("UserRepository", "userJson: $userJson")
+            Log.d("UserRepository", "JSON length: ${userJson.length}")
+            Log.d("UserRepository", "=====================================")
+            // ✅ FIXED: Reuse existing csrfToken and cookie instead of redeclaring
             
             val response = api.saveUser(
                 entity = userJson,
@@ -479,8 +479,13 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun getUsersByRole(role: UserRole): List<User> = withContext(Dispatchers.IO) {
         try {
-            // Use include parameter to fetch user roles in one call
-            val response = api.getUsers(include = "UserRoleItems")
+            // Use include parameter to fetch user roles, businesses, and sites in one call
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUsers(
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to get users with roles: ${response.code()}")
                 return@withContext emptyList()
@@ -488,7 +493,7 @@ class UserRepositoryImpl @Inject constructor(
 
             val users = response.body()
                 ?.map { userDto ->
-                    Log.d("UserRepository", "Processing user with included roles: ${userDto.id}, roles: ${userDto.userRoleItems?.size ?: 0}")
+                    Log.d("UserRepository", "Processing user with included roles: ${userDto.id}, roles: ${userDto.userRoleItems?.size ?: 0}, businesses: ${userDto.userBusinesses?.size ?: 0}, sites: ${userDto.userSiteItems?.size ?: 0}")
                     userDto.toDomain()
                 }
                 ?.filter { user -> 
@@ -516,16 +521,21 @@ class UserRepositoryImpl @Inject constructor(
             // Log any stored tokens for debugging auth issues
             val applicationToken = authDataStore.getApplicationToken()
             val authToken = authDataStore.getAuthenticationToken()
-            val csrfToken = authDataStore.getCsrfToken()
+            val storedCsrfToken = authDataStore.getCsrfToken()
             Log.d("UserRepository", """
                 Auth state:
                 - Application token present: ${applicationToken != null}
                 - Auth token present: ${authToken != null}
-                - CSRF token present: ${csrfToken != null}
+                - CSRF token present: ${storedCsrfToken != null}
             """.trimIndent())
             
-            val includeParam = include ?: "UserRoleItems"
-            val response = api.getUsers(include = includeParam)
+            val includeParam = include ?: "UserRoleItems,UserBusinesses,UserSiteItems"
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUsers(
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = includeParam
+            )
             
             // Add detailed logging of API response
             Log.d("UserRepository", "API Response:")
@@ -572,7 +582,12 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun deleteUser(userId: String) {
         try {
-            val response = api.deleteUser(userId)
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.deleteUser(
+                id = userId,
+                csrfToken = csrfToken,
+                cookie = cookie
+            )
             if (!response.isSuccessful) {
                 throw Exception("Failed to delete user")
             }
@@ -619,7 +634,28 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getCurrentUserId(): String? {
-        return authDataStore.getCurrentUser()?.id
+        // First try to get from current user
+        val currentUser = authDataStore.getCurrentUser()
+        if (currentUser != null) {
+            return currentUser.id
+        }
+        
+        // If current user is null, try to extract from application token
+        try {
+            Log.d("UserRepository", "Current user is null, attempting to extract user ID from token")
+            val applicationToken = authDataStore.getApplicationToken()
+            if (!applicationToken.isNullOrEmpty()) {
+                val tokenClaims = app.forku.data.api.auth.TokenParser.parseJwtToken(applicationToken)
+                Log.d("UserRepository", "Extracted user ID from token: ${tokenClaims.userId}")
+                return tokenClaims.userId
+            } else {
+                Log.w("UserRepository", "No application token available")
+            }
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error extracting user ID from token", e)
+        }
+        
+        return null
     }
 
     override suspend fun getUnassignedUsers(): List<User> {
@@ -629,7 +665,7 @@ class UserRepositoryImpl @Inject constructor(
             val allUsers = getAllUsers()
             Log.d("UserRepository", "Total users: ${allUsers.size}")
             
-            // Filtrar usuarios que no tienen businessId o businessId está vacío
+            // Filter users that don't have businessId or businessId is empty
             val unassignedUsers = allUsers.filter { user ->
                 user.businessId.isNullOrEmpty()
             }
@@ -645,7 +681,8 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserCount(): Int? = withContext(Dispatchers.IO) {
         try {
             Log.d("UserRepository", "Getting user count from API")
-            val response = api.getUserCount()
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUserCount(csrfToken = csrfToken, cookie = cookie)
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to get user count: ${response.code()}")
                 Log.d("UserRepository", "Falling back to counting all users")
@@ -674,7 +711,13 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserWithBusinesses(userId: String): User? = withContext(Dispatchers.IO) {
         try {
             Log.d("UserRepository", "Getting user with businesses and sites: $userId")
-            val response = api.getUser(userId, include = "UserBusinesses,UserSiteItems")
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = userId,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to get user with businesses: ${response.code()}")
@@ -718,6 +761,16 @@ class UserRepositoryImpl @Inject constructor(
             null
         }
     }
+    
+    override suspend fun updateCurrentUser(user: User): Unit = withContext(Dispatchers.IO) {
+        try {
+            authDataStore.setCurrentUser(user)
+            Log.d("UserRepository", "Current user updated in AuthDataStore: ${user.username}")
+        } catch (e: Exception) {
+            Log.e("UserRepository", "Error updating current user", e)
+            throw e
+        }
+    }
 
     override suspend fun getCurrentUserAssignedSites(): List<String> = withContext(Dispatchers.IO) {
         try {
@@ -728,7 +781,13 @@ class UserRepositoryImpl @Inject constructor(
             }
             
             Log.d("UserRepository", "Getting assigned sites for user: $currentUserId")
-            val response = api.getUser(currentUserId, include = "UserSiteItems")
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = currentUserId,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to get user with sites: ${response.code()}")
@@ -769,7 +828,13 @@ class UserRepositoryImpl @Inject constructor(
             }
             
             Log.d("UserRepository", "Getting assigned businesses for user: $currentUserId")
-            val response = api.getUser(currentUserId, include = "UserBusinesses")
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = currentUserId,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             
             if (!response.isSuccessful) {
                 Log.e("UserRepository", "Failed to get user with businesses: ${response.code()}")
@@ -809,7 +874,13 @@ class UserRepositoryImpl @Inject constructor(
     suspend fun getUserFromGOApi(userId: String): Result<User> {
         return try {
             Log.d("UserRepository", "Fetching user from GO API for userId: $userId")
-            val response = api.getUser(userId)
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getUser(
+                id = userId,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+            )
             Log.d("UserRepository", "GO API Response: $response")
             
             if (response.isSuccessful) {

@@ -38,6 +38,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.util.Log
 import app.forku.presentation.common.utils.getUserAvatarData
 import app.forku.presentation.common.components.UserAvatar
+import app.forku.presentation.common.components.BusinessSiteFilters
+import app.forku.presentation.common.components.BusinessSiteFilterMode
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
+import androidx.navigation.NavHostController
+import app.forku.presentation.dashboard.AdminDashboardViewModel
+import app.forku.presentation.dashboard.DashboardState
+import app.forku.presentation.dashboard.AdminDashboardState
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -49,7 +56,75 @@ fun AdminDashboardScreen(
     imageLoader: ImageLoader,
     tokenErrorHandler: TokenErrorHandler
 ) {
+    val navHostController = navController as? NavHostController
+    val sharedFiltersViewModel: AdminSharedFiltersViewModel = if (navHostController?.currentBackStackEntry != null) {
+        hiltViewModel(navHostController.currentBackStackEntry!!)
+    } else {
+        hiltViewModel()
+    }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val filterBusinessId by sharedFiltersViewModel.filterBusinessId.collectAsStateWithLifecycle()
+    val filterSiteId by sharedFiltersViewModel.filterSiteId.collectAsStateWithLifecycle()
+    val isAllSitesSelected by sharedFiltersViewModel.isAllSitesSelected.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+
+    Log.d("AdminDashboardScreen", "[FLOW] Composable loaded - currentUser: $currentUser, role: ${currentUser?.role}, filterBusinessId: $filterBusinessId, filterSiteId: $filterSiteId, isAllSitesSelected: $isAllSitesSelected")
+    // ✅ SIMPLIFIED: Estado para saber si los filtros ya han sido inicializados desde DataStore
+    var filtersInitialized by remember { mutableStateOf(false) }
+    // Bandera para saber si ya se leyó cada filtro al menos una vez
+    var businessIdRead by remember { mutableStateOf(false) }
+    var siteIdRead by remember { mutableStateOf(false) }
+    var allSitesRead by remember { mutableStateOf(false) }
+
+    // Observa los cambios y marca como leído cuando cada filtro se inicializa
+    LaunchedEffect(filterBusinessId) {
+        Log.d("AdminDashboardScreen", "[FLOW] LaunchedEffect(filterBusinessId) - filterBusinessId: $filterBusinessId")
+        if (!businessIdRead && filterBusinessId != null) businessIdRead = true
+    }
+    LaunchedEffect(filterSiteId) {
+        Log.d("AdminDashboardScreen", "[FLOW] LaunchedEffect(filterSiteId) - filterSiteId: $filterSiteId")
+        if (!siteIdRead) siteIdRead = true
+    }
+    LaunchedEffect(isAllSitesSelected) {
+        Log.d("AdminDashboardScreen", "[FLOW] LaunchedEffect(isAllSitesSelected) - isAllSitesSelected: $isAllSitesSelected")
+        if (!allSitesRead) allSitesRead = true
+    }
+    // Cuando los tres han sido leídos, marca filtersInitialized
+    LaunchedEffect(businessIdRead, siteIdRead, allSitesRead) {
+        Log.d("AdminDashboardScreen", "[FLOW] LaunchedEffect(businessIdRead, siteIdRead, allSitesRead) - businessIdRead: $businessIdRead, siteIdRead: $siteIdRead, allSitesRead: $allSitesRead")
+        if (businessIdRead && siteIdRead && allSitesRead) filtersInitialized = true
+    }
+    
+    // ✅ REMOVED: No more business context initialization - AdminSharedFiltersViewModel handles defaults
+    
+    // ✅ Load initial dashboard data for Admin users SOLO cuando los filtros estén listos
+    LaunchedEffect(currentUser, filterBusinessId, filtersInitialized) {
+        Log.d("AdminDashboardScreen", "[FLOW] LaunchedEffect(currentUser, filterBusinessId, filtersInitialized) - currentUser: $currentUser, role: ${currentUser?.role}, filterBusinessId: $filterBusinessId, filtersInitialized: $filtersInitialized")
+        val isAdmin = currentUser?.role in listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER)
+        if (filtersInitialized && isAdmin && filterBusinessId != null) {
+            Log.d("AdminDashboardScreen", "[FLOW] ADMIN INITIAL LOAD: Loading dashboard data with filters (filtersReady=$filtersInitialized)")
+            Log.d("AdminDashboardScreen", "  - businessId: $filterBusinessId")
+            Log.d("AdminDashboardScreen", "  - isAllSitesSelected: $isAllSitesSelected")
+            Log.d("AdminDashboardScreen", "  - filterSiteId: $filterSiteId")
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            viewModel.loadDashboardDataWithFilters(filterBusinessId!!, effectiveSiteId)
+        }
+    }
+    
+    // ✅ Monitor filter changes y recarga dashboard SOLO para admin y cuando los filtros estén listos
+    LaunchedEffect(filterBusinessId, filterSiteId, isAllSitesSelected, filtersInitialized) {
+        val isAdmin = currentUser?.role in listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER)
+        if (filtersInitialized && isAdmin && filterBusinessId != null) {
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            Log.d("AdminDashboardScreen", "🔄 Filter change detected (filtersReady=$filtersInitialized):")
+            Log.d("AdminDashboardScreen", "  - businessId: $filterBusinessId")
+            Log.d("AdminDashboardScreen", "  - isAllSitesSelected: $isAllSitesSelected")
+            Log.d("AdminDashboardScreen", "  - filterSiteId: $filterSiteId")
+            Log.d("AdminDashboardScreen", "  - effectiveSiteId: $effectiveSiteId")
+            viewModel.loadDashboardDataWithFilters(filterBusinessId!!, effectiveSiteId)
+            viewModel.loadOperatingVehiclesCount(filterBusinessId, effectiveSiteId, isAllSitesSelected)
+        }
+    }
     
     // Enhanced logging for debugging operating vehicles count
     LaunchedEffect(state.operatingVehiclesCount, state.activeVehicleSessions.size) {
@@ -63,13 +138,12 @@ fun AdminDashboardScreen(
         Log.d("AdminDashboardScreen", "error: ${state.error}")
         Log.d("AdminDashboardScreen", "========================")
     }
-    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.authEvent.collect { event ->
             when (event) {
-                is AuthEvent.NavigateToLogin -> {
+                AuthEvent.NavigateToLogin -> {
                     navController.navigate("login") {
                         popUpTo(navController.graph.startDestinationId) {
                             saveState = true
@@ -82,13 +156,22 @@ fun AdminDashboardScreen(
         }
     }
 
+    // ✅ SIMPLIFIED: Forzar recarga de dashboard al volver a la pantalla
+    LaunchedEffect(Unit) {
+        val isAdmin = currentUser?.role in listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER)
+        if (filterBusinessId != null && isAdmin) {
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            viewModel.loadDashboardDataWithFilters(filterBusinessId, effectiveSiteId)
+        }
+    }
+
     BaseScreen(
         navController = navController,
         showTopBar = false,
         showBottomBar = true,
         dashboardState = DashboardState(user = currentUser),
         topBarTitle = "Admin Dashboard",
-        onRefresh = { viewModel.refreshWithLoading() },
+        onAppResume = {},
         showLoadingOnRefresh = true,
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
@@ -98,7 +181,13 @@ fun AdminDashboardScreen(
                 .fillMaxSize()
                 .pullRefresh(rememberPullRefreshState(
                     refreshing = state.isLoading,
-                    onRefresh = { viewModel.loadDashboardData() }
+                    onRefresh = { 
+                        // ✅ FIXED: Admin always uses filters, never context
+                        if (filterBusinessId != null) {
+                            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+                            viewModel.loadDashboardDataWithFilters(filterBusinessId, effectiveSiteId)
+                        }
+                    }
                 )),
             contentAlignment = Alignment.TopCenter
         ) {
@@ -118,11 +207,50 @@ fun AdminDashboardScreen(
                         DashboardHeader(
                             userName = currentUser?.firstName ?: "",
                             onNotificationClick = { navController.navigate(Screen.Notifications.route) },
-                            onSettingsClick = { navController.navigate(Screen.SystemSettings.route) }
+                            onSettingsClick = { navController.navigate(Screen.SystemSettings.route) },
+                            showNotifications = false // Temporarily hide notifications
                         )
                     }
                     
+                    // ✅ FILTERS: Separate from user context - for data visualization only
+                    item {
+                        BusinessSiteFilters(
+                            mode = BusinessSiteFilterMode.VIEW_FILTER,
+                            currentUserRole = currentUser?.role,
+                            selectedBusinessId = filterBusinessId,
+                            selectedSiteId = if (isAllSitesSelected) null else filterSiteId,
+                            isAllSitesSelected = isAllSitesSelected,
+                            onBusinessChanged = { sharedFiltersViewModel.setBusinessId(it) },
+                            onSiteChanged = { siteId ->
+                                Log.d("AdminDashboardScreen", "🎯 Site selection changed: $siteId")
+                                if (siteId == "ALL_SITES") {
+                                    // "All Sites" selected - set site filter to null
+                                    Log.d("AdminDashboardScreen", "🔧 Processing ALL_SITES selection")
+                                    sharedFiltersViewModel.setSiteId(null)
+                                    Log.d("AdminDashboardScreen", "✅ All Sites selected - filtering with null siteId")
+                                } else {
+                                    // Specific site selected
+                                    Log.d("AdminDashboardScreen", "🔧 Processing specific site selection: $siteId")
+                                    sharedFiltersViewModel.setSiteId(siteId)
+                                    Log.d("AdminDashboardScreen", "✅ Specific site selected: $siteId")
+                                }
+                                // ✅ Data reload will be handled by LaunchedEffect observing filter changes
+                            },
+                            showBusinessFilter = false,
+                            isCollapsible = true,
+                            initiallyExpanded = false,
+                            title = "View Filters",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            adminSharedFiltersViewModel = sharedFiltersViewModel
+                        )
+                    }
+                    
+
+                    
                     item { OperationStatusSection(state, navController) }
+                    
+                    // 🧪 TESTING: SessionKeepAlive Test Button
+                    // item { SessionKeepAliveTestSection() }
                     
                     item { VehicleSessionSection(state, navController, imageLoader, checklistAnswers) }
                     
@@ -156,13 +284,21 @@ fun AdminDashboardScreen(
                 refreshing = state.isLoading,
                 state = rememberPullRefreshState(
                     refreshing = state.isLoading,
-                    onRefresh = { viewModel.loadDashboardData() }
+                    onRefresh = { 
+                        // ✅ FIXED: Admin always uses filters, never context
+                        if (filterBusinessId != null) {
+                            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+                            viewModel.loadDashboardDataWithFilters(filterBusinessId, effectiveSiteId)
+                        }
+                    }
                 ),
                 modifier = Modifier.align(Alignment.TopCenter)
             )
         }
     }
 }
+
+
 
 @Composable
 private fun OperationStatusSection(
@@ -194,7 +330,6 @@ private fun OperationStatusSection(
                     iconTint = Color(0xFF4CAF50),
                     onClick = { navController.navigate(Screen.VehiclesList.route) }
                 )
-                Log.d("AdminDashboardScreen", "OperationStatusSection - totalIncidentsCount: ${state.totalIncidentsCount}")
                 StatusItem(
                     icon = Icons.Default.Warning,
                     count = state.totalIncidentsCount.toString(),
@@ -445,3 +580,100 @@ private fun OperatorsInSessionSection(
         }
     }
 }
+
+// 🧪 TESTING: SessionKeepAlive Test Component (DISABLED - No longer needed)
+/*
+@Composable
+private fun SessionKeepAliveTestSection() {
+    // Get SessionKeepAliveManager using Hilt
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionKeepAliveManager = remember {
+        (context as? androidx.activity.ComponentActivity)?.let { activity ->
+            dagger.hilt.android.EntryPointAccessors.fromActivity(
+                activity,
+                SessionKeepAliveTestEntryPoint::class.java
+            ).sessionKeepAliveManager()
+        }
+    }
+    
+    val scope = rememberCoroutineScope()
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "🧪 SessionKeepAlive Test",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6D00)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        sessionKeepAliveManager?.let { manager ->
+                            Log.d("SessionKeepAliveTest", "🚀 Starting SessionKeepAlive manually")
+                            manager.startKeepAlive()
+                            manager.logSessionStatus()
+                        } ?: Log.e("SessionKeepAliveTest", "❌ SessionKeepAliveManager not available")
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text("Start", color = Color.White)
+                }
+                
+                Button(
+                    onClick = {
+                        sessionKeepAliveManager?.let { manager ->
+                            scope.launch {
+                                Log.d("SessionKeepAliveTest", "🧪 Force executing SessionKeepAlive")
+                                manager.forceExecuteNow()
+                            }
+                        } ?: Log.e("SessionKeepAliveTest", "❌ SessionKeepAliveManager not available")
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6D00))
+                ) {
+                    Text("Test Now", color = Color.White)
+                }
+                
+                Button(
+                    onClick = {
+                        sessionKeepAliveManager?.let { manager ->
+                            Log.d("SessionKeepAliveTest", "🛑 Stopping SessionKeepAlive")
+                            manager.stopKeepAlive()
+                        } ?: Log.e("SessionKeepAliveTest", "❌ SessionKeepAliveManager not available")
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336))
+                ) {
+                    Text("Stop", color = Color.White)
+                }
+            }
+            
+            Text(
+                text = "Logs will appear in Logcat with tag 'SessionKeepAlive'",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+    }
+}
+
+// Entry point for accessing SessionKeepAliveManager (DISABLED - No longer needed)
+@EntryPoint
+@InstallIn(ActivityComponent::class)
+interface SessionKeepAliveTestEntryPoint {
+    fun sessionKeepAliveManager(): SessionKeepAliveManager
+}
+*/

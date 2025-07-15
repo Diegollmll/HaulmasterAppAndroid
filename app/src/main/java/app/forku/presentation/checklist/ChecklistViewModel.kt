@@ -56,6 +56,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.content.ContentValues
 import app.forku.core.business.BusinessContextManager
+import app.forku.domain.usecase.certification.ValidateUserCertificationUseCase
 
 @HiltViewModel
 class ChecklistViewModel @Inject constructor(
@@ -82,7 +83,8 @@ class ChecklistViewModel @Inject constructor(
     private val getChecklistItemAnswerMultimediaByAnswerIdUseCase: GetChecklistItemAnswerMultimediaByAnswerIdUseCase,
     private val headerManager: HeaderManager,
     private val createSafetyAlertUseCase: CreateSafetyAlertUseCase,
-    private val businessContextManager: BusinessContextManager
+    private val businessContextManager: BusinessContextManager,
+    private val validateUserCertificationUseCase: ValidateUserCertificationUseCase
 ) : ViewModel() {
 
     private val vehicleId = checkNotNull(savedStateHandle["vehicleId"])
@@ -172,7 +174,7 @@ class ChecklistViewModel @Inject constructor(
     }
 
     init {
-        android.util.Log.e("ChecklistViewModel", "INIT ChecklistViewModel - Se está creando/recreando el ViewModel!")
+        android.util.Log.e("ChecklistViewModel", "INIT ChecklistViewModel - ViewModel is being created/recreated!")
         android.util.Log.d("ChecklistViewModel", "INIT - Estado actual: ${_state.value}")
         android.util.Log.d("ChecklistViewModel", "INIT - answeredItemIds: ${_answeredItemIds.value}")
         android.util.Log.d("ChecklistViewModel", "INIT - uploadedMultimedia: ${_uploadedMultimedia.value}")
@@ -338,21 +340,20 @@ class ChecklistViewModel @Inject constructor(
     }
 
     fun loadChecklistData() {
-        android.util.Log.d("ChecklistViewModel", "loadChecklistData A: start")
+        android.util.Log.d("ChecklistViewModel", "=== 🚗 STARTING CHECKLIST DATA LOAD ===")
+        android.util.Log.d("ChecklistViewModel", "vehicleId: $vehicleId")
         android.util.Log.d("ChecklistViewModel", "loadChecklistData - Estado actual: ${_state.value}")
         android.util.Log.d("ChecklistViewModel", "loadChecklistData - answeredItemIds: ${_answeredItemIds.value}")
         android.util.Log.d("ChecklistViewModel", "loadChecklistData - uploadedMultimedia: ${_uploadedMultimedia.value}")
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                android.util.Log.d("ChecklistViewModel", "Iniciando carga de checklist para vehicleId=$vehicleId")
+                android.util.Log.d("ChecklistViewModel", "🔍 Iniciando carga de checklist para vehicleId=$vehicleId")
                 
                 // Use BusinessContextManager for business context
                 val businessId = businessContextManager.getCurrentBusinessId()
                 android.util.Log.d("ChecklistViewModel", "businessId from BusinessContextManager: $businessId")
                 
-                if (businessId == app.forku.core.Constants.BUSINESS_ID) {
-                    android.util.Log.w("ChecklistViewModel", "Using fallback business ID: $businessId")
-                }
+                // Business ID should always come from BusinessContextManager
 
                 // Fetch all categories and build the map
                 val categories = checklistItemCategoryRepository.getAllCategories()
@@ -361,67 +362,149 @@ class ChecklistViewModel @Inject constructor(
                 _categoryNameMap.value = categoryMap
 
                 // Fetch vehicle for summary display and type filtering
-                android.util.Log.d("ChecklistViewModel", "Llamando a getVehicleUseCase con vehicleId=$vehicleId")
+                android.util.Log.d("ChecklistViewModel", "🚗 Llamando a getVehicleUseCase con vehicleId=$vehicleId")
                 val vehicle = try {
-                    getVehicleUseCase(vehicleId.toString()).also {
-                        android.util.Log.d("ChecklistViewModel", "Vehicle fetched: $it")
+                    getVehicleUseCase(vehicleId.toString()).also { fetchedVehicle ->
+                        android.util.Log.d("ChecklistViewModel", "🚗 Vehicle fetched successfully:")
+                        android.util.Log.d("ChecklistViewModel", "  - ID: ${fetchedVehicle?.id}")
+                        android.util.Log.d("ChecklistViewModel", "  - Codename: ${fetchedVehicle?.codename}")
+                        android.util.Log.d("ChecklistViewModel", "  - Type ID: ${fetchedVehicle?.type?.Id}")
+                        android.util.Log.d("ChecklistViewModel", "  - Type Name: ${fetchedVehicle?.type?.Name}")
+                        android.util.Log.d("ChecklistViewModel", "  - Status: ${fetchedVehicle?.status}")
+                        android.util.Log.d("ChecklistViewModel", "  - Business ID: ${fetchedVehicle?.businessId}")
                     }
                 } catch (e: Exception) {
-                    android.util.Log.e("ChecklistViewModel", "Error fetching vehicle: ${e.message}", e)
+                    android.util.Log.e("ChecklistViewModel", "❌ Error fetching vehicle: ${e.message}", e)
                     null
                 }
 
+                // ✅ VALIDATE USER CERTIFICATIONS FOR THIS VEHICLE TYPE
+                val currentUser = userRepository.getCurrentUser()
+                if (currentUser != null && vehicle != null) {
+                    android.util.Log.d("ChecklistViewModel", "🔐 Validating user certification for vehicle type: ${vehicle?.type?.Name}")
+                    val validationResult = validateUserCertificationUseCase(currentUser.id, vehicleId.toString())
+                    
+                    if (!validationResult.isValid) {
+                        android.util.Log.e("ChecklistViewModel", "❌ Certification validation failed: ${validationResult.message}")
+                        
+                        // Update state with certification error
+                        withContext(Dispatchers.Main) {
+                            _state.update {
+                                ChecklistState(
+                                    vehicle = vehicle,
+                                    vehicleId = vehicleId.toString(),
+                                    error = "Certification Required: ${validationResult.message}",
+                                    isLoading = false,
+                                    noCompatibleChecklists = true, // Use this flag to show special error UI
+                                    totalChecklistsFound = 0,
+                                    compatibleChecklistsFound = 0,
+                                    specificChecklistsFound = 0,
+                                    defaultChecklistsFound = 0
+                                )
+                            }
+                        }
+                        return@launch // Exit early - don't load checklist
+                    } else {
+                        android.util.Log.d("ChecklistViewModel", "✅ Certification validation passed: ${validationResult.message}")
+                        android.util.Log.d("ChecklistViewModel", "✅ Valid certifications: ${validationResult.validCertifications.map { "${it.name} (expires: ${it.expiryDate})" }}")
+                    }
+                } else {
+                    android.util.Log.w("ChecklistViewModel", "⚠️ Skipping certification validation - currentUser: $currentUser, vehicle: $vehicle")
+                }
+
                 // 1. Obtener datos del checklist
-                android.util.Log.d("ChecklistViewModel", "Llamando a getChecklistUseCase con vehicleId=$vehicleId")
+                android.util.Log.d("ChecklistViewModel", "📋 Llamando a getChecklistUseCase con vehicleId=$vehicleId")
                 val allChecklists = getChecklistUseCase(vehicleId.toString())
-                android.util.Log.d("ChecklistViewModel", "Total checklists retrieved: ${allChecklists.size}")
-                allChecklists.forEachIndexed { index, checklist ->
-                    android.util.Log.d("ChecklistViewModel", "Checklist $index: id=${checklist.id}, title=${checklist.title}, " +
-                        "isDefault=${checklist.isDefault}, allVehicleTypesEnabled=${checklist.allVehicleTypesEnabled}, " +
-                        "supportedVehicleTypeIds=${checklist.supportedVehicleTypeIds}")
+                android.util.Log.d("ChecklistViewModel", "📋 Total checklists retrieved from repository: ${allChecklists.size}")
+                if (allChecklists.isEmpty()) {
+                    android.util.Log.w("ChecklistViewModel", "⚠️ NO CHECKLISTS FOUND AT ALL - Repository returned empty list")
+                    android.util.Log.w("ChecklistViewModel", "   This could indicate:")
+                    android.util.Log.w("ChecklistViewModel", "   - No checklists configured in the system")
+                    android.util.Log.w("ChecklistViewModel", "   - Business context filtering is too restrictive")
+                    android.util.Log.w("ChecklistViewModel", "   - Repository query is failing")
+                } else {
+                    android.util.Log.d("ChecklistViewModel", "📋 Checklists found in repository:")
+                    allChecklists.forEachIndexed { index, checklist ->
+                        android.util.Log.d("ChecklistViewModel", "  [$index] id=${checklist.id}, title='${checklist.title}'")
+                        android.util.Log.d("ChecklistViewModel", "       isDefault=${checklist.isDefault}, allVehicleTypesEnabled=${checklist.allVehicleTypesEnabled}")
+                        android.util.Log.d("ChecklistViewModel", "       supportedVehicleTypeIds=${checklist.supportedVehicleTypeIds}")
+                        android.util.Log.d("ChecklistViewModel", "       businessId=${checklist.businessId}")
+                        android.util.Log.d("ChecklistViewModel", "       items.size=${checklist.items.size}")
+                    }
                 }
                 
-                // 2. Filter checklists by vehicle type
+                // 2. Filter checklists by BUSINESS CONTEXT first, then by vehicle type
                 val vehicleTypeId = vehicle?.type?.Id
                 val vehicleTypeName = vehicle?.type?.Name
                 android.util.Log.d("ChecklistViewModel", "Vehicle type ID: $vehicleTypeId, Name: $vehicleTypeName")
+                android.util.Log.d("ChecklistViewModel", "Current business ID: $businessId")
                 
-                // First, try to find checklists specifically compatible with this vehicle type
-                val specificCompatibleChecklists = allChecklists.filter { checklist ->
-                    val isSpecificallyCompatible = !checklist.allVehicleTypesEnabled && 
-                                                 vehicleTypeId != null && 
-                                                 checklist.supportedVehicleTypeIds.contains(vehicleTypeId)
-                    android.util.Log.d("ChecklistViewModel", "🔍 [SPECIFIC] Checklist ${checklist.id} (${checklist.title}) - " +
+                // STEP 1: Filter by business context (only current business + defaults)
+                val businessFilteredChecklists = allChecklists.filter { checklist ->
+                    val isBusinessCompatible = (checklist.businessId == businessId) || 
+                                             (checklist.businessId == null && checklist.isDefault)
+                    android.util.Log.d("ChecklistViewModel", "🏢 [BUSINESS] Checklist ${checklist.id} (${checklist.title}) - " +
+                        "checklistBusinessId: ${checklist.businessId}, " +
+                        "currentBusinessId: $businessId, " +
+                        "isDefault: ${checklist.isDefault}, " +
+                        "isBusinessCompatible: $isBusinessCompatible")
+                    isBusinessCompatible
+                }
+                
+                android.util.Log.d("ChecklistViewModel", "📊 Business filtered checklists: ${businessFilteredChecklists.size}/${allChecklists.size}")
+                businessFilteredChecklists.forEach { checklist ->
+                    android.util.Log.d("ChecklistViewModel", "  🏢 ${checklist.title} (businessId: ${checklist.businessId}, isDefault: ${checklist.isDefault})")
+                }
+                
+                // STEP 2: Within business-compatible checklists, prioritize by vehicle type compatibility
+                // First, try business-specific checklists that are vehicle type compatible
+                val businessSpecificChecklists = businessFilteredChecklists.filter { checklist ->
+                    checklist.businessId == businessId
+                }
+                
+                val businessSpecificCompatible = businessSpecificChecklists.filter { checklist ->
+                    val isVehicleTypeCompatible = checklist.allVehicleTypesEnabled || 
+                                                (vehicleTypeId != null && checklist.supportedVehicleTypeIds.contains(vehicleTypeId))
+                    android.util.Log.d("ChecklistViewModel", "🚗 [BUS-SPECIFIC] Checklist ${checklist.id} (${checklist.title}) - " +
                         "allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled}, " +
                         "supportedTypes: ${checklist.supportedVehicleTypeIds}, " +
                         "vehicleTypeId: $vehicleTypeId, " +
-                        "isSpecificallyCompatible: $isSpecificallyCompatible")
-                    isSpecificallyCompatible
+                        "isVehicleTypeCompatible: $isVehicleTypeCompatible")
+                    isVehicleTypeCompatible
                 }
                 
-                // If no specific checklists found, look for universal or default checklists
-                val universalOrDefaultChecklists = allChecklists.filter { checklist ->
-                    val isUniversalOrDefault = checklist.allVehicleTypesEnabled || checklist.isDefault
-                    android.util.Log.d("ChecklistViewModel", "🔄 [FALLBACK] Checklist ${checklist.id} (${checklist.title}) - " +
+                // Then, look for default checklists that are vehicle type compatible
+                val defaultChecklists = businessFilteredChecklists.filter { checklist ->
+                    checklist.businessId == null && checklist.isDefault
+                }
+                
+                val defaultCompatible = defaultChecklists.filter { checklist ->
+                    val isVehicleTypeCompatible = checklist.allVehicleTypesEnabled || 
+                                                (vehicleTypeId != null && checklist.supportedVehicleTypeIds.contains(vehicleTypeId))
+                    android.util.Log.d("ChecklistViewModel", "🔄 [DEFAULT] Checklist ${checklist.id} (${checklist.title}) - " +
                         "allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled}, " +
-                        "isDefault: ${checklist.isDefault}, " +
-                        "isUniversalOrDefault: $isUniversalOrDefault")
-                    isUniversalOrDefault
+                        "supportedTypes: ${checklist.supportedVehicleTypeIds}, " +
+                        "vehicleTypeId: $vehicleTypeId, " +
+                        "isVehicleTypeCompatible: $isVehicleTypeCompatible")
+                    isVehicleTypeCompatible
                 }
                 
-                // Use specific checklists if available, otherwise use universal/default ones
-                val compatibleChecklists = if (specificCompatibleChecklists.isNotEmpty()) {
-                    android.util.Log.d("ChecklistViewModel", "✅ Using ${specificCompatibleChecklists.size} specific checklists for vehicle type $vehicleTypeName")
-                    specificCompatibleChecklists.forEach { checklist ->
-                        android.util.Log.d("ChecklistViewModel", "  ✅ Specific: ${checklist.title} (ID: ${checklist.id})")
+                // STEP 3: Prioritize business-specific over defaults
+                val compatibleChecklists = if (businessSpecificCompatible.isNotEmpty()) {
+                    android.util.Log.d("ChecklistViewModel", "✅ Using ${businessSpecificCompatible.size} business-specific checklists for vehicle type $vehicleTypeName")
+                    businessSpecificCompatible.forEach { checklist ->
+                        android.util.Log.d("ChecklistViewModel", "  ✅ Business-specific: ${checklist.title} (ID: ${checklist.id})")
                     }
-                    specificCompatibleChecklists
+                    businessSpecificCompatible
+                } else if (defaultCompatible.isNotEmpty()) {
+                    android.util.Log.d("ChecklistViewModel", "⚠️ No business-specific checklists found, using ${defaultCompatible.size} default checklists for vehicle type $vehicleTypeName")
+                    defaultCompatible.forEach { checklist ->
+                        android.util.Log.d("ChecklistViewModel", "  ⚠️ Default: ${checklist.title} (ID: ${checklist.id}, isDefault: ${checklist.isDefault})")
+                    }
+                    defaultCompatible
                 } else {
-                    android.util.Log.d("ChecklistViewModel", "⚠️ No specific checklists found for vehicle type $vehicleTypeName, using ${universalOrDefaultChecklists.size} universal/default checklists")
-                    universalOrDefaultChecklists.forEach { checklist ->
-                        android.util.Log.d("ChecklistViewModel", "  ⚠️ Fallback: ${checklist.title} (ID: ${checklist.id}, isDefault: ${checklist.isDefault}, allVehicleTypesEnabled: ${checklist.allVehicleTypesEnabled})")
-                    }
-                    universalOrDefaultChecklists
+                    android.util.Log.e("ChecklistViewModel", "❌ No compatible checklists found for vehicle type $vehicleTypeName in business context")
+                    emptyList()
                 }
                 
                 android.util.Log.d("ChecklistViewModel", "📊 [RESULTADO FINAL] Compatible checklists: ${compatibleChecklists.size}")
@@ -434,8 +517,9 @@ class ChecklistViewModel @Inject constructor(
                 if (noCompatibleChecklists) {
                     android.util.Log.e("ChecklistViewModel", "❌ NO HAY CHECKLISTS COMPATIBLES para vehicleTypeId=$vehicleTypeId ($vehicleTypeName)")
                     android.util.Log.e("ChecklistViewModel", "   - Total checklists: ${allChecklists.size}")
-                    android.util.Log.e("ChecklistViewModel", "   - Específicos encontrados: ${specificCompatibleChecklists.size}")
-                    android.util.Log.e("ChecklistViewModel", "   - Por defecto/universales: ${universalOrDefaultChecklists.size}")
+                    android.util.Log.e("ChecklistViewModel", "   - Business filtered: ${businessFilteredChecklists.size}")
+                    android.util.Log.e("ChecklistViewModel", "   - Business-specific compatible: ${businessSpecificCompatible.size}")
+                    android.util.Log.e("ChecklistViewModel", "   - Default compatible: ${defaultCompatible.size}")
                 } else {
                     android.util.Log.d("ChecklistViewModel", "✅ CHECKLISTS COMPATIBLES ENCONTRADOS: ${compatibleChecklists.size}")
                 }
@@ -443,12 +527,37 @@ class ChecklistViewModel @Inject constructor(
                 // 3. Filter questions within checklists by vehicle type
                 val filteredChecklists = compatibleChecklists.map { checklist ->
                     val filteredItems = checklist.items.filter { item ->
-                        val itemCompatible = item.vehicleType.isEmpty() || 
-                                           vehicleTypeId == null || 
-                                           item.vehicleType.any { it.Id == vehicleTypeId }
-                        android.util.Log.d("ChecklistViewModel", "Item ${item.id} - vehicleTypes: ${item.vehicleType.map { it.Id }}, isCompatible: $itemCompatible")
+                        val itemCompatible = when {
+                            // If item has allVehicleTypesEnabled = true, it's compatible with all vehicles
+                            item.allVehicleTypesEnabled -> {
+                                android.util.Log.d("ChecklistViewModel", "Item ${item.id} (${item.question}) - allVehicleTypesEnabled=true, compatible with all vehicles")
+                                true
+                            }
+                            // If item has no vehicle type restrictions, it's compatible with all
+                            item.supportedVehicleTypeIds.isEmpty() -> {
+                                android.util.Log.d("ChecklistViewModel", "Item ${item.id} (${item.question}) - no vehicle type restrictions, compatible with all")
+                                true
+                            }
+                            // If vehicle type is null, show all items
+                            vehicleTypeId == null -> {
+                                android.util.Log.d("ChecklistViewModel", "Item ${item.id} (${item.question}) - vehicleTypeId is null, showing all items")
+                                true
+                            }
+                            // Check if this vehicle type is in the supported list
+                            else -> {
+                                val isSupported = item.supportedVehicleTypeIds.contains(vehicleTypeId)
+                                android.util.Log.d("ChecklistViewModel", "Item ${item.id} (${item.question}) - checking supportedVehicleTypeIds: ${item.supportedVehicleTypeIds}, vehicleTypeId: $vehicleTypeId, isSupported: $isSupported")
+                                isSupported
+                            }
+                        }
+                        android.util.Log.d("ChecklistViewModel", "Item ${item.id} (${item.question}) - " +
+                            "allVehicleTypesEnabled: ${item.allVehicleTypesEnabled}, " +
+                            "supportedVehicleTypeIds: ${item.supportedVehicleTypeIds}, " +
+                            "vehicleTypeId: $vehicleTypeId, " +
+                            "isCompatible: $itemCompatible")
                         itemCompatible
                     }
+                    android.util.Log.d("ChecklistViewModel", "Checklist '${checklist.title}': ${checklist.items.size} items -> ${filteredItems.size} compatible items")
                     checklist.copy(items = filteredItems)
                 }
                 
@@ -508,7 +617,13 @@ class ChecklistViewModel @Inject constructor(
                 } else prevChecklistAnswerId
 
                 withContext(Dispatchers.Main) {
-                    android.util.Log.d("ChecklistViewModel", "Setting ChecklistState with vehicle: $vehicle, checkItems: ${selectedItems.size}, checklistAnswerId: $checkId")
+                    android.util.Log.d("ChecklistViewModel", "🎯 Setting final ChecklistState")
+                    android.util.Log.d("ChecklistViewModel", "  - Vehicle: ${vehicle?.codename} (${vehicle?.type?.Name})")
+                    android.util.Log.d("ChecklistViewModel", "  - Selected items: ${selectedItems.size}")
+                    android.util.Log.d("ChecklistViewModel", "  - ChecklistAnswerId: $checkId")
+                    android.util.Log.d("ChecklistViewModel", "  - FirstChecklist: ${firstChecklist?.title} (${firstChecklist?.id})")
+                    android.util.Log.d("ChecklistViewModel", "  - NoCompatibleChecklists: $noCompatibleChecklists")
+                    
                     _state.value = ChecklistState(
                         vehicle = vehicle,
                         vehicleId = vehicleId.toString(),
@@ -517,14 +632,30 @@ class ChecklistViewModel @Inject constructor(
                         checkItems = selectedItems,
                         checklistAnswerId = checkId,
                         checklistId = selectedItems.firstOrNull()?.checklistId,
+                        checklistVersion = firstChecklist?.version ?: "1.0", // ✅ NEW: Set checklist version from the first checklist
                         startDateTime = currentDateTime,
                         noCompatibleChecklists = noCompatibleChecklists,
                         totalChecklistsFound = allChecklists.size,
                         compatibleChecklistsFound = compatibleChecklists.size,
-                        specificChecklistsFound = specificCompatibleChecklists.size,
-                        defaultChecklistsFound = universalOrDefaultChecklists.size
+                        specificChecklistsFound = businessSpecificCompatible.size,
+                        defaultChecklistsFound = defaultCompatible.size
                     )
-                    android.util.Log.d("ChecklistViewModel", "ChecklistState actualizado: ${_state.value}")
+                    
+                    android.util.Log.d("ChecklistViewModel", "=== 🎯 FINAL UI STATE ===")
+                    android.util.Log.d("ChecklistViewModel", "📊 Statistics:")
+                    android.util.Log.d("ChecklistViewModel", "  - Total checklists found: ${allChecklists.size}")
+                    android.util.Log.d("ChecklistViewModel", "  - Business filtered checklists: ${businessFilteredChecklists.size}")
+                    android.util.Log.d("ChecklistViewModel", "  - Compatible checklists: ${compatibleChecklists.size}")
+                    android.util.Log.d("ChecklistViewModel", "  - Business-specific checklists: ${businessSpecificCompatible.size}")
+                    android.util.Log.d("ChecklistViewModel", "  - Default checklists: ${defaultCompatible.size}")
+                    android.util.Log.d("ChecklistViewModel", "  - Selected items for rotation: ${selectedItems.size}")
+                    android.util.Log.d("ChecklistViewModel", "🚨 UI Flags:")
+                    android.util.Log.d("ChecklistViewModel", "  - noCompatibleChecklists: $noCompatibleChecklists")
+                    android.util.Log.d("ChecklistViewModel", "  - Will show 'No checklist items': ${selectedItems.isEmpty()}")
+                    android.util.Log.d("ChecklistViewModel", "  - Will show 'Checklist without questions': ${selectedItems.isEmpty() && compatibleChecklists.isNotEmpty()}")
+                    android.util.Log.d("ChecklistViewModel", "  - Will show 'No checklists configured': ${allChecklists.isEmpty()}")
+                    android.util.Log.d("ChecklistViewModel", "================================")
+                    
                     maybeStartTimer()
 
                     // --- Limpieza opcional de imágenes locales que ya no correspondan a preguntas actuales ---
@@ -650,8 +781,10 @@ class ChecklistViewModel @Inject constructor(
                     val answeredItem = AnsweredChecklistItem(
                         id = existingAnsweredItem?.id ?: java.util.UUID.randomUUID().toString(),
                         checklistId = item.checklistId,
+                        checklistVersion = state.value?.checklistVersion ?: "1.0", // ✅ FIXED: Use checklistVersion from state
                         checklistAnswerId = checklistAnswerId ?: "",
                         checklistItemId = item.id,
+                        checklistItemVersion = item.version, // ✅ NEW: Include question version
                         question = item.question,
                         answer = newAnswer.name,
                         userId = userRepository.getCurrentUser()?.id ?: "",
@@ -761,8 +894,10 @@ class ChecklistViewModel @Inject constructor(
                 val answeredItem = AnsweredChecklistItem(
                     id = existingAnsweredItem?.id ?: java.util.UUID.randomUUID().toString(),
                     checklistId = item.checklistId, // ID de la plantilla
+                    checklistVersion = state.value?.checklistVersion ?: "1.0", // ✅ FIXED: Use checklistVersion from state
                     checklistAnswerId = savedAnswer.id, // ID de la instancia de respuesta
                     checklistItemId = item.id, // Set checklistItemId to ChecklistItem's id
+                    checklistItemVersion = item.version, // ✅ NEW: Include question version
                     question = item.question,
                     answer = item.userAnswer.name,
                     userId = userRepository.getCurrentUser()?.id ?: "",
@@ -862,6 +997,65 @@ class ChecklistViewModel @Inject constructor(
         _showDiscardDialog.value = false
     }
 
+    /**
+     * Handle initial hour meter confirmation and start vehicle session
+     */
+    fun onInitialHourMeterConfirmed(hourMeter: String) {
+        viewModelScope.launch {
+            try {
+                _state.update { 
+                    it?.copy(
+                        showInitialHourMeterDialog = false,
+                        isLoading = true
+                    ) 
+                }
+                
+                val vehicleId = state.value?.vehicleId ?: throw Exception("Vehicle ID not found")
+                val checklistAnswerId = state.value?.pendingChecklistAnswerId ?: throw Exception("Checklist Answer ID not found")
+                
+                android.util.Log.d("ChecklistViewModel", "Starting vehicle session with initial hour meter: $hourMeter")
+                val result = startVehicleSessionUseCase(vehicleId, checklistAnswerId, hourMeter)
+                
+                result.onSuccess {
+                    android.util.Log.d("ChecklistViewModel", "Vehicle session started successfully with hour meter.")
+                    val currentUser = userRepository.getCurrentUser()
+                    val role = currentUser?.role?.name ?: "operator"
+                    android.util.Log.d("ChecklistViewModel", "Emitting navigation event to dashboard for role: $role")
+                    _navigationEvent.value = NavigationEvent.AfterSubmit(role = role)
+                }.onFailure { e ->
+                    android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session: ${e.message}", e)
+                    _state.update { 
+                        it?.copy(
+                            isLoading = false,
+                            message = "Failed to start vehicle session: ${e.message}"
+                        ) 
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ChecklistViewModel", "Error handling hour meter confirmation: ${e.message}", e)
+                _state.update { 
+                    it?.copy(
+                        isLoading = false,
+                        showInitialHourMeterDialog = false,
+                        message = "Error: ${e.message}"
+                    ) 
+                }
+            }
+        }
+    }
+
+    /**
+     * Dismiss initial hour meter dialog
+     */
+    fun onInitialHourMeterDismissed() {
+        _state.update { 
+            it?.copy(
+                showInitialHourMeterDialog = false,
+                pendingChecklistAnswerId = null
+            ) 
+        }
+    }
+
     fun resetNavigation() {
         _navigationEvent.value = null
     }
@@ -900,6 +1094,7 @@ class ChecklistViewModel @Inject constructor(
                         endDateTime = now,
                         status = status.toApiInt(),
                         checklistId = currentChecklistId,
+                        checklistVersion = state.value?.checklistVersion ?: "1.0", // ✅ FIXED: Use checklistVersion from state
                         locationCoordinates = locationCoordinates,
                         lastCheckDateTime = now,
                         vehicleId = currentVehicleId,
@@ -918,6 +1113,7 @@ class ChecklistViewModel @Inject constructor(
         return ChecklistAnswer(
             id = java.util.UUID.randomUUID().toString(),
             checklistId = currentChecklistId,
+            checklistVersion = state.value?.checklistVersion ?: "1.0", // ✅ NEW: Include checklist version
             goUserId = userId,
             startDateTime = state.value?.startDateTime ?: now,
             endDateTime = now,
@@ -952,7 +1148,7 @@ class ChecklistViewModel @Inject constructor(
                     _state.update { 
                         it?.copy(
                             showErrorModal = true,
-                            errorModalMessage = "Por favor completa todas las preguntas requeridas antes de finalizar",
+                            errorModalMessage = "Please complete all required questions before finishing",
                             isSubmitting = false
                         )
                     }
@@ -1082,7 +1278,7 @@ class ChecklistViewModel @Inject constructor(
                     // Cambiar estado del vehículo a OUT_OF_SERVICE
                     val vehicleId = state.value?.vehicleId
                     if (vehicleId != null) {
-                        val businessId = state.value?.vehicle?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                        val businessId = businessContextManager.getCurrentBusinessId() ?: state.value?.vehicle?.businessId ?: ""
                         vehicleStatusUpdater.updateVehicleStatus(vehicleId, VehicleStatus.OUT_OF_SERVICE, businessId)
                     }
                 }
@@ -1233,24 +1429,14 @@ class ChecklistViewModel @Inject constructor(
                     }
                 }
 
-                // --- NUEVO: Iniciar sesión si el checklist está aprobado ---
+                // --- NEW: Request initial hour meter if the checklist is approved ---
                 if (validation.status == CheckStatus.COMPLETED_PASS) {
-                    try {
-                        android.util.Log.d("ChecklistViewModel", "Checklist is COMPLETED_PASS, starting vehicle session via use case...")
-                        val result = startVehicleSessionUseCase(state.value?.vehicleId ?: "", savedAnswer.id)
-                        result.onSuccess {
-                            android.util.Log.d("ChecklistViewModel", "Vehicle session started successfully via use case.")
-                            val currentUser = userRepository.getCurrentUser()
-                            val role = currentUser?.role?.name ?: "operator"
-                            android.util.Log.d("ChecklistViewModel", "Emitting navigation event to dashboard for role: $role")
-                            _navigationEvent.value = NavigationEvent.AfterSubmit(role = role)
-                        }.onFailure { e ->
-                            android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session via use case: ${e.message}", e)
-                            _state.update { it?.copy(message = "Checklist saved, but failed to start vehicle session: ${e.message}") }
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session: ${e.message}", e)
-                        _state.update { it?.copy(message = "Checklist saved, but failed to start vehicle session: ${e.message}") }
+                    android.util.Log.d("ChecklistViewModel", "Checklist is COMPLETED_PASS, showing hour meter dialog...")
+                    _state.update { 
+                        it?.copy(
+                            showInitialHourMeterDialog = true,
+                            pendingChecklistAnswerId = savedAnswer.id
+                        ) 
                     }
                 } else if (validation.status == CheckStatus.COMPLETED_FAIL) {
                     // Bloquear vehículo ya ocurre en repositorio, solo navega y muestra mensaje
@@ -1259,7 +1445,7 @@ class ChecklistViewModel @Inject constructor(
                     // Cambiar estado del vehículo a OUT_OF_SERVICE
                     val vehicleId = state.value?.vehicleId
                     if (vehicleId != null) {
-                        val businessId = state.value?.vehicle?.businessId ?: app.forku.core.Constants.BUSINESS_ID
+                        val businessId = businessContextManager.getCurrentBusinessId() ?: state.value?.vehicle?.businessId ?: ""
                         vehicleStatusUpdater.updateVehicleStatus(vehicleId, VehicleStatus.OUT_OF_SERVICE, businessId)
                     }
                 }

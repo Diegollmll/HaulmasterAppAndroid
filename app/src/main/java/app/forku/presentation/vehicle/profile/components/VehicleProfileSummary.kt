@@ -44,6 +44,8 @@ import app.forku.presentation.vehicle.components.VehicleImage
 import app.forku.domain.model.checklist.CheckStatus
 import app.forku.presentation.common.utils.getUserAvatarData
 import app.forku.presentation.common.components.UserAvatar
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.text.selection.SelectionContainer
 
 @Composable
 fun VehicleProfileSummary(
@@ -412,20 +414,32 @@ fun VehicleDetailsSection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    // Model column - improved for long serial numbers
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Text(
                             text = "Model",
                             color = Color.Gray,
                             fontSize = 13.sp
                         )
-                        Text(
-                            text = vehicle?.model ?: "Unknown",
-                            color = Color.Black,
-                            fontSize = 14.sp
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = vehicle?.model ?: "Unknown",
+                                color = Color.Black,
+                                fontSize = 14.sp,
+                                lineHeight = 16.sp,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                        }
                     }
 
-                    Column {
+                    // Energy column
+                    Column(
+                        modifier = Modifier.weight(0.6f)
+                    ) {
                         Text(
                             text = "Energy",
                             color = Color.Gray,
@@ -438,14 +452,18 @@ fun VehicleDetailsSection(
                         )
                     }
 
-                    Column {
+                    // Hour Meter column
+                    Column(
+                        modifier = Modifier.weight(0.8f),
+                        horizontalAlignment = Alignment.End
+                    ) {
                         Text(
-                            text = "Next Service",
+                            text = "Hour Meter",
                             color = Color.Gray,
                             fontSize = 13.sp
                         )
                         Text(
-                            text = "${vehicle?.nextService ?: "Unknown"} hrs",
+                            text = "${vehicle?.currentHourMeter ?: "0"} hrs",
                             color = Color.Black,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium

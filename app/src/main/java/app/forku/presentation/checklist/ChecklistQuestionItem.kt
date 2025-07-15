@@ -160,7 +160,7 @@ fun ChecklistQuestionItem(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Mostrar campo de comentario y fotos SOLO si la pregunta está respondida, con animación
+            // Show comment field and photos ONLY if the question is answered, with animation
             AnimatedVisibility(visible = question.userAnswer != null) {
                 Column {
                     OutlinedTextField(

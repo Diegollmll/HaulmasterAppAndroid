@@ -30,10 +30,19 @@ class HeaderManager @Inject constructor(
     suspend fun getHeaders(forceRefresh: Boolean = false): Result<Headers> {
         return try {
             // First check if we have a valid application token
-            val applicationToken = authDataStore.getApplicationToken()
+            var applicationToken = authDataStore.getApplicationToken()
             if (applicationToken == null) {
-                _authState.value = AuthState.NotAuthenticated
-                return Result.failure(Exception("No application token found"))
+                // 🔧 CRITICAL FIX: Try to initialize tokens from storage before failing
+                android.util.Log.w("HeaderManager", "No application token in cache - forcing initialization")
+                authDataStore.initializeApplicationToken()
+                applicationToken = authDataStore.getApplicationToken()
+                
+                if (applicationToken == null) {
+                    _authState.value = AuthState.NotAuthenticated
+                    return Result.failure(Exception("No application token found"))
+                } else {
+                    android.util.Log.d("HeaderManager", "✅ Application token restored: ${applicationToken.take(10)}...")
+                }
             }
 
             // Get CSRF token and cookie

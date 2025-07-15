@@ -83,7 +83,8 @@ fun SystemOwnerDashboardScreen(
                         DashboardHeader(
                             userName = currentUser?.firstName ?: "",
                             onNotificationClick = { navController?.navigate(Screen.Notifications.route) },
-                            onProfileClick = { navController?.navigate(Screen.Profile.route) }
+                            onProfileClick = { navController?.navigate(Screen.Profile.route) },
+                            showNotifications = false
                         )
                     }
                     

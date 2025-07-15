@@ -10,9 +10,7 @@ data class UserPreferences(
     val theme: String = "system", // "light", "dark", "system"
     val language: String = "en",
     val notificationsEnabled: Boolean = true,
-    val createdAt: String? = null,
-    val updatedAt: String? = null,
-    val isActive: Boolean = true,
+    // GO API required fields
     val isDirty: Boolean = true,
     val isNew: Boolean = true
 ) {

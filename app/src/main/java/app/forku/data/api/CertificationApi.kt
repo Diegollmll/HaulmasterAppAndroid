@@ -15,9 +15,14 @@ interface CertificationApi {
     ): Response<List<CertificationDto>>
 
     @GET("api/certification/byid/{id}")
+    @Headers(
+        "Accept: text/plain"
+    )
     suspend fun getCertificationById(
         @Path("id") id: String,
-        @Query("businessId") businessId: String? = null
+        @Query("include") include: String? = null,
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
     ): Response<CertificationDto>
 
     @FormUrlEncoded
@@ -30,7 +35,8 @@ interface CertificationApi {
         @Header("X-CSRF-TOKEN") csrfToken: String,
         @Header("Cookie") cookie: String,
         @Field("entity") entity: String,
-        @Query("businessId") businessId: String? = null
+        @Query("businessId") businessId: String? = null,
+        @Query("siteId") siteId: String? = null
     ): Response<CertificationDto>
 
     @DELETE("dataset/api/certification/{id}")
@@ -42,10 +48,13 @@ interface CertificationApi {
     ): Response<Unit>
 
     @GET("api/certification/list")
-    suspend fun getCertificationsByUserId(
-        @Query("filter") filter: String,
+    @Headers(
+        "Accept: text/plain"
+    )
+    suspend fun getCertificationsList(
+        @Query("filter") filter: String? = null,
+        @Query("include") include: String? = null,
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String,
-        @Query("businessId") businessId: String? = null
+        @Header("Cookie") cookie: String
     ): Response<List<CertificationDto>>
 } 

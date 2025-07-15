@@ -5,5 +5,5 @@ object Constants {
     //const val BASE_URL = "https://67ed9e4e4387d9117bbe2e16.mockapi.io/forku/api/v1/" //V1
     const val BASE_URL = "https://godev.collectiveintelligence.com.au/forkuapp-de6b98b5-4402-4a8f-891b-70b3591df162/" //GO Api V1
     const val API_VERSION = "v1"
-    const val BUSINESS_ID = "200dd110-d7f4-421f-8263-9265c85e8315"
+    //const val BUSINESS_ID = "200dd110-d7f4-421f-8263-9265c85e8315"
 }

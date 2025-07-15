@@ -27,9 +27,19 @@ class CicoHistoryViewModel @Inject constructor(
     private val _state = MutableStateFlow(CicoHistoryState())
     val state = _state.asStateFlow()
 
+    private val _currentUser = MutableStateFlow<User?>(null)
+    val currentUser = _currentUser.asStateFlow()
+
     init {
         android.util.Log.d("appflow", "CicoHistoryViewModel init called: state.value.selectedOperatorId ${state.value.selectedOperatorId}")
-
+        viewModelScope.launch {
+            try {
+                val user = userRepository.getCurrentUser()
+                _currentUser.value = user
+            } catch (e: Exception) {
+                android.util.Log.e("CICO", "Error loading current user", e)
+            }
+        }
         //loadCicoHistory()
     }
 
@@ -241,6 +251,84 @@ class CicoHistoryViewModel @Inject constructor(
             CicoHistoryState() // Reset to initial state
         }
     }
+
+    // ✅ New methods for business and site filtering
+    fun setBusinessFilter(businessId: String?) {
+        android.util.Log.d("CICO", "Setting business filter: $businessId")
+        _state.update { it.copy(selectedBusinessId = businessId) }
+        // Reload history with new filters
+        loadCicoHistoryWithFilters()
+    }
+
+    fun setSiteFilter(siteId: String?) {
+        android.util.Log.d("CICO", "Setting site filter: $siteId")
+        _state.update { it.copy(selectedSiteId = siteId) }
+        // Reload history with new filters
+        loadCicoHistoryWithFilters()
+    }
+
+
+
+    private fun loadCicoHistoryWithFilters() {
+        val currentState = _state.value
+        
+        viewModelScope.launch {
+            _state.update { it.copy(isLoading = true, error = null) }
+            
+            try {
+                android.util.Log.d("CICO", "Loading history with filters: businessId=${currentState.selectedBusinessId}, siteId=${currentState.selectedSiteId}, operatorId=${currentState.selectedOperatorId}")
+                
+                // Use the new filtered method
+                val sessions = cicoHistoryRepository.getSessionsHistoryWithFilters(
+                    page = 1, // Reset to first page when filtering
+                    businessId = currentState.selectedBusinessId,
+                    siteId = currentState.selectedSiteId,
+                    operatorId = currentState.selectedOperatorId
+                )
+
+                android.util.Log.d("CICO", "Fetched ${sessions.size} filtered sessions")
+
+                // Process sessions
+                val processedSessions = sessions.map { session ->
+                    CicoEntry(
+                        id = session.id,
+                        operatorId = session.userId,
+                        vehicleName = session.vehicleName,
+                        operatorName = session.operatorName,
+                        date = getRelativeTimeSpanString(session.startTime),
+                        checkInTime = session.startTime,
+                        checkOutTime = session.endTime,
+                        duration = session.durationMinutes?.let { minutes ->
+                            when {
+                                minutes < 60 -> "$minutes min"
+                                else -> "${minutes / 60}h ${minutes % 60}m"
+                            }
+                        }
+                    )
+                }
+
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        cicoHistory = processedSessions,
+                        filteredHistory = processedSessions,
+                        currentPage = 1,
+                        hasMoreItems = sessions.size >= it.itemsPerPage,
+                        error = if (processedSessions.isEmpty()) "No history found with current filters" else null
+                    )
+                }
+
+            } catch (e: Exception) {
+                android.util.Log.e("CICO", "Error loading filtered history", e)
+                _state.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to load filtered history. Please try again."
+                    )
+                }
+            }
+        }
+    }
 }
 
 data class CicoHistoryState(
@@ -256,7 +344,11 @@ data class CicoHistoryState(
     val itemsPerPage: Int = 10,
     val hasMoreItems: Boolean = false,
     val isLoadingMore: Boolean = false,
-    val currentUserId: String? = null
+    val currentUserId: String? = null,
+    // ✅ New business and site filter states for admin
+    val selectedBusinessId: String? = null,
+    val selectedSiteId: String? = null,
+    val currentUserRole: UserRole? = null
 )
 
 data class Operator(

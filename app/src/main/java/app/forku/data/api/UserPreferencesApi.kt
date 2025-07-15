@@ -36,7 +36,8 @@ interface UserPreferencesApi {
     suspend fun saveUserPreferences(
         @Field("entity") entity: String,
         @Header("X-CSRF-TOKEN") csrfToken: String,
-        @Header("Cookie") cookie: String
+        @Header("Cookie") cookie: String,
+        @Query("businessId") businessId: String
     ): Response<UserPreferencesDto>
     
     @DELETE("dataset/api/userpreferences/{id}")

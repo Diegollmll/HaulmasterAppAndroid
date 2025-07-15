@@ -7,8 +7,12 @@ data class AnsweredChecklistItemDto(
     val id: String = "",
     @SerializedName("ChecklistAnswerId")
     val checklistAnswerId: String = "",
+    @SerializedName("ChecklistVersion")
+    val checklistVersion: String = "1.0",
     @SerializedName("ChecklistItemId")
     val checklistItemId: String = "",
+    @SerializedName("ChecklistItemVersion")
+    val checklistItemVersion: String = "1.0",
     @SerializedName("GOUserId")
     val goUserId: String = "",
     @SerializedName("UserAnswer")

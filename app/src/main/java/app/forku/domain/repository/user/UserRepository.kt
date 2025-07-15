@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface UserRepository {
     suspend fun getUserById(id: String): User?
     
-    suspend fun login(email: String, password: String): Result<User>
+    //suspend fun login(email: String, password: String): Result<User>
     
     suspend fun register(
         firstName: String,
@@ -82,4 +82,9 @@ interface UserRepository {
      * @return Business ID or null if no business assigned
      */
     suspend fun getCurrentUserBusinessId(): String?
+    
+    /**
+     * Update the current user in AuthDataStore
+     */
+    suspend fun updateCurrentUser(user: User)
 } 

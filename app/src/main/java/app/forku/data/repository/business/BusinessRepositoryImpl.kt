@@ -246,15 +246,15 @@ class BusinessRepositoryImpl @Inject constructor(
             Log.d("BusinessManagement", "Validating SuperAdmin access for user: ${currentUser?.id}, role: ${currentUser?.role}")
             
             return when {
-                // System Owner tiene acceso total
+                // System Owner has full access
                 currentUser?.role == UserRole.SYSTEM_OWNER -> true
                 
-                // SuperAdmin solo puede acceder a sus propios negocios
+                // SuperAdmin can only access their own businesses
                 currentUser?.role == UserRole.SUPERADMIN && currentUser.id == superAdminId -> {
                     if (businessId == null) {
                         true // SuperAdmin can access their own general resources without a specific business
                     } else {
-                        // Verificar si el SuperAdmin tiene asignación para este negocio
+                        // Verify if the SuperAdmin has assignment for this business
                         val assignments = userBusinessApi.getUserBusinessAssignments().body() ?: emptyList()
                         assignments.any { assignment ->
                             assignment.userId == superAdminId &&
@@ -264,7 +264,7 @@ class BusinessRepositoryImpl @Inject constructor(
                     }
                 }
                 
-                // Otros roles no tienen acceso
+                // Other roles don't have access
                 else -> false
             }.also {
                 Log.d("BusinessManagement", "Access validation result: $it")

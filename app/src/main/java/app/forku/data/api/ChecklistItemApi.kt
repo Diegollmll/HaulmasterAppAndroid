@@ -19,12 +19,18 @@ interface ChecklistItemApi {
     )
     suspend fun getById(@Path("id") id: String): Response<ChecklistItemDto>
 
+    @FormUrlEncoded
     @POST("api/checklistitem")
     @Headers(
-        "Content-Type: application/json",
+        "Content-Type: application/x-www-form-urlencoded",
         "Accept: text/plain"
     )
-    suspend fun save(@Body item: ChecklistItemDto): Response<ChecklistItemDto>
+    suspend fun save(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
+        @Field("entity") entity: String,
+        @Query("businessId") businessId: String? = null
+    ): Response<ChecklistItemDto>
 
     @DELETE("dataset/api/checklistitem/{id}")
     @Headers(

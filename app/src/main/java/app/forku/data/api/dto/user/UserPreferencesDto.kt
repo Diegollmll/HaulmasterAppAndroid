@@ -5,6 +5,9 @@ import app.forku.data.api.dto.site.SiteDto
 import com.google.gson.annotations.SerializedName
 
 data class UserPreferencesDto(
+    @SerializedName("\$type")
+    val type: String = "UserPreferencesDataObject",
+    
     @SerializedName("Id")
     val id: String? = null,
     
@@ -30,20 +33,18 @@ data class UserPreferencesDto(
     @SerializedName("NotificationsEnabled")
     val notificationsEnabled: Boolean = true,
     
-    @SerializedName("CreatedAt")
-    val createdAt: String? = null,
-    
-    @SerializedName("UpdatedAt")
-    val updatedAt: String? = null,
-    
-    @SerializedName("IsActive")
-    val isActive: Boolean = true,
-    
+    // ✅ GO API Required Fields
     @SerializedName("IsDirty")
     val isDirty: Boolean = true,
     
     @SerializedName("IsNew")
     val isNew: Boolean = true,
+    
+    @SerializedName("IsMarkedForDeletion")
+    val isMarkedForDeletion: Boolean = false,
+    
+    @SerializedName("InternalObjectId")
+    val internalObjectId: Int = 0,
 
     @SerializedName("Site")
     val site: SiteDto? = null,
@@ -52,7 +53,9 @@ data class UserPreferencesDto(
     val user: app.forku.data.api.dto.user.UserDto? = null,
 
     @SerializedName("Business")
-    val business: BusinessDto? = null
+    val business: BusinessDto? = null,
 
+    @SerializedName("GOUserId")
+    val goUserId: String? = null
 
 ) 

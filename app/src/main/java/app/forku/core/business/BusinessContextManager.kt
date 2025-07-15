@@ -89,18 +89,50 @@ class BusinessContextManager @Inject constructor(
         return try {
             _contextState.value = _contextState.value.copy(isLoading = true, error = null)
             
-            // Get context ONLY from user preferences - no fallbacks to user repository
-            val preferences = userPreferencesRepository.getCurrentUserPreferences()
+            Log.d("BusinessContextManager", "🔍 loadBusinessContext called - fetching user preferences")
+            
+            // Load effective context from user preferences with detailed error handling
+            val preferences = try {
+                Log.d("BusinessContextManager", "🔍 About to call userPreferencesRepository.getCurrentUserPreferences()")
+                val result = userPreferencesRepository.getCurrentUserPreferences()
+                Log.d("BusinessContextManager", "🔍 getCurrentUserPreferences() returned: ${result != null}")
+                result
+            } catch (e: Exception) {
+                Log.e("BusinessContextManager", "❌ Exception in getCurrentUserPreferences(): ${e.message}", e)
+                null
+            }
+            
+            Log.d("BusinessContextManager", "🔍 User preferences loading result:")
+            Log.d("BusinessContextManager", "  - Preferences found: ${preferences != null}")
+            
+            if (preferences != null) {
+                Log.d("BusinessContextManager", "  - Business ID: ${preferences.businessId}")
+                Log.d("BusinessContextManager", "  - Site ID: ${preferences.siteId}")
+                Log.d("BusinessContextManager", "  - Last Selected Business: ${preferences.lastSelectedBusinessId}")
+                Log.d("BusinessContextManager", "  - Last Selected Site: ${preferences.lastSelectedSiteId}")
+            } else {
+                Log.w("BusinessContextManager", "⚠️ No preferences loaded - this may indicate:")
+                Log.w("BusinessContextManager", "  1. User has no UserPreferencesId in backend")
+                Log.w("BusinessContextManager", "  2. UserPreferences exist but API call failed")
+                Log.w("BusinessContextManager", "  3. Network/authentication issue")
+            }
+            
             val businessId = preferences?.getEffectiveBusinessId()
             val siteId = preferences?.getEffectiveSiteId()
             
-            Log.d("BusinessContextManager", "Business context loaded from preferences ONLY: businessId=$businessId, siteId=$siteId")
+            Log.d("BusinessContextManager", "🔍 Effective context from preferences:")
+            Log.d("BusinessContextManager", "  - Effective Business ID: $businessId")
+            Log.d("BusinessContextManager", "  - Effective Site ID: $siteId")
             
-            // Valid context requires BOTH businessId AND siteId from preferences
             val hasRealContext = isValidGuid(businessId) && isValidGuid(siteId)
             
             if (!hasRealContext) {
-                Log.d("BusinessContextManager", "No valid user preferences found (need both BusinessId AND SiteId) - user needs to select in SystemSettings")
+                Log.d("BusinessContextManager", "❌ No valid user preferences found (need both BusinessId AND SiteId) - user needs to select in SystemSettings")
+                if (preferences != null) {
+                    Log.d("BusinessContextManager", "  NOTE: User has preferences but missing required fields")
+                }
+            } else {
+                Log.d("BusinessContextManager", "✅ Valid business context found from preferences")
             }
             
             _contextState.value = _contextState.value.copy(

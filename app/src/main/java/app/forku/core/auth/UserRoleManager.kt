@@ -18,6 +18,33 @@ object UserRoleManager {
     // ========================================
     
     /**
+     * Determines the highest priority role from a list of role strings (for JWT processing)
+     * Priority order: Administrator > SuperAdmin > SystemOwner > User/Operator
+     * @param roles List of role strings from JWT token
+     * @return The highest priority UserRole
+     */
+    fun getHighestPriorityRole(roles: List<String>): UserRole {
+        Log.d(TAG, "--- Determining highest priority role from JWT roles: $roles ---")
+        
+        // Priority order: Administrator > SuperAdmin > SystemOwner > User
+        val priorityOrder = listOf("Administrator", "SuperAdmin", "SystemOwner", "User")
+        
+        for (priorityRole in priorityOrder) {
+            val matchingRole = roles.find { it.equals(priorityRole, ignoreCase = true) }
+            if (matchingRole != null) {
+                val convertedRole = fromString(matchingRole)
+                Log.d(TAG, "✅ Highest priority JWT role found: $matchingRole -> $convertedRole")
+                return convertedRole
+            }
+        }
+        
+        // If no priority role found, convert the first role
+        val fallbackRole = roles.firstOrNull()?.let { fromString(it) } ?: UserRole.OPERATOR
+        Log.d(TAG, "⚠️ No priority JWT role found, using fallback: $fallbackRole")
+        return fallbackRole
+    }
+    
+    /**
      * Determines the effective role for a user in a specific business context
      * Priority: UserRoleItems (general system roles) > Business assignments
      * 
@@ -135,37 +162,52 @@ object UserRoleManager {
     
     /**
      * Determines role from UserRoleItems with proper priority handling
+     * ALWAYS prioritizes higher roles, regardless of active status
      */
     private fun determineRoleFromUserRoleItems(userRoleItems: List<GOUserRoleDto>): UserRole {
-        Log.d(TAG, "--- Analyzing UserRoleItems ---")
+        Log.d(TAG, "--- Analyzing UserRoleItems with Priority Logic ---")
         
         userRoleItems.forEachIndexed { index, roleItem ->
             Log.d(TAG, "Role $index: ${roleItem.gORoleName}, active: ${roleItem.isActive}")
         }
         
-        // 1. Look for active role first
-        val activeRole = userRoleItems.find { it.isActive }
-        if (activeRole != null) {
-            val convertedRole = fromString(activeRole.gORoleName)
-            Log.d(TAG, "Found active role: ${activeRole.gORoleName} -> $convertedRole")
-            return convertedRole
-        }
-        
-        // 2. Priority order: Admin > SuperAdmin > SystemOwner > User/Operator
+        // Priority order: Administrator > SuperAdmin > SystemOwner > User/Operator
+        // We ALWAYS prioritize higher roles, even if multiple roles are active
         val priorityOrder = listOf("Administrator", "SuperAdmin", "SystemOwner", "User")
         
+        // 1. First, try to find the highest priority ACTIVE role
+        for (priority in priorityOrder) {
+            val roleItem = userRoleItems.find { 
+                it.gORoleName.equals(priority, ignoreCase = true) && it.isActive
+            }
+            if (roleItem != null) {
+                val convertedRole = fromString(roleItem.gORoleName)
+                Log.d(TAG, "🎯 Found ACTIVE priority role: ${roleItem.gORoleName} -> $convertedRole")
+                return convertedRole
+            }
+        }
+        
+        // 2. If no active high-priority roles, find any role by priority (even if inactive)
         for (priority in priorityOrder) {
             val roleItem = userRoleItems.find { 
                 it.gORoleName.equals(priority, ignoreCase = true) 
             }
             if (roleItem != null) {
                 val convertedRole = fromString(roleItem.gORoleName)
-                Log.d(TAG, "Found priority role: ${roleItem.gORoleName} -> $convertedRole")
+                Log.d(TAG, "Found priority role (may be inactive): ${roleItem.gORoleName} -> $convertedRole")
                 return convertedRole
             }
         }
         
-        // 3. Fallback to first role
+        // 3. Fallback to first active role
+        val activeRole = userRoleItems.find { it.isActive }
+        if (activeRole != null) {
+            val convertedRole = fromString(activeRole.gORoleName)
+            Log.d(TAG, "Using first active role: ${activeRole.gORoleName} -> $convertedRole")
+            return convertedRole
+        }
+        
+        // 4. Final fallback to first role
         val firstRole = userRoleItems.firstOrNull()
         if (firstRole != null) {
             val convertedRole = fromString(firstRole.gORoleName)

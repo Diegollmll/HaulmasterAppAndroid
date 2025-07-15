@@ -1,8 +1,16 @@
 package app.forku.data.api.dto.checklist
 
+import com.google.gson.annotations.SerializedName
+
 data class ChecklistItemDto(
     val `$type`: String = "ChecklistItemDataObject",
     val ChecklistId: String,
+    @SerializedName("Version")
+    val version: String = "1.0",
+    @SerializedName("CreatedAt")
+    val createdAt: String? = null,
+    @SerializedName("ModifiedAt")
+    val modifiedAt: String? = null,
     val ChecklistItemCategoryId: String,
     val ChecklistItemSubcategoryId: String,
     val Description: String,
@@ -15,5 +23,9 @@ data class ChecklistItemDto(
     val VehicleComponent: Int,
     val IsMarkedForDeletion: Boolean,
     val InternalObjectId: Int,
-    val userAnswer: Int? = null
+    @SerializedName("GOUserId")
+    val goUserId: String? = null,
+    val userAnswer: Int? = null,
+    @SerializedName("AllVehicleTypesEnabled")
+    val AllVehicleTypesEnabled: Boolean? = null
 )

@@ -3,6 +3,7 @@ package app.forku.data.repository
 import app.forku.data.api.VehicleFailIncidentApi
 import app.forku.data.dto.VehicleFailIncidentDto
 import app.forku.domain.repository.incident.VehicleFailIncidentRepository
+import app.forku.core.utils.safeEmitFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -64,7 +65,7 @@ class VehicleFailIncidentRepositoryImpl @Inject constructor(
             emit(Result.success(result))
         } catch (e: Exception) {
             android.util.Log.e("VehicleFailIncidentRepo", "Error saving vehicle fail incident: ${e.message}", e)
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 

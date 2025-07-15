@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import app.forku.core.business.BusinessContextManager
 import app.forku.domain.repository.user.UserPreferencesRepository
 import app.forku.domain.repository.user.UserRepository
+import app.forku.domain.usecase.feedback.SubmitFeedbackUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 class SystemSettingsViewModel @Inject constructor(
     private val businessContextManager: BusinessContextManager,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val submitFeedbackUseCase: SubmitFeedbackUseCase
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -28,6 +30,10 @@ class SystemSettingsViewModel @Inject constructor(
     private val _currentUser = MutableStateFlow<app.forku.domain.model.user.User?>(null)
     val currentUser = _currentUser.asStateFlow()
 
+    // Current user preferences
+    private val _currentUserPreferences = MutableStateFlow<app.forku.domain.model.user.UserPreferences?>(null)
+    val currentUserPreferences = _currentUserPreferences.asStateFlow()
+
     // Temporary storage for selections before creating preferences
     private var tempSelectedBusinessId: String? = null
     private var tempSelectedSiteId: String? = null
@@ -38,18 +44,93 @@ class SystemSettingsViewModel @Inject constructor(
     
     init {
         loadCurrentUser()
+        loadCurrentUserPreferences()
     }
     
     private fun loadCurrentUser() {
         viewModelScope.launch {
             try {
-                val user = userRepository.getCurrentUser()
+                var user = userRepository.getCurrentUser()
+                
+                // If user is null, try to reload from token
+                if (user == null) {
+                    Log.w(TAG, "⚠️ Current user is NULL - attempting to reload from authentication token")
+                    try {
+                        // Try to get the current user ID from token or other sources
+                        val userId = userRepository.getCurrentUserId()
+                        Log.d(TAG, "Direct user ID from repository: $userId")
+                        
+                        if (userId != null) {
+                            Log.d(TAG, "Attempting to reload user by ID: $userId")
+                            user = userRepository.getUserById(userId)
+                            if (user != null) {
+                                Log.d(TAG, "✅ Successfully reloaded user from ID")
+                                // Update the current user in AuthDataStore to prevent future null issues
+                                try {
+                                    userRepository.updateCurrentUser(user)
+                                    Log.d(TAG, "✅ Updated current user in AuthDataStore")
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Failed to update current user in AuthDataStore", e)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to reload user from token", e)
+                    }
+                }
+                
                 _currentUser.value = user
                 Log.d(TAG, "Current user loaded: ${user?.username} (${user?.role})")
+                Log.d(TAG, "Current user ID: ${user?.id}")
+                Log.d(TAG, "Current user email: ${user?.email}")
+                
+                // Additional debugging
+                if (user == null) {
+                    Log.w(TAG, "⚠️ Current user is STILL NULL after reload attempt - this will cause issues with assigned sites/businesses")
+                    Log.w(TAG, "⚠️ User may need to re-login or there's a session management issue")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading current user", e)
             }
         }
+    }
+
+    private fun loadCurrentUserPreferences() {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "🔍 SystemSettingsViewModel: Loading current user preferences...")
+                val preferences = userPreferencesRepository.getCurrentUserPreferences()
+                Log.d(TAG, "🔍 SystemSettingsViewModel: getCurrentUserPreferences returned: ${preferences != null}")
+                
+                _currentUserPreferences.value = preferences
+                
+                if (preferences != null) {
+                    Log.d(TAG, "✅ SystemSettingsViewModel: Current user preferences loaded successfully:")
+                    Log.d(TAG, "  Preferences ID: ${preferences.id}")
+                    Log.d(TAG, "  User ID: ${preferences.user?.id}")
+                    Log.d(TAG, "  Primary Business ID: ${preferences.businessId}")
+                    Log.d(TAG, "  Primary Site ID: ${preferences.siteId}")
+                    Log.d(TAG, "  Last Selected Business: ${preferences.lastSelectedBusinessId}")
+                    Log.d(TAG, "  Last Selected Site: ${preferences.lastSelectedSiteId}")
+                    Log.d(TAG, "  Effective Business ID: ${preferences.getEffectiveBusinessId()}")
+                    Log.d(TAG, "  Effective Site ID: ${preferences.getEffectiveSiteId()}")
+                } else {
+                    Log.d(TAG, "❌ SystemSettingsViewModel: No current user preferences found - user needs setup")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ SystemSettingsViewModel: Error loading current user preferences", e)
+                Log.e(TAG, "Error details: ${e.message}")
+                Log.e(TAG, "Error cause: ${e.cause}")
+                _currentUserPreferences.value = null
+            }
+        }
+    }
+
+    /**
+     * Refresh current user preferences (call after creating/updating preferences)
+     */
+    fun refreshCurrentUserPreferences() {
+        loadCurrentUserPreferences()
     }
 
     /**
@@ -69,6 +150,7 @@ class SystemSettingsViewModel @Inject constructor(
                     // User has existing preferences, update them directly
                     Log.d(TAG, "User has existing preferences, updating business")
                     businessContextManager.setCurrentBusinessId(businessId)
+                    refreshCurrentUserPreferences() // Refresh to update UI
                     _message.value = "Business updated and saved"
                 } else {
                     // User has no preferences yet, store temporarily
@@ -116,6 +198,7 @@ class SystemSettingsViewModel @Inject constructor(
                     // User has existing preferences, update them directly
                     Log.d(TAG, "User has existing preferences, updating site")
                     businessContextManager.setCurrentSiteId(siteId)
+                    refreshCurrentUserPreferences() // Refresh to update UI
                     _message.value = if (siteId != null) "Site selected and saved" else "All sites selected"
                 } else {
                     // User has no preferences yet, need to create them with both business and site
@@ -229,6 +312,10 @@ class SystemSettingsViewModel @Inject constructor(
                 Log.d(TAG, "Refreshing business context to load new preferences...")
                 businessContextManager.refreshBusinessContext()
                 
+                // ✅ FIXED: Refresh current user preferences to update UI state
+                Log.d(TAG, "Refreshing current user preferences to update UI...")
+                refreshCurrentUserPreferences()
+                
                 // Also explicitly set the context values to ensure immediate update
                 businessContextManager.setCurrentBusinessId(businessId)
                 businessContextManager.setCurrentSiteId(siteId)
@@ -287,5 +374,36 @@ class SystemSettingsViewModel @Inject constructor(
      */
     fun clearMessage() {
         _message.value = null
+    }
+    
+    /**
+     * Submit business assignment request using feedback system
+     */
+    fun submitBusinessAssignmentRequest(requestDescription: String) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "=== SUBMITTING BUSINESS ASSIGNMENT REQUEST ===")
+                Log.d(TAG, "Request: $requestDescription")
+                
+                // Use feedback system with special message format for business assignment requests
+                val feedbackMessage = "BUSINESS ASSIGNMENT REQUEST: $requestDescription"
+                
+                submitFeedbackUseCase(
+                    rating = 3, // Neutral rating for requests
+                    comment = feedbackMessage,
+                    canContactMe = true // Always allow contact for assignment requests
+                ).onSuccess {
+                    Log.d(TAG, "✅ Business assignment request submitted successfully")
+                    _message.value = "Request sent! Administrator will be notified."
+                }.onFailure { error ->
+                    Log.e(TAG, "❌ Error submitting business assignment request", error)
+                    _message.value = "Failed to send request: ${error.message}"
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error submitting business assignment request", e)
+                _message.value = "Failed to send request: ${e.message}"
+            }
+        }
     }
 } 

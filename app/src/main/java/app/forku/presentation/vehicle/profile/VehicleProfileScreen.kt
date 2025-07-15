@@ -39,6 +39,15 @@ import android.util.Log
 import app.forku.core.auth.TokenErrorHandler
 import coil.ImageLoader
 import app.forku.presentation.common.components.BaseScreen
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import app.forku.presentation.common.components.HourMeterDialog
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import app.forku.domain.repository.user.UserPreferencesRepository
+import androidx.compose.ui.platform.LocalContext
+import dagger.hilt.android.EntryPointAccessors
+import app.forku.presentation.vehicle.profile.VehicleProfileEntryPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,12 +63,33 @@ fun VehicleProfileScreen(
     imageLoader: ImageLoader,
     tokenErrorHandler: TokenErrorHandler
 ) {
+    // Inject UserPreferencesRepository using Hilt EntryPoint
+    val context = LocalContext.current.applicationContext
+    val userPreferencesRepository = EntryPointAccessors.fromApplication(
+        context,
+        VehicleProfileEntryPoint::class.java
+    ).userPreferencesRepository()
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showStatusDialog by remember { mutableStateOf(false) }
+    var showHourMeterDialog by remember { mutableStateOf(false) }
+    var hourMeterInput by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
 
     // Debug log for state
     LaunchedEffect(state.vehicle, state.isLoading, state.error) {
         Log.d("VehicleProfileScreenDebug", "vehicle=${state.vehicle}, isLoading=${state.isLoading}, error=${state.error}")
+    }
+
+    // Show error message if present
+    if (state.error != null) {
+        Snackbar(
+            modifier = Modifier.padding(16.dp),
+            action = {
+                Button(onClick = { viewModel.refresh() }) { Text("Retry") }
+            }
+        ) {
+            Text(state.error ?: "Unknown error")
+        }
     }
 
     LaunchedEffect(state.checkId) {
@@ -81,6 +111,13 @@ fun VehicleProfileScreen(
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle.businessId: ${state.vehicle?.businessId}")
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle.codename: ${state.vehicle?.codename}")
         android.util.Log.d("appflow", "VehicleProfileScreen LaunchedEffect state.vehicle?.status?.name: ${state.vehicle?.status?.name}")
+    }
+
+    // Initialize hour meter input when dialog is opened
+    LaunchedEffect(showHourMeterDialog) {
+        if (showHourMeterDialog) {
+            hourMeterInput = state.vehicle?.currentHourMeter ?: "0"
+        }
     }
 
     // Status selection dialog
@@ -149,6 +186,57 @@ fun VehicleProfileScreen(
         )
     }
 
+    // Hour Meter Update Dialog - Replaced with new validated dialog
+    if (showHourMeterDialog && userRole == UserRole.ADMIN) {
+        HourMeterDialog(
+            isVisible = true,
+            currentValue = state.vehicle?.currentHourMeter ?: "0",
+            title = "Update Current Hour Meter",
+            subtitle = "Enter the current hour meter reading for this vehicle",
+            onDismiss = { 
+                showHourMeterDialog = false
+                hourMeterInput = ""
+            },
+            onConfirm = { hourMeter ->
+                viewModel.updateCurrentHourMeter(hourMeter)
+                showHourMeterDialog = false
+                hourMeterInput = ""
+            },
+            isLoading = state.isLoading,
+            allowEqual = false // Vehicle hour meter must increase
+        )
+    }
+
+    // Final Hour Meter Dialog for session end - Updated with validation
+    HourMeterDialog(
+        isVisible = state.showFinalHourMeterDialog,
+        currentValue = state.activeSession?.initialHourMeter ?: state.vehicle?.currentHourMeter ?: "0",
+        title = "Enter Final Hour Meter",
+        subtitle = "Enter the current hour meter reading to end the vehicle session",
+        onDismiss = { viewModel.onFinalHourMeterDismissed() },
+        onConfirm = { hourMeter -> viewModel.onFinalHourMeterConfirmed(hourMeter) },
+        isLoading = state.isLoading,
+        allowEqual = false // Final hour meter must be greater than initial
+    )
+
+    // Estados locales para los IDs efectivos del usuario
+    var userBusinessId by remember { mutableStateOf("") }
+    var userSiteId by remember { mutableStateOf("") }
+
+    // Obtener los valores suspend de UserPreferencesRepository
+    LaunchedEffect(Unit) {
+        userBusinessId = userPreferencesRepository.getEffectiveBusinessId() ?: ""
+        userSiteId = userPreferencesRepository.getEffectiveSiteId() ?: ""
+    }
+
+    // Determine if Start Checklist should be shown/enabled
+    val canShowStartChecklist = remember(state.vehicle, userBusinessId, userSiteId) {
+        val vehicle = state.vehicle ?: return@remember false
+        val vehicleBusinessId = vehicle.businessId ?: ""
+        val vehicleSiteId = vehicle.siteId ?: ""
+        vehicleBusinessId == userBusinessId && vehicleSiteId == userSiteId
+    }
+
     BaseScreen(
         navController = navController,
         showTopBar = true,
@@ -156,13 +244,22 @@ fun VehicleProfileScreen(
         viewModel = viewModel,
         topBarTitle = "Vehicle Profile",
         networkManager = networkManager,
-        onRefresh = { viewModel.loadVehicle() },
+        onAppResume = { viewModel.loadVehicle() },
         tokenErrorHandler = tokenErrorHandler,
         topBarActions = {
             if (state.vehicle != null) {
                 val vehicle = state.vehicle // Store vehicle in local variable
                 val isVehicleOutOfService = vehicle?.status == VehicleStatus.OUT_OF_SERVICE
                 val shouldShowMenu = userRole == UserRole.ADMIN || userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER
+
+                Log.d("VehicleProfileScreen", "=== 🎯 MENU DEBUG ===")
+                Log.d("VehicleProfileScreen", "userRole: $userRole")
+                Log.d("VehicleProfileScreen", "shouldShowMenu: $shouldShowMenu")
+                Log.d("VehicleProfileScreen", "vehicle?.status: ${vehicle?.status}")
+                Log.d("VehicleProfileScreen", "state.hasActiveSession: ${state.hasActiveSession}")
+                Log.d("VehicleProfileScreen", "state.hasActivePreShiftCheck: ${state.hasActivePreShiftCheck}")
+                Log.d("VehicleProfileScreen", "isVehicleOutOfService: $isVehicleOutOfService")
+                Log.d("VehicleProfileScreen", "========================")
 
                 if (shouldShowMenu) {
                     val options = buildList {
@@ -187,9 +284,18 @@ fun VehicleProfileScreen(
                         }
 
                         if (userRole == UserRole.ADMIN) {
+                            Log.d("VehicleProfileScreen", "🔧 Adding ADMIN options")
                             add(DropdownMenuOption(
                                 text = "Change Vehicle Status",
                                 onClick = { showStatusDialog = true },
+                                leadingIcon = Icons.Default.Edit,
+                                enabled = true,
+                                adminOnly = true
+                            ))
+
+                            add(DropdownMenuOption(
+                                text = "Update Hour Meter",
+                                onClick = { showHourMeterDialog = true },
                                 leadingIcon = Icons.Default.Edit,
                                 enabled = true,
                                 adminOnly = true
@@ -203,12 +309,20 @@ fun VehicleProfileScreen(
                                 adminOnly = true
                             ))
 
-                            add(DropdownMenuOption(
-                                text = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist",
-                                onClick = { onPreShiftCheck(vehicle?.id ?: "") },
-                                leadingIcon = Icons.Default.CheckCircle,
-                                enabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession
-                            ))
+                            val checklistOptionEnabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession && canShowStartChecklist
+                            val checklistOptionText = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist"
+                            Log.d("VehicleProfileScreen", "🔧 Adding checklist option: '$checklistOptionText', enabled: $checklistOptionEnabled")
+                            Log.d("VehicleProfileScreen", "   - vehicle?.status == VehicleStatus.AVAILABLE: ${vehicle?.status == VehicleStatus.AVAILABLE}")
+                            Log.d("VehicleProfileScreen", "   - !state.hasActiveSession: ${!state.hasActiveSession}")
+                            Log.d("VehicleProfileScreen", "   - canShowStartChecklist: $canShowStartChecklist")
+                            if (canShowStartChecklist) {
+                                add(DropdownMenuOption(
+                                    text = checklistOptionText,
+                                    onClick = { onPreShiftCheck(vehicle?.id ?: "") },
+                                    leadingIcon = Icons.Default.CheckCircle,
+                                    enabled = checklistOptionEnabled
+                                ))
+                            }
 
                             if (state.activeSession != null) {
                                 add(DropdownMenuOption(
@@ -223,10 +337,19 @@ fun VehicleProfileScreen(
                         }
                     }
 
+                    Log.d("VehicleProfileScreen", "🎯 Rendering OptionsDropdownMenu with ${options.size} options")
+                    options.forEachIndexed { index, option ->
+                        Log.d("VehicleProfileScreen", "  [$index] ${option.text} - enabled: ${option.enabled}")
+                    }
+                    
                     OptionsDropdownMenu(
                         options = options,
                         isEnabled = true
                     )
+                } else {
+                    Log.d("VehicleProfileScreen", "❌ Menu NOT showing - shouldShowMenu is false")
+                    Log.d("VehicleProfileScreen", "   Required roles: ADMIN, SUPERADMIN, SYSTEM_OWNER")
+                    Log.d("VehicleProfileScreen", "   Current role: $userRole")
                 }
             }
         }

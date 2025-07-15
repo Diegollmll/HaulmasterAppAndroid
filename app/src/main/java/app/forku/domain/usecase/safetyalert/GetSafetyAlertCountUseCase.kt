@@ -6,7 +6,7 @@ import javax.inject.Inject
 class GetSafetyAlertCountUseCase @Inject constructor(
     private val repository: SafetyAlertRepository
 ) {
-    suspend operator fun invoke(): Int {
-        return repository.getSafetyAlertCount()
+    suspend operator fun invoke(businessId: String? = null, siteId: String? = null): Int {
+        return repository.getSafetyAlertCount(businessId, siteId)
     }
 } 

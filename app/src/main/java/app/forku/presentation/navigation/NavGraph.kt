@@ -32,7 +32,6 @@ import app.forku.presentation.tour.TourScreen
 import app.forku.presentation.user.register.RegisterScreen
 import app.forku.presentation.dashboard.AdminDashboardScreen
 import app.forku.presentation.dashboard.DashboardViewModel
-import app.forku.presentation.user.login.LoginState
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.certification.CertificationScreen
 import app.forku.presentation.certification.list.CertificationsScreen
@@ -53,8 +52,8 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
-import app.forku.presentation.checklist.questionary.QuestionaryChecklistScreen
-import app.forku.presentation.checklist.item.QuestionaryChecklistItemScreen
+import app.forku.presentation.checklist.manage_checklist.ManageChecklistScreen
+import app.forku.presentation.checklist.item.QuestionsChecklistItemScreen
 import androidx.compose.runtime.LaunchedEffect
 import app.forku.presentation.vehicle.add.AddVehicleScreen
 import app.forku.presentation.vehicle.category.VehicleCategoryScreen
@@ -63,31 +62,19 @@ import app.forku.presentation.vehicle.edit.EditVehicleScreen
 import app.forku.presentation.admin.vehicle.AdminVehiclesListScreen
 import app.forku.presentation.admin.vehicle.AdminVehicleProfileScreen
 import androidx.compose.material3.Text
-import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategoryScreen
-import app.forku.presentation.checklist.subcategory.QuestionaryChecklistItemSubcategoryScreen
+
 import app.forku.presentation.checklist.subcategory.ChecklistSubcategoriesScreen
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import app.forku.presentation.checklist.questionary.QuestionaryChecklistViewModel
-import app.forku.presentation.checklist.questionary.QuestionarySelectionScreen
+import app.forku.presentation.checklist.manage_checklist.ManageChecklistViewModel
 import app.forku.presentation.system.EnergySourcesScreen
 import app.forku.presentation.sites.SitesScreen
 import app.forku.presentation.vehicle.component.VehicleComponentsScreen
 import app.forku.presentation.gogroup.GroupManagementScreen
 import app.forku.presentation.gogroup.GroupRoleManagementScreen
+import app.forku.presentation.report.ReportScreen
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.auth.AuthenticationState
 import coil.ImageLoader
-import javax.inject.Inject
-import androidx.compose.ui.platform.LocalContext
-import dagger.hilt.android.EntryPointAccessors
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -140,22 +127,28 @@ fun NavGraph(
 
     // ✅ NEW: Validate user preferences after successful authentication
     LaunchedEffect(isAuthenticated, hasToken) {
+        android.util.Log.d("NavGraph", "[FLOW] LaunchedEffect(isAuthenticated, hasToken) - isAuthenticated: $isAuthenticated, hasToken: $hasToken")
+        
         if (isAuthenticated && hasToken) {
             try {
+                android.util.Log.d("NavGraph", "[FLOW] Both authenticated and has token - starting validation")
+                
                 // Load business context to check preferences
+                android.util.Log.d("NavGraph", "[FLOW] About to call businessContextManager.loadBusinessContext()")
                 businessContextManager.loadBusinessContext()
+                android.util.Log.d("NavGraph", "[FLOW] Business context loading completed")
                 
                 // Check if user has valid preferences (both BusinessId AND SiteId)
                 val hasValidPreferences = businessContextManager.hasValidUserPreferences()
                 val currentRoute = navController.currentDestination?.route
                 
-                android.util.Log.d("NavGraph", "=== PREFERENCES VALIDATION ===")
-                android.util.Log.d("NavGraph", "IsAuthenticated: $isAuthenticated")
-                android.util.Log.d("NavGraph", "HasToken: $hasToken")
-                android.util.Log.d("NavGraph", "HasValidPreferences: $hasValidPreferences")
-                android.util.Log.d("NavGraph", "CurrentRoute: $currentRoute")
-                android.util.Log.d("NavGraph", "BusinessId: ${businessContextState.businessId}")
-                android.util.Log.d("NavGraph", "SiteId: ${businessContextState.siteId}")
+                android.util.Log.d("NavGraph", "[FLOW] === PREFERENCES VALIDATION ===")
+                android.util.Log.d("NavGraph", "[FLOW] IsAuthenticated: $isAuthenticated")
+                android.util.Log.d("NavGraph", "[FLOW] HasToken: $hasToken")
+                android.util.Log.d("NavGraph", "[FLOW] HasValidPreferences: $hasValidPreferences")
+                android.util.Log.d("NavGraph", "[FLOW] CurrentRoute: $currentRoute")
+                android.util.Log.d("NavGraph", "[FLOW] BusinessId: ${businessContextState.businessId}")
+                android.util.Log.d("NavGraph", "[FLOW] SiteId: ${businessContextState.siteId}")
                 
                 // If user doesn't have valid preferences, redirect to UserPreferencesSetup
                 if (!hasValidPreferences && 
@@ -166,8 +159,8 @@ fun NavGraph(
                     !currentRoute.contains(Screen.Register.route) &&
                     !currentRoute.contains(Screen.Tour.route)) {
                     
-                    android.util.Log.d("NavGraph", "❌ User needs to set preferences, redirecting to UserPreferencesSetup")
-                    navController.navigate(Screen.UserPreferencesSetup.route) {
+                    android.util.Log.d("NavGraph", "[FLOW] ❌ User needs to set preferences, redirecting to UserPreferencesSetup")
+                    navController.navigate(Screen.UserPreferencesSetup.createRoute(showBack = false)) {
                         popUpTo(navController.graph.startDestinationId) {
                             saveState = true
                         }
@@ -175,11 +168,15 @@ fun NavGraph(
                         restoreState = true
                     }
                 } else if (hasValidPreferences) {
-                    android.util.Log.d("NavGraph", "✅ User has valid preferences")
+                    android.util.Log.d("NavGraph", "[FLOW] ✅ User has valid preferences")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("NavGraph", "Error validating user preferences", e)
+                android.util.Log.e("NavGraph", "[FLOW] ❌ Error validating user preferences", e)
+                android.util.Log.e("NavGraph", "[FLOW] Error details: ${e.message}")
+                android.util.Log.e("NavGraph", "[FLOW] Error cause: ${e.cause}")
             }
+        } else {
+            android.util.Log.d("NavGraph", "[FLOW] ❌ Conditions not met - isAuthenticated: $isAuthenticated, hasToken: $hasToken")
         }
     }
 
@@ -190,12 +187,14 @@ fun NavGraph(
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = { user ->
+                    android.util.Log.d("NavGraph", "[FLOW] onLoginSuccess called - user: $user, role: ${user.role}")
                     val route = when (user.role) {
                         UserRole.SYSTEM_OWNER -> Screen.SystemOwnerDashboard.route
                         UserRole.SUPERADMIN -> Screen.SuperAdminDashboard.route
                         UserRole.ADMIN -> Screen.AdminDashboard.route
                         else -> Screen.Dashboard.route
                     }
+                    android.util.Log.d("NavGraph", "[FLOW] Navigating to route: $route for user role: ${user.role}")
                     navController.navigate(route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
@@ -695,12 +694,17 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.UserPreferencesSetup.route) {
+        composable(
+            route = Screen.UserPreferencesSetup.route,
+            arguments = listOf(navArgument("showBack") { type = NavType.BoolType; defaultValue = false })
+        ) { backStackEntry ->
+            val showBack = backStackEntry.arguments?.getBoolean("showBack") ?: false
             UserPreferencesSetupScreen(
                 navController = navController,
                 networkManager = networkManager,
                 tokenErrorHandler = tokenErrorHandler,
-                userRoleManager = app.forku.core.auth.UserRoleManager
+                userRoleManager = app.forku.core.auth.UserRoleManager,
+                showBackButton = showBack
                 // onSetupComplete will be handled automatically based on user role
             )
         }
@@ -822,46 +826,41 @@ fun NavGraph(
         }
         // ---- End Admin Vehicle Routes ----
 
-        composable(Screen.ChecklistCategories.route) {
-            val dashboardViewModel: DashboardViewModel = hiltViewModel()
-            val currentUser by dashboardViewModel.currentUser.collectAsState()
-            
-            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
-                QuestionaryChecklistItemCategoryScreen(
-                    navController = navController,
-                    networkManager = networkManager,
-                    tokenErrorHandler = tokenErrorHandler
-                )
-            } else {
-                LaunchedEffect(Unit) {
-                    navController.navigateUp()
-                }
-            }
-        }
+        // TODO: Re-implement category management with proper ChecklistItem system
+        // composable(Screen.ChecklistCategories.route) {
+        //     val dashboardViewModel: DashboardViewModel = hiltViewModel()
+        //     val currentUser by dashboardViewModel.currentUser.collectAsState()
+        //     
+        //     if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+        //         // ChecklistItemCategoryScreen - to be implemented
+        //         Text("Category management temporarily unavailable")
+        //     } else {
+        //         LaunchedEffect(Unit) {
+        //             navController.navigateUp()
+        //         }
+        //     }
+        // }
 
-        composable(
-            route = Screen.QuestionaryChecklistItemSubcategory.route,
-            arguments = listOf(
-                navArgument("categoryId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: return@composable
-            val dashboardViewModel: DashboardViewModel = hiltViewModel()
-            val currentUser by dashboardViewModel.currentUser.collectAsState()
-            
-            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
-                QuestionaryChecklistItemSubcategoryScreen(
-                    navController = navController,
-                    networkManager = networkManager,
-                    categoryId = categoryId,
-                    tokenErrorHandler = tokenErrorHandler
-                )
-            } else {
-                LaunchedEffect(Unit) {
-                    navController.navigateUp()
-                }
-            }
-        }
+        // TODO: Re-implement subcategory management with proper ChecklistItem system
+        // composable(
+        //     route = Screen.QuestionaryChecklistItemSubcategory.route,
+        //     arguments = listOf(
+        //         navArgument("categoryId") { type = NavType.StringType }
+        //     )
+        // ) { backStackEntry ->
+        //     val categoryId = backStackEntry.arguments?.getString("categoryId") ?: return@composable
+        //     val dashboardViewModel: DashboardViewModel = hiltViewModel()
+        //     val currentUser by dashboardViewModel.currentUser.collectAsState()
+        //     
+        //     if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+        //         // ChecklistItemSubcategoryScreen - to be implemented
+        //         Text("Subcategory management temporarily unavailable")
+        //     } else {
+        //         LaunchedEffect(Unit) {
+        //             navController.navigateUp()
+        //         }
+        //     }
+        // }
 
         composable(Screen.ChecklistSubcategories.route) {
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
@@ -881,17 +880,31 @@ fun NavGraph(
         }
 
         // Añadimos la ruta para Questionary
-        composable(Screen.Questionaries.route) {
+        composable(Screen.Questionnaires.route) {
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
             val currentUser by dashboardViewModel.currentUser.collectAsState()
             
-            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
-                QuestionaryChecklistScreen(
+            // ✅ DEBUG: Add detailed logging for role verification
+            android.util.Log.d("NavGraph", "=== QUESTIONNAIRES ROUTE ACCESS DEBUG ===")
+            android.util.Log.d("NavGraph", "Current user: ${currentUser?.firstName} ${currentUser?.lastName}")
+            android.util.Log.d("NavGraph", "User ID: ${currentUser?.id}")
+            android.util.Log.d("NavGraph", "User role: ${currentUser?.role}")
+            android.util.Log.d("NavGraph", "User role name: ${currentUser?.role?.name}")
+            android.util.Log.d("NavGraph", "Is SYSTEM_OWNER? ${currentUser?.role == UserRole.SYSTEM_OWNER}")
+            android.util.Log.d("NavGraph", "Is SUPERADMIN? ${currentUser?.role == UserRole.SUPERADMIN}")
+            android.util.Log.d("NavGraph", "Is ADMIN? ${currentUser?.role == UserRole.ADMIN}")
+            android.util.Log.d("NavGraph", "Has valid role? ${currentUser?.role == UserRole.SYSTEM_OWNER || currentUser?.role == UserRole.SUPERADMIN || currentUser?.role == UserRole.ADMIN}")
+            android.util.Log.d("NavGraph", "==========================================")
+            
+            if (currentUser?.role == UserRole.SYSTEM_OWNER || currentUser?.role == UserRole.SUPERADMIN || currentUser?.role == UserRole.ADMIN) {
+                android.util.Log.d("NavGraph", "✅ Access granted - showing ManageChecklistScreen")
+                ManageChecklistScreen(
                     navController = navController,
                     networkManager = networkManager,
                     tokenErrorHandler = tokenErrorHandler
                 )
             } else {
+                android.util.Log.w("NavGraph", "❌ Access denied - navigating back")
                 LaunchedEffect(Unit) {
                     navController.navigateUp()
                 }
@@ -906,26 +919,31 @@ fun NavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("isEditable") {
+                    type = NavType.BoolType
+                    defaultValue = true
                 }
             )
         ) { backStackEntry ->
             val questionaryId = backStackEntry.arguments?.getString("questionaryId")
+            val isEditable = backStackEntry.arguments?.getBoolean("isEditable") ?: true
             val dashboardViewModel: DashboardViewModel = hiltViewModel()
             val currentUser by dashboardViewModel.currentUser.collectAsState()
-            val questionaryChecklistViewModel: QuestionaryChecklistViewModel = hiltViewModel()
+            val manageChecklistViewModel: ManageChecklistViewModel = hiltViewModel()
 
-            if (currentUser?.role == UserRole.SYSTEM_OWNER) {
+            if (currentUser?.role == UserRole.SYSTEM_OWNER || currentUser?.role == UserRole.SUPERADMIN || currentUser?.role == UserRole.ADMIN) {
                 if (questionaryId != null) {
-                    QuestionaryChecklistItemScreen(
+                    QuestionsChecklistItemScreen(
                         navController = navController,
                         networkManager = networkManager,
                         checklistId = questionaryId,
+                        isEditable = isEditable,
                         tokenErrorHandler = tokenErrorHandler
                     )
                 } else {
-                    QuestionarySelectionScreen(
+                    ManageChecklistScreen(
                         navController = navController,
-                        viewModel = questionaryChecklistViewModel,
                         networkManager = networkManager,
                         tokenErrorHandler = tokenErrorHandler
                     )
@@ -989,6 +1007,37 @@ fun NavGraph(
                 networkManager = networkManager,
                 tokenErrorHandler = tokenErrorHandler
             )
+        }
+
+        // Reports Module - Admin/SuperAdmin only (TEMPORARILY OPEN FOR DEBUGGING)
+        composable(Screen.Reports.route) {
+            val dashboardViewModel: DashboardViewModel = hiltViewModel()
+            val currentUser by dashboardViewModel.currentUser.collectAsState()
+            
+            android.util.Log.d("NavGraph", "Reports route accessed - currentUser: ${currentUser?.firstName}, role: ${currentUser?.role}")
+            
+            // TEMPORARILY ALLOW ALL USERS FOR DEBUGGING
+            android.util.Log.d("NavGraph", "Allowing all users to access Reports for debugging")
+            ReportScreen(
+                navController = navController,
+                networkManager = networkManager,
+                tokenErrorHandler = tokenErrorHandler
+            )
+            
+            // ORIGINAL CODE (commented out for debugging):
+            // if (currentUser?.role == UserRole.ADMIN || currentUser?.role == UserRole.SUPERADMIN) {
+            //     android.util.Log.d("NavGraph", "User has valid role for Reports, showing ReportScreen")
+            //     ReportScreen(
+            //         navController = navController,
+            //         networkManager = networkManager,
+            //         tokenErrorHandler = tokenErrorHandler
+            //     )
+            // } else {
+            //     android.util.Log.w("NavGraph", "User does not have valid role for Reports (${currentUser?.role}), navigating back")
+            //     LaunchedEffect(Unit) {
+            //         navController.navigateUp()
+            //     }
+            // }
         }
     }
 }

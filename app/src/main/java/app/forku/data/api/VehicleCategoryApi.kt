@@ -11,10 +11,19 @@ interface VehicleCategoryApi {
     @GET("api/vehiclecategory/byid/{id}")
     suspend fun getVehicleCategory(@Path("id") id: String): Response<VehicleCategoryDto>
     
+    @FormUrlEncoded
     @POST("api/vehiclecategory")
-    suspend fun saveVehicleCategory(@Body category: VehicleCategoryDto): Response<VehicleCategoryDto>
+    suspend fun saveVehicleCategory(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String,
+        @Field("entity") entity: String
+    ): Response<VehicleCategoryDto>
     
     @DELETE("dataset/api/vehiclecategory/{id}")
-    suspend fun deleteVehicleCategory(@Path("id") id: String): Response<Unit>
+    suspend fun deleteVehicleCategory(
+        @Path("id") id: String,
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<Unit>
 }
 

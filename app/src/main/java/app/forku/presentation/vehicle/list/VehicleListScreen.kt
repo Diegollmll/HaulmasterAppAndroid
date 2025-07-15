@@ -3,8 +3,6 @@ package app.forku.presentation.vehicle.list
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,14 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.common.components.ErrorScreen
 import androidx.navigation.NavController
 import app.forku.presentation.common.components.BaseScreen
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -33,11 +28,13 @@ import app.forku.core.network.NetworkConnectivityManager
 import app.forku.domain.model.user.UserRole
 import app.forku.domain.model.vehicle.Vehicle
 import coil.ImageLoader
-import javax.inject.Inject
-import app.forku.domain.model.Site
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import app.forku.presentation.common.components.BusinessSiteFilters
+import app.forku.presentation.common.components.BusinessSiteFilterMode
+import android.util.Log
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
+import androidx.navigation.NavHostController
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -50,14 +47,79 @@ fun VehicleListScreen(
     imageLoader: ImageLoader,
     tokenErrorHandler: TokenErrorHandler
 ) {
+    val navHostController = navController as? NavHostController
+    val owner = LocalViewModelStoreOwner.current
+    val sharedFiltersViewModel: AdminSharedFiltersViewModel = hiltViewModel(viewModelStoreOwner = owner!!)
     val state by viewModel.state.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val checklistAnswers by viewModel.checklistAnswers.collectAsStateWithLifecycle()
-    val businessContextState by viewModel.businessContextState.collectAsState()
+    val filterBusinessId by sharedFiltersViewModel.filterBusinessId.collectAsStateWithLifecycle()
+    val filterSiteId by sharedFiltersViewModel.filterSiteId.collectAsStateWithLifecycle()
+    val isAllSitesSelected by sharedFiltersViewModel.isAllSitesSelected.collectAsStateWithLifecycle()
+    var isUserFilterAction by remember { mutableStateOf(false) }
+
+    val businessContextState by viewModel.businessContextManager.contextState.collectAsStateWithLifecycle()
+
+    // ✅ SIMPLIFIED: Single LaunchedEffect for vehicle loading - handles both admin and operator
+    LaunchedEffect(currentUser, filterBusinessId, filterSiteId, isAllSitesSelected) {
+        Log.d("VehicleListScreen", "=== VEHICLE LOAD TRIGGERED ===")
+        Log.d("VehicleListScreen", "currentUser: ${currentUser?.id}, role: ${currentUser?.role}")
+        Log.d("VehicleListScreen", "filterBusinessId: $filterBusinessId, filterSiteId: $filterSiteId, isAllSitesSelected: $isAllSitesSelected")
+        Log.d("VehicleListScreen", "businessContextState.businessId: ${businessContextState.businessId}, businessContextState.siteId: ${businessContextState.siteId}")
+        val isAdmin = currentUser?.role in listOf(
+            UserRole.ADMIN,
+            UserRole.SUPERADMIN,
+            UserRole.SYSTEM_OWNER
+        )
+        Log.d("VehicleListScreen", "isAdmin: $isAdmin")
+        
+        if (isAdmin) {
+            // Admin mode: use filters when ready
+            if (filterBusinessId != null) {
+                val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+                Log.d("VehicleListScreen", "🎯 ADMIN LOAD: Loading vehicles with filters")
+                Log.d("VehicleListScreen", "  - businessId: $filterBusinessId")
+                Log.d("VehicleListScreen", "  - isAllSitesSelected: $isAllSitesSelected")
+                Log.d("VehicleListScreen", "  - filterSiteId: $filterSiteId")
+                Log.d("VehicleListScreen", "  - effectiveSiteId: $effectiveSiteId")
+                // ✅ CRITICAL: Set admin mode FIRST to prevent context-based loading
+                viewModel.setAdminMode(true)
+                // Small delay to ensure admin mode is set before loading
+                kotlinx.coroutines.delay(50)
+                viewModel.loadVehiclesWithFilters(filterBusinessId, effectiveSiteId, isAllSitesSelected)
+            }
+        } else {
+            // Operator mode: use context-based loading
+            Log.d("VehicleListScreen", "👤 OPERATOR LOAD: Loading vehicles with context")
+            viewModel.setAdminMode(false)
+            viewModel.loadVehicles(true)
+        }
+    }
     
+    // ✅ CENTRALIZED: Single refresh function to avoid multiple triggers
+    fun handleRefresh() {
+        val isAdmin = currentUser?.role in listOf(
+            UserRole.ADMIN,
+            UserRole.SUPERADMIN,
+            UserRole.SYSTEM_OWNER
+        )
+        
+        if (isAdmin) {
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            Log.d("VehicleListScreen", "🔄 CENTRALIZED REFRESH: Admin loading with filters")
+            Log.d("VehicleListScreen", "  - filterBusinessId: $filterBusinessId")
+            Log.d("VehicleListScreen", "  - effectiveSiteId: $effectiveSiteId (null = All Sites)")
+            viewModel.loadVehiclesWithFilters(filterBusinessId ?: "", effectiveSiteId, isAllSitesSelected)
+        } else {
+            Log.d("VehicleListScreen", "🔄 CENTRALIZED REFRESH: Operator loading with context")
+            viewModel.loadVehicles(true)
+        }
+    }
+    
+    // ✅ FIXED: Use correct loading method based on admin mode
     val pullRefreshState = rememberPullRefreshState(
         refreshing = state.isLoading && state.isRefreshing,
-        onRefresh = { viewModel.loadVehicles(true) }
+        onRefresh = { handleRefresh() }
     )
 
     // Sort vehicles based on active sessions and current user's vehicle
@@ -99,16 +161,15 @@ fun VehicleListScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.loadVehicles()
-    }
+    // ✅ ELIMINATED: Redundant LaunchedEffect for user role - now handled in centralized loading
+    // ✅ ELIMINATED: Redundant LaunchedEffect for initial loading - now handled in centralized loading
 
     BaseScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = "Vehicles",
         showBottomBar = false,
-        onRefresh = { viewModel.loadVehicles(true) },
+        onAppResume = null, // ✅ DISABLED: Avoid automatic refresh conflicts
         showLoadingOnRefresh = false,
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
@@ -120,62 +181,74 @@ fun VehicleListScreen(
                 .pullRefresh(pullRefreshState)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // --- Mostrar contexto actual ---
-                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                    Text(
-                        text = "BusinessId: ${state.currentBusinessId ?: "-"}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Text(
-                        text = "SiteId: ${state.selectedSiteId ?: "-"}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                // --- Selector de sitio ---
-                if (state.availableSites.isNotEmpty()) {
-                    var showSiteDropdown by remember { mutableStateOf(false) }
-                    val selectedSite = state.availableSites.find { it.id == state.selectedSiteId }
-                    OutlinedTextField(
-                        value = selectedSite?.name ?: "All Sites",
-                        onValueChange = {},
-                        label = { Text("Site") },
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = { showSiteDropdown = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select Site")
+                // ✅ DEBUG: Log values being passed to BusinessSiteFilters
+                Log.d("VehicleListScreen", "🔍 RENDER BusinessSiteFilters with:")
+                Log.d("VehicleListScreen", "  - selectedBusinessId: $filterBusinessId")
+                Log.d("VehicleListScreen", "  - selectedSiteId: $filterSiteId")
+                Log.d("VehicleListScreen", "  - isAllSitesSelected: $isAllSitesSelected")
+                Log.d("VehicleListScreen", "  - currentUserRole: ${currentUser?.role}")
+                
+                // Business and Site Filters (Centralized Component)
+                if (currentUser?.role in listOf(
+                    UserRole.ADMIN,
+                    UserRole.SUPERADMIN,
+                    UserRole.SYSTEM_OWNER
+                )) {
+                    BusinessSiteFilters(
+                        mode = BusinessSiteFilterMode.VIEW_FILTER,
+                        currentUserRole = currentUser?.role,
+                        selectedBusinessId = filterBusinessId,
+                        selectedSiteId = filterSiteId,
+                        isAllSitesSelected = isAllSitesSelected,
+                        onBusinessChanged = { sharedFiltersViewModel.setBusinessId(it); isUserFilterAction = true },
+                        onSiteChanged = { siteId ->
+                            Log.d("VehicleListScreen", "🎯 Site selection changed: $siteId")
+                            if (siteId == "ALL_SITES") {
+                                // "All Sites" selected - set site filter to null
+                                Log.d("VehicleListScreen", "🔧 Processing ALL_SITES selection")
+                                sharedFiltersViewModel.setSiteId(null)
+                                Log.d("VehicleListScreen", "✅ All Sites selected - filtering with null siteId")
+                            } else {
+                                // Specific site selected
+                                Log.d("VehicleListScreen", "🔧 Processing specific site selection: $siteId")
+                                sharedFiltersViewModel.setSiteId(siteId)
+                                Log.d("VehicleListScreen", "✅ Specific site selected: $siteId")
                             }
+                            isUserFilterAction = true
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+                        showBusinessFilter = false,
+                        isCollapsible = true,
+                        initiallyExpanded = false,
+                        title = "Vehicle Filters",
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        adminSharedFiltersViewModel = sharedFiltersViewModel
                     )
-                    DropdownMenu(
-                        expanded = showSiteDropdown,
-                        onDismissRequest = { showSiteDropdown = false },
-                        modifier = Modifier.fillMaxWidth(0.9f)
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("All Sites") },
-                            onClick = {
-                                viewModel.selectSite(null)
-                                showSiteDropdown = false
-                            }
-                        )
-                        state.availableSites.forEach { site ->
-                            DropdownMenuItem(
-                                text = { Text(site.name) },
-                                onClick = {
-                                    viewModel.selectSite(site.id)
-                                    showSiteDropdown = false
-                                }
-                            )
-                        }
-                    }
                 }
+                
+                // Old site filter removed - now handled by centralized BusinessSiteFilters component
                 when {
                     state.error != null -> ErrorScreen(
                         message = state.error!!,
-                        onRetry = { viewModel.loadVehicles(true) }
+                        onRetry = {
+                            val isAdmin = currentUser?.role in listOf(
+                                UserRole.ADMIN,
+                                UserRole.SUPERADMIN,
+                                UserRole.SYSTEM_OWNER
+                            )
+                            
+                            if (isAdmin) {
+                                // ✅ FIXED: Admin always uses filter-based loading, fallback to context if filters not ready
+                                val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+                                Log.d("VehicleListScreen", "🔄 ERROR RETRY: Admin loading with filters")
+                                Log.d("VehicleListScreen", "  - filterBusinessId: $filterBusinessId")
+                                Log.d("VehicleListScreen", "  - effectiveSiteId: $effectiveSiteId (null = All Sites)")
+                                viewModel.loadVehiclesWithFilters(filterBusinessId ?: "", effectiveSiteId, isAllSitesSelected)
+                            } else {
+                                // Operator mode - use context-based loading
+                                Log.d("VehicleListScreen", "🔄 ERROR RETRY: Operator loading with context")
+                                viewModel.loadVehicles(true)
+                            }
+                        }
                     )
                     else -> {
                         Box(

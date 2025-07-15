@@ -21,14 +21,30 @@ class TokenParser {
             val jsonObject = JSONObject(decodedString)
 
             Log.d("appflow", "TokenParser parseJwtToken:  ${jsonObject}")
-            Log.d("appflow", "TokenParser parseJwtToken role:  ${jsonObject.optString("role", "")}")
+            
+            val roleString = jsonObject.optString("role", "")
+            Log.d("appflow", "TokenParser parseJwtToken role:  $roleString")
+            
+            // Handle multiple roles separated by commas (e.g., "Administrator,User")
+            val effectiveRole = if (roleString.contains(",")) {
+                val roles = roleString.split(",").map { it.trim() }
+                Log.d("appflow", "TokenParser multiple roles found: $roles")
+                
+                // Use UserRoleManager to determine highest priority role
+                UserRoleManager.getHighestPriorityRole(roles)
+            } else {
+                UserRoleManager.fromString(roleString)
+            }
+            
+            Log.d("appflow", "TokenParser effective role: $effectiveRole")
 
             return JwtTokenClaims(
                 userId = jsonObject.optString("UserId", ""),
                 username = jsonObject.optString("unique_name", ""),
+                email = jsonObject.optString("email", "").takeIf { it.isNotBlank() }, // ✅ NEW: Extract email from token
                 familyName = jsonObject.optString("family_name", ""),
                 is2FAEnabled = jsonObject.optString("Is2FAEnabled", "false").toBoolean(),
-                role = UserRoleManager.fromString(jsonObject.optString("role", "")),
+                role = effectiveRole,
                 expiration = jsonObject.optLong("exp", 0)
             )
         }
@@ -38,6 +54,7 @@ class TokenParser {
 data class JwtTokenClaims(
     val userId: String,
     val username: String,
+    val email: String?,
     val familyName: String,
     val is2FAEnabled: Boolean,
     val role: UserRole,

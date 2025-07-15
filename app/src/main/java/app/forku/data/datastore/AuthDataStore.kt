@@ -22,6 +22,7 @@ import app.forku.data.service.GOServicesManager
 import android.util.Base64
 import org.json.JSONObject
 import java.util.Date
+import android.util.Log
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth")
 
@@ -87,12 +88,23 @@ class AuthDataStore @Inject constructor(
     suspend fun initializeApplicationToken() {
         android.util.Log.d("AuthDataStore", "Initializing application token...")
         cachedApplicationToken = securePrefs.getString("application_token", null)
-        android.util.Log.d("AuthDataStore", "Application token initialized: "+(cachedApplicationToken?.take(10))+"...")
+        cachedAuthenticationToken = securePrefs.getString("authentication_token", null)
+        cachedCsrfToken = securePrefs.getString("csrf_token", null)
+        cachedAntiforgeryCookie = securePrefs.getString("antiforgery_cookie", null)
+        android.util.Log.d("AuthDataStore", "Application token initialized: ${cachedApplicationToken?.take(10) ?: "null"}")
+        android.util.Log.d("AuthDataStore", "Authentication token initialized: ${cachedAuthenticationToken?.take(10) ?: "null"}")
+        android.util.Log.d("AuthDataStore", "CSRF token initialized: ${cachedCsrfToken?.take(10) ?: "null"}")
+        android.util.Log.d("AuthDataStore", "Antiforgery cookie initialized: ${cachedAntiforgeryCookie?.take(20) ?: "null"}")
     }
     
     fun getApplicationToken(): String? {
-        android.util.Log.d("AuthDataStore", "Getting cached application token: "+(cachedApplicationToken?.take(10)))
-        return cachedApplicationToken ?: securePrefs.getString("application_token", null)
+        // Always try to reload from secure storage if cache is null
+        if (cachedApplicationToken == null) {
+            cachedApplicationToken = securePrefs.getString("application_token", null)
+            android.util.Log.d("AuthDataStore", "Reloaded application token from storage: ${cachedApplicationToken?.take(10) ?: "null"}")
+        }
+        android.util.Log.d("AuthDataStore", "Getting cached application token: ${cachedApplicationToken?.take(10) ?: "null"}")
+        return cachedApplicationToken
     }
     
     suspend fun saveApplicationToken(token: String) {
@@ -109,26 +121,42 @@ class AuthDataStore @Inject constructor(
     }
     
     fun getAuthenticationToken(): String? {
-        return cachedAuthenticationToken ?: securePrefs.getString("authentication_token", null)
+        if (cachedAuthenticationToken == null) {
+            cachedAuthenticationToken = securePrefs.getString("authentication_token", null)
+            android.util.Log.d("AuthDataStore", "Reloaded authentication token from storage: ${cachedAuthenticationToken?.take(10) ?: "null"}")
+        }
+        return cachedAuthenticationToken
     }
 
     // CSRF Token methods
     suspend fun saveCsrfToken(token: String) {
         securePrefs.edit().putString("csrf_token", token).apply()
         cachedCsrfToken = token
-        android.util.Log.d("AuthDataStore", "Saved CSRF token: "+token.take(10)+"...")
+        android.util.Log.d("AuthDataStore", "Saved CSRF token: ${token.take(10)}...")
     }
     
-    fun getCsrfToken(): String? = cachedCsrfToken ?: securePrefs.getString("csrf_token", null)
+    fun getCsrfToken(): String? {
+        if (cachedCsrfToken == null) {
+            cachedCsrfToken = securePrefs.getString("csrf_token", null)
+            android.util.Log.d("AuthDataStore", "Reloaded CSRF token from storage: ${cachedCsrfToken?.take(10) ?: "null"}")
+        }
+        return cachedCsrfToken
+    }
 
     // Antiforgery Cookie methods
     suspend fun saveAntiforgeryCookie(cookie: String) {
         securePrefs.edit().putString("antiforgery_cookie", cookie).apply()
         cachedAntiforgeryCookie = cookie
-        android.util.Log.d("AuthDataStore", "Saved Antiforgery cookie: "+cookie.take(20)+"...")
+        android.util.Log.d("AuthDataStore", "Saved Antiforgery cookie: ${cookie.take(20)}...")
     }
     
-    fun getAntiforgeryCookie(): String? = cachedAntiforgeryCookie ?: securePrefs.getString("antiforgery_cookie", null)
+    fun getAntiforgeryCookie(): String? {
+        if (cachedAntiforgeryCookie == null) {
+            cachedAntiforgeryCookie = securePrefs.getString("antiforgery_cookie", null)
+            android.util.Log.d("AuthDataStore", "Reloaded antiforgery cookie from storage: ${cachedAntiforgeryCookie?.take(20) ?: "null"}")
+        }
+        return cachedAntiforgeryCookie
+    }
 
     // Suspend, for ViewModels/repos (loads from DataStore if needed)
     suspend fun getCsrfTokenSuspend(): String? {
@@ -164,22 +192,16 @@ class AuthDataStore @Inject constructor(
     }
 
     suspend fun setCurrentUser(user: User) {
-        android.util.Log.d("AuthDataStore", """
-            Storing user data:
-            - ID: ${user.id}
-            - Name: ${user.fullName}
-            - Token: ${user.token.take(10)}...
-            - Role: ${user.role}
-            - Business ID: ${user.businessId}
-            - Site ID: ${user.siteId}
-            - System Owner ID: ${user.systemOwnerId}
-        """.trimIndent())
+        // Log original businessId
+        android.util.Log.d("AuthDataStore", "[setCurrentUser] User recibido: id=${user.id}, businessId=${user.businessId}")
+        val finalBusinessId = user.businessId
+        android.util.Log.d("AuthDataStore", "[setCurrentUser] BusinessId final a guardar: $finalBusinessId")
         
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.USER_KEY] = gson.toJson(user)
+            preferences[PreferencesKeys.USER_KEY] = gson.toJson(user.copy(businessId = finalBusinessId))
             preferences[PreferencesKeys.USER_ID] = user.id
             
-            // Store tokens securely
+            // Store tokens securely - keeping for backward compatibility
             preferences[PreferencesKeys.APPLICATION_TOKEN] = user.token
             preferences[PreferencesKeys.AUTHENTICATION_TOKEN] = user.refreshToken
             
@@ -196,13 +218,21 @@ class AuthDataStore @Inject constructor(
             preferences[PreferencesKeys.ROLE] = user.role.name
             preferences[PreferencesKeys.PASSWORD] = user.password
             preferences[PreferencesKeys.IS_ONLINE] = true
-            user.businessId?.let { preferences[PreferencesKeys.BUSINESS_ID] = it }
+            finalBusinessId?.let { preferences[PreferencesKeys.BUSINESS_ID] = it }
             user.siteId?.let { preferences[PreferencesKeys.SITE_ID] = it }
             user.systemOwnerId?.let { preferences[PreferencesKeys.SYSTEM_OWNER_ID] = it }
             val now = System.currentTimeMillis()
             preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
             lastActiveTime = now
         }
+        
+        // CRITICAL FIX: Store tokens in EncryptedSharedPreferences to match retrieval logic
+        securePrefs.edit().apply {
+            putString("application_token", user.token)
+            putString("authentication_token", user.refreshToken)
+            apply()
+        }
+        android.util.Log.d("AuthDataStore", "Tokens stored in secure preferences: ${user.token.take(10)}...")
         
         // Update cached tokens
         cachedApplicationToken = user.token
@@ -226,6 +256,17 @@ class AuthDataStore @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences.clear()
         }
+        
+        // CRITICAL FIX: Also clear secure preferences to match storage logic
+        securePrefs.edit().apply {
+            remove("application_token")
+            remove("authentication_token")
+            remove("csrf_token")
+            remove("antiforgery_cookie")
+            apply()
+        }
+        android.util.Log.d("AuthDataStore", "Cleared tokens from secure preferences")
+        
         cachedApplicationToken = null
         cachedAuthenticationToken = null
         cachedCsrfToken = null
@@ -248,15 +289,25 @@ class AuthDataStore @Inject constructor(
      * Returns the expiration date of the current JWT token, or null if not available.
      */
     fun getTokenExpirationDate(): Date? {
-        val token = getApplicationToken() ?: return null
+        val token = getApplicationToken()
+        Log.d("AuthDataStore", "[LOCK] getTokenExpirationDate() - token: ${token?.take(30)}...")
+        if (token == null) {
+            Log.w("AuthDataStore", "[LOCK] No token available for expiration check")
+            return null
+        }
         val parts = token.split(".")
-        if (parts.size < 2) return null
+        if (parts.size < 2) {
+            Log.w("AuthDataStore", "[LOCK] Token format invalid for expiration check")
+            return null
+        }
         return try {
-            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP))
-            val json = JSONObject(payload)
+            val payload = String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP))
+            val json = org.json.JSONObject(payload)
             val exp = json.optLong("exp", -1)
+            Log.d("AuthDataStore", "[LOCK] JWT payload: $payload, exp: $exp")
             if (exp > 0) Date(exp * 1000) else null
         } catch (e: Exception) {
+            Log.e("AuthDataStore", "[LOCK] Error parsing token expiration: ${e.message}", e)
             null
         }
     }
@@ -288,5 +339,60 @@ class AuthDataStore @Inject constructor(
             preferences.remove(PreferencesKeys.SITE_ID)
         }
         android.util.Log.d("AuthDataStore", "Cleared business context")
+    }
+
+    /**
+     * Save last activity timestamp for session validation
+     */
+    suspend fun updateLastActivity() {
+        val now = System.currentTimeMillis()
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_ACTIVE] = now.toString()
+        }
+        lastActiveTime = now
+        Log.d("AuthDataStore", "Updated last activity: $now")
+    }
+    
+    /**
+     * Get last activity timestamp
+     */
+    suspend fun getLastActivity(): Long {
+        if (lastActiveTime > 0) return lastActiveTime
+        
+        val preferences = context.dataStore.data.first()
+        return preferences[PreferencesKeys.LAST_ACTIVE]?.toLongOrNull() ?: 0L
+    }
+    
+    /**
+     * Check if session is still valid based on last activity
+     */
+    suspend fun isSessionValid(maxInactivityMs: Long = 24 * 60 * 60 * 1000L): Boolean { // 24 hours default
+        val lastActivity = getLastActivity()
+        if (lastActivity == 0L) return false
+        
+        val timeSinceLastActivity = System.currentTimeMillis() - lastActivity
+        val isValid = timeSinceLastActivity <= maxInactivityMs
+        
+        Log.d("AuthDataStore", "Session validity check: last activity ${timeSinceLastActivity / 1000}s ago, valid: $isValid")
+        return isValid
+    }
+    
+    /**
+     * Enhanced token validation with expiration check
+     */
+    fun isTokenValid(): Boolean {
+        val token = getApplicationToken()
+        Log.d("AuthDataStore", "[LOCK] isTokenValid() - token: ${token?.take(30)}...")
+        if (token.isNullOrBlank()) return false
+        val expiration = getTokenExpirationDate()
+        Log.d("AuthDataStore", "[LOCK] isTokenValid() - expiration: $expiration")
+        if (expiration == null) {
+            Log.w("AuthDataStore", "[LOCK] Cannot determine token expiration")
+            return true // Assume valid if we can't parse expiration
+        }
+        val timeUntilExpiration = expiration.time - System.currentTimeMillis()
+        val isValid = timeUntilExpiration > 60_000L // At least 1 minute remaining
+        Log.d("AuthDataStore", "[LOCK] isTokenValid() - timeUntilExpiration: $timeUntilExpiration, isValid: $isValid")
+        return isValid
     }
 } 

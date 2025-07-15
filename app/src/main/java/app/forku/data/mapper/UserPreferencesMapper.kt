@@ -14,38 +14,32 @@ fun UserPreferencesDto.toDomain(): UserPreferences {
         theme = theme ?: "system",
         language = language ?: "en",
         notificationsEnabled = notificationsEnabled,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        isActive = isActive,
         isDirty = isDirty ?: true,
         isNew = isNew ?: true
     )
 }
 
-fun UserPreferences.toDto(): UserPreferencesDto {
+fun UserPreferences.toDto(userId: String? = null): UserPreferencesDto {
     return UserPreferencesDto(
+        type = "UserPreferencesDataObject",
         id = id,
         businessId = businessId,
         siteId = siteId,
-        // ✅ FIX: Always include LastSelected fields with actual values
         lastSelectedBusinessId = lastSelectedBusinessId ?: businessId,
         lastSelectedSiteId = lastSelectedSiteId ?: siteId,
         theme = theme,
         language = language,
         notificationsEnabled = notificationsEnabled,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        isActive = isActive,
         isDirty = isDirty,
         isNew = isNew,
-        // ✅ FIX: Don't send user object when saving preferences
+        isMarkedForDeletion = false,
+        internalObjectId = 0,
         user = null,
         site = null,
-        business = null
+        business = null,
+        goUserId = userId
     )
 }
-
-
 
 // Extension functions to extract rich information from included objects
 fun UserPreferencesDto.getBusinessName(): String? = business?.name

@@ -7,5 +7,5 @@ interface SafetyAlertRepository {
     suspend fun getSafetyAlertList(): List<SafetyAlertDto>
     suspend fun saveSafetyAlert(alert: SafetyAlertDto): SafetyAlertDto?
     suspend fun deleteSafetyAlert(alert: SafetyAlertDto): Boolean
-    suspend fun getSafetyAlertCount(): Int
+    suspend fun getSafetyAlertCount(businessId: String? = null, siteId: String? = null): Int
 } 

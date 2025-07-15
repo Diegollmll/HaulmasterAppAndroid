@@ -1,6 +1,7 @@
 package app.forku
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +29,8 @@ import app.forku.presentation.common.theme.BackgroundGray
 import androidx.lifecycle.lifecycleScope
 import app.forku.core.network.NetworkConnectivityManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import app.forku.core.location.LocationManager
 import app.forku.presentation.dashboard.DashboardViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,6 +47,9 @@ import kotlinx.coroutines.flow.collectLatest
 import coil.ImageLoader
 import app.forku.presentation.common.imageloader.LocalAuthenticatedImageLoader
 import androidx.compose.runtime.CompositionLocalProvider
+import app.forku.core.auth.SessionKeepAliveManager
+import app.forku.core.utils.GooglePlayServicesHelper
+import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -65,6 +71,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var imageLoader: ImageLoader
 
+    @Inject
+    lateinit var sessionKeepAliveManager: SessionKeepAliveManager
+
     private val loginViewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +87,13 @@ class MainActivity : ComponentActivity() {
         // Initialize token at startup
         lifecycleScope.launch {
             authDataStore.initializeApplicationToken()
+        }
+
+        // Check Google Play Services availability
+        if (!GooglePlayServicesHelper.isGooglePlayServicesAvailable(this)) {
+            val errorMessage = GooglePlayServicesHelper.getErrorMessage(this)
+            Log.w("MainActivity", "Google Play Services issue: $errorMessage")
+            // App can still function without Google Play Services for core features
         }
 
         setContent {
@@ -115,6 +131,8 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(authState) {
                 when (val state = authState) {
                     is AuthenticationState.RequiresAuthentication -> {
+                        // Stop session keep-alive when authentication fails
+                        sessionKeepAliveManager.stopKeepAlive()
                         // Show toast and redirect to login, no modal
                         Toast.makeText(this@MainActivity, "Your session has expired. Please log in again.", Toast.LENGTH_LONG).show()
                         lifecycleScope.launch { authDataStore.clearAuth() }
@@ -127,6 +145,31 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     else -> { /* do nothing */ }
+                }
+            }
+
+            // Manage session keep-alive based on authentication status
+            LaunchedEffect(isAuthenticated) {
+                // Run in IO dispatcher to avoid blocking main thread
+                withContext(Dispatchers.IO) {
+                    if (isAuthenticated) {
+                        // Start keep-alive when user is authenticated
+                        Log.d("MainActivity", "🚀 User authenticated, starting session keep-alive")
+                        sessionKeepAliveManager.startKeepAlive()
+                        
+                        // Log status after a short delay to see if it started properly
+                        delay(2000)
+                        sessionKeepAliveManager.logSessionStatus()
+                        
+                        // 🚀 FOR TESTING: Force immediate execution after 5 seconds
+                        delay(5000)
+                        Log.d("MainActivity", "🧪 TESTING: Forcing immediate execution...")
+                        sessionKeepAliveManager.forceExecuteNow()
+                    } else {
+                        // Stop keep-alive when user is not authenticated
+                        Log.d("MainActivity", "🛑 User not authenticated, stopping session keep-alive")
+                        sessionKeepAliveManager.stopKeepAlive()
+                    }
                 }
             }
 
@@ -200,6 +243,43 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up session keep-alive resources
+        sessionKeepAliveManager.cleanup()
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        // App going to background - switch to background intervals
+        Log.d("MainActivity", "🌙 App going to background")
+        sessionKeepAliveManager.onAppGoesToBackground()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // App coming to foreground - validate session and switch to foreground intervals
+        Log.d("MainActivity", "🌅 App coming to foreground")
+        lifecycleScope.launch {
+            val isSessionValid = sessionKeepAliveManager.onAppComesToForeground()
+            if (!isSessionValid) {
+                Log.w("MainActivity", "⚠️ Session validation failed - attempting emergency session check")
+                // ✅ IMPROVED: Don't immediately clear auth, try emergency validation first
+                val emergencyCheckPassed = sessionKeepAliveManager.performEmergencySessionCheck()
+                if (!emergencyCheckPassed) {
+                    Log.e("MainActivity", "❌ Emergency session check failed - session is truly expired")
+                    authDataStore.clearAuth()
+                    // Navigation will be handled by the authentication state observer
+                } else {
+                    Log.i("MainActivity", "✅ Emergency session check passed - session is still valid")
+                    // Session is actually valid, continue normally
+                }
+            } else {
+                Log.d("MainActivity", "✅ Session validation passed on foreground")
             }
         }
     }

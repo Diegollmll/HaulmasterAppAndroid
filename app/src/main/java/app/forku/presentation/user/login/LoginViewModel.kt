@@ -12,12 +12,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
 
+
 @HiltViewModel
 class LoginViewModel @Inject constructor(
+    private val loginUseCase: app.forku.domain.usecase.user.LoginUseCase,
     private val userRepository: UserRepository,
     private val tokenErrorHandler: TokenErrorHandler,
     private val businessContextManager: app.forku.core.business.BusinessContextManager,
-    private val userPreferencesRepository: app.forku.domain.repository.user.UserPreferencesRepository
+    private val userPreferencesRepository: app.forku.domain.repository.user.UserPreferencesRepository,
+    private val authDataStore: app.forku.data.datastore.AuthDataStore // <-- Inyectar AuthDataStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
@@ -26,60 +29,87 @@ class LoginViewModel @Inject constructor(
     fun login(username: String, password: String) {
         viewModelScope.launch {
             try {
+                Log.d("LoginViewModel", "[LOGIN] login() called with username: $username, password: ${password.map { '*' }}")
                 _state.value = LoginState.Loading
-                
-                Log.d("LoginViewModel", "Attempting login for user: $username")
-                val result = userRepository.login(username, password)
-                
+                Log.d("LoginViewModel", "[LOGIN] Llamando a loginUseCase (flujo centralizado)")
+                val result = loginUseCase(username, password)
+                Log.d("LoginViewModel", "[LOGIN] loginUseCase result: $result")
                 result.fold(
                     onSuccess = { user ->
-                        // Reset token error handler state on successful login
-                        tokenErrorHandler.resetAuthenticationState()
-                        
-                        Log.d("LoginViewModel", "Login successful, checking user preferences...")
-                        
-                        // Load business context with user preferences after successful login
+                        Log.d("LoginViewModel", "[LOGIN] Login success, user: $user")
                         try {
-                            businessContextManager.loadBusinessContext()
-                            Log.d("LoginViewModel", "Business context loaded successfully")
-                            
-                            // Check if user needs to configure preferences using both repositories
-                            val needsSetupFromPrefs = userPreferencesRepository.userNeedsPreferencesSetup()
-                            val needsSetupFromContext = businessContextManager.userNeedsPreferencesSetup()
-                            val needsSetup = needsSetupFromPrefs || needsSetupFromContext
-                            
-                            Log.d("LoginViewModel", "Preferences setup check:")
-                            Log.d("LoginViewModel", "  From UserPreferences: $needsSetupFromPrefs")
-                            Log.d("LoginViewModel", "  From BusinessContext: $needsSetupFromContext")
-                            Log.d("LoginViewModel", "  Final decision: $needsSetup")
-                            
-                            if (needsSetup) {
-                                Log.d("LoginViewModel", "User needs preferences setup, redirecting to UserPreferencesSetup")
-                                _state.value = LoginState.RequiresPreferencesSetup(user)
-                            } else {
-                                Log.d("LoginViewModel", "User preferences are configured, proceeding to dashboard")
-                                _state.value = LoginState.Success(user)
+                            Log.d("LoginViewModel", "[LOGIN] Guardando usuario y tokens en AuthDataStore...")
+                            Log.d("LoginViewModel", "authDataStore instance: $authDataStore")
+                            if (authDataStore == null) {
+                                Log.e("LoginViewModel", "authDataStore is null! No se puede guardar el usuario/tokens.")
+                                _state.value = LoginState.Error("Error interno: almacenamiento no disponible.")
+                                return@fold
                             }
-                            
+                            // LOG: Token y expiración usando métodos públicos
+                            val tokenFromCache = authDataStore.getApplicationToken()
+                            val expirationFromCache = authDataStore.getTokenExpirationDate()
+                            Log.d("LoginViewModel", "[DEBUG] Token from cache after login: $tokenFromCache")
+                            Log.d("LoginViewModel", "[DEBUG] Token expiration from cache after login: $expirationFromCache")
+                            if (tokenFromCache == null) {
+                                Log.e("LoginViewModel", "Token from cache is null después de login.")
+                            }
+                            if (expirationFromCache == null) {
+                                Log.e("LoginViewModel", "Token expiration from cache is null después de login.")
+                            }
+                            // Forzar recarga desde almacenamiento seguro
+                            authDataStore.initializeApplicationToken()
+                            val tokenAfterInit = authDataStore.getApplicationToken()
+                            val expirationAfterInit = authDataStore.getTokenExpirationDate()
+                            Log.d("LoginViewModel", "[DEBUG] Token after initializeApplicationToken: $tokenAfterInit")
+                            Log.d("LoginViewModel", "[DEBUG] Token expiration after initializeApplicationToken: $expirationAfterInit")
+                            // Validar campos críticos del modelo User
+                            if (user.id.isNullOrBlank() || user.token.isNullOrBlank() || user.refreshToken.isNullOrBlank() || user.username.isNullOrBlank()) {
+                                Log.e("LoginViewModel", "[LOGIN] User tiene campos críticos nulos o vacíos: id=${user.id}, token=${user.token}, refreshToken=${user.refreshToken}, username=${user.username}")
+                            }
+                            Log.d("LoginViewModel", "[LOGIN] Usuario y tokens guardados. Cargando contexto de negocio y preferencias...")
+                            loadContextAndPreferences(user)
                         } catch (e: Exception) {
-                            Log.w("LoginViewModel", "Failed to load business context after login", e)
-                            // If preferences check fails, assume setup is needed
-                            Log.d("LoginViewModel", "Preferences check failed, redirecting to UserPreferencesSetup as fallback")
-                            _state.value = LoginState.RequiresPreferencesSetup(user)
+                            Log.e("LoginViewModel", "[LOGIN] Error guardando usuario/tokens: ${e.message}", e)
+                            _state.value = LoginState.Error("Error interno al guardar sesión.")
                         }
                     },
                     onFailure = { exception ->
-                        Log.e("LoginViewModel", "Login failed", exception)
+                        Log.e("LoginViewModel", "[LOGIN] Login failed", exception)
                         val userMessage = extractUserFriendlyError(exception.message)
                         _state.value = LoginState.Error(userMessage)
                     }
                 )
-                
             } catch (e: Exception) {
-                Log.e("LoginViewModel", "Login failed with exception", e)
+                Log.e("LoginViewModel", "[LOGIN] Login failed with exception", e)
                 val userMessage = extractUserFriendlyError(e.message)
                 _state.value = LoginState.Error(userMessage)
             }
+        }
+    }
+
+    private suspend fun loadContextAndPreferences(user: User) {
+        try {
+            Log.d("LoginViewModel", "[CONTEXT] Loading business context after login...")
+            businessContextManager.loadBusinessContext()
+            Log.d("LoginViewModel", "[CONTEXT] Business context loaded successfully")
+            Log.d("LoginViewModel", "[CONTEXT] Checking if user needs preferences setup...")
+            val needsSetupFromPrefs = userPreferencesRepository.userNeedsPreferencesSetup()
+            Log.d("LoginViewModel", "[CONTEXT] UserPreferences check completed: $needsSetupFromPrefs")
+            val needsSetupFromContext = businessContextManager.userNeedsPreferencesSetup()
+            Log.d("LoginViewModel", "[CONTEXT] BusinessContext check completed: $needsSetupFromContext")
+            val needsSetup = needsSetupFromPrefs || needsSetupFromContext
+            Log.d("LoginViewModel", "[CONTEXT] Preferences setup check summary: From UserPreferences: $needsSetupFromPrefs, From BusinessContext: $needsSetupFromContext, Final: $needsSetup")
+            if (needsSetup) {
+                Log.d("LoginViewModel", "[CONTEXT] User needs preferences setup, updating state to RequiresPreferencesSetup")
+                _state.value = LoginState.RequiresPreferencesSetup(user)
+            } else {
+                Log.d("LoginViewModel", "[CONTEXT] User preferences are configured, updating state to Success")
+                _state.value = LoginState.Success(user)
+                // Ya no se guardan filtros aquí. Toda la persistencia de filtros es responsabilidad del ViewModel de filtros y FilterStorage.
+            }
+        } catch (e: Exception) {
+            Log.w("LoginViewModel", "[CONTEXT] Exception loading business context or preferences: ${e.message}", e)
+            _state.value = LoginState.RequiresPreferencesSetup(user)
         }
     }
 

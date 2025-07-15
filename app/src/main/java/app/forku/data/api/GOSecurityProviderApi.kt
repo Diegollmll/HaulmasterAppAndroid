@@ -176,11 +176,22 @@ interface GOSecurityProviderApi {
      * Keep the session alive.
      */
     @GET("api/gosecurityprovider/keepalive")
-    @Headers(
-        "Content-Type: application/json",
-        "Accept: text/plain"
-    )
-    suspend fun keepAlive(): Response<Unit>
+    @Headers("Accept: text/plain")
+    suspend fun keepAlive(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<Unit>
+
+    /**
+     * Renew authentication token to extend session.
+     * Based on working CURL - needs CSRF token AND cookies
+     */
+    @GET("api/gosecurityprovider/renewtoken")
+    @Headers("Accept: text/plain")
+    suspend fun renewToken(
+        @Header("X-CSRF-TOKEN") csrfToken: String,
+        @Header("Cookie") cookie: String
+    ): Response<AuthenticationResponse>
 
     /**
      * Log out the current user.

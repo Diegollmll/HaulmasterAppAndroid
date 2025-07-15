@@ -7,17 +7,20 @@ import javax.inject.Inject
 
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
+import app.forku.data.mapper.withVehicleTypeRelationships
 import app.forku.domain.model.checklist.Checklist
 import app.forku.domain.model.checklist.ChecklistItem
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.checklist.CheckStatus
 import java.time.Instant
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
+import app.forku.domain.repository.checklist.ChecklistQuestionVehicleTypeRepository
+import app.forku.domain.repository.vehicle.VehicleTypeRepository
 import app.forku.core.location.LocationManager
 import app.forku.data.api.ChecklistApi
 import app.forku.data.api.dto.checklist.ChecklistDto
-import app.forku.presentation.checklist.category.QuestionaryChecklistItemCategory
-import app.forku.presentation.checklist.category.QuestionaryChecklistItemSubcategory
+import app.forku.core.business.BusinessContextManager
+import com.google.gson.Gson
 
 import java.util.UUID
 
@@ -27,7 +30,10 @@ class ChecklistRepositoryImpl @Inject constructor(
     private val authDataStore: AuthDataStore,
     private val validateChecklistUseCase: ValidateChecklistUseCase,
     private val checklistStatusNotifier: ChecklistStatusNotifier,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private val businessContextManager: BusinessContextManager,
+    private val checklistQuestionVehicleTypeRepository: ChecklistQuestionVehicleTypeRepository,
+    private val vehicleTypeRepository: VehicleTypeRepository
 ) : ChecklistRepository {
 
     companion object {
@@ -41,7 +47,7 @@ class ChecklistRepositoryImpl @Inject constructor(
 
         // Get current user and business context
         val currentUser = authDataStore.getCurrentUser()
-        val businessId = currentUser?.businessId
+        val businessId = businessContextManager.getCurrentBusinessId() ?: currentUser?.businessId
         
         while (attempts < maxAttempts) {
             try {
@@ -136,14 +142,48 @@ class ChecklistRepositoryImpl @Inject constructor(
                     }
                 }
 
+                // Step 4: Load vehicle type relationships and enrich checklist items
+                android.util.Log.d("ChecklistRepo", "STEP 4: Loading vehicle type relationships...")
+                
+                val questionVehicleTypes = try {
+                    checklistQuestionVehicleTypeRepository.getAllQuestionVehicleTypes()
+                } catch (e: Exception) {
+                    android.util.Log.w("ChecklistRepo", "Failed to load question-vehicle type relationships", e)
+                    emptyList()
+                }
+                
+                val allVehicleTypes = try {
+                    vehicleTypeRepository.getVehicleTypes()
+                } catch (e: Exception) {
+                    android.util.Log.w("ChecklistRepo", "Failed to load vehicle types", e)
+                    emptyList()
+                }
+                
+                android.util.Log.d("ChecklistRepo", "✅ Loaded ${questionVehicleTypes.size} question-vehicle type relationships")
+                android.util.Log.d("ChecklistRepo", "✅ Loaded ${allVehicleTypes.size} vehicle types")
+                
                 val mapped = checklists.map { dto ->
                     android.util.Log.d("ChecklistRepositoryImpl", "Mapping ChecklistDto: ${dto.Title} with ${dto.ChecklistChecklistQuestionItems?.size ?: 0} questions")
-                    dto.toDomain()
+                    val basicChecklist = dto.toDomain()
+                    
+                    // Enrich checklist items with vehicle type relationships
+                    val enrichedItems = basicChecklist.items.withVehicleTypeRelationships(
+                        questionVehicleTypes, 
+                        allVehicleTypes
+                    )
+                    
+                    basicChecklist.copy(items = enrichedItems)
                 }
                 
                 android.util.Log.d("ChecklistRepo", "=== FINAL RESULT ===")
                 android.util.Log.d("ChecklistRepo", "Total checklists mapped: ${mapped.size}")
                 android.util.Log.d("ChecklistRepo", "Checklist titles: ${mapped.map { it.title }}")
+                mapped.forEach { checklist ->
+                    android.util.Log.d("ChecklistRepo", "Checklist '${checklist.title}' items with vehicle types:")
+                    checklist.items.forEach { item ->
+                        android.util.Log.d("ChecklistRepo", "  - Question '${item.question}' supports vehicle types: ${item.supportedVehicleTypeIds}")
+                    }
+                }
                 android.util.Log.d("ChecklistRepo", "=========================")
                 
                 return mapped
@@ -357,6 +397,10 @@ class ChecklistRepositoryImpl @Inject constructor(
             Id = check.id,
             Title = "Pre-shift Check",
             Description = "Vehicle pre-shift check",
+            version = "1.0", // ✅ FIX: Add version field
+            createdAt = null, // ✅ FIX: Will be set by backend
+            modifiedAt = null, // ✅ FIX: Will be set by backend
+            isActive = true, // ✅ FIX: Add isActive field
             ChecklistChecklistQuestionItems = check.items.map { it.toDto() },
             CriticalityLevels = emptyList(),
             CriticalQuestionMinimum = 0,
@@ -366,10 +410,24 @@ class ChecklistRepositoryImpl @Inject constructor(
             RotationGroups = 0,
             StandardQuestionMaximum = 0,
             IsMarkedForDeletion = false,
-            InternalObjectId = 0
+            InternalObjectId = 0,
+            businessId = businessContextManager.getCurrentBusinessId(), // ✅ FIX: Add businessId
+            goUserId = authDataStore.getCurrentUser()?.id // ✅ FIX: Add goUserId
         )
         
-        val response = api.save(dto)
+        // Serialize DTO to JSON string (same pattern as VehicleSession)
+        val gson = Gson()
+        val entityJson = gson.toJson(dto)
+        val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+        val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+        val businessId = businessContextManager.getCurrentBusinessId()
+        
+        val response = api.save(
+            csrfToken = csrfToken,
+            cookie = cookie,
+            entity = entityJson,
+            businessId = businessId
+        )
         if (!response.isSuccessful) throw Exception("Failed to save global checklist: ${response.code()}")
         
         return response.body()?.let { savedDto ->
@@ -397,6 +455,10 @@ class ChecklistRepositoryImpl @Inject constructor(
             Id = checkId,
             Title = "Pre-shift Check",
             Description = "Vehicle pre-shift check",
+            version = "1.0", // ✅ FIX: Add version field
+            createdAt = null, // ✅ FIX: Will be set by backend
+            modifiedAt = null, // ✅ FIX: Will be set by backend
+            isActive = true, // ✅ FIX: Add isActive field
             ChecklistChecklistQuestionItems = check.items.map { it.toDto() },
             CriticalityLevels = emptyList(),
             CriticalQuestionMinimum = 0,
@@ -406,10 +468,24 @@ class ChecklistRepositoryImpl @Inject constructor(
             RotationGroups = 0,
             StandardQuestionMaximum = 0,
             IsMarkedForDeletion = false,
-            InternalObjectId = 0
+            InternalObjectId = 0,
+            businessId = businessContextManager.getCurrentBusinessId(), // ✅ FIX: Add businessId
+            goUserId = authDataStore.getCurrentUser()?.id // ✅ FIX: Add goUserId
         )
         
-        val response = api.save(dto)
+        // Serialize DTO to JSON string (same pattern as VehicleSession)
+        val gson = Gson()
+        val entityJson = gson.toJson(dto)
+        val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+        val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+        val businessId = businessContextManager.getCurrentBusinessId()
+        
+        val response = api.save(
+            csrfToken = csrfToken,
+            cookie = cookie,
+            entity = entityJson,
+            businessId = businessId
+        )
         if (!response.isSuccessful) throw Exception("Failed to update global checklist: ${response.code()}")
         
         return response.body()?.let { savedDto ->
@@ -449,6 +525,228 @@ class ChecklistRepositoryImpl @Inject constructor(
 
     override suspend fun canStartCheck(vehicleId: String): Boolean {
         return true // Assuming the logic is moved to VehicleValidationService
+    }
+    
+    override suspend fun getAllChecklists(businessId: String?): List<Checklist> {
+        try {
+            val response = if (businessId != null) {
+                api.getList(
+                    include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems",
+                    businessId = businessId
+                )
+            } else {
+                api.getList(
+                    include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems"
+                )
+            }
+            
+            if (response.isSuccessful && response.body() != null) {
+                return response.body()!!.map { it.toDomain() }
+            } else {
+                throw Exception("Failed to fetch checklists: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistRepo", "Error fetching all checklists", e)
+            throw e
+        }
+    }
+
+    override suspend fun getChecklistsForManagement(businessId: String?): List<Checklist> {
+        try {
+            // Get all checklists without filtering
+            val response = api.getList(
+                include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems"
+            )
+            
+            if (response.isSuccessful && response.body() != null) {
+                val allChecklists = response.body()!!.map { it.toDomain() }
+                
+                val filteredChecklists = allChecklists.filter { checklist ->
+                    // Include default checklists (no businessId AND marked as IsDefault)
+                    (checklist.businessId == null && checklist.isDefault) || 
+                    // Include checklists from current business
+                    checklist.businessId == businessId
+                }
+                
+                android.util.Log.d("ChecklistRepo", "=== CHECKLIST MANAGEMENT FILTERING DEBUG ===")
+                android.util.Log.d("ChecklistRepo", "Current BusinessId: $businessId")
+                android.util.Log.d("ChecklistRepo", "Total checklists found: ${allChecklists.size}")
+                
+                allChecklists.forEach { checklist ->
+                    val isDefault = checklist.businessId == null && checklist.isDefault
+                    val isFromCurrentBusiness = checklist.businessId == businessId
+                    val willBeIncluded = isDefault || isFromCurrentBusiness
+                    
+                    android.util.Log.d("ChecklistRepo", "Checklist: '${checklist.title}'")
+                    android.util.Log.d("ChecklistRepo", "  - BusinessId: ${checklist.businessId}")
+                    android.util.Log.d("ChecklistRepo", "  - IsDefault: ${checklist.isDefault}")
+                    android.util.Log.d("ChecklistRepo", "  - Is default checklist: $isDefault")
+                    android.util.Log.d("ChecklistRepo", "  - Is from current business: $isFromCurrentBusiness")
+                    android.util.Log.d("ChecklistRepo", "  - Will be included: $willBeIncluded")
+                }
+                
+                android.util.Log.d("ChecklistRepo", "Filtered for management: ${filteredChecklists.size} checklists")
+                android.util.Log.d("ChecklistRepo", "=============================================")
+                
+                return filteredChecklists
+            } else {
+                throw Exception("Failed to fetch checklists for management: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistRepo", "Error fetching checklists for management", e)
+            throw e
+        }
+    }
+    
+    override suspend fun getChecklistById(id: String): Checklist? {
+        try {
+            val response = api.getById(id, include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems")
+            if (response.isSuccessful && response.body() != null) {
+                val checklist = response.body()!!.toDomain()
+                android.util.Log.d("ChecklistRepo", "Loaded checklist '${checklist.title}' with ${checklist.items.size} items")
+                return checklist
+            }
+            return null
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistRepo", "Error fetching checklist by id: $id", e)
+            return null
+        }
+    }
+    
+    override suspend fun createChecklist(checklist: Checklist): Checklist {
+        try {
+            // Create simplified JSON directly from domain model (single source of truth)
+            val simplifiedJson = createSimplifiedChecklistJson(checklist)
+            
+            android.util.Log.d("ChecklistRepo", "Creating checklist from domain: ${checklist.title}")
+            android.util.Log.d("ChecklistRepo", "Domain businessId: ${checklist.businessId}")
+            android.util.Log.d("ChecklistRepo", "Domain goUserId: ${checklist.goUserId}") // ✅ New: Log creator user ID
+            android.util.Log.d("ChecklistRepo", "Domain criticalQuestionMinimum: ${checklist.criticalQuestionMinimum}")
+            android.util.Log.d("ChecklistRepo", "Domain maxQuestionsPerCheck: ${checklist.maxQuestionsPerCheck}")
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+            val businessId = businessContextManager.getCurrentBusinessId()
+            
+            android.util.Log.d("ChecklistRepo", "Creating checklist with simplified JSON: $simplifiedJson")
+            android.util.Log.d("ChecklistRepo", "CSRF Token: $csrfToken")
+            android.util.Log.d("ChecklistRepo", "Cookie: $cookie")
+            android.util.Log.d("ChecklistRepo", "BusinessId: $businessId")
+            
+            val response = api.save(
+                csrfToken = csrfToken,
+                cookie = cookie,
+                entity = simplifiedJson,
+                businessId = businessId,
+                include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems,ChecklistChecklistItemCategoryItems"
+            )
+            if (response.isSuccessful && response.body() != null) {
+                return response.body()!!.toDomain()
+            } else {
+                android.util.Log.e("ChecklistRepo", "Failed to create checklist: ${response.code()}")
+                android.util.Log.e("ChecklistRepo", "Response body: ${response.errorBody()?.string()}")
+                throw Exception("Failed to create checklist: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistRepo", "Error creating checklist", e)
+            throw e
+        }
+    }
+    
+    override suspend fun updateChecklist(id: String, checklist: Checklist): Checklist {
+        try {
+            val dto = checklist.toDto().copy(Id = id)
+            
+            // Add debug logging
+            android.util.Log.d("ChecklistRepo", "Updating checklist with DTO: ${dto.Title}")
+            android.util.Log.d("ChecklistRepo", "DTO goUserId: ${dto.goUserId}") // ✅ New: Log creator user ID
+            android.util.Log.d("ChecklistRepo", "ChecklistChecklistItemCategoryItems: ${dto.ChecklistChecklistItemCategoryItems}")
+            android.util.Log.d("ChecklistRepo", "ChecklistVehicleTypeItems: ${dto.ChecklistVehicleTypeItems}")
+            
+            // Serialize DTO to JSON string (same pattern as VehicleSession)
+            val gson = Gson()
+            val entityJson = gson.toJson(dto)
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+            val businessId = businessContextManager.getCurrentBusinessId()
+            
+            android.util.Log.d("ChecklistRepo", "Updating checklist with entity JSON: $entityJson")
+            android.util.Log.d("ChecklistRepo", "CSRF Token: $csrfToken")
+            android.util.Log.d("ChecklistRepo", "Cookie: $cookie")
+            android.util.Log.d("ChecklistRepo", "BusinessId: $businessId")
+            
+            val response = api.save(
+                csrfToken = csrfToken,
+                cookie = cookie,
+                entity = entityJson,
+                businessId = businessId,
+                include = "ChecklistChecklistQuestionItems,Business,ChecklistVehicleTypeItems,ChecklistChecklistItemCategoryItems"
+            )
+            if (response.isSuccessful && response.body() != null) {
+                return response.body()!!.toDomain()
+            } else {
+                throw Exception("Failed to update checklist: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistRepo", "Error updating checklist", e)
+            throw e
+        }
+    }
+    
+    override suspend fun deleteChecklist(id: String): Boolean {
+        try {
+            val response = api.delete(id)
+            return response.isSuccessful
+        } catch (e: Exception) {
+            android.util.Log.e("ChecklistRepo", "Error deleting checklist: $id", e)
+            return false
+        }
+    }
+    
+    /**
+     * Creates a simplified JSON that matches exactly the working Postman request
+     * Takes domain model as single source of truth and converts to backend format
+     */
+    private fun createSimplifiedChecklistJson(checklist: Checklist): String {
+        android.util.Log.d("ChecklistRepo", "🔍 [JSON-DEBUG] Creating JSON for checklist: ${checklist.title}")
+        android.util.Log.d("ChecklistRepo", "🔍 [JSON-DEBUG] Input goUserId: '${checklist.goUserId}'")
+        android.util.Log.d("ChecklistRepo", "🔍 [JSON-DEBUG] Input businessId: '${checklist.businessId}'")
+        
+        val simplifiedMap = mutableMapOf<String, Any?>(
+            "\$type" to "ChecklistDataObject", // ✅ Required for backend deserialization
+            "AllVehicleTypesEnabled" to checklist.allVehicleTypesEnabled,
+            "BusinessId" to checklist.businessId,
+            "GOUserId" to checklist.goUserId, // ✅ New: Include creator user ID
+            "CriticalityLevels" to checklist.criticalityLevels,
+            "CriticalQuestionMinimum" to checklist.criticalQuestionMinimum.toString(), // Int -> String
+            "Description" to checklist.description,
+            "EnergySources" to checklist.energySources,
+            "IsDefault" to checklist.isDefault,
+            "MaxQuestionsPerCheck" to checklist.maxQuestionsPerCheck.toString(), // Int -> String
+            "RotationGroups" to checklist.rotationGroups.toString(), // Int -> String
+            "StandardQuestionMaximum" to checklist.standardQuestionMaximum.toString(), // Int -> String
+            "Title" to checklist.title,
+            "IsDirty" to true, // Always true for new/modified checklists
+            "IsNew" to checklist.id.isEmpty(), // New if ID is empty
+            "IsMarkedForDeletion" to checklist.isMarkedForDeletion,
+            "InternalObjectId" to 0 // ✅ Required field for new entities
+        )
+        
+        // Handle Id field properly - null for new entities, actual ID for updates
+        if (checklist.id.isEmpty()) {
+            simplifiedMap["Id"] = null
+        } else {
+            simplifiedMap["Id"] = checklist.id
+        }
+        
+        android.util.Log.d("ChecklistRepo", "🔍 [JSON-DEBUG] Map GOUserId value: '${simplifiedMap["GOUserId"]}'")
+        android.util.Log.d("ChecklistRepo", "🔍 [JSON-DEBUG] Map BusinessId value: '${simplifiedMap["BusinessId"]}'")
+        
+        val gson = Gson()
+        val jsonString = gson.toJson(simplifiedMap)
+        
+        android.util.Log.d("ChecklistRepo", "🔍 [JSON-DEBUG] Final JSON string: $jsonString")
+        
+        return jsonString
     }
     
 }

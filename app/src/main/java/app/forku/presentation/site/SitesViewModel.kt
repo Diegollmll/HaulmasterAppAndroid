@@ -131,6 +131,146 @@ class SitesViewModel @Inject constructor(
         }
     }
 
+    /**
+     * ✅ NEW: Load all sites for a specific business (for admin filtering)
+     * This is different from loadUserAssignedSites which only shows user's assigned sites
+     */
+    fun loadSitesForBusiness(businessId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            try {
+                android.util.Log.d("SitesViewModel", "Loading all sites for business: $businessId")
+                
+                // Load all sites for the specific business
+                repository.getSitesForBusiness(businessId)
+                    .catch { e ->
+                        android.util.Log.e("SitesViewModel", "Error loading sites for business: $businessId", e)
+                        _uiState.update {
+                            it.copy(
+                                error = e.message ?: "Failed to load sites for business",
+                                isLoading = false
+                            )
+                        }
+                    }
+                    .collect { result ->
+                        result.fold(
+                            onSuccess = { sites ->
+                                android.util.Log.d("SitesViewModel", "Loaded ${sites.size} sites for business $businessId")
+                                _uiState.update {
+                                    it.copy(
+                                        sites = sites.map { it.toDomain() },
+                                        isLoading = false
+                                    )
+                                }
+                            },
+                            onFailure = { e ->
+                                android.util.Log.e("SitesViewModel", "Failed to load sites for business: $businessId", e)
+                                _uiState.update {
+                                    it.copy(
+                                        error = e.message ?: "Failed to load sites for business",
+                                        isLoading = false
+                                    )
+                                }
+                            }
+                        )
+                    }
+            } catch (e: Exception) {
+                android.util.Log.e("SitesViewModel", "Exception loading sites for business: $businessId", e)
+                _uiState.update {
+                    it.copy(
+                        error = e.message ?: "Exception loading sites for business",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Carga los sitios para un business según el rol del usuario.
+     * Admin: todos los sitios del business.
+     * Operator: solo los sitios asignados al usuario de ese business.
+     */
+    fun loadSitesForBusinessWithRole(businessId: String, isAdmin: Boolean) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                if (isAdmin) {
+                    // Admin: todos los sitios del business
+                    repository.getSitesForBusiness(businessId)
+                        .catch { e ->
+                            _uiState.update {
+                                it.copy(
+                                    error = e.message ?: "Failed to load sites for business",
+                                    isLoading = false
+                                )
+                            }
+                        }
+                        .collect { result ->
+                            result.fold(
+                                onSuccess = { sites ->
+                                    _uiState.update {
+                                        it.copy(
+                                            sites = sites.map { it.toDomain() },
+                                            isLoading = false
+                                        )
+                                    }
+                                },
+                                onFailure = { e ->
+                                    _uiState.update {
+                                        it.copy(
+                                            error = e.message ?: "Failed to load sites for business",
+                                            isLoading = false
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                } else {
+                    // Operator: solo sitios asignados al usuario de ese business
+                    repository.getUserAssignedSites()
+                        .catch { e ->
+                            _uiState.update {
+                                it.copy(
+                                    error = e.message ?: "Failed to load assigned sites",
+                                    isLoading = false
+                                )
+                            }
+                        }
+                        .collect { result ->
+                            result.fold(
+                                onSuccess = { sites ->
+                                    val filtered = sites.map { it.toDomain() }.filter { it.businessId == businessId }
+                                    _uiState.update {
+                                        it.copy(
+                                            sites = filtered,
+                                            isLoading = false
+                                        )
+                                    }
+                                },
+                                onFailure = { e ->
+                                    _uiState.update {
+                                        it.copy(
+                                            error = e.message ?: "Failed to load assigned sites",
+                                            isLoading = false
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        error = e.message ?: "Exception loading sites",
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
     fun createSite(businessId: String, site: Site) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }

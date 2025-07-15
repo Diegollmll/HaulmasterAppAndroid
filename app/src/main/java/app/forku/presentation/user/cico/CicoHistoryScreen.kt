@@ -32,6 +32,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.DisposableEffect
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.presentation.common.utils.formatReadableDate
+import app.forku.presentation.common.components.BusinessSiteFilters
+import androidx.compose.material.icons.filled.FilterList
+import app.forku.core.business.BusinessContextManager
+import app.forku.presentation.common.components.BusinessContextAwareViewModel
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import app.forku.presentation.common.components.BusinessSiteFilterMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +53,21 @@ fun CicoHistoryScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    // --- SHARED FILTERS LOGIC ---
+    val owner = LocalViewModelStoreOwner.current
+    val sharedFiltersViewModel: AdminSharedFiltersViewModel = hiltViewModel(viewModelStoreOwner = owner!!)
+    val filterBusinessId by sharedFiltersViewModel.filterBusinessId.collectAsStateWithLifecycle()
+    val filterSiteId by sharedFiltersViewModel.filterSiteId.collectAsStateWithLifecycle()
+    val isAllSitesSelected by sharedFiltersViewModel.isAllSitesSelected.collectAsStateWithLifecycle()
+    // --- USER/ROLE LOGIC ---
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val isAdmin = currentUser?.role == app.forku.domain.model.user.UserRole.ADMIN
+    val viewingOtherProfile = operatorId != null && operatorId != currentUser?.id
+    // --- END SHARED FILTERS LOGIC ---
+    
+    // Get BusinessContextManager for filters
+    val businessContextAwareViewModel: BusinessContextAwareViewModel = hiltViewModel()
+    val businessContextManager = businessContextAwareViewModel.businessContextManager
     
     // Clean up state when leaving the screen
     DisposableEffect(Unit) {
@@ -72,6 +94,7 @@ fun CicoHistoryScreen(
     // Load initial data with operatorId
     LaunchedEffect(operatorId) {
         android.util.Log.d("appflow", "CicoHistoryScreen LaunchedEffect operatorId: $operatorId")
+        android.util.Log.d("CicoHistoryScreen", "🚀 Loading CICO history, current isAdmin: ${state.isAdmin}")
         viewModel.setSelectedOperator(operatorId)
         viewModel.setDropdownExpanded(false)
     }
@@ -155,6 +178,33 @@ fun CicoHistoryScreen(
                     }
                 }
 
+                // ✅ Business and Site Filters for Admin (always visible like in Incidents)
+                android.util.Log.d("CicoHistoryScreen", "🔍 Admin check: isAdmin=${state.isAdmin}")
+                if (state.isAdmin) {
+                    android.util.Log.d("CicoHistoryScreen", "🎯 Showing Business/Site filters for admin")
+                    // --- FILTERS UI ---
+                    if (isAdmin && !viewingOtherProfile) {
+                        BusinessSiteFilters(
+                            mode = BusinessSiteFilterMode.VIEW_FILTER,
+                            currentUserRole = currentUser?.role,
+                            selectedBusinessId = filterBusinessId,
+                            selectedSiteId = filterSiteId,
+                            isAllSitesSelected = isAllSitesSelected,
+                            onBusinessChanged = { sharedFiltersViewModel.setBusinessId(it) },
+                            onSiteChanged = { siteId ->
+                                if (siteId == "ALL_SITES") sharedFiltersViewModel.setSiteId(null)
+                                else sharedFiltersViewModel.setSiteId(siteId)
+                            },
+                            showBusinessFilter = false,
+                            isCollapsible = true,
+                            initiallyExpanded = false,
+                            title = "Filter CICO by Context",
+                            adminSharedFiltersViewModel = sharedFiltersViewModel
+                        )
+                    }
+                    // --- END FILTERS UI ---
+                }
+
                 when {
                     state.isLoading -> LoadingOverlay()
                     state.error != null -> ErrorScreen(
@@ -197,6 +247,21 @@ fun CicoHistoryScreen(
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
     )
+    // --- DATA LOAD LOGIC ---
+    LaunchedEffect(isAdmin, filterBusinessId, filterSiteId, isAllSitesSelected, operatorId) {
+        if (isAdmin && !viewingOtherProfile) {
+            // Admin: load with filters
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            if (filterBusinessId != null) {
+                viewModel.setBusinessFilter(filterBusinessId)
+                viewModel.setSiteFilter(effectiveSiteId)
+            }
+        } else {
+            // Operator or admin viewing another profile: load with context only
+            viewModel.loadCicoHistory(operatorId)
+        }
+    }
+    // --- END DATA LOAD LOGIC ---
 }
 
 @Composable

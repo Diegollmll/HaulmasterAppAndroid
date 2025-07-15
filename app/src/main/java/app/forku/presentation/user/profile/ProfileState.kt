@@ -12,5 +12,10 @@ data class ProfileState(
     val error: String? = null,
     val totalSessions: Int = 0,
     val totalIncidents: Int = 0,
-    val lastSessionTime: String? = null
+    val lastSessionTime: String? = null,
+    // Business and Site context
+    val currentBusinessName: String? = null,
+    val currentSiteName: String? = null,
+    val businessId: String? = null,
+    val siteId: String? = null
 ) 

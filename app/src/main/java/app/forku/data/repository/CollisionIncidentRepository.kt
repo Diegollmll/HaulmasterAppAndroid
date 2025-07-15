@@ -3,6 +3,7 @@ package app.forku.data.repository
 import app.forku.data.api.CollisionIncidentApi
 import app.forku.data.dto.CollisionIncidentDto
 import app.forku.domain.repository.ICollisionIncidentRepository
+import app.forku.core.utils.safeEmitFailure
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
@@ -21,7 +22,7 @@ class CollisionIncidentRepository @Inject constructor(
             val result = api.getById(id)
             emit(Result.success(result))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -30,7 +31,7 @@ class CollisionIncidentRepository @Inject constructor(
             val result = api.getList()
             emit(Result.success(result))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -39,7 +40,7 @@ class CollisionIncidentRepository @Inject constructor(
             val result = api.getCount()
             emit(Result.success(result))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -79,7 +80,7 @@ class CollisionIncidentRepository @Inject constructor(
             emit(Result.success(result))
         } catch (e: Exception) {
             android.util.Log.e("CollisionIncidentRepo", "Error saving collision incident: ${e.message}", e)
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 
@@ -88,7 +89,7 @@ class CollisionIncidentRepository @Inject constructor(
             api.deleteById(id)
             emit(Result.success(Unit))
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            safeEmitFailure(e) { failure -> emit(failure) }
         }
     }
 } 

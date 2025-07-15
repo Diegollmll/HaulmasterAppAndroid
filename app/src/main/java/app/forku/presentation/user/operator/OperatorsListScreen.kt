@@ -1,5 +1,6 @@
 package app.forku.presentation.user.operator
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,10 +26,15 @@ import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.auth.UserRoleManager
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
+import app.forku.presentation.common.components.BusinessSiteFilters
+import app.forku.presentation.common.components.BusinessSiteFilterMode
 import app.forku.presentation.dashboard.OperatorSessionInfo
 import app.forku.presentation.common.utils.getUserAvatarData
 import app.forku.presentation.common.components.UserAvatar
 import app.forku.presentation.navigation.Screen
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
+import androidx.navigation.NavHostController
+import app.forku.domain.model.user.UserRole
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -38,11 +44,72 @@ fun OperatorsListScreen(
     networkManager: NetworkConnectivityManager,
     tokenErrorHandler: TokenErrorHandler
 ) {
+    val navHostController = navController as? NavHostController
+    val sharedFiltersViewModel: AdminSharedFiltersViewModel = if (navHostController?.currentBackStackEntry != null) {
+        hiltViewModel(navHostController.currentBackStackEntry!!)
+    } else {
+        hiltViewModel()
+    }
+    
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val filterBusinessId by sharedFiltersViewModel.filterBusinessId.collectAsStateWithLifecycle()
+    val filterSiteId by sharedFiltersViewModel.filterSiteId.collectAsStateWithLifecycle()
+    val isAllSitesSelected by sharedFiltersViewModel.isAllSitesSelected.collectAsStateWithLifecycle()
+    
+    // ✅ SIMPLIFIED: Estado para saber si los filtros ya han sido inicializados desde DataStore
+    var filtersInitialized by remember { mutableStateOf(false) }
+    // Bandera para saber si ya se leyó cada filtro al menos una vez
+    var businessIdRead by remember { mutableStateOf(false) }
+    var siteIdRead by remember { mutableStateOf(false) }
+    var allSitesRead by remember { mutableStateOf(false) }
+
+    // Observa los cambios y marca como leído cuando cada filtro se inicializa
+    LaunchedEffect(filterBusinessId) { if (!businessIdRead && filterBusinessId != null) businessIdRead = true }
+    LaunchedEffect(filterSiteId) { if (!siteIdRead) siteIdRead = true }
+    LaunchedEffect(isAllSitesSelected) { if (!allSitesRead) allSitesRead = true }
+    // Cuando los tres han sido leídos, marca filtersInitialized
+    LaunchedEffect(businessIdRead, siteIdRead, allSitesRead) {
+        if (businessIdRead && siteIdRead && allSitesRead) filtersInitialized = true
+    }
+    
+    // ✅ CENTRALIZED: Single function to handle all operator loading scenarios
+    fun loadOperatorsData() {
+        val isAdmin = currentUser?.role in listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER)
+        
+        if (isAdmin && filtersInitialized && filterBusinessId != null) {
+            val effectiveSiteId = if (isAllSitesSelected) null else filterSiteId
+            Log.d("OperatorsListScreen", "[UI] loadOperatorsData: Admin loading with filters")
+            Log.d("OperatorsListScreen", "[UI] Parameters: businessId=$filterBusinessId, siteId=$effectiveSiteId")
+            viewModel.loadOperatorsWithFilters(filterBusinessId, effectiveSiteId)
+        } else if (!isAdmin) {
+            Log.d("OperatorsListScreen", "[UI] loadOperatorsData: Operator loading with context")
+            viewModel.loadOperators(true)
+        } else {
+            Log.d("OperatorsListScreen", "[UI] loadOperatorsData skipped: isAdmin=$isAdmin, filtersInitialized=$filtersInitialized, filterBusinessId=$filterBusinessId")
+        }
+    }
+    
+    // ✅ SIMPLIFIED: Single LaunchedEffect for initial load and filter changes with debouncing
+    LaunchedEffect(currentUser, filterBusinessId, filterSiteId, isAllSitesSelected, filtersInitialized) {
+        Log.d("OperatorsListScreen", "=== OPERATORS LOAD TRIGGERED ===")
+        Log.d("OperatorsListScreen", "[UI] LaunchedEffect triggered: filtersInitialized=$filtersInitialized, filterBusinessId=$filterBusinessId")
+        
+        // ✅ ADDED: Small delay to debounce rapid filter changes
+        kotlinx.coroutines.delay(300)
+        
+        loadOperatorsData()
+    }
+    
+    // ✅ CENTRALIZED: Single refresh function to avoid multiple triggers
+    fun handleRefresh() {
+        Log.d("OperatorsListScreen", "🔄 CENTRALIZED REFRESH: Loading operators")
+        loadOperatorsData()
+    }
     
     val pullRefreshState = rememberPullRefreshState(
         refreshing = state.isLoading && state.isRefreshing,
-        onRefresh = { viewModel.loadOperators(true) }
+        onRefresh = { handleRefresh() }
     )
 
     BaseScreen(
@@ -50,7 +117,6 @@ fun OperatorsListScreen(
         showTopBar = true,
         topBarTitle = "Users",
         showBottomBar = false,
-        onRefresh = { viewModel.loadOperators(true) },
         showLoadingOnRefresh = false,
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
@@ -67,12 +133,49 @@ fun OperatorsListScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Business context header
+                // ✅ FILTERS: Separate from user context - for data visualization only
+                if (currentUser?.role in listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER)) {
+                    item {
+                        BusinessSiteFilters(
+                            mode = BusinessSiteFilterMode.VIEW_FILTER,
+                            currentUserRole = currentUser?.role,
+                            selectedBusinessId = filterBusinessId,
+                            selectedSiteId = if (isAllSitesSelected) null else filterSiteId,
+                            isAllSitesSelected = isAllSitesSelected,
+                            onBusinessChanged = { businessId ->
+                                sharedFiltersViewModel.setBusinessId(businessId)
+                            },
+                            onSiteChanged = { siteId ->
+                                Log.d("OperatorsListScreen", "🎯 Site selection changed: $siteId")
+                                if (siteId == "ALL_SITES") {
+                                    // "All Sites" selected - set site filter to null
+                                    Log.d("OperatorsListScreen", "🔧 Processing ALL_SITES selection")
+                                    sharedFiltersViewModel.setSiteId(null)
+                                    Log.d("OperatorsListScreen", "✅ All Sites selected - filtering with null siteId")
+                                } else {
+                                    // Specific site selected
+                                    Log.d("OperatorsListScreen", "🔧 Processing specific site selection: $siteId")
+                                    sharedFiltersViewModel.setSiteId(siteId)
+                                    Log.d("OperatorsListScreen", "✅ Specific site selected: $siteId")
+                                }
+                                // ✅ Data reload will be handled by LaunchedEffect observing filter changes
+                            },
+                            showBusinessFilter = false,
+                            isCollapsible = true,
+                            initiallyExpanded = false,
+                            title = "Filter Users",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            adminSharedFiltersViewModel = sharedFiltersViewModel
+                        )
+                    }
+                }
+                
+                // ✅ UPDATED: Filter context header (not business context)
                 item {
-                    BusinessContextHeader(
-                        businessId = state.currentBusinessId,
-                        siteId = state.currentSiteId,
-                        hasBusinessContext = state.hasBusinessContext,
+                    FilterContextHeader(
+                        businessId = filterBusinessId,
+                        siteId = if (isAllSitesSelected) null else filterSiteId,
+                        isAllSitesSelected = isAllSitesSelected,
                         totalUsers = state.operators.size,
                         activeUsers = state.operators.count { it.isActive }
                     )
@@ -90,8 +193,8 @@ fun OperatorsListScreen(
                 } else if (state.operators.isEmpty() && !state.isLoading) {
                     item {
                         NoUsersMessage(
-                            hasBusinessContext = state.hasBusinessContext,
-                            onRefresh = { viewModel.refreshBusinessContext() }
+                            hasFilters = filterBusinessId != null,
+                            onRefresh = { handleRefresh() }
                         )
                     }
                 } else {
@@ -109,7 +212,7 @@ fun OperatorsListScreen(
                     item {
                         ErrorMessage(
                             message = error,
-                            onRetry = { viewModel.refreshBusinessContext() }
+                            onRetry = { handleRefresh() }
                         )
                     }
                 }
@@ -125,10 +228,10 @@ fun OperatorsListScreen(
 }
 
 @Composable
-private fun BusinessContextHeader(
+private fun FilterContextHeader(
     businessId: String?,
     siteId: String?,
-    hasBusinessContext: Boolean,
+    isAllSitesSelected: Boolean,
     totalUsers: Int,
     activeUsers: Int
 ) {
@@ -141,29 +244,29 @@ private fun BusinessContextHeader(
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "Business Context",
+                text = "Filter Context",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            if (hasBusinessContext && !businessId.isNullOrBlank()) {
+            if (!businessId.isNullOrBlank()) {
                 Text(
                     text = "Business ID: $businessId",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
-                if (!siteId.isNullOrBlank()) {
+                if (isAllSitesSelected) {
                     Text(
-                        text = "Site ID: $siteId",
+                        text = "Site: All Sites",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else {
+                } else if (!siteId.isNullOrBlank()) {
                     Text(
-                        text = "Site: All Sites",
+                        text = "Site ID: $siteId",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -187,7 +290,7 @@ private fun BusinessContextHeader(
                 }
             } else {
                 Text(
-                    text = "No business context available",
+                    text = "No filter context available",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -198,7 +301,7 @@ private fun BusinessContextHeader(
 
 @Composable
 private fun NoUsersMessage(
-    hasBusinessContext: Boolean,
+    hasFilters: Boolean,
     onRefresh: () -> Unit
 ) {
     Card(
@@ -212,10 +315,10 @@ private fun NoUsersMessage(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = if (hasBusinessContext) {
-                    "No users assigned to this business"
+                text = if (hasFilters) {
+                    "No users found with current filters"
                 } else {
-                    "No business context available"
+                    "No filter context available"
                 },
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -224,10 +327,10 @@ private fun NoUsersMessage(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = if (hasBusinessContext) {
-                    "This business doesn't have any users assigned yet."
+                text = if (hasFilters) {
+                    "Try adjusting your filters or check if there are users assigned to this business/site."
                 } else {
-                    "Unable to determine current business context."
+                    "Unable to determine current filter context."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -341,10 +444,10 @@ private fun OperatorItem(
             Box(
                 modifier = Modifier
                     .size(12.dp)
-                                         .background(
-                         if (operator.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                         CircleShape
-                     )
+                    .background(
+                        if (operator.isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                        CircleShape
+                    )
             )
         }
     }

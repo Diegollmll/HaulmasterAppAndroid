@@ -17,7 +17,7 @@ fun IncidentReportState.toCollisionIncidentDto(businessId: String?): CollisionIn
     val currentDateTime = java.time.LocalDateTime.now()
         .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
-    // Si tienes incidentTime, úsalo para la hora
+            // If you have incidentTime, use it for the time
     val incidentDateTime = incidentTime?.let {
         java.time.LocalDateTime.now().withHour(it.hour).withMinute(it.minute).withSecond(0)
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))

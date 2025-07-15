@@ -21,7 +21,8 @@ import app.forku.domain.model.vehicle.VehicleStatus
 class QRScannerViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
     private val checklistRepository: ChecklistRepository,
-    private val vehicleSessionRepository: VehicleSessionRepository
+    private val vehicleSessionRepository: VehicleSessionRepository,
+    private val userPreferencesRepository: app.forku.domain.repository.user.UserPreferencesRepository
 ) : ViewModel() {
     private val _state = MutableStateFlow(QRScannerState())
     val state = _state.asStateFlow()
@@ -54,9 +55,33 @@ class QRScannerViewModel @Inject constructor(
                 // Get vehicle without availability check first
                 Log.d("QRFlow", "[onQrScanned] Calling getVehicleByQr with code: $code")
                 val vehicle = vehicleRepository.getVehicleByQr(code, checkAvailability = false)
-                Log.d("QRFlow", "[onQrScanned] Vehicle retrieved: id=${vehicle.id}, codename=${vehicle.codename}, type=${vehicle.type.Name}, status=${vehicle.status}")
+                Log.d("QRFlow", "[onQrScanned] Vehicle retrieved: id=${vehicle.id}, codename=${vehicle.codename}, type=${vehicle.type.Name}, status=${vehicle.status}, siteId=${vehicle.siteId}")
                 
-                // VALIDACIÓN: Solo permitir si el vehículo está AVAILABLE
+                // VALIDATION: Check if vehicle belongs to user's assigned business and site
+                Log.d("QRFlow", "[onQrScanned] Validating vehicle context access")
+                val isVehicleInUserContext = userPreferencesRepository.isVehicleInUserContext(
+                    vehicle.businessId ?: "",
+                    vehicle.siteId ?: ""
+                )
+                Log.d("QRFlow", "[onQrScanned] Vehicle context validation result: $isVehicleInUserContext")
+                
+                if (!isVehicleInUserContext) {
+                    _state.update {
+                        it.copy(
+                            vehicle = vehicle,
+                            isLoading = false,
+                            canStartCheck = false,
+                            navigateToChecklist = false,
+                            navigateToProfile = false,
+                            error = "This vehicle does not belong to your assigned business and site. Please contact your administrator if you need access to vehicles from other locations."
+                        )
+                    }
+                    isProcessingQR = false
+                    lastScannedCode = null
+                    return@launch
+                }
+                
+                // VALIDATION: Only allow if the vehicle is AVAILABLE
                 if (vehicle.status != VehicleStatus.AVAILABLE) {
                     _state.update {
                         it.copy(

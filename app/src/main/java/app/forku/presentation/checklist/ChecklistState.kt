@@ -13,6 +13,7 @@ data class ChecklistState(
     val vehicleStatus: VehicleStatus = VehicleStatus.AVAILABLE,
     val checkItems: List<ChecklistItem> = emptyList(),
     val checklistId: String? = null,
+    val checklistVersion: String = "1.0",
     val checklistAnswerId: String? = null,
     val checkStatus: String = CheckStatus.NOT_STARTED.toString(),
     val isCompleted: Boolean = false,
@@ -34,7 +35,10 @@ data class ChecklistState(
     val totalChecklistsFound: Int = 0,
     val compatibleChecklistsFound: Int = 0,
     val specificChecklistsFound: Int = 0,
-    val defaultChecklistsFound: Int = 0
+    val defaultChecklistsFound: Int = 0,
+    // ✅ New: Hour meter dialog state
+    val showInitialHourMeterDialog: Boolean = false,
+    val pendingChecklistAnswerId: String? = null
 ) {
     val isEmpty: Boolean
         get() = checkItems.isEmpty()

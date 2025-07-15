@@ -1,19 +1,21 @@
 package app.forku.data.repository.vehicle
 
 import android.util.Log
-import app.forku.data.api.CreateVehicleCategoryRequest
-import app.forku.data.api.UpdateVehicleCategoryRequest
 import app.forku.data.api.VehicleCategoryApi
-import app.forku.data.api.dto.vehicle.toDomain
+import app.forku.data.mapper.toDomain
+import app.forku.data.mapper.toDto
 import app.forku.data.api.dto.vehicle.VehicleCategoryDto
 import app.forku.domain.model.vehicle.VehicleCategory
 import app.forku.domain.repository.vehicle.VehicleCategoryRepository
+import app.forku.data.datastore.AuthDataStore
+import com.google.gson.Gson
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class VehicleCategoryRepositoryImpl @Inject constructor(
-    private val api: VehicleCategoryApi
+    private val api: VehicleCategoryApi,
+    private val authDataStore: AuthDataStore
 ) : VehicleCategoryRepository {
 
     override suspend fun getVehicleCategories(): List<VehicleCategory> {
@@ -45,7 +47,10 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
     override suspend fun createVehicleCategory(name: String, description: String?): VehicleCategory {
         Log.d("VehicleCategoryRepo", "Creating vehicle category: $name")
         try {
-            val dto = VehicleCategoryDto(
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("CSRF token not available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("Antiforgery cookie not available")
+            
+            val category = VehicleCategory(
                 id = "",
                 name = name,
                 description = description,
@@ -53,7 +58,11 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
                 updatedAt = System.currentTimeMillis(),
                 requiresCertification = false
             )
-            val response = api.saveVehicleCategory(dto)
+            
+            val dto = category.toDto()
+            val entityJson = Gson().toJson(dto)
+            
+            val response = api.saveVehicleCategory(csrfToken, cookie, entityJson)
             if (!response.isSuccessful) {
                 Log.e("VehicleCategoryRepo", "Error creating category: ${response.code()}")
                 throw Exception("Failed to create vehicle category")
@@ -69,7 +78,10 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
     override suspend fun updateVehicleCategory(id: String, name: String, description: String?): VehicleCategory {
         Log.d("VehicleCategoryRepo", "Updating vehicle category: $id")
         try {
-            val dto = VehicleCategoryDto(
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("CSRF token not available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("Antiforgery cookie not available")
+            
+            val category = VehicleCategory(
                 id = id,
                 name = name,
                 description = description,
@@ -77,7 +89,11 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
                 updatedAt = System.currentTimeMillis(),
                 requiresCertification = false
             )
-            val response = api.saveVehicleCategory(dto)
+            
+            val dto = category.toDto().copy(isNew = false) // This is an update
+            val entityJson = Gson().toJson(dto)
+            
+            val response = api.saveVehicleCategory(csrfToken, cookie, entityJson)
             if (!response.isSuccessful) {
                 Log.e("VehicleCategoryRepo", "Error updating category: ${response.code()}")
                 throw Exception("Failed to update vehicle category")
@@ -93,7 +109,10 @@ class VehicleCategoryRepositoryImpl @Inject constructor(
     override suspend fun deleteVehicleCategory(id: String) {
         Log.d("VehicleCategoryRepo", "Deleting vehicle category: $id")
         try {
-            val response = api.deleteVehicleCategory(id)
+            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("CSRF token not available")
+            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("Antiforgery cookie not available")
+            
+            val response = api.deleteVehicleCategory(id, csrfToken, cookie)
             if (!response.isSuccessful) {
                 Log.e("VehicleCategoryRepo", "Error deleting category: ${response.code()}")
                 throw Exception("Failed to delete vehicle category")

@@ -9,4 +9,7 @@
     <cache-path
         name="qr_codes"
         path="qr_codes/"/>
+    <external-files-path
+        name="reports"
+        path="reports" />
 </paths>

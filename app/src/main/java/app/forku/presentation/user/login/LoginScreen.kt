@@ -3,12 +3,15 @@ package app.forku.presentation.user.login
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +37,22 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    // --- Obtener SessionKeepAliveManager usando EntryPoint (igual que en BaseScreen) ---
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionKeepAliveManager = remember {
+        try {
+            (context as? androidx.activity.ComponentActivity)?.let { activity ->
+                dagger.hilt.android.EntryPointAccessors.fromActivity(
+                    activity,
+                    app.forku.presentation.common.components.BaseScreenEntryPoint::class.java
+                ).sessionKeepAliveManager()
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("LoginScreen", "Could not access SessionKeepAliveManager", e)
+            null
+        }
+    }
+
     // Reset state when entering screen
     LaunchedEffect(Unit) {
         viewModel.resetState()
@@ -43,17 +62,21 @@ fun LoginScreen(
     LaunchedEffect(state) {
         if (state is LoginState.Success) {
             val user = (state as LoginState.Success).user
-            Log.d("LoginScreen", "Login successful, navigating to dashboard")
+            Log.d("LoginScreen", "[FLOW] LoginState.Success - user: $user, role: ${user.role}")
+            // --- Resetear evento de sesión expirada ---
+            sessionKeepAliveManager?.resetSessionExpiredEvent("LoginScreen: login success")
             // Ensure we're in a clean state before navigation
             tokenErrorHandler.resetAuthenticationState()
+            Log.d("LoginScreen", "[FLOW] Calling onLoginSuccess(user) with role: ${user.role}")
             onLoginSuccess(user)
         } else if (state is LoginState.RequiresPreferencesSetup) {
             val user = (state as LoginState.RequiresPreferencesSetup).user
-            Log.d("LoginScreen", "Login successful but user needs preferences setup, navigating to UserPreferencesSetup")
+            Log.d("LoginScreen", "[FLOW] LoginState.RequiresPreferencesSetup - user: $user, role: ${user.role}")
             // Ensure we're in a clean state before navigation
             tokenErrorHandler.resetAuthenticationState()
+            Log.d("LoginScreen", "[FLOW] Navigating to UserPreferencesSetup for user: ${user.id}")
             // Navigate to UserPreferencesSetup instead of SystemSettings
-            navController.navigate(Screen.UserPreferencesSetup.route) {
+                            navController.navigate(Screen.UserPreferencesSetup.createRoute(showBack = false)) {
                 popUpTo(Screen.Login.route) { inclusive = true }
             }
         }
@@ -102,7 +125,12 @@ fun LoginScreen(
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
-                enabled = state !is LoginState.Loading
+                enabled = state !is LoginState.Loading,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -123,6 +151,7 @@ fun LoginScreen(
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
                 enabled = state !is LoginState.Loading,
+                singleLine = true,
                 trailingIcon = {
                     TextButton(
                         onClick = { /* TODO: Handle forgot password */ },
@@ -130,7 +159,11 @@ fun LoginScreen(
                     ) {
                         Text("Forgot?", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                }
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                )
             )
 
             Spacer(modifier = Modifier.height(24.dp))

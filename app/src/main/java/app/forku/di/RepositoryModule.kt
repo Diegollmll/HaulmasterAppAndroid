@@ -22,6 +22,7 @@ import app.forku.data.service.GOServicesManager
 import app.forku.domain.repository.business.BusinessRepository
 import app.forku.domain.repository.checklist.ChecklistRepository
 import app.forku.domain.repository.checklist.ChecklistStatusNotifier
+import app.forku.domain.repository.checklist.ChecklistQuestionVehicleTypeRepository
 import app.forku.domain.repository.cico.CicoHistoryRepository
 import app.forku.domain.repository.country.CountryRepository
 import app.forku.domain.repository.country.StateRepository
@@ -226,13 +227,19 @@ object RepositoryProvidersModule {
         authDataStore: AuthDataStore,
         validateChecklistUseCase: ValidateChecklistUseCase,
         checklistStatusNotifier: ChecklistStatusNotifier,
-        locationManager: LocationManager
+        locationManager: LocationManager,
+        businessContextManager: BusinessContextManager,
+        checklistQuestionVehicleTypeRepository: ChecklistQuestionVehicleTypeRepository,
+        vehicleTypeRepository: VehicleTypeRepository
     ): ChecklistRepository = ChecklistRepositoryImpl(
         api = api,
         authDataStore = authDataStore,
         validateChecklistUseCase = validateChecklistUseCase,
         checklistStatusNotifier = checklistStatusNotifier,
-        locationManager = locationManager
+        locationManager = locationManager,
+        businessContextManager = businessContextManager,
+        checklistQuestionVehicleTypeRepository = checklistQuestionVehicleTypeRepository,
+        vehicleTypeRepository = vehicleTypeRepository
     )
 
     @Provides
@@ -263,16 +270,20 @@ object RepositoryProvidersModule {
         api: VehicleSessionApi,
         authDataStore: AuthDataStore,
         vehicleStatusRepository: VehicleStatusRepository,
+        vehicleRepository: VehicleRepository,
         checklistAnswerRepository: ChecklistAnswerRepository,
         locationManager: LocationManager,
-        businessContextManager: BusinessContextManager
+        businessContextManager: BusinessContextManager,
+        validateUserCertificationUseCase: app.forku.domain.usecase.certification.ValidateUserCertificationUseCase
     ): VehicleSessionRepository = VehicleSessionRepositoryImpl(
         api = api,
         authDataStore = authDataStore,
         vehicleStatusRepository = vehicleStatusRepository,
+        vehicleRepository = vehicleRepository,
         checklistAnswerRepository = checklistAnswerRepository,
         locationManager = locationManager,
-        businessContextManager = businessContextManager
+        businessContextManager = businessContextManager,
+        validateUserCertificationUseCase = validateUserCertificationUseCase
     )
 
     @Provides

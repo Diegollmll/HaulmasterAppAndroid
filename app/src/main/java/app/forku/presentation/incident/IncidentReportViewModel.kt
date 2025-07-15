@@ -677,6 +677,7 @@ class IncidentReportViewModel @Inject constructor(
                             Log.d("IncidentReportVM", "=== COLLISION INCIDENT SUBMISSION ===")
                             Log.d("IncidentReportVM", "Starting collision incident submission")
                             val businessId = businessContextManager.getCurrentBusinessId()
+                            val siteId = businessContextManager.getCurrentSiteId()
                             val collisionDto = state.value.toCollisionIncidentDto(businessId)
                             Log.d("IncidentReportVM", "DTO created with businessId: '${collisionDto.businessId}'")
                             Log.d("IncidentReportVM", "DTO vehicle ID: '${collisionDto.vehicleId}'")

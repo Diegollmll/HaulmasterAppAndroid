@@ -166,7 +166,7 @@ class TokenErrorHandler @Inject constructor(
     /**
      * Signal that authentication is required and update the state
      */
-    private suspend fun signalAuthenticationRequired(message: String) {
+    suspend fun signalAuthenticationRequired(message: String) {
         // Clear credentials
         authDataStore.clearAuth()
         
@@ -181,7 +181,22 @@ class TokenErrorHandler @Inject constructor(
      * Should be called after successful login
      */
     fun resetAuthenticationState() {
+        // Validar token y usuario antes de setear Authenticated
+        val token = authDataStore.getApplicationToken()
+        val user = kotlin.runCatching { kotlinx.coroutines.runBlocking { authDataStore.getCurrentUser() } }.getOrNull()
+        val isTokenValid = authDataStore.isTokenValid()
+        if (!token.isNullOrBlank() && isTokenValid && user != null && !user.id.isNullOrBlank()) {
         _authenticationState.value = AuthenticationState.Authenticated
+        } else {
+            val reason = when {
+                token.isNullOrBlank() -> "No valid token found."
+                !isTokenValid -> "Token is expired or invalid."
+                user == null || user.id.isNullOrBlank() -> "No valid user found."
+                else -> "Unknown authentication error."
+            }
+            _authenticationState.value = AuthenticationState.RequiresAuthentication(reason)
+            Log.w(TAG, "[SECURITY] Tried to set Authenticated state but failed: $reason")
+        }
     }
 }
 
