@@ -12,11 +12,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.compose.ui.res.stringResource
+import app.forku.R
 
 @HiltViewModel
 class ReportViewModel @Inject constructor(
-    private val reportRepository: ReportRepository
-) : ViewModel() {
+    private val reportRepository: ReportRepository,
+    application: Application
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(ReportUiState())
     val uiState: StateFlow<ReportUiState> = _uiState.asStateFlow()
@@ -62,6 +67,7 @@ class ReportViewModel @Inject constructor(
     }
 
     fun generateReport() {
+        val context = getApplication<Application>().applicationContext
         val currentState = _uiState.value
         val reportType = currentState.selectedReportType ?: return
         
@@ -71,7 +77,7 @@ class ReportViewModel @Inject constructor(
         if (reportType == ReportType.CHECKLISTS && currentState.currentFilter.includeDetails == null) {
             Log.w(TAG, "⚠️ Cannot generate checklist report without detail level selection")
             _uiState.value = currentState.copy(
-                error = "Por favor selecciona un nivel de detalle (Con Detalles o Sin Detalles) antes de generar el reporte."
+                error = context.getString(R.string.report_error_select_detail)
             )
             return
         }
@@ -83,7 +89,7 @@ class ReportViewModel @Inject constructor(
             exportError = null,
             loadingProgress = LoadingProgress(
                 isActive = true,
-                currentStep = "Iniciando generación del reporte...",
+                currentStep = context.getString(R.string.report_progress_start),
                 completedSteps = 0,
                 totalSteps = 3
             )
@@ -92,7 +98,7 @@ class ReportViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Step 1: Fetch data
-                updateLoadingProgress("Fetching data from server...", 1)
+                updateLoadingProgress(context.getString(R.string.report_progress_fetching_data), 1)
                 
                 val data = when (reportType) {
                     ReportType.VEHICLES -> reportRepository.getVehiclesReport(currentState.currentFilter)
@@ -102,7 +108,7 @@ class ReportViewModel @Inject constructor(
                 }
                 
                 // Step 2: Process data
-                updateLoadingProgress("Processing report data...", 2)
+                updateLoadingProgress(context.getString(R.string.report_progress_processing_data), 2)
                 
                 Log.d(TAG, "📊 Data received from repository: ${data.size} items")
                 Log.d(TAG, "📊 Data type: ${data.javaClass.simpleName}")
@@ -111,7 +117,7 @@ class ReportViewModel @Inject constructor(
                 }
                 
                 // Step 3: Finalize
-                updateLoadingProgress("Finalizing report...", 3)
+                updateLoadingProgress(context.getString(R.string.report_progress_finalizing), 3)
                 
                 // Small delay to show final step
                 kotlinx.coroutines.delay(500)
@@ -222,7 +228,7 @@ class ReportViewModel @Inject constructor(
             ""
         }
         
-        return "forku_${reportName}_report${detailSuffix}_${dateStr}.${format.fileExtension}"
+        return "rigright_${reportName}_report${detailSuffix}_${dateStr}.${format.fileExtension}"
     }
 }
 

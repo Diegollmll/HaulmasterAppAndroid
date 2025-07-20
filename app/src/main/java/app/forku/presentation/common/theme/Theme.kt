@@ -15,32 +15,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Color.Black,
-    onPrimary = Color.White,
-    secondary = Color.Black,
-    onSecondary = Color.White,
-    tertiary = Color.Black,
-    onTertiary = Color.White,
-    background = Color.White,
-    onBackground = Color.Black,
-    surface = Color.White,
-    onSurface = Color.Black
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Color.Black,
-    onPrimary = Color.White,
-    secondary = Color.Black,
-    onSecondary = Color.White,
-    tertiary = Color.Black,
-    onTertiary = Color.White,
-    background = Color.White,
-    onBackground = Color.Black,
-    surface = Color.White,
-    onSurface = Color.Black
-)
+import androidx.compose.ui.res.colorResource
+import app.forku.R
 
 @Composable
 fun ForkUTheme(
@@ -48,6 +24,32 @@ fun ForkUTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val DarkColorScheme = darkColorScheme(
+        primary = colorResource(id = R.color.primary_blue),
+        onPrimary = Color.White,
+        secondary = colorResource(id = R.color.primary_blue),
+        onSecondary = Color.White,
+        tertiary = colorResource(id = R.color.primary_blue),
+        onTertiary = Color.White,
+        background = colorResource(id = R.color.background_gray),
+        onBackground = Color.Black,
+        surface = Color.White,
+        onSurface = Color.Black
+    )
+
+    val LightColorScheme = lightColorScheme(
+        primary = colorResource(id = R.color.primary_blue),
+        onPrimary = Color.White,
+        secondary = colorResource(id = R.color.primary_blue),
+        onSecondary = Color.White,
+        tertiary = colorResource(id = R.color.primary_blue),
+        onTertiary = Color.White,
+        background = colorResource(id = R.color.background_gray),
+        onBackground = Color.Black,
+        surface = Color.White,
+        onSurface = Color.Black
+    )
+
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     
     val view = LocalView.current

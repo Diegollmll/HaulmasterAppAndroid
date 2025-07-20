@@ -23,6 +23,12 @@ import app.forku.presentation.common.components.LoadingOverlay
 import app.forku.presentation.navigation.Screen
 import app.forku.core.auth.TokenErrorHandler
 import app.forku.core.auth.AuthenticationState
+import androidx.compose.ui.res.painterResource
+import app.forku.R
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.colorResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,17 +92,34 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(colorResource(id = R.color.background_gray))
                 .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally // Centrar todo el contenido
         ) {
             /* TODO: Handle back navigation */
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Logo de la app
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_rigright),
+                    contentDescription = "RigRight Logo",
+                    modifier = Modifier.size(80.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+
             Text(
-                text = "fork U",
-                color = Color(0xFFFFA726), // Orange color
+                text = "RigRight",
+                color = colorResource(id = R.color.rigright_orange),
                 fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.CenterHorizontally) // Centrar texto
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -106,7 +129,9 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                lineHeight = 34.sp
+                lineHeight = 34.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.CenterHorizontally) // Centrar subtítulo
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -117,11 +142,11 @@ fun LoginScreen(
                 label = { Text("Username") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFFFA726),
+                    focusedBorderColor = colorResource(id = R.color.primary_blue),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = Color(0xFFFFA726),
+                    focusedLabelColor = colorResource(id = R.color.primary_blue),
                     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    cursorColor = Color(0xFFFFA726),
+                    cursorColor = colorResource(id = R.color.primary_blue),
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
@@ -142,11 +167,11 @@ fun LoginScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFFFA726),
+                    focusedBorderColor = colorResource(id = R.color.primary_blue),
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = Color(0xFFFFA726),
+                    focusedLabelColor = colorResource(id = R.color.primary_blue),
                     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    cursorColor = Color(0xFFFFA726),
+                    cursorColor = colorResource(id = R.color.primary_blue),
                     focusedTextColor = MaterialTheme.colorScheme.onBackground,
                     unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                 ),
@@ -175,15 +200,15 @@ fun LoginScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFFA726),
-                    contentColor = Color.Black
+                    containerColor = colorResource(id = R.color.primary_blue),
+                    contentColor = colorResource(id = R.color.white)
                 ),
                 enabled = username.isNotBlank() && password.isNotBlank() && state !is LoginState.Loading
             ) {
                 if (state is LoginState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = Color.Black
+                        color = colorResource(id = R.color.white)
                     )
                 } else {
                     Text("Log in")
@@ -204,7 +229,7 @@ fun LoginScreen(
                 TextButton(
                     onClick = { navController.navigate(Screen.Register.route) },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = Color(0xFFFFA726)
+                        contentColor = colorResource(id = R.color.primary_blue)
                     ),
                     enabled = state !is LoginState.Loading
                 ) {

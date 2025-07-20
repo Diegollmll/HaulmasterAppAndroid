@@ -29,6 +29,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.colorResource
+import app.forku.R
 import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.core.auth.TokenErrorHandler
@@ -115,7 +117,8 @@ fun BusinessManagementScreen(
                                 onClick = { viewModel.showAddBusinessDialog() },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
+                                    containerColor = colorResource(id = R.color.primary_blue),
+                                    contentColor = Color.White
                                 )
                             ) {
                                 Icon(
@@ -274,11 +277,7 @@ private fun BusinessCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = when (business.status) {
-                BusinessStatus.ACTIVE -> Color.White
-                BusinessStatus.PENDING -> Color(0xFFFFF3E0)
-                BusinessStatus.SUSPENDED -> Color(0xFFFFEBEE)
-            }
+            containerColor = Color.White // Todos los estados usan fondo blanco
         )
     ) {
         Row(

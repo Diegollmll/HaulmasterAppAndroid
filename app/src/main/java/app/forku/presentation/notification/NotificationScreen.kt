@@ -32,6 +32,9 @@ import app.forku.domain.model.notification.NotificationType
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.common.components.ErrorScreen
 import app.forku.presentation.common.utils.getRelativeTimeSpanString
+import androidx.compose.ui.res.colorResource
+import app.forku.R
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -119,7 +122,7 @@ fun NotificationItem(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (!notification.isRead) Color(0xFFF5F5F5) else Color.White
+            containerColor = colorResource(id = R.color.white)
         )
     ) {
         Row(

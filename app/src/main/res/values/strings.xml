@@ -1,3 +1,15 @@
 <resources>
-    <string name="app_name">ForkU</string>
+    <string name="app_name">RigRight</string>
+    <string name="report_config_title">Report Configuration</string>
+    <string name="report_detail_level">Detail Level</string>
+    <string name="report_no_details">No Details</string>
+    <string name="report_no_details_desc">Checklist summary only</string>
+    <string name="report_with_details">With Details</string>
+    <string name="report_with_details_desc">Includes questions and answers</string>
+    <string name="report_select_detail_warning">⚠️ Please select a detail level to generate the report</string>
+    <string name="report_error_select_detail">Please select a detail level (With Details or No Details) before generating the report.</string>
+    <string name="report_progress_start">Starting report generation...</string>
+    <string name="report_progress_fetching_data">Fetching data from server...</string>
+    <string name="report_progress_processing_data">Processing report data...</string>
+    <string name="report_progress_finalizing">Finalizing report...</string>
 </resources>

@@ -14,6 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import app.forku.R
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun DashboardHeader(
@@ -38,19 +42,32 @@ fun DashboardHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
-            Text(
-                text = "Hi, $userName!",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Logo de la app
+            Image(
+                painter = painterResource(id = R.drawable.logo_rigright),
+                contentDescription = "RigRight Logo",
+                modifier = Modifier.size(32.dp),
+                contentScale = ContentScale.Fit
             )
-            Text(
-                text = greeting,
-                color = Color.Gray,
-                fontSize = 16.sp,
-                maxLines = 1
-            )
+            
+            Column {
+                Text(
+                    text = "Hi, $userName!",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = greeting,
+                    color = Color.Gray,
+                    fontSize = 16.sp,
+                    maxLines = 1
+                )
+            }
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(4.dp),

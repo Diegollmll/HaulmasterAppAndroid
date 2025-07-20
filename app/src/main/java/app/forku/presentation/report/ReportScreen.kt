@@ -28,6 +28,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import app.forku.R
+import androidx.compose.ui.res.colorResource
 
 @Composable
 fun ReportScreen(
@@ -348,12 +351,12 @@ private fun ReportFilterSection(
                 ) {
                     if (filter.hasFilters()) {
                         Badge(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = colorResource(id = R.color.primary_blue)
                         ) {
                             Text(
                                 text = "Active",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = Color.White
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -588,8 +591,8 @@ private fun ReportActionButtons(
                     enabled = canGenerate,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
+                        containerColor = colorResource(id = R.color.primary_blue),
+                        contentColor = Color.White
                     ),
                     elevation = ButtonDefaults.buttonElevation(
                         defaultElevation = 4.dp,
@@ -599,7 +602,7 @@ private fun ReportActionButtons(
                     if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = Color.White,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -622,12 +625,12 @@ private fun ReportActionButtons(
                     enabled = hasData && !isLoading && !isExporting,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
+                        contentColor = colorResource(id = R.color.primary_blue)
                     ),
                     border = BorderStroke(
                         width = 2.dp,
                         color = if (hasData && !isLoading && !isExporting) 
-                            MaterialTheme.colorScheme.primary 
+                            colorResource(id = R.color.primary_blue) 
                         else 
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                     )
@@ -635,7 +638,7 @@ private fun ReportActionButtons(
                     if (isExporting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = colorResource(id = R.color.primary_blue),
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1484,7 +1487,7 @@ private fun ChecklistDetailLevelSelector(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Configuración del Reporte",
+                    text = stringResource(id = R.string.report_config_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -1494,7 +1497,7 @@ private fun ChecklistDetailLevelSelector(
             Spacer(modifier = Modifier.height(12.dp))
             
             Text(
-                text = "Nivel de Detalle",
+                text = stringResource(id = R.string.report_detail_level),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 8.dp)
@@ -1506,8 +1509,8 @@ private fun ChecklistDetailLevelSelector(
             ) {
                 // Sin Detalles Option
                 DetailOptionCard(
-                    title = "Sin Detalles",
-                    description = "Solo resumen del checklist",
+                    title = stringResource(id = R.string.report_no_details),
+                    description = stringResource(id = R.string.report_no_details_desc),
                     icon = "📊",
                     isSelected = currentDetailLevel == false,
                     onClick = { onDetailLevelChanged(false) },
@@ -1516,8 +1519,8 @@ private fun ChecklistDetailLevelSelector(
                 
                 // Con Detalles Option  
                 DetailOptionCard(
-                    title = "Con Detalles",
-                    description = "Incluye preguntas y respuestas",
+                    title = stringResource(id = R.string.report_with_details),
+                    description = stringResource(id = R.string.report_with_details_desc),
                     icon = "📋",
                     isSelected = currentDetailLevel == true,
                     onClick = { onDetailLevelChanged(true) },
@@ -1528,7 +1531,7 @@ private fun ChecklistDetailLevelSelector(
             if (currentDetailLevel == null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "⚠️ Selecciona un nivel de detalle para generar el reporte",
+                    text = stringResource(id = R.string.report_select_detail_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,

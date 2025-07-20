@@ -756,8 +756,8 @@ class ReportRepositoryImpl @Inject constructor(
             // Get detail options for checklist reports
             val detailOptions = when (reportType) {
                 ReportType.CHECKLISTS -> listOf(
-                    FilterOption("true", "Con detalles"),
-                    FilterOption("false", "Sin detalles")
+                    FilterOption("true", "With Details"),
+                    FilterOption("false", "No Details")
                 )
                 else -> emptyList()
             }

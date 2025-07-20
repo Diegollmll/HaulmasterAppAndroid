@@ -8,6 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.res.colorResource
+import app.forku.R
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun AppModal(
@@ -35,7 +38,8 @@ fun AppModal(
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = colorResource(id = R.color.primary_blue),
+                    contentColor = Color.White
                 )
             ) {
                 if (confirmText == "Share") {

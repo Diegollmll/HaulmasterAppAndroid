@@ -2,6 +2,7 @@ package app.forku.presentation.system
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -30,6 +31,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import app.forku.presentation.system.UserPreferencesSetupScreenViewModel
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.colorResource
+import app.forku.R
+import androidx.compose.ui.layout.ContentScale
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -214,11 +219,12 @@ fun UserPreferencesSetupScreen(
                         modifier = Modifier.padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            if (hasNoBusinesses) Icons.Default.Info else Icons.Default.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurface
+                        // Logo de la app
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_rigright),
+                            contentDescription = "RigRight Logo",
+                            modifier = Modifier.size(64.dp),
+                            contentScale = ContentScale.Fit
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
@@ -255,7 +261,8 @@ fun UserPreferencesSetupScreen(
                                 onClick = { showContactAdminDialog = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
+                                    containerColor = colorResource(id = R.color.primary_blue),
+                                    contentColor = Color.White
                                 )
                             ) {
                                 Icon(
@@ -272,7 +279,7 @@ fun UserPreferencesSetupScreen(
                                 Text(
                                     text = "✓ Request sent! Your administrator will be notified.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = colorResource(id = R.color.primary_blue),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -531,7 +538,8 @@ fun UserPreferencesSetupScreen(
                                 .fillMaxWidth()
                                 .height(56.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
+                                containerColor = colorResource(id = R.color.primary_blue),
+                                contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {

@@ -7,6 +7,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
+import app.forku.R
 
 @Composable
 fun ForkuButton(
@@ -20,10 +22,10 @@ fun ForkuButton(
         modifier = modifier,
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary, // Black from theme
-            contentColor = MaterialTheme.colorScheme.onPrimary, // White from theme
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
+            containerColor = colorResource(id = R.color.primary_blue),
+            contentColor = Color.White,
+            disabledContainerColor = colorResource(id = R.color.primary_blue).copy(alpha = 0.5f),
+            disabledContentColor = Color.White.copy(alpha = 0.5f)
         )
     ) {
         content()

@@ -18,4 +18,9 @@
     <color name="light_gray">#FFE0E0E0</color>
     <color name="medium_gray">#FF757575</color>
     <color name="amber_yellow">#FBBF24</color>
+    <color name="rigright_orange">#F7931A</color>
+    <color name="background_gray">#F6F8FC</color>
+    <color name="primary_blue">#1B4E9C</color>
+    <color name="light_blue">#E0ECFF</color>
+    <color name="card_gray">#F0F1F3</color> <!-- Opcional, por si se quiere usar en algún momento -->
 </resources>

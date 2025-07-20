@@ -49,7 +49,7 @@ data class ReportFilter(
         type?.let { filters.add("Type: $it") }
         severity?.let { filters.add("Severity: $it") }
         includeDetails?.let { 
-            filters.add("Details: ${if (it) "Con detalles" else "Sin detalles"}") 
+            filters.add("Details: ${if (it) "With Details" else "No Details"}") 
         }
         
         return if (filters.isEmpty()) "No filters applied" else filters.joinToString(", ")

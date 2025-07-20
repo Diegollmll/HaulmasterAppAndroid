@@ -44,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.colorResource
 
 /**
  * Entry point for accessing SessionKeepAliveManager in Compose
@@ -363,7 +364,11 @@ fun BaseScreen(
         }
     }
 
-    GradientBackground {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colorResource(id = app.forku.R.color.background_gray))
+    ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Mostrar tiempo restante de token si está disponible
             if (enableSessionKeepAlive && (tokenTimeLeft != null)) {

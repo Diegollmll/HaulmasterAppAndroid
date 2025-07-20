@@ -13,9 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.colorResource
+import app.forku.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import app.forku.R
 import app.forku.core.network.NetworkConnectivityManager
 import app.forku.presentation.common.components.BaseScreen
 import app.forku.presentation.navigation.Screen
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import app.forku.core.auth.TokenErrorHandler
+import androidx.compose.ui.graphics.Color
 
 data class TourPage(
     val title: String,
@@ -192,7 +194,8 @@ fun TourScreen(
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
+                            containerColor = colorResource(id = R.color.primary_blue),
+                            contentColor = Color.White
                         )
                     ) {
                         Text("Login")

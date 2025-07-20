@@ -55,6 +55,8 @@ import android.Manifest
 import android.content.pm.PackageManager
 import app.forku.presentation.common.components.ForkuButton
 import app.forku.presentation.common.components.HourMeterDialog
+import androidx.compose.ui.res.colorResource
+import app.forku.R
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -500,7 +502,8 @@ fun ChecklistScreen(
                                                 .height(56.dp)
                                                 .padding(horizontal = 16.dp, vertical = 3.dp),
                                             colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.secondary
+                                                containerColor = colorResource(id = R.color.primary_blue),
+                                                contentColor = Color.White
                                             )
                                         ) {
                                             Text("Save Checklist Progress")
