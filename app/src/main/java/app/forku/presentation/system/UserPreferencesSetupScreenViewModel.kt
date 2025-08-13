@@ -50,6 +50,7 @@ class UserPreferencesSetupScreenViewModel @Inject constructor(
     val message = MutableStateFlow<String?>(null)
 
     init {
+        android.util.Log.d("UserPreferencesSetupVM", "UserPreferencesSetupScreenViewModel [init] A ")
         loadCurrentUser()
         loadCurrentUserPreferences()
     }
@@ -63,6 +64,7 @@ class UserPreferencesSetupScreenViewModel @Inject constructor(
     }
 
     fun loadCurrentUserPreferences() {
+        android.util.Log.d("UserPreferencesSetupVM", "[loadCurrentUserPreferences] A ")
         viewModelScope.launch {
             val prefs = userPreferencesRepository.getCurrentUserPreferences()
             currentUserPreferences.value = prefs
@@ -71,13 +73,23 @@ class UserPreferencesSetupScreenViewModel @Inject constructor(
     }
 
     fun loadUserAssignedBusinesses() {
+        android.util.Log.d("UserPreferencesSetupVM", "[loadUserAssignedBusinesses] A ")
         viewModelScope.launch {
             isLoading.value = true
             val user = currentUser.value ?: userRepository.getCurrentUser()
             val businessIds = userRepository.getCurrentUserAssignedBusinesses()
+            android.util.Log.d("UserPreferencesSetupVM", "[loadUserAssignedBusinesses] businessIds: $businessIds")
             val businesses = businessIds.mapNotNull { id ->
-                try { businessRepository.getBusinessById(id) } catch (_: Exception) { null }
+                try {
+                    val business = businessRepository.getBusinessById(id)
+                    android.util.Log.d("UserPreferencesSetupVM", "[loadUserAssignedBusinesses] Loaded business: ${business?.id} - ${business?.name}")
+                    business
+                } catch (_: Exception) {
+                    android.util.Log.w("UserPreferencesSetupVM", "[loadUserAssignedBusinesses] Failed to load business for id: $id")
+                    null
+                }
             }
+            android.util.Log.d("UserPreferencesSetupVM", "[loadUserAssignedBusinesses] Total businesses loaded: ${businesses.size}")
             businessesUiState.value = businessesUiState.value.copy(businesses = businesses)
             _state.value = _state.value.copy(businesses = businesses)
             isLoading.value = false
@@ -85,16 +97,20 @@ class UserPreferencesSetupScreenViewModel @Inject constructor(
     }
 
     fun loadSitesForBusinessWithRole(businessId: String, isAdmin: Boolean) {
+        android.util.Log.d("UserPreferencesSetupVM", "[loadSitesForBusinessWithRole] A ")
+        android.util.Log.d("UserPreferencesSetupVM", "[loadSitesForBusinessWithRole] businessId: ${businessId} ")
         viewModelScope.launch {
             isLoading.value = true
             val sites = if (isAdmin) {
+                android.util.Log.d("UserPreferencesSetupVM", "[loadSitesForBusinessWithRole] B ")
                 siteRepository.getSitesForBusiness(businessId)
                     .catch { }
                     .mapNotNull { it.getOrNull() }
                     .firstOrNull()
                     ?.map { it.toDomain() } ?: emptyList()
             } else {
-                siteRepository.getUserAssignedSites()
+                android.util.Log.d("UserPreferencesSetupVM", "[loadSitesForBusinessWithRole] C ")
+                siteRepository.getUserAssignedSites(businessId)
                     .catch { }
                     .mapNotNull { it.getOrNull() }
                     .firstOrNull()
@@ -107,29 +123,32 @@ class UserPreferencesSetupScreenViewModel @Inject constructor(
         }
     }
 
-    fun loadUserAssignedSites() {
-        viewModelScope.launch {
-            isLoading.value = true
-            val sites = siteRepository.getUserAssignedSites()
-                .catch { }
-                .mapNotNull { it.getOrNull() }
-                .firstOrNull()
-                ?.map { it.toDomain() } ?: emptyList()
-            sitesUiState.value = sitesUiState.value.copy(sites = sites)
-            _state.value = _state.value.copy(sites = sites)
-            isLoading.value = false
-        }
-    }
+//    fun loadUserAssignedSites() {
+//        android.util.Log.d("UserPreferencesSetupVM", "[loadUserAssignedSites] A ")
+//        viewModelScope.launch {
+//            isLoading.value = true
+//            val sites = siteRepository.getUserAssignedSites()
+//                .catch { }
+//                .mapNotNull { it.getOrNull() }
+//                .firstOrNull()
+//                ?.map { it.toDomain() } ?: emptyList()
+//            sitesUiState.value = sitesUiState.value.copy(sites = sites)
+//            _state.value = _state.value.copy(sites = sites)
+//            isLoading.value = false
+//        }
+//    }
 
     fun createPreferencesWithBusinessAndSite(businessId: String, siteId: String) {
         viewModelScope.launch {
             isLoading.value = true
             try {
-                userPreferencesRepository.createPreferencesWithBusinessAndSite(businessId, siteId)
-                message.value = "Preferences saved successfully"
-                loadCurrentUserPreferences()
+                val userPreferences = userPreferencesRepository.createPreferencesWithBusinessAndSite(businessId, siteId)
+                //message.value = "Request sent to administrator"
+                _state.value = _state.value.copy(message = "Preferences saved successfully", )
+
+                //loadCurrentUserPreferences()
             } catch (e: Exception) {
-                message.value = "Error saving preferences: ${e.message}"
+                _state.value = _state.value.copy(message = "Error saving preferences: ${e.message}")
             } finally {
                 isLoading.value = false
             }

@@ -29,6 +29,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.colorResource
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +41,9 @@ fun LoginScreen(
     navController: NavController,
     tokenErrorHandler: TokenErrorHandler
 ) {
+    val owner = LocalViewModelStoreOwner.current
+    val sharedFiltersViewModel: AdminSharedFiltersViewModel = hiltViewModel(viewModelStoreOwner = owner!!)
+
     val state by viewModel.state.collectAsState()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -61,6 +66,7 @@ fun LoginScreen(
 
     // Reset state when entering screen
     LaunchedEffect(Unit) {
+        sharedFiltersViewModel.clearFilters()
         viewModel.resetState()
     }
 
@@ -70,12 +76,17 @@ fun LoginScreen(
             val user = (state as LoginState.Success).user
             Log.d("LoginScreen", "[FLOW] LoginState.Success - user: $user, role: ${user.role}")
             // --- Resetear evento de sesión expirada ---
-            sessionKeepAliveManager?.resetSessionExpiredEvent("LoginScreen: login success")
+            //sessionKeepAliveManager?.resetSessionExpiredEvent("LoginScreen: login success")
+            Log.d("LoginScreen", "[FLOW] LoginState.Success ZZZZZ A")
             // Ensure we're in a clean state before navigation
             tokenErrorHandler.resetAuthenticationState()
+            Log.d("LoginScreen", "[FLOW] LoginState.Success ZZZZZ B")
             Log.d("LoginScreen", "[FLOW] Calling onLoginSuccess(user) with role: ${user.role}")
+            Log.d("LoginScreen", "[FLOW] LoginState.Success ZZZZZ C")
             onLoginSuccess(user)
+            Log.d("LoginScreen", "[FLOW] LoginState.Success ZZZZZ D")
         } else if (state is LoginState.RequiresPreferencesSetup) {
+            Log.d("LoginScreen", "[FLOW] RequiresPreferencesSetup")
             val user = (state as LoginState.RequiresPreferencesSetup).user
             Log.d("LoginScreen", "[FLOW] LoginState.RequiresPreferencesSetup - user: $user, role: ${user.role}")
             // Ensure we're in a clean state before navigation

@@ -204,9 +204,13 @@ class ChecklistViewModel @Inject constructor(
                 val lastCompletedCheck = checklistRepository.getLastPreShiftCheck(vehicleId.toString(), businessId ?: "")
                 android.util.Log.d("ChecklistViewModel", "INIT - Last completed check: $lastCompletedCheck")
                 if (lastCompletedCheck != null) {
+                    android.util.Log.d("ChecklistViewModel", "INIT - (lastCompletedCheck != null) AA")
                     loadExistingCheck(lastCompletedCheck.id)
+                    android.util.Log.d("ChecklistViewModel", "INIT - (lastCompletedCheck != null) VV")
                 } else {
+                    android.util.Log.d("ChecklistViewModel", "INIT - (lastCompletedCheck != null) QQ")
                     loadChecklistData() // Fallback to normal flow if no check found
+                    android.util.Log.d("ChecklistViewModel", "INIT - (lastCompletedCheck != null) ZZ")
                 }
             } else {
                 loadChecklistData()
@@ -275,29 +279,36 @@ class ChecklistViewModel @Inject constructor(
     }
 
     private fun startTimer() {
-        // android.util.Log.d("ChecklistViewModel", "startTimer() called")
+        android.util.Log.d("ChecklistViewModel", "startTimer() called A")
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
+            android.util.Log.d("ChecklistViewModel", "startTimer() called B")
             while (true) {
+                android.util.Log.d("ChecklistViewModel", "startTimer() called C")
                 delay(1000)
+                android.util.Log.d("ChecklistViewModel", "startTimer() called D")
                 _state.value?.let { currentState ->
                     if (currentState.isCompleted) {
-                        // android.util.Log.d("ChecklistViewModel", "Timer stopped: checklist is completed.")
+                        android.util.Log.d("ChecklistViewModel", "startTimer Timer stopped: checklist is completed.")
                         timerJob?.cancel()
                         timerJob = null
                         return@launch
                     }
                     // --- Remove or comment out timer debug logs ---
-                    // android.util.Log.d("ChecklistViewModel", "[TIMER] Loop: startDateTime=${currentState.startDateTime}, isCompleted=${currentState.isCompleted}, elapsedTime=${currentState.elapsedTime}")
+                    android.util.Log.d("ChecklistViewModel", "startTimer [TIMER] Loop: startDateTime=${currentState.startDateTime}, isCompleted=${currentState.isCompleted}, elapsedTime=${currentState.elapsedTime}")
                     if (!currentState.isCompleted && currentState.startDateTime != null) {
                         try {
+                            android.util.Log.d("ChecklistViewModel", "startTimer() called D")
                             val startDateTime = currentState.startDateTime
-                            // android.util.Log.d("ChecklistViewModel", "[TIMER] Parsing startDateTime: $startDateTime")
+                            android.util.Log.d("ChecklistViewModel", "startTimer() called D")
+                            android.util.Log.d("ChecklistViewModel", "[TIMER] Parsing startDateTime: $startDateTime")
+
                             val startTimeMillis = try {
+                                android.util.Log.d("ChecklistViewModel", "startTimer() called D")
                                 val zonedDateTime = java.time.ZonedDateTime.parse(startDateTime)
                                 zonedDateTime.toInstant().toEpochMilli()
                             } catch (e: Exception) {
-                                // android.util.Log.e("ChecklistViewModel", "[TIMER] Failed to parse as ZonedDateTime: $startDateTime", e)
+                                android.util.Log.e("ChecklistViewModel", "startTimer [TIMER] Failed to parse as ZonedDateTime: $startDateTime", e)
                                 try {
                                     val instantStr = startDateTime.substringBefore("[")
                                     java.time.Instant.parse(instantStr).toEpochMilli()
@@ -333,15 +344,19 @@ class ChecklistViewModel @Inject constructor(
     }
 
     private fun maybeStartTimer() {
+        android.util.Log.d("ChecklistViewModel", "maybeStartTimer A")
         val s = _state.value
+        android.util.Log.d("ChecklistViewModel", "maybeStartTimer B")
         if (s?.startDateTime != null && s.isCompleted == false) {
+            android.util.Log.d("ChecklistViewModel", "maybeStartTimer C")
             startTimer()
+            android.util.Log.d("ChecklistViewModel", "maybeStartTimer D")
         }
     }
 
     fun loadChecklistData() {
-        android.util.Log.d("ChecklistViewModel", "=== 🚗 STARTING CHECKLIST DATA LOAD ===")
-        android.util.Log.d("ChecklistViewModel", "vehicleId: $vehicleId")
+        android.util.Log.d("ChecklistViewModel", "loadChecklistData === 🚗 STARTING CHECKLIST DATA LOAD ===")
+        android.util.Log.d("ChecklistViewModel", "loadChecklistData vehicleId: $vehicleId")
         android.util.Log.d("ChecklistViewModel", "loadChecklistData - Estado actual: ${_state.value}")
         android.util.Log.d("ChecklistViewModel", "loadChecklistData - answeredItemIds: ${_answeredItemIds.value}")
         android.util.Log.d("ChecklistViewModel", "loadChecklistData - uploadedMultimedia: ${_uploadedMultimedia.value}")
@@ -1311,6 +1326,7 @@ class ChecklistViewModel @Inject constructor(
     }
 
     private fun loadExistingCheck(checkId: String) {
+        android.util.Log.d("ChecklistViewModel", "loadExistingCheck A")
         viewModelScope.launch {
             try {
                 val check = checklistRepository.getCheckById(checkId)

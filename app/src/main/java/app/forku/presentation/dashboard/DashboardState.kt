@@ -3,7 +3,6 @@ package app.forku.presentation.dashboard
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.checklist.PreShiftCheck
 import app.forku.domain.model.session.VehicleSession
-import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.user.User
 
 data class DashboardState(
@@ -22,7 +21,8 @@ data class DashboardState(
     val activeSessions: List<VehicleSession> = emptyList(),
     val users: List<User> = emptyList(),
     val checks: List<PreShiftCheck> = emptyList(),
-    val needsBusinessAssignment: Boolean = false
+    val needsBusinessAssignment: Boolean = false,
+    val showFinalHourMeterDialog: Boolean = false
 )
 //{
 //    val displayVehicle: Vehicle?

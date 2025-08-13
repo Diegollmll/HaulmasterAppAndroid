@@ -1,5 +1,6 @@
 package app.forku.presentation.common.components
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -20,17 +21,23 @@ fun HourMeterDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
     isLoading: Boolean = false,
-    allowEqual: Boolean = false // Whether equal values are allowed
+    allowEqual: Boolean = false
 ) {
     var hourMeterInput by remember(currentValue) { mutableStateOf(currentValue) }
     var validationError by remember { mutableStateOf<String?>(null) }
-    
-    // Validate input whenever it changes
+
+    // 🔍 Log when component is composed
+    LaunchedEffect(Unit) {
+        Log.d("HourMeterDialog", "🔍 Dialog opened with currentValue='$currentValue'")
+        if (currentValue.isBlank()) {
+            Log.w("HourMeterDialog", "⚠️ currentValue is blank — user may not know current hour meter")
+        }
+    }
+
     val validationResult = remember(hourMeterInput, currentValue) {
         if (hourMeterInput.isBlank()) {
             HourMeterValidator.ValidationResult(false, "Hour meter reading is required")
         } else {
-            // Normalize input for validation (replace comma with dot if needed)
             val normalizedInput = hourMeterInput.replace(',', '.')
             HourMeterValidator.validateHourMeterUpdate(
                 newValue = normalizedInput,
@@ -39,17 +46,13 @@ fun HourMeterDialog(
             )
         }
     }
-    
+
     val isValid = validationResult.isValid
-    
+
     if (isVisible) {
         AlertDialog(
-            onDismissRequest = { 
-                if (!isLoading) onDismiss() 
-            },
-            title = { 
-                Text(title) 
-            },
+            onDismissRequest = { if (!isLoading) onDismiss() },
+            title = { Text(title) },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -60,7 +63,7 @@ fun HourMeterDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     if (currentValue.isNotBlank()) {
                         Text(
                             text = "Current reading: $currentValue hrs",
@@ -68,10 +71,10 @@ fun HourMeterDialog(
                             color = MaterialTheme.colorScheme.outline
                         )
                     }
-                    
+
                     OutlinedTextField(
                         value = hourMeterInput,
-                        onValueChange = { 
+                        onValueChange = {
                             hourMeterInput = it
                             validationError = null
                         },
@@ -83,31 +86,40 @@ fun HourMeterDialog(
                         enabled = !isLoading,
                         isError = !isValid && hourMeterInput.isNotBlank(),
                         supportingText = if (!isValid && hourMeterInput.isNotBlank()) {
-                            { 
+                            {
                                 Text(
                                     text = validationResult.errorMessage ?: "Invalid input",
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }
                         } else null,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        )
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
-                    
-                    // Show validation success message
+
+                    // Mostrar mensaje de éxito si es válido
                     if (isValid && hourMeterInput.isNotBlank()) {
-                        // Parse values with localization support
                         val currentDouble = try {
-                            currentValue.toDoubleOrNull() ?: currentValue.replace(',', '.').toDoubleOrNull() ?: 0.0
-                        } catch (e: Exception) { 0.0 }
-                        
+                            currentValue.toDoubleOrNull()
+                                ?: currentValue.replace(',', '.').toDoubleOrNull()
+                                ?: 0.0
+                        } catch (e: Exception) {
+                            Log.e("HourMeterDialog", "❌ Error parsing currentValue '$currentValue': ${e.message}")
+                            0.0
+                        }
+
                         val newDouble = try {
-                            hourMeterInput.toDoubleOrNull() ?: hourMeterInput.replace(',', '.').toDoubleOrNull() ?: 0.0
-                        } catch (e: Exception) { 0.0 }
-                        
+                            hourMeterInput.toDoubleOrNull()
+                                ?: hourMeterInput.replace(',', '.').toDoubleOrNull()
+                                ?: 0.0
+                        } catch (e: Exception) {
+                            Log.e("HourMeterDialog", "❌ Error parsing hourMeterInput '$hourMeterInput': ${e.message}")
+                            0.0
+                        }
+
+                        Log.d("HourMeterDialog", "📊 Parsed currentDouble=$currentDouble, newDouble=$newDouble")
+
                         val difference = newDouble - currentDouble
-                        
+
                         if (difference > 0) {
                             Text(
                                 text = "✓ Will increase by ${HourMeterValidator.formatHourMeter(difference)} hrs",
@@ -122,7 +134,7 @@ fun HourMeterDialog(
                             )
                         }
                     }
-                    
+
                     Text(
                         text = "⚠️ Hour meter readings can only increase, never decrease.",
                         style = MaterialTheme.typography.bodySmall,
@@ -132,34 +144,28 @@ fun HourMeterDialog(
             },
             confirmButton = {
                 Button(
-                    onClick = { 
+                    onClick = {
                         if (isValid) {
-                            // Normalize input before formatting (replace comma with dot)
                             val normalizedInput = hourMeterInput.replace(',', '.')
                             val formattedValue = HourMeterValidator.formatHourMeter(normalizedInput)
+                            Log.d("HourMeterDialog", "✅ Confirm clicked with value: $formattedValue")
                             onConfirm(formattedValue)
                         }
                     },
                     enabled = !isLoading && isValid
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     } else {
                         Text("Update")
                     }
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = onDismiss,
-                    enabled = !isLoading
-                ) {
+                TextButton(onClick = onDismiss, enabled = !isLoading) {
                     Text("Cancel")
                 }
             }
         )
     }
-} 
+}

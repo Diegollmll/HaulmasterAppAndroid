@@ -357,18 +357,21 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun endCurrentSession() {
+    fun endCurrentSession(hourMeter:String) {
         viewModelScope.launch {
             try {
                 android.util.Log.d("appflow DashboardViewModel", "Starting endCurrentSession")
-                _state.update { it.copy(isLoading = true) }
-                
+                _state.update {
+                    it.copy(
+                        isLoading = true
+                    )
+                }
                 val currentSession = state.value.currentSession
                 android.util.Log.d("appflow DashboardViewModel", "Current session: $currentSession")
                 
                 if (currentSession != null) {
                     android.util.Log.d("appflow DashboardViewModel", "Ending session with ID: ${currentSession.id}")
-                    vehicleSessionRepository.endSession(currentSession.id)
+                    vehicleSessionRepository.endSession(currentSession.id, finalHourMeter = hourMeter)
                     
                     // Actualizar el estado después de finalizar la sesión
                     _state.update { 
@@ -380,18 +383,20 @@ class DashboardViewModel @Inject constructor(
                             // Clear active sessions for this user
                             activeSessions = it.activeSessions.filter { session -> 
                                 session.id != currentSession.id 
-                            }
+                            },
+                            showFinalHourMeterDialog = false
                         )
                     }
                     
                     android.util.Log.d("appflow DashboardViewModel", "Session ended successfully, reloading dashboard")
                     // Recargar el dashboard para obtener el nuevo estado
-                    loadDashboard(showLoading = false)
+                    //refresh()
                 }
             } catch (e: Exception) {
                 android.util.Log.e("appflow DashboardViewModel", "Error ending session", e)
                 _state.update { 
                     it.copy(
+                        showFinalHourMeterDialog = false,
                         isLoading = false,
                         error = "Error ending session: ${e.message}"
                     )
@@ -430,4 +435,25 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+
+    /**
+     * Dismiss initial hour meter dialog
+     */
+    fun onFinalHourMeterDismissed() {
+        _state.update {
+            it.copy(
+                showFinalHourMeterDialog = false
+            )
+        }
+    }
+
+    fun showFinalHourMeterModal(){
+        _state.update {
+            it.copy(
+                showFinalHourMeterDialog = true
+            )
+        }
+
+    }
+
 } 

@@ -13,7 +13,7 @@ class VehicleSessionStatusCheckerImpl @Inject constructor(
     override suspend fun getActiveSessionForVehicle(vehicleId: String, businessId: String): VehicleSession? {
         return try {
             val response = api.getAllSessions(
-                businessId = businessId
+                businessId = businessId, include = "GOUser,Vehicle"
             )
             if (response.isSuccessful) {
                 val sessions = response.body()?.mapNotNull { 

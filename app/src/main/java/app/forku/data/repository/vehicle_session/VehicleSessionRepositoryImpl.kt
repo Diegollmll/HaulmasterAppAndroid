@@ -47,7 +47,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             val businessId = businessContextManager.getCurrentBusinessId()
             android.util.Log.d("VehicleSessionRepo", "[getCurrentSession] Using businessId from BusinessContextManager: '$businessId'")
             
-            val response = api.getAllSessions(businessId = businessId ?: "")
+            val response = api.getAllSessions(businessId = businessId ?: "", include = "Vehicle,GOUser")
             if (response.isSuccessful) {
                 val sessions = response.body()?.let { dtos ->
                     dtos.map { dto -> VehicleSessionMapper.toDomain(dto) }
@@ -76,6 +76,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         // Use BusinessContextManager for consistent business and site context
         val businessId = businessContextManager.getCurrentBusinessId()
         val siteId = businessContextManager.getCurrentSiteId()
+        val vehicle = vehicleRepository.getVehicle(vehicleId, businessId ?: "")
         android.util.Log.d("VehicleSessionRepo", "[startSession] Using businessId from BusinessContextManager: '$businessId', siteId: '$siteId'")
 
         // ✅ VALIDATE USER CERTIFICATIONS FOR THIS VEHICLE TYPE
@@ -93,11 +94,13 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             android.util.Log.e("VehicleSessionRepo", "❌ Error validating certification: ${e.message}")
             throw Exception("Certification validation failed: ${e.message}")
         }
-        
+
+
+
         // ✅ VALIDATION: Validate initial hour meter if provided
         if (!initialHourMeter.isNullOrBlank()) {
             // Get vehicle to check current hour meter
-            val vehicle = vehicleRepository.getVehicle(vehicleId, businessId ?: "")
+
             val validationResult = app.forku.core.validation.HourMeterValidator.validateInitialHourMeter(
                 initialValue = initialHourMeter,
                 vehicleCurrentValue = vehicle.currentHourMeter
@@ -173,7 +176,8 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 businessId = businessId, // Use BusinessContextManager business ID
                 siteId = siteId, // ✅ Use BusinessContextManager site ID
                 initialHourMeter = initialHourMeter, // ✅ New: Store initial hour meter
-                finalHourMeter = null
+                finalHourMeter = null,
+                vehicle = vehicle
             )
             val dto = VehicleSessionMapper.toDto(newSession)
             val gson = Gson()
@@ -255,6 +259,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         
         // ✅ VALIDATION: Validate final hour meter if provided
         if (!finalHourMeter.isNullOrBlank()) {
+            android.util.Log.d("VehicleSessionRepo", "[endSession] finalHourMeter: '$finalHourMeter', initialHourMeter: '${existingSession.initialHourMeter}'")
             val validationResult = app.forku.core.validation.HourMeterValidator.validateFinalHourMeter(
                 finalValue = finalHourMeter,
                 initialValue = existingSession.initialHourMeter
@@ -364,7 +369,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         android.util.Log.d("VehicleSession", "Fetching active session for vehicle: $vehicleId")
         return try {
             val response = api.getAllSessions(
-                businessId = businessId
+                businessId = businessId, include = "Vehicle,GOUser"
             )
             if (response.isSuccessful) {
                 android.util.Log.d("VehicleSession", "API response successful. Status code: ${response.code()}")
@@ -403,7 +408,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         android.util.Log.d("VehicleSessionRepo", "[getSessionsByUserId] Using businessId from BusinessContextManager: '$businessId'")
         
         return try {
-            val response = api.getAllSessions(businessId = businessId ?: "")
+            val response = api.getAllSessions(businessId = businessId ?: "", include = "GOUser,Vehicle")
             if (response.isSuccessful) {
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions.filter { it.userId == userId }
@@ -421,7 +426,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         android.util.Log.d("VehicleSessionRepo", "[getLastCompletedSessionForVehicle] Using businessId from BusinessContextManager: '$businessId'")
         
         return try {
-            val response = api.getAllSessions(businessId = businessId ?: "")
+            val response = api.getAllSessions(businessId = businessId ?: "", include = "Vehicle,GOUser")
             if (response.isSuccessful) {
                 val sessions = response.body()?.map { VehicleSessionMapper.toDomain(it) } ?: emptyList()
                 sessions
@@ -448,7 +453,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         return try {
             android.util.Log.d("VehicleSessionRepo", "[getSessions] Llamando a getAllSessions con businessId: '$businessId'")
             
-            val response = api.getAllSessions(businessId = businessId ?: "")
+            val response = api.getAllSessions(businessId = businessId ?: "", include = "Vehicle,GOUser")
             android.util.Log.d("VehicleSessionRepo", "[getSessions] API response: isSuccessful=${response.isSuccessful}, code=${response.code()}")
             
             if (response.isSuccessful && response.body() != null) {
@@ -521,7 +526,7 @@ class VehicleSessionRepositoryImpl @Inject constructor(
 
     override suspend fun getSessionWithChecklistAnswer(sessionId: String): VehicleSession? {
         return try {
-            val response = api.getSessionById(sessionId, include = "ChecklistAnswer")
+            val response = api.getSessionById(sessionId, include = "ChecklistAnswer,Vehicle")
             if (response.isSuccessful) {
                 response.body()?.let { VehicleSessionMapper.toDomain(it) }
             } else {

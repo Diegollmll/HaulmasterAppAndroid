@@ -13,7 +13,8 @@ class EndVehicleSessionUseCase @Inject constructor(
     suspend operator fun invoke(
         sessionId: String,
         closeMethod: VehicleSessionClosedMethod,
-        notes: String? = null
+        notes: String? = null,
+        hourMeter: String
     ): Result<VehicleSession> {
         val currentUser = userRepository.getCurrentUser()
             ?: return Result.failure(Exception("User not logged in"))
@@ -23,7 +24,8 @@ class EndVehicleSessionUseCase @Inject constructor(
                 sessionId = sessionId,
                 closeMethod = closeMethod,
                 adminId = if (closeMethod == VehicleSessionClosedMethod.ADMIN_CLOSED) currentUser.id else null,
-                notes = notes
+                notes = notes,
+                finalHourMeter = hourMeter
             )
             Result.success(session)
         } catch (e: Exception) {

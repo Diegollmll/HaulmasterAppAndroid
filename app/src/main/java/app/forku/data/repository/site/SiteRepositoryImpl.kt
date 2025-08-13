@@ -188,7 +188,7 @@ class SiteRepositoryImpl @Inject constructor(
             val result = api.getAllSites(
                 csrfToken = csrfToken,
                 cookie = cookie,
-                include = "business,country",
+                include = "Business,Country",
                 filter = businessFilter
             ).body() ?: emptyList()
             
@@ -209,25 +209,41 @@ class SiteRepositoryImpl @Inject constructor(
      * ✅ NEW: Get only the sites assigned to the current user
      * This filters by both business and user's site context
      */
-    override suspend fun getUserAssignedSites(): Flow<Result<List<SiteDto>>> = flow {
+    override suspend fun getUserAssignedSites(businessId: String?): Flow<Result<List<SiteDto>>> = flow {
         try {
-            val businessId = businessContextManager.getCurrentBusinessId()
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] Start")
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] businessId: $businessId")
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] csrfToken: $csrfToken, cookie: ${cookie.take(10)}...")
             // 1. Obtener IDs de sitios asignados al usuario
             val assignedSiteIds = userRepository.getCurrentUserAssignedSites()
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] assignedSiteIds: $assignedSiteIds")
+
+
+            val finalBusinessId = businessId
+                ?.takeIf { it.isNotBlank() }
+                ?: businessContextManager.getCurrentBusinessId()
+                    ?.takeIf { it.isNotBlank() }
+
+            android.util.Log.d("SiteRepo", "finalBusinessId: $finalBusinessId")
+
+
             // 2. Traer todos los sitios del negocio
-            val allSites = api.getAllSites(
+            val allSitesResponse = api.getAllSites(
                 csrfToken = csrfToken,
                 cookie = cookie,
-                include = "business,country",
-                filter = "BusinessId == Guid.Parse(\"$businessId\")"
-            ).body() ?: emptyList()
+                include = "Business,Country",
+                filter = "BusinessId == Guid.Parse(\"$finalBusinessId\")"
+            )
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] allSitesResponse code: ${allSitesResponse.code()}")
+            val allSites = allSitesResponse.body() ?: emptyList()
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] allSites count: ${allSites.size}")
             // 3. Filtrar solo los asignados
             val assignedSites = allSites.filter { it.id in assignedSiteIds }
-            android.util.Log.d("SiteRepo", "Found ${assignedSites.size} user assigned sites (filtered)")
+            android.util.Log.d("SiteRepo", "[getUserAssignedSites] assignedSites count: ${assignedSites.size}")
             emit(Result.success(assignedSites))
         } catch (e: Exception) {
-            android.util.Log.e("SiteRepo", "Error getting user assigned sites: ${e.message}", e)
+            android.util.Log.e("SiteRepo", "[getUserAssignedSites] Error: ${e.message}", e)
             safeEmitFailure(e) { failure -> emit(failure) }
         }
     }

@@ -1,8 +1,11 @@
 package app.forku.domain.model.session
 
+import app.forku.domain.model.vehicle.Vehicle
+
 data class VehicleSession(
     val id: String,
     val vehicleId: String,
+    val vehicle:Vehicle,
     val userId: String,
     val checkId: String,
     val startTime: String,

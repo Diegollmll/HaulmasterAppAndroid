@@ -73,13 +73,14 @@ fun UserPreferencesSetupScreen(
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isRefreshing,
         onRefresh = {
-            viewModel.loadUserAssignedSites()
+            //viewModel.loadUserAssignedSites()
             viewModel.loadUserAssignedBusinesses()
         }
     )
 
     // Pre-select values from current user preferences
     LaunchedEffect(currentUserPreferences, businesses, sites) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(currentUserPreferences, businesses, sites)")
         if (currentUserPreferences != null) {
             val effectiveBusinessId = currentUserPreferences.getEffectiveBusinessId()
             val effectiveSiteId = currentUserPreferences.getEffectiveSiteId()
@@ -98,24 +99,52 @@ fun UserPreferencesSetupScreen(
 
     // Auto-select if only one option available
     LaunchedEffect(businesses, currentUserPreferences) {
-        if (businesses.size == 1 && selectedBusinessId == null && currentUserPreferences == null) {
-            selectedBusinessId = businesses.first().id
+        android.util.Log.d("UserPreferencesSetupScreen", "[AutoSelect] Businesses size: ${businesses.size}, selectedBusinessId: $selectedBusinessId, currentUserPreferences: $currentUserPreferences DAN: A")
+        if (businesses.isNotEmpty() && selectedBusinessId == null && currentUserPreferences == null) {
+            android.util.Log.d("UserPreferencesSetupScreen", "[AutoSelect] Only one business found, auto-selecting DAN: B")
+            val autoBusinessId = businesses.first().id
+            android.util.Log.d("UserPreferencesSetupScreen", "[AutoSelect] Only one business found, auto-selecting businessId: $autoBusinessId DAN: C")
+            selectedBusinessId = autoBusinessId
+            android.util.Log.d("UserPreferencesSetupScreen", "[AutoSelect] Only one business found, auto-selecting businessId: $selectedBusinessId DAN: D")
         }
     }
     LaunchedEffect(sites, selectedBusinessId, currentUserPreferences) {
-        if (sites.size == 1 && selectedSiteId == null && selectedBusinessId != null && currentUserPreferences == null) {
-            selectedSiteId = sites.first().id
+        android.util.Log.d("UserPreferencesSetupScreen", "[AutoSelect] sites: ${sites}, selectedBusinessId: $selectedBusinessId, selectedSiteId: $selectedSiteId, currentUserPreferences: $currentUserPreferences AAaaa")
+        if (sites.isEmpty() && selectedSiteId == null && selectedBusinessId != null && currentUserPreferences == null) {
+        //if (sites.size == 1 && selectedSiteId == null && selectedBusinessId != null && currentUserPreferences == null) {
+
+            android.util.Log.d("UserPreferencesSetupScreen", "[AutoSelect] sites: ${sites}, selectedBusinessId: $selectedBusinessId, currentUserPreferences: $currentUserPreferences BBbbb")
+            if(sites.isNotEmpty()){
+                selectedSiteId = sites.first().id
+            }
+
+
+        } else if (selectedSiteId != null && selectedBusinessId != null && currentUserPreferences != null) {
+            android.util.Log.d("UserPreferencesSetupScreen", "selectedSiteId != null && selectedBusinessId != null && currentUserPreferences != null A")
+//            val route = currentUser?.let { UserRoleManager.getDashboardRoute(it.role) }
+//
+//            if (route != null) {
+//                android.util.Log.d("UserPreferencesSetupScreen", "selectedSiteId != null && selectedBusinessId != null && currentUserPreferences != null B")
+//
+//                navController.navigate(route) {
+//                    popUpTo(0) { inclusive = true }
+//                }
+//            }
+
+        } else {
+            android.util.Log.d("UserPreferencesSetupScreen", "else :: selectedSiteId != null && selectedBusinessId != null && currentUserPreferences != null :::::")
         }
     }
 
     // Load data when screen loads
     LaunchedEffect(Unit) {
-        viewModel.loadUserAssignedSites()
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(Unit)")
         viewModel.loadUserAssignedBusinesses()
     }
 
     // Reset selections when businesses become unavailable
     LaunchedEffect(hasNoBusinesses) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(hasNoBusinesses)")
         if (hasNoBusinesses && selectedBusinessId != null) {
             selectedBusinessId = null
             selectedSiteId = null
@@ -123,12 +152,14 @@ fun UserPreferencesSetupScreen(
     }
     // Reset site selection when sites become unavailable
     LaunchedEffect(hasNoSites, selectedBusinessId) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(hasNoSites, selectedBusinessId)")
         if (hasNoSites && selectedSiteId != null) {
             selectedSiteId = null
         }
     }
     // Reset selections if selected business is no longer in available list
     LaunchedEffect(businesses, selectedBusinessId) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(businesses, selectedBusinessId)")
         if (selectedBusinessId != null && !isLoading) {
             val isBusinessStillAvailable = businesses.any { it.id == selectedBusinessId }
             if (!isBusinessStillAvailable) {
@@ -139,6 +170,7 @@ fun UserPreferencesSetupScreen(
     }
     // Reset site selection if selected site is no longer in available list
     LaunchedEffect(sites, selectedSiteId) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(sites, selectedSiteId)")
         if (selectedSiteId != null && !isLoading) {
             val isSiteStillAvailable = sites.any { it.id == selectedSiteId }
             if (!isSiteStillAvailable) {
@@ -148,6 +180,7 @@ fun UserPreferencesSetupScreen(
     }
     // Cargar sitios cuando cambia el business seleccionado
     LaunchedEffect(selectedBusinessId, currentUser) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(selectedBusinessId, currentUser)")
         val isAdmin = listOf(UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.SYSTEM_OWNER).contains(currentUser?.role)
         if (selectedBusinessId != null && currentUser != null) {
             viewModel.loadSitesForBusinessWithRole(selectedBusinessId!!, isAdmin)
@@ -156,8 +189,9 @@ fun UserPreferencesSetupScreen(
     
     // Handle setup completion
     LaunchedEffect(message, currentUser) {
+        android.util.Log.d("UserPreferencesSetupScreen", "LaunchedEffect(message, currentUser)")
         if (message?.contains("successfully") == true) {
-            kotlinx.coroutines.delay(1500) // Show success message briefly
+
             
             // Use custom callback if provided, otherwise navigate based on user role
             if (onSetupComplete != null) {
@@ -531,6 +565,7 @@ fun UserPreferencesSetupScreen(
                                 if (canSetup) {
                                     Log.d("UserPreferencesSetup", "Creating preferences with Business: $selectedBusinessId, Site: $selectedSiteId")
                                     viewModel.createPreferencesWithBusinessAndSite(selectedBusinessId!!, selectedSiteId!!)
+
                                 }
                             },
                             enabled = canSetup && !isLoading,

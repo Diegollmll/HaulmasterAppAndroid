@@ -169,6 +169,7 @@ fun NavGraph(
                     }
                 } else if (hasValidPreferences) {
                     android.util.Log.d("NavGraph", "[FLOW] ✅ User has valid preferences")
+
                 }
             } catch (e: Exception) {
                 android.util.Log.e("NavGraph", "[FLOW] ❌ Error validating user preferences", e)
@@ -699,13 +700,13 @@ fun NavGraph(
             arguments = listOf(navArgument("showBack") { type = NavType.BoolType; defaultValue = false })
         ) { backStackEntry ->
             val showBack = backStackEntry.arguments?.getBoolean("showBack") ?: false
+
             UserPreferencesSetupScreen(
                 navController = navController,
                 networkManager = networkManager,
                 tokenErrorHandler = tokenErrorHandler,
                 userRoleManager = app.forku.core.auth.UserRoleManager,
                 showBackButton = showBack
-                // onSetupComplete will be handled automatically based on user role
             )
         }
 

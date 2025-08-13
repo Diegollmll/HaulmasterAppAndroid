@@ -14,7 +14,7 @@ interface SiteRepository {
      * ✅ NEW: Get only the sites assigned to the current user
      * This filters by both business and user's site context
      */
-    suspend fun getUserAssignedSites(): Flow<Result<List<SiteDto>>>
+    suspend fun getUserAssignedSites(businessId: String?): Flow<Result<List<SiteDto>>>
     
     /**
      * ✅ NEW: Get all sites for a specific business (for admin filtering)

@@ -180,7 +180,7 @@ fun TourScreen(
                                 popUpTo(Screen.Tour.route) { inclusive = true }
                             }
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(2f)
                     ) {
                         Text("Register")
                     }
@@ -192,7 +192,7 @@ fun TourScreen(
                                 popUpTo(Screen.Tour.route) { inclusive = true }
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(2f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = colorResource(id = R.color.primary_blue),
                             contentColor = Color.White

@@ -12,11 +12,11 @@ plugins {
     kotlin("kapt")
 }
 
-
+    
 android {
     namespace = "app.forku"
     compileSdk = 34
-
+    
     defaultConfig {
         applicationId = "app.forku"
         minSdk = 26

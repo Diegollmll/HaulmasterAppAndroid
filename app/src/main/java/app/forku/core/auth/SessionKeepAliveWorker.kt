@@ -30,47 +30,7 @@ class SessionKeepAliveWorker @AssistedInject constructor(
         const val WORK_NAME = "session_keep_alive_work"
         private const val MAX_RETRY_ATTEMPTS = 3
         
-        /**
-         * Schedule periodic session keep-alive work
-         */
-        fun schedulePeriodicWork(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .setRequiresBatteryNotLow(true)
-                .build()
-
-            val workRequest = PeriodicWorkRequestBuilder<SessionKeepAliveWorker>(
-                repeatInterval = 30, // 30 minutes
-                repeatIntervalTimeUnit = TimeUnit.MINUTES,
-                flexTimeInterval = 10, // 10 minutes flex time
-                flexTimeIntervalUnit = TimeUnit.MINUTES
-            )
-                .setConstraints(constraints)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    WorkRequest.MIN_BACKOFF_MILLIS,
-                    TimeUnit.MILLISECONDS
-                )
-                .addTag("session_maintenance")
-                .build()
-
-            WorkManager.getInstance(context)
-                .enqueueUniquePeriodicWork(
-                    WORK_NAME,
-                    ExistingPeriodicWorkPolicy.KEEP,
-                    workRequest
-                )
-            
-            Log.d(TAG, "📅 Scheduled periodic session keep-alive work")
-        }
-        
-        /**
-         * Cancel scheduled work
-         */
-        fun cancelWork(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-            Log.d(TAG, "❌ Cancelled session keep-alive work")
-        }
+        // Eliminar o comentar toda la lógica de WorkManager relacionada con el mantenimiento de sesión (schedulePeriodicWork, cancelWork, doWork, etc.)
     }
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {

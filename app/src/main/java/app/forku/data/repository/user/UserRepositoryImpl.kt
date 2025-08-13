@@ -29,6 +29,9 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import app.forku.data.api.GOServicesApi
 import app.forku.data.api.UserPreferencesApi
+import app.forku.data.api.dto.user.preserveExistingImageFields
+import app.forku.data.repository.user.UserPreferencesRepositoryImpl.Companion
+
 
 @Singleton
 class UserRepositoryImpl @Inject constructor(
@@ -135,10 +138,7 @@ class UserRepositoryImpl @Inject constructor(
                 password = password,
                 username = email,
                 firstName = firstName,
-                lastName = lastName,
-                picture = "",
-                pictureFileSize = null,
-                pictureInternalName = null
+                lastName = lastName
             )
 
             // Convert to JSON string for entity parameter
@@ -174,13 +174,16 @@ class UserRepositoryImpl @Inject constructor(
      * Get current user with preferences included from API
      */
     suspend fun getCurrentUserWithPreferences(): Pair<User?, app.forku.domain.model.user.UserPreferences?> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "UserRepositoryImpl getCurrentUserWithPreferences called Here!")
         try {
+
             val currentUser = getCurrentUser()
+
             if (currentUser == null) {
                 Log.w(TAG, "No current user found in local storage")
                 return@withContext Pair(null, null)
             }
-            
+            Log.d(TAG, "UserRepositoryImpl getCurrentUserWithPreferences  - User found: ${currentUser != null}")
             Log.d(TAG, "Getting current user from API to check UserPreferencesId: ${currentUser.id}")
             
             // Get user from API to get UserPreferencesId
@@ -189,7 +192,7 @@ class UserRepositoryImpl @Inject constructor(
                 id = currentUser.id,
                 csrfToken = csrfToken,
                 cookie = cookie,
-                include = "UserRoleItems,UserBusinesses,UserSiteItems"
+                include = "UserRoleItems,UserBusinesses,UserSiteItems,UserPreferences"
             )
             
             if (!response.isSuccessful) {
@@ -198,10 +201,12 @@ class UserRepositoryImpl @Inject constructor(
             }
             
             val userDto = response.body()
+
             if (userDto == null) {
                 Log.e(TAG, "User DTO is null")
                 return@withContext Pair(currentUser, null)
             }
+            Log.e(TAG, "User DTO en getCurrentUserWithPreferences : $userDto")
             
             // Check if user has UserPreferencesId
             val userPreferencesId = userDto.getUserPreferencesId()
@@ -271,6 +276,7 @@ class UserRepositoryImpl @Inject constructor(
             
             if (response.isSuccessful) {
                 response.body()?.let { userDto ->
+                    Log.e("UserRepository", "refreshCurrentUser userDto: ${userDto}")
                     val updatedUser = userDto.toDomain()
                     authDataStore.setCurrentUser(updatedUser)
                     Result.success(updatedUser)
@@ -290,165 +296,190 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun updateUserRole(userId: String, newRole: UserRole): Result<User> = withContext(Dispatchers.IO) {
         try {
+            Log.d("UserRepository", "🔄 === INICIANDO ACTUALIZACIÓN DE ROL DE USUARIO ===")
+            Log.d("UserRepository", "🔄 Usuario a actualizar: $userId")
+            Log.d("UserRepository", "🔄 Nuevo rol: $newRole")
+            
             val user = getUserById(userId) ?: return@withContext Result.failure(Exception("User not found"))
+            Log.d("UserRepository", "🔄 Usuario encontrado: ${user.id}")
+            Log.d("UserRepository", "🔄 Usuario photoUrl: '${user.photoUrl}'")
+            
+            // ✅ OBTENER DATOS ACTUALES DEL USUARIO PARA PRESERVAR IMAGEN Y PASSWORD
+            Log.d("UserRepository", "🔄 Obteniendo datos actuales del usuario desde API...")
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val currentUserResponse = api.getUser(
+                id = user.id,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "Picture,PictureFileSize,PictureInternalName" // ✅ INCLUIR CAMPOS DE IMAGEN
+            )
+            val currentUserData = currentUserResponse.body()
+            
+            Log.d("UserRepository", "🔄 === DATOS ACTUALES DEL USUARIO DESDE API ===")
+            Log.d("UserRepository", "🔄 API response successful: ${currentUserResponse.isSuccessful}")
+            Log.d("UserRepository", "🔄 Current user data found: ${currentUserData != null}")
+            Log.d("UserRepository", "🔄 Email desde API: '${currentUserData?.email}'")
+            Log.d("UserRepository", "🔄 Picture desde API: '${currentUserData?.picture}'")
+            Log.d("UserRepository", "🔄 PictureFileSize desde API: '${currentUserData?.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 PictureInternalName desde API: '${currentUserData?.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 ================================================")
             
             val updatedUserDto = UserDto(
                 id = user.id,
                 email = user.email.takeIf { it.isNotBlank() && it != "null" }, // ✅ FIXED: Don't send empty/null email
-                password = "", // No incluimos el password en la actualización
+                password = currentUserData?.password, // ✅ PRESERVAR PASSWORD ACTUAL
                 username = user.username,
                 firstName = user.firstName,
-                lastName = user.lastName,
-                picture = "",
-                pictureFileSize = null,
-                pictureInternalName = null
+                lastName = user.lastName
+                // No incluir picture, pictureFileSize, pictureInternalName aquí - se manejarán con preserveExistingImageFields
             )
 
-            // ✅ NEW: Detailed logging of updatedUserDto in updateUserRole
-            Log.d("UserRepository", "=== UPDATE USER ROLE DTO DEBUG ===")
-            Log.d("UserRepository", "  id: '${updatedUserDto.id}'")
-            Log.d("UserRepository", "  email: '${updatedUserDto.email}'")
-            Log.d("UserRepository", "  username: '${updatedUserDto.username}'")
-            Log.d("UserRepository", "  firstName: '${updatedUserDto.firstName}'")
-            Log.d("UserRepository", "  lastName: '${updatedUserDto.lastName}'")
-            Log.d("UserRepository", "  password: '${updatedUserDto.password?.take(10)}...' (length: ${updatedUserDto.password?.length ?: 0})")
-            Log.d("UserRepository", "  picture: '${updatedUserDto.picture}'")
-            Log.d("UserRepository", "  userPreferencesId: '${updatedUserDto.userPreferencesId}'")
-            Log.d("UserRepository", "  isDirty: ${updatedUserDto.isDirty}")
-            Log.d("UserRepository", "  isNew: ${updatedUserDto.isNew}")
-            Log.d("UserRepository", "  isMarkedForDeletion: ${updatedUserDto.isMarkedForDeletion}")
-            Log.d("UserRepository", "=====================================")
+            Log.d("UserRepository", "🔄 === DTO ANTES DE APLICAR preserveExistingImageFields ===")
+            Log.d("UserRepository", "🔄 id: '${updatedUserDto.id}'")
+            Log.d("UserRepository", "🔄 email: '${updatedUserDto.email}'")
+            Log.d("UserRepository", "🔄 username: '${updatedUserDto.username}'")
+            Log.d("UserRepository", "🔄 firstName: '${updatedUserDto.firstName}'")
+            Log.d("UserRepository", "🔄 lastName: '${updatedUserDto.lastName}'")
+            Log.d("UserRepository", "🔄 password: '${updatedUserDto.password?.take(10)}...' (length: ${updatedUserDto.password?.length ?: 0})")
+            Log.d("UserRepository", "🔄 picture: '${updatedUserDto.picture}'")
+            Log.d("UserRepository", "🔄 pictureFileSize: '${updatedUserDto.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 pictureInternalName: '${updatedUserDto.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 userPreferencesId: '${updatedUserDto.userPreferencesId}'")
+            Log.d("UserRepository", "🔄 isDirty: ${updatedUserDto.isDirty}")
+            Log.d("UserRepository", "🔄 isNew: ${updatedUserDto.isNew}")
+            Log.d("UserRepository", "🔄 isMarkedForDeletion: ${updatedUserDto.isMarkedForDeletion}")
+            Log.d("UserRepository", "🔄 ================================================")
+
+            // ✅ APLICAR FUNCIÓN UTILITARIA PARA PRESERVAR IMAGEN
+            Log.d("UserRepository", "🔄 === APLICANDO preserveExistingImageFields ===")
+            val safeUserDto = updatedUserDto.preserveExistingImageFields()
+            Log.d("UserRepository", "🔄 DTO después de preserveExistingImageFields:")
+            Log.d("UserRepository", "🔄 picture: '${safeUserDto.picture}'")
+            Log.d("UserRepository", "🔄 pictureFileSize: '${safeUserDto.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 pictureInternalName: '${safeUserDto.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 ================================================")
 
             // Convert to JSON string and get headers like the working pattern
             val gson = com.google.gson.Gson()
-            val userJson = gson.toJson(updatedUserDto)
+            val userJson = gson.toJson(safeUserDto)
             
-            // ✅ NEW: Log the complete JSON being sent in updateUserRole
-            Log.d("UserRepository", "=== UPDATE USER ROLE JSON BEING SENT ===")
-            Log.d("UserRepository", "userJson: $userJson")
-            Log.d("UserRepository", "JSON length: ${userJson.length}")
-            Log.d("UserRepository", "=========================================")
-            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            Log.d("UserRepository", "🔄 === JSON FINAL A ENVIAR ===")
+            Log.d("UserRepository", "🔄 userJson: $userJson")
+            Log.d("UserRepository", "🔄 JSON length: ${userJson.length}")
+            Log.d("UserRepository", "🔄 ===========================")
+            
+            Log.d("UserRepository", "🔄 Enviando actualización de rol al backend...")
             
             val response = api.saveUser(
                 entity = userJson,
                 csrfToken = csrfToken,
                 cookie = cookie
             )
+            
+            Log.d("UserRepository", "🔄 === RESPUESTA DEL BACKEND ===")
+            Log.d("UserRepository", "🔄 Response code: ${response.code()}")
+            Log.d("UserRepository", "🔄 Response successful: ${response.isSuccessful}")
+            
             if (!response.isSuccessful) {
+                Log.e("UserRepository", "❌ Failed to update user role: ${response.code()}")
                 return@withContext Result.failure(Exception("Failed to update user role"))
             }
 
-            val updatedUser = response.body()?.toDomain()
+            val updatedUserResponse = response.body()
+            Log.d("UserRepository", "🔄 Usuario actualizado desde backend:")
+            Log.d("UserRepository", "🔄 id: '${updatedUserResponse?.id}'")
+            Log.d("UserRepository", "🔄 email: '${updatedUserResponse?.email}'")
+            Log.d("UserRepository", "🔄 picture: '${updatedUserResponse?.picture}'")
+            Log.d("UserRepository", "🔄 pictureFileSize: '${updatedUserResponse?.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 pictureInternalName: '${updatedUserResponse?.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 userPreferencesId: '${updatedUserResponse?.userPreferencesId}'")
+            Log.d("UserRepository", "🔄 ================================================")
+
+            val updatedUser = updatedUserResponse?.toDomain()
                 ?: return@withContext Result.failure(Exception("Failed to get updated user"))
 
             // Si el usuario actualizado es el usuario actual, actualizar en AuthDataStore
             getCurrentUser()?.let { currentUser ->
                 if (currentUser.id == userId) {
+                    Log.d("UserRepository", "🔄 Actualizando usuario actual en AuthDataStore")
                     authDataStore.setCurrentUser(updatedUser)
                 }
             }
 
+            Log.d("UserRepository", "✅ User role updated successfully")
+            Log.d("UserRepository", "🔄 === FINALIZADA ACTUALIZACIÓN DE ROL DE USUARIO ===")
             Result.success(updatedUser)
         } catch (e: Exception) {
+            Log.e("UserRepository", "❌ Error updating user role", e)
             Result.failure(e)
         }
     }
 
     override suspend fun updateUser(user: User): Unit = withContext(Dispatchers.IO) {
         try {
-            Log.d("UserRepository", "Updating user: ${user.id}")
-            Log.d("UserRepository", "Update details: isApproved=${user.isApproved}, role=${user.role}")
+            Log.d("UserRepository", "🔄 === INICIANDO ACTUALIZACIÓN DE USUARIO ===")
+            Log.d("UserRepository", "🔄 Usuario a actualizar: ${user.id}")
+            Log.d("UserRepository", "🔄 Update details: isApproved=${user.isApproved}, role=${user.role}")
+            Log.d("UserRepository", "🔄 Usuario photoUrl: '${user.photoUrl}'")
             
-            // Get the current user data to preserve the password
-            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
-            val currentUserResponse = api.getUser(
-                id = user.id,
-                csrfToken = csrfToken,
-                cookie = cookie
-            )
-            val currentUserData = currentUserResponse.body()
-            val currentPassword = currentUserData?.password
-            
-            Log.d("UserRepository", "Password preservation check:")
-            Log.d("UserRepository", "  API response successful: ${currentUserResponse.isSuccessful}")
-            Log.d("UserRepository", "  Current user data found: ${currentUserData != null}")
-            Log.d("UserRepository", "  Password found: ${!currentPassword.isNullOrBlank()}")
-            Log.d("UserRepository", "  Password length: ${currentPassword?.length ?: 0}")
-            
-            // ✅ CRITICAL FIX: Use email from API if available, otherwise from parameter if valid
-            val emailFromApi = currentUserData?.email?.takeIf { it.isNotBlank() && it != "null" }
-            val emailFromParameter = user.email.takeIf { email ->
+            // ✅ CRITICAL FIX: Use email from parameter if valid
+            val validEmail = user.email.takeIf { email ->
                 email.isNotBlank() && 
                 email != "null" && 
                 email.contains("@") && 
                 email.contains(".")
             }
             
-            // Priority: API email > Parameter email > null
-            val validEmail = emailFromApi ?: emailFromParameter
+            Log.d("UserRepository", "🔄 === RESOLUCIÓN DE EMAIL ===")
+            Log.d("UserRepository", "🔄 Email from parameter: '$validEmail'")
+            Log.d("UserRepository", "🔄 =========================")
             
-            Log.d("UserRepository", "Email resolution in updateUser:")
-            Log.d("UserRepository", "  Email from API: '$emailFromApi'")
-            Log.d("UserRepository", "  Email from parameter: '$emailFromParameter'")
-            Log.d("UserRepository", "  Final email: '$validEmail'")
-            
-            // ⚠️ CRITICAL FIX: Don't include password field if it's null/empty to avoid overwriting
-            // Only include password if we have a valid one from the API
-            val userDto = if (!currentPassword.isNullOrBlank()) {
-                UserDto(
-                    id = user.id,
-                    email = validEmail, // ✅ Only send if it's a valid email
-                    password = currentPassword, // Only include if we have a valid password
-                    username = user.username,
-                    firstName = user.firstName,
-                    lastName = user.lastName,
-                    picture = "",
-                    pictureFileSize = null,
-                    pictureInternalName = null
-                )
-            } else {
-                // Don't include password field at all if we don't have one
-                UserDto(
-                    id = user.id,
-                    email = validEmail, // ✅ Only send if it's a valid email
-                    password = null, // Explicitly set to null to avoid sending empty string
-                    username = user.username,
-                    firstName = user.firstName,
-                    lastName = user.lastName,
-                    picture = "",
-                    pictureFileSize = null,
-                    pictureInternalName = null
-                )
-            }
+            // ✅ Crear DTO solo con campos que se están actualizando
+            val userDto = UserDto(
+                id = user.id,
+                email = validEmail, // ✅ Solo send if it's a valid email
+                username = user.username,
+                firstName = user.firstName,
+                lastName = user.lastName
+                // ✅ NO incluir campos de imagen - se preservarán automáticamente si existen
+            )
 
-            // ✅ NEW: Detailed logging of userDto in updateUser
-            Log.d("UserRepository", "=== UPDATE USER DTO DEBUG ===")
-            Log.d("UserRepository", "  id: '${userDto.id}'")
-            Log.d("UserRepository", "  email: '${userDto.email}'")
-            Log.d("UserRepository", "  username: '${userDto.username}'")
-            Log.d("UserRepository", "  firstName: '${userDto.firstName}'")
-            Log.d("UserRepository", "  lastName: '${userDto.lastName}'")
-            Log.d("UserRepository", "  password: '${userDto.password?.take(10)}...' (length: ${userDto.password?.length ?: 0})")
-            Log.d("UserRepository", "  picture: '${userDto.picture}'")
-            Log.d("UserRepository", "  userPreferencesId: '${userDto.userPreferencesId}'")
-            Log.d("UserRepository", "  isDirty: ${userDto.isDirty}")
-            Log.d("UserRepository", "  isNew: ${userDto.isNew}")
-            Log.d("UserRepository", "  isMarkedForDeletion: ${userDto.isMarkedForDeletion}")
-            Log.d("UserRepository", "=================================")
+            Log.d("UserRepository", "🔄 === DTO ANTES DE APLICAR preserveExistingImageFields ===")
+            Log.d("UserRepository", "🔄 id: '${userDto.id}'")
+            Log.d("UserRepository", "🔄 email: '${userDto.email}'")
+            Log.d("UserRepository", "🔄 username: '${userDto.username}'")
+            Log.d("UserRepository", "🔄 firstName: '${userDto.firstName}'")
+            Log.d("UserRepository", "🔄 lastName: '${userDto.lastName}'")
+            Log.d("UserRepository", "🔄 picture: '${userDto.picture}'")
+            Log.d("UserRepository", "🔄 pictureFileSize: '${userDto.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 pictureInternalName: '${userDto.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 userPreferencesId: '${userDto.userPreferencesId}'")
+            Log.d("UserRepository", "🔄 isDirty: ${userDto.isDirty}")
+            Log.d("UserRepository", "🔄 isNew: ${userDto.isNew}")
+            Log.d("UserRepository", "🔄 isMarkedForDeletion: ${userDto.isMarkedForDeletion}")
+            Log.d("UserRepository", "🔄 ================================================")
 
-            Log.d("UserRepository", "Sending update request to API")
+            // ✅ Preservar campos de imagen existentes
+            Log.d("UserRepository", "🔄 === APLICANDO preserveExistingImageFields ===")
+            val safeUserDto = userDto.preserveExistingImageFields()
+            Log.d("UserRepository", "🔄 DTO después de preserveExistingImageFields:")
+            Log.d("UserRepository", "🔄 picture: '${safeUserDto.picture}'")
+            Log.d("UserRepository", "🔄 pictureFileSize: '${safeUserDto.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 pictureInternalName: '${safeUserDto.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 ================================================")
+
+            Log.d("UserRepository", "🔄 Enviando actualización de usuario al backend...")
             
-            // Convert to JSON string and get headers like the working pattern
+            // Convert to JSON string and get headers
             val gson = com.google.gson.Gson()
-            val userJson = gson.toJson(userDto)
+            val userJson = gson.toJson(safeUserDto)
             
-            // ✅ NEW: Log the complete JSON being sent in updateUser
-            Log.d("UserRepository", "=== UPDATE USER JSON BEING SENT ===")
-            Log.d("UserRepository", "userJson: $userJson")
-            Log.d("UserRepository", "JSON length: ${userJson.length}")
-            Log.d("UserRepository", "=====================================")
-            // ✅ FIXED: Reuse existing csrfToken and cookie instead of redeclaring
+            Log.d("UserRepository", "🔄 === JSON FINAL A ENVIAR ===")
+            Log.d("UserRepository", "🔄 userJson: $userJson")
+            Log.d("UserRepository", "🔄 JSON length: ${userJson.length}")
+            Log.d("UserRepository", "🔄 ===========================")
+            
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             val response = api.saveUser(
                 entity = userJson,
@@ -456,23 +487,39 @@ class UserRepositoryImpl @Inject constructor(
                 cookie = cookie
             )
             
+            Log.d("UserRepository", "🔄 === RESPUESTA DEL BACKEND ===")
+            Log.d("UserRepository", "🔄 Response code: ${response.code()}")
+            Log.d("UserRepository", "🔄 Response successful: ${response.isSuccessful}")
+            
             if (!response.isSuccessful) {
-                Log.e("UserRepository", "Failed to update user: ${response.code()}")
-                Log.e("UserRepository", "Error body: ${response.errorBody()?.string()}")
+                Log.e("UserRepository", "❌ Failed to update user: ${response.code()}")
+                Log.e("UserRepository", "❌ Error body: ${response.errorBody()?.string()}")
                 throw Exception("Failed to update user: ${response.code()}")
             }
 
-            Log.d("UserRepository", "User updated successfully")
+            val updatedUserResponse = response.body()
+            Log.d("UserRepository", "🔄 Usuario actualizado desde backend:")
+            Log.d("UserRepository", "🔄 id: '${updatedUserResponse?.id}'")
+            Log.d("UserRepository", "🔄 email: '${updatedUserResponse?.email}'")
+            Log.d("UserRepository", "🔄 picture: '${updatedUserResponse?.picture}'")
+            Log.d("UserRepository", "🔄 pictureFileSize: '${updatedUserResponse?.pictureFileSize}'")
+            Log.d("UserRepository", "🔄 pictureInternalName: '${updatedUserResponse?.pictureInternalName}'")
+            Log.d("UserRepository", "🔄 userPreferencesId: '${updatedUserResponse?.userPreferencesId}'")
+            Log.d("UserRepository", "🔄 ================================================")
+
+            Log.d("UserRepository", "✅ User updated successfully")
             
             // Si el usuario actualizado es el usuario actual, actualizar en AuthDataStore
             getCurrentUser()?.let { currentUser ->
                 if (currentUser.id == user.id) {
-                    Log.d("UserRepository", "Updating current user in AuthDataStore")
+                    Log.d("UserRepository", "🔄 Actualizando usuario actual en AuthDataStore")
                     authDataStore.setCurrentUser(user)
                 }
             }
+            
+            Log.d("UserRepository", "🔄 === FINALIZADA ACTUALIZACIÓN DE USUARIO ===")
         } catch (e: Exception) {
-            Log.e("UserRepository", "Error updating user", e)
+            Log.e("UserRepository", "❌ Error updating user", e)
             throw e
         }
     }
@@ -557,7 +604,7 @@ class UserRepositoryImpl @Inject constructor(
                     Log.d("UserRepository", "  - SiteItem: siteId=${siteItem.siteId}, goUserId=${siteItem.goUserId}")
                 }
                 userDto.userBusinesses?.forEach { businessItem ->
-                    Log.d("UserRepository", "  - BusinessItem: businessId=${businessItem.businessId}, siteId=${businessItem.siteId}")
+                    Log.d("UserRepository", "  - BusinessItem: businessId=${businessItem.businessId}")
                 }
                 
                 // Cache user-site mappings
@@ -733,7 +780,7 @@ class UserRepositoryImpl @Inject constructor(
             Log.d("UserRepository", "User businesses: ${userDto.userBusinesses?.size ?: 0}")
             Log.d("UserRepository", "User sites: ${userDto.userSiteItems?.size ?: 0}")
             userDto.userBusinesses?.forEach { business ->
-                Log.d("UserRepository", "Business: ${business.businessId}, Site: ${business.siteId}")
+                Log.d("UserRepository", "Business: ${business.businessId}")
             }
             
             // Extract first business ID and save to DataStore
@@ -851,7 +898,7 @@ class UserRepositoryImpl @Inject constructor(
             Log.d("UserRepository", "UserBusinesses size: ${userDto.userBusinesses?.size ?: 0}")
             
             userDto.userBusinesses?.forEach { userBusiness ->
-                Log.d("UserRepository", "UserBusiness: businessId=${userBusiness.businessId}, siteId=${userBusiness.siteId}")
+                Log.d("UserRepository", "UserBusiness: businessId=${userBusiness.businessId}")
             }
 
             // Extract business IDs from UserBusinesses

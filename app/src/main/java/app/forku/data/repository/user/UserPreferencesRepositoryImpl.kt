@@ -4,6 +4,7 @@ import android.util.Log
 import app.forku.data.api.UserPreferencesApi
 import app.forku.data.api.UserApi
 import app.forku.data.api.dto.user.UserDto
+import app.forku.data.api.dto.user.preserveExistingImageFields
 import app.forku.data.mapper.toDomain
 import app.forku.data.mapper.toDto
 import app.forku.data.mapper.getBusinessName
@@ -40,20 +41,20 @@ class UserPreferencesRepositoryImpl @Inject constructor(
 
     override suspend fun getCurrentUserPreferences(): UserPreferences? = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "🔍 getCurrentUserPreferences called - starting user preferences loading")
+            Log.d(TAG, "UserPreferencesRepositoryImpl getCurrentUserPreferences called - starting user preferences loading")
             
             // Use UserRepository to get user with preferences included
             val userRepositoryImpl = userRepository as app.forku.data.repository.user.UserRepositoryImpl
-            Log.d(TAG, "🔍 About to call getCurrentUserWithPreferences...")
+            Log.d(TAG, "UserPreferencesRepositoryImpl 🔍 About to call getCurrentUserWithPreferences...")
             
             val (user, preferences) = userRepositoryImpl.getCurrentUserWithPreferences()
             
-            Log.d(TAG, "🔍 getCurrentUserWithPreferences completed:")
-            Log.d(TAG, "  - User found: ${user != null}")
-            Log.d(TAG, "  - User ID: ${user?.id}")
-            Log.d(TAG, "  - User name: ${user?.username}")
-            Log.d(TAG, "  - Preferences found: ${preferences != null}")
-            
+            Log.d(TAG, "UserPreferencesRepositoryImpl 🔍 getCurrentUserWithPreferences completed:")
+            Log.d(TAG, "UserPreferencesRepositoryImpl  - User found: ${user != null}")
+            Log.d(TAG, "UserPreferencesRepositoryImpl  - User ID: ${user?.id}")
+            Log.d(TAG, "UserPreferencesRepositoryImpl  - User name: ${user?.username}")
+            Log.d(TAG, "UserPreferencesRepositoryImpl  - Preferences found: ${preferences != null}")
+            Log.d(TAG, "UserPreferencesRepositoryImpl getCurrentUserWithPreferences completed: A")
             if (user == null) {
                 Log.w(TAG, "❌ No current user found")
                 return@withContext null
@@ -180,98 +181,146 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                 return false
             }
             
-            Log.d(TAG, "Updating user ${currentUser.id} with UserPreferencesId: $userPreferencesId")
-            Log.d(TAG, "updateUserPreferencesId currentUser ${currentUser}")
+            Log.d(TAG, "🔄 === INICIANDO ACTUALIZACIÓN DE USUARIO CON UserPreferencesId ===")
+            Log.d(TAG, "🔄 Usuario actual: ${currentUser.id}")
+            Log.d(TAG, "🔄 UserPreferencesId a asignar: $userPreferencesId")
+            Log.d(TAG, "🔄 Usuario actual photoUrl: '${currentUser.photoUrl}'")
             
             // ⚠️ CRITICAL FIX: Get current user data to preserve password
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            Log.d(TAG, "🔄 Obteniendo datos actuales del usuario desde API...")
             val currentUserResponse = userApi.getUser(
                 id = currentUser.id,
                 csrfToken = csrfToken,
-                cookie = cookie
-            )
+                cookie = cookie,
+                include = "UserRoleItems,UserBusinesses,UserSiteItems" // ✅ USAR SOLO CAMPOS QUE FUNCIONAN
+            ) //Picture,PictureFileSize,PictureInternalName
             val currentUserData = currentUserResponse.body()
             val currentPassword = currentUserData?.password
             
-            Log.d(TAG, "Password preservation check:")
-            Log.d(TAG, "  API response successful: ${currentUserResponse.isSuccessful}")
-            Log.d(TAG, "  Current user data found: ${currentUserData != null}")
-            Log.d(TAG, "  Password found: ${!currentPassword.isNullOrBlank()}")
-            Log.d(TAG, "  Password length: ${currentPassword?.length ?: 0}")
-            Log.d(TAG, "  currentUserResponse.body()?.email: '${currentUserResponse.body()?.email }'")
-            Log.d(TAG, "  currentUserData: '${currentUserData }'")
+            // ✅ LOGS DETALLADOS DE DATOS CRUDOS DE LA API
+            Log.d(TAG, "🔄 === DATOS CRUDOS DE LA API ===")
+            Log.d(TAG, "🔄 API response successful: ${currentUserResponse.isSuccessful}")
+            Log.d(TAG, "🔄 API response code: ${currentUserResponse.code()}")
+            Log.d(TAG, "🔄 Current user data found: ${currentUserData != null}")
             
-            // ✅ NEW: Log email values before creating DTO
-            Log.d(TAG, "=== EMAIL FIELD DEBUG ===")
-            Log.d(TAG, "  currentUser.email: '${currentUser.email}'")
-            Log.d(TAG, "  currentUserData?.email: '${currentUserData?.email}'")
-            Log.d(TAG, "  currentUserData?.email length: ${currentUserData?.email?.length ?: 0}")
-            Log.d(TAG, "  currentUser.email length: ${currentUser.email?.length ?: 0}")
-            Log.d(TAG, "  currentUser.email is blank: ${currentUser.email.isBlank()}")
-            Log.d(TAG, "  currentUser.email is null: ${currentUser.email == null}")
-            Log.d(TAG, "=========================")
+            if (currentUserData != null) {
+                Log.d(TAG, "🔄 === DATOS COMPLETOS DEL USUARIO DESDE API ===")
+                Log.d(TAG, "🔄 id: '${currentUserData.id}'")
+                Log.d(TAG, "🔄 email: '${currentUserData.email}'")
+                Log.d(TAG, "🔄 username: '${currentUserData.username}'")
+                Log.d(TAG, "🔄 firstName: '${currentUserData.firstName}'")
+                Log.d(TAG, "🔄 lastName: '${currentUserData.lastName}'")
+                Log.d(TAG, "🔄 fullName: '${currentUserData.fullName}'")
+                Log.d(TAG, "🔄 password: '${currentUserData.password?.take(10)}...' (length: ${currentUserData.password?.length ?: 0})")
+                Log.d(TAG, "🔄 picture: '${currentUserData.picture}'")
+                Log.d(TAG, "🔄 pictureFileSize: '${currentUserData.pictureFileSize}'")
+                Log.d(TAG, "🔄 pictureInternalName: '${currentUserData.pictureInternalName}'")
+                Log.d(TAG, "🔄 userPreferencesId: '${currentUserData.userPreferencesId}'")
+                Log.d(TAG, "🔄 blocked: ${currentUserData.blocked}")
+                Log.d(TAG, "🔄 userValidated: ${currentUserData.userValidated}")
+                Log.d(TAG, "🔄 unregistered: ${currentUserData.unregistered}")
+                Log.d(TAG, "🔄 isMarkedForDeletion: ${currentUserData.isMarkedForDeletion}")
+                Log.d(TAG, "🔄 isDirty: ${currentUserData.isDirty}")
+                Log.d(TAG, "🔄 isNew: ${currentUserData.isNew}")
+                Log.d(TAG, "🔄 internalObjectId: ${currentUserData.internalObjectId}")
+                Log.d(TAG, "🔄 emailChangeValidationInProgress: ${currentUserData.emailChangeValidationInProgress}")
+                Log.d(TAG, "🔄 emailValidated: ${currentUserData.emailValidated}")
+                Log.d(TAG, "🔄 newEmailAddress: '${currentUserData.newEmailAddress}'")
+                Log.d(TAG, "🔄 newEmailValidated: ${currentUserData.newEmailValidated}")
+                Log.d(TAG, "🔄 passwordExpiry: '${currentUserData.passwordExpiry}'")
+                Log.d(TAG, "🔄 passwordExpiryWithTimezoneOffset: '${currentUserData.passwordExpiryWithTimezoneOffset}'")
+                Log.d(TAG, "🔄 userRoleItems count: ${currentUserData.userRoleItems?.size ?: 0}")
+                Log.d(TAG, "🔄 userBusinesses count: ${currentUserData.userBusinesses?.size ?: 0}")
+                Log.d(TAG, "🔄 userSiteItems count: ${currentUserData.userSiteItems?.size ?: 0}")
+                Log.d(TAG, "🔄 ================================================")
+            } else {
+                Log.e(TAG, "❌ Current user data is null from API")
+            }
             
+            Log.d(TAG, "🔄 === DATOS ACTUALES DEL USUARIO DESDE API ===")
+            Log.d(TAG, "🔄 API response successful: ${currentUserResponse.isSuccessful}")
+            Log.d(TAG, "🔄 Current user data found: ${currentUserData != null}")
+            Log.d(TAG, "🔄 Password found: ${!currentPassword.isNullOrBlank()}")
+            Log.d(TAG, "🔄 Password length: ${currentPassword?.length ?: 0}")
+            Log.d(TAG, "🔄 Email desde API: '${currentUserData?.email}'")
+            Log.d(TAG, "🔄 Picture desde API: '${currentUserData?.picture}'")
+            Log.d(TAG, "🔄 PictureFileSize desde API: '${currentUserData?.pictureFileSize}'")
+            Log.d(TAG, "🔄 PictureInternalName desde API: '${currentUserData?.pictureInternalName}'")
+            Log.d(TAG, "🔄 ================================================")
+
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE EMAIL === A")
             // ✅ CRITICAL FIX: Use email from API if available, otherwise from memory if valid
             val emailFromApi = currentUserData?.email?.takeIf { it.isNotBlank() && it != "null" }
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE EMAIL === B '${emailFromApi}'")
             val emailFromMemory = currentUser.email.takeIf { email ->
                 email.isNotBlank() && 
                 email != "null" && 
                 email.contains("@") && 
                 email.contains(".")
             }
-            
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE EMAIL === C '${emailFromMemory}'")
             // Priority: API email > Memory email > null
             val validEmail = emailFromApi ?: emailFromMemory
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE EMAIL === D '${validEmail}'")
+
+            Log.d(TAG, "🔄 Email from API: '$emailFromApi'")
+            Log.d(TAG, "🔄 Email from memory: '$emailFromMemory'")
+            Log.d(TAG, "🔄 Final email: '$validEmail'")
+            Log.d(TAG, "🔄 =========================")
             
-            Log.d(TAG, "Email resolution:")
-            Log.d(TAG, "  Email from API: '$emailFromApi'")
-            Log.d(TAG, "  Email from memory: '$emailFromMemory'")
-            Log.d(TAG, "  Final email: '$validEmail'")
-            
-            // Create updated user DTO with UserPreferencesId
+            // ✅ CRITICAL FIX: NO incluir email para evitar error "forbiddenToChangeEmail"
+            // Solo actualizar UserPreferencesId y campos básicos
             val updatedUserDto = UserDto(
                 id = currentUser.id,
-                email = validEmail, // ✅ Only send if it's a valid email
+                email = validEmail, // ❌ NO incluir email - causa error forbiddenToChangeEmail
                 username = currentUser.username,
                 firstName = currentUser.firstName,
                 lastName = currentUser.lastName,
                 fullName = "${currentUser.firstName} ${currentUser.lastName}".trim(),
                 password = currentPassword, // ✅ Preserve the actual password from API
-                picture = currentUser.photoUrl ?: "", // Fix: use photoUrl instead of picture
-                pictureFileSize = null,
-                pictureInternalName = null,
                 userPreferencesId = userPreferencesId, // 🎯 This is the key field
                 isDirty = true,
                 isNew = false,
                 isMarkedForDeletion = false
             )
+            // No incluir picture, pictureFileSize, pictureInternalName si no hay valor
             
-            // ✅ NEW: Detailed logging of updatedUserDto
-            Log.d(TAG, "=== UPDATED USER DTO DEBUG ===")
-            Log.d(TAG, "  id: '${updatedUserDto.id}'")
-            Log.d(TAG, "  email: '${updatedUserDto.email}'")
-            Log.d(TAG, "  username: '${updatedUserDto.username}'")
-            Log.d(TAG, "  firstName: '${updatedUserDto.firstName}'")
-            Log.d(TAG, "  lastName: '${updatedUserDto.lastName}'")
-            Log.d(TAG, "  fullName: '${updatedUserDto.fullName}'")
-            Log.d(TAG, "  password: '${updatedUserDto.password?.take(10)}...' (length: ${updatedUserDto.password?.length ?: 0})")
-            Log.d(TAG, "  picture: '${updatedUserDto.picture}'")
-            Log.d(TAG, "  userPreferencesId: '${updatedUserDto.userPreferencesId}'")
-            Log.d(TAG, "  isDirty: ${updatedUserDto.isDirty}")
-            Log.d(TAG, "  isNew: ${updatedUserDto.isNew}")
-            Log.d(TAG, "  isMarkedForDeletion: ${updatedUserDto.isMarkedForDeletion}")
-            Log.d(TAG, "===============================")
+            Log.d(TAG, "🔄 === DTO ANTES DE APLICAR preserveExistingImageFields ===")
+            Log.d(TAG, "🔄 id: '${updatedUserDto.id}'")
+            Log.d(TAG, "🔄 email: '${updatedUserDto.email}'")
+            Log.d(TAG, "🔄 username: '${updatedUserDto.username}'")
+            Log.d(TAG, "🔄 firstName: '${updatedUserDto.firstName}'")
+            Log.d(TAG, "🔄 lastName: '${updatedUserDto.lastName}'")
+            Log.d(TAG, "🔄 fullName: '${updatedUserDto.fullName}'")
+            Log.d(TAG, "🔄 password: '${updatedUserDto.password?.take(10)}...' (length: ${updatedUserDto.password?.length ?: 0})")
+            Log.d(TAG, "🔄 picture: '${updatedUserDto.picture}'")
+            Log.d(TAG, "🔄 pictureFileSize: '${updatedUserDto.pictureFileSize}'")
+            Log.d(TAG, "🔄 pictureInternalName: '${updatedUserDto.pictureInternalName}'")
+            Log.d(TAG, "🔄 userPreferencesId: '${updatedUserDto.userPreferencesId}'")
+            Log.d(TAG, "🔄 isDirty: ${updatedUserDto.isDirty}")
+            Log.d(TAG, "🔄 isNew: ${updatedUserDto.isNew}")
+            Log.d(TAG, "🔄 isMarkedForDeletion: ${updatedUserDto.isMarkedForDeletion}")
+            Log.d(TAG, "🔄 ================================================")
+            
+            // ✅ APLICAR FUNCIÓN UTILITARIA PARA PRESERVAR IMAGEN
+            Log.d(TAG, "🔄 === APLICANDO preserveExistingImageFields ===")
+            val safeUserDto = updatedUserDto.preserveExistingImageFields()
+            Log.d(TAG, "🔄 DTO después de preserveExistingImageFields:")
+            Log.d(TAG, "🔄 picture: '${safeUserDto.picture}'")
+            Log.d(TAG, "🔄 pictureFileSize: '${safeUserDto.pictureFileSize}'")
+            Log.d(TAG, "🔄 pictureInternalName: '${safeUserDto.pictureInternalName}'")
+            Log.d(TAG, "🔄 ================================================")
             
             // Convert to JSON string like VehicleApi does
-            val userJson = gson.toJson(updatedUserDto)
+            val userJson = gson.toJson(safeUserDto)
             
-            // ✅ NEW: Log the complete JSON being sent
-            Log.d(TAG, "=== USER JSON BEING SENT ===")
-            Log.d(TAG, "userJson: $userJson")
-            Log.d(TAG, "JSON length: ${userJson.length}")
-            Log.d(TAG, "=============================")
+            Log.d(TAG, "🔄 === JSON FINAL A ENVIAR ===")
+            Log.d(TAG, "🔄 userJson: $userJson")
+            Log.d(TAG, "🔄 JSON length: ${userJson.length}")
+            Log.d(TAG, "🔄 ===========================")
             
-            Log.d(TAG, "Sending User JSON: $userJson")
+            Log.d(TAG, "🔄 Enviando actualización de usuario al backend...")
             
             // ✅ FIXED: Reuse existing csrfToken and cookie instead of redeclaring
             
@@ -282,16 +331,32 @@ class UserPreferencesRepositoryImpl @Inject constructor(
                 cookie = cookie
             )
             
+            Log.d(TAG, "🔄 === RESPUESTA DEL BACKEND ===")
+            Log.d(TAG, "🔄 Response code: ${response.code()}")
+            Log.d(TAG, "🔄 Response successful: ${response.isSuccessful}")
+            
             if (!response.isSuccessful) {
                 val errorBody = response.errorBody()?.string()
                 Log.e(TAG, "❌ Failed to update user with UserPreferencesId: ${response.code()}")
-                Log.e(TAG, "Error body: $errorBody")
+                Log.e(TAG, "❌ Error body: $errorBody")
                 return false
             }
             
+            val updatedUserResponse = response.body()
+            Log.d(TAG, "🔄 Usuario actualizado desde backend:")
+            Log.d(TAG, "🔄 id: '${updatedUserResponse?.id}'")
+            Log.d(TAG, "🔄 email: '${updatedUserResponse?.email}'")
+            Log.d(TAG, "🔄 picture: '${updatedUserResponse?.picture}'")
+            Log.d(TAG, "🔄 pictureFileSize: '${updatedUserResponse?.pictureFileSize}'")
+            Log.d(TAG, "🔄 pictureInternalName: '${updatedUserResponse?.pictureInternalName}'")
+            Log.d(TAG, "🔄 userPreferencesId: '${updatedUserResponse?.userPreferencesId}'")
+            Log.d(TAG, "🔄 ================================================")
+            
             Log.d(TAG, "✅ Successfully updated user with UserPreferencesId")
-            val updatedUser = response.body()?.toDomain()
-            Log.d(TAG, "Updated user UserPreferencesId: ${updatedUser?.userPreferencesId}")
+            val updatedUser = updatedUserResponse?.toDomain()
+            Log.d(TAG, "✅ Updated user UserPreferencesId: ${updatedUser?.userPreferencesId}")
+            Log.d(TAG, "✅ Updated user photoUrl: '${updatedUser?.photoUrl}'")
+            Log.d(TAG, "🔄 === FINALIZADA ACTUALIZACIÓN DE USUARIO ===")
             
             true
         } catch (e: Exception) {

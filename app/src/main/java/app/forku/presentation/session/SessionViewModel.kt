@@ -68,14 +68,15 @@ class SessionViewModel @Inject constructor(
     fun endSession(
         sessionId: String? = null,
         closeMethod: VehicleSessionClosedMethod = VehicleSessionClosedMethod.USER_CLOSED,
-        notes: String? = null
+        notes: String? = null,
+
     ) {
         viewModelScope.launch {
             try {
                 _state.update { it.copy(isLoading = true) }
                 val targetSessionId = sessionId ?: state.value.session?.id
                 if (targetSessionId != null) {
-                    val result = endVehicleSessionUseCase(targetSessionId, closeMethod, notes)
+                    val result = endVehicleSessionUseCase(targetSessionId, closeMethod, notes, "")
                     result.onSuccess { endedSession ->
                         _state.update {
                             it.copy(

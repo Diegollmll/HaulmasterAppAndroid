@@ -229,7 +229,7 @@ class SitesViewModel @Inject constructor(
                         }
                 } else {
                     // Operator: solo sitios asignados al usuario de ese business
-                    repository.getUserAssignedSites()
+                    repository.getUserAssignedSites(businessId)
                         .catch { e ->
                             _uiState.update {
                                 it.copy(

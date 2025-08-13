@@ -191,9 +191,19 @@ fun BusinessSiteFilters(
     
     // ✅ ADDITIONAL: Ensure current user's site is always available
     LaunchedEffect(businessContextState.siteId, sitesUiState.sites.size) {
+
         val userSiteId = businessContextState.siteId
+        Log.w("BusinessSiteFilters", "🚨 userSiteId '$userSiteId'")
+
+        Log.w("BusinessSiteFilters", "🚨 sitesUiState.sites '${sitesUiState.sites}'")
+        Log.w("BusinessSiteFilters", "🚨 sitesUiState.sites.size '${sitesUiState.sites.size}'")
+
         if (userSiteId != null && sitesUiState.sites.isNotEmpty()) {
+
+            Log.w("BusinessSiteFilters", "🚨 userSiteId '$userSiteId' not found in loaded sites")
+
             val userSiteExists = sitesUiState.sites.any { it.id == userSiteId }
+            Log.w("BusinessSiteFilters", "🚨 userSiteExists '$userSiteExists'")
             if (!userSiteExists) {
                 Log.w("BusinessSiteFilters", "🚨 User's current site '$userSiteId' not found in loaded sites")
                 Log.w("BusinessSiteFilters", "Available sites: ${sitesUiState.sites.map { "${it.name} (${it.id})" }}")

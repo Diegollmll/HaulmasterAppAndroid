@@ -4,6 +4,7 @@ import app.forku.data.api.dto.session.VehicleSessionDto
 import app.forku.domain.model.session.VehicleSession
 import app.forku.domain.model.session.VehicleSessionStatus
 import app.forku.domain.model.session.VehicleSessionClosedMethod
+import app.forku.domain.model.vehicle.Vehicle
 
 object VehicleSessionMapper {
     fun calculateDuration(startTime: String, endTime: String?): Int? {
@@ -76,7 +77,8 @@ object VehicleSessionMapper {
             businessId = dto.BusinessId,
             siteId = dto.siteId, // ✅ Include siteId from DTO
             initialHourMeter = dto.initialHourMeter, // ✅ New: Map hour meter fields
-            finalHourMeter = dto.finalHourMeter       // ✅ New: Map hour meter fields
+            vehicle = dto.Vehicle?.toDomain() ?:  GetVehiclePlaceholder(),
+            finalHourMeter = dto.finalHourMeter, // ✅ New: Map hour meter fields
         )
     }
 

@@ -19,6 +19,7 @@ import app.forku.domain.model.checklist.Answer
 import app.forku.presentation.common.components.ImageUploader
 import app.forku.presentation.checklist.model.ChecklistImage
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.draw.alpha
 
 @Composable
 fun ChecklistQuestionItem(
@@ -160,37 +161,39 @@ fun ChecklistQuestionItem(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            // Show comment field and photos ONLY if the question is answered, with animation
-            AnimatedVisibility(visible = question.userAnswer != null) {
-                Column {
-                    OutlinedTextField(
-                        value = comment,
-                        onValueChange = {
-                            android.util.Log.d("ChecklistFields", "Comment changed for Question[${question.id}] - " +
-                                "New comment: \${it.take(20)}...")
-                            comment = it
-                            onCommentChanged(question.id, it)
-                        },
-                        label = { Text("Comment (optional)") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF5F5F5))
-                            .padding(vertical = 4.dp),
-                        singleLine = false,
-                        maxLines = 3
+            // Show comment field and photos SIEMPRE visibles
+            Column {
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = {
+                        android.util.Log.d("ChecklistFields", "Comment changed for Question[${question.id}] - " +
+                            "New comment: ${it.take(20)}...")
+                        comment = it
+                        onCommentChanged(question.id, it)
+                    },
+                    label = { Text("Comment (optional)") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF5F5F5))
+                        .padding(vertical = 4.dp),
+                    singleLine = false,
+                    maxLines = 3,
+                    readOnly = question.userAnswer == null,
+                    enabled = question.userAnswer != null
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (question.userAnswer != null) 1f else 0.3f)) {
+                    android.util.Log.d("ChecklistFields", "Rendering ImageUploader for Question[${question.id}] - " +
+                        "Total images: ${images.size}, " +
+                        "Uploading: ${uploadingImages.size}")
+                    ImageUploader(
+                        images = images,
+                        onAddImage = onAddImage,
+                        onRemoveImage = onRemoveImage,
+                        imageLoader = imageLoader
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        android.util.Log.d("ChecklistFields", "Rendering ImageUploader for Question[${question.id}] - " +
-                            "Total images: \${images.size}, " +
-                            "Uploading: \${uploadingImages.size}")
-                        ImageUploader(
-                            images = images,
-                            onAddImage = onAddImage,
-                            onRemoveImage = onRemoveImage,
-                            imageLoader = imageLoader
-                        )
-                    }
                 }
             }
         }

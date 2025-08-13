@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
+import androidx.hilt.navigation.compose.hiltViewModel
+import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
 
 
 @HiltViewModel
@@ -22,7 +24,7 @@ class LoginViewModel @Inject constructor(
     private val userPreferencesRepository: app.forku.domain.repository.user.UserPreferencesRepository,
     private val authDataStore: app.forku.data.datastore.AuthDataStore // <-- Inyectar AuthDataStore
 ) : ViewModel() {
-
+    
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
     val state: StateFlow<LoginState> = _state
 
@@ -90,15 +92,15 @@ class LoginViewModel @Inject constructor(
     private suspend fun loadContextAndPreferences(user: User) {
         try {
             Log.d("LoginViewModel", "[CONTEXT] Loading business context after login...")
-            businessContextManager.loadBusinessContext()
+            //businessContextManager.loadBusinessContext()
             Log.d("LoginViewModel", "[CONTEXT] Business context loaded successfully")
             Log.d("LoginViewModel", "[CONTEXT] Checking if user needs preferences setup...")
             val needsSetupFromPrefs = userPreferencesRepository.userNeedsPreferencesSetup()
             Log.d("LoginViewModel", "[CONTEXT] UserPreferences check completed: $needsSetupFromPrefs")
-            val needsSetupFromContext = businessContextManager.userNeedsPreferencesSetup()
-            Log.d("LoginViewModel", "[CONTEXT] BusinessContext check completed: $needsSetupFromContext")
-            val needsSetup = needsSetupFromPrefs || needsSetupFromContext
-            Log.d("LoginViewModel", "[CONTEXT] Preferences setup check summary: From UserPreferences: $needsSetupFromPrefs, From BusinessContext: $needsSetupFromContext, Final: $needsSetup")
+            //val needsSetupFromContext = businessContextManager.userNeedsPreferencesSetup()
+            //Log.d("LoginViewModel", "[CONTEXT] BusinessContext check completed: $needsSetupFromContext")
+            val needsSetup = needsSetupFromPrefs //|| needsSetupFromContext
+            Log.d("LoginViewModel", "[CONTEXT] Preferences setup check summary: From UserPreferences: $needsSetupFromPrefs, Final: $needsSetup")
             if (needsSetup) {
                 Log.d("LoginViewModel", "[CONTEXT] User needs preferences setup, updating state to RequiresPreferencesSetup")
                 _state.value = LoginState.RequiresPreferencesSetup(user)
@@ -134,6 +136,7 @@ class LoginViewModel @Inject constructor(
 
     fun resetState() {
         _state.value = LoginState.Idle
+
     }
 }
 

@@ -153,9 +153,6 @@ class SessionKeepAliveManager @Inject constructor(
         _isKeepAliveActive.value = true
         Log.d(TAG, "✅ Keep-alive status set to active")
 
-        // Schedule WorkManager for long-term background maintenance
-        SessionKeepAliveWorker.schedulePeriodicWork(context)
-
         // Start keep-alive pings
         keepAliveJob = sessionScope.launch {
             Log.d(TAG, "🔄 Keep-alive coroutine started")
@@ -231,9 +228,6 @@ class SessionKeepAliveManager @Inject constructor(
      */
     fun stopKeepAlive() {
         Log.d(TAG, "🛑 Stopping session keep-alive service")
-        
-        // Cancel WorkManager background work
-        SessionKeepAliveWorker.cancelWork(context)
         
         keepAliveJob?.let { job ->
             Log.d(TAG, "🔄 Cancelling keep-alive job (isActive: ${job.isActive})")

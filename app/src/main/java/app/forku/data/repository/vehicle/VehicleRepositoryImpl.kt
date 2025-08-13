@@ -96,7 +96,6 @@ class VehicleRepositoryImpl @Inject constructor(
             "VehicleTypeId" to vehicle.type.Id,
             "VehicleCategoryId" to vehicle.categoryId,
             "SiteId" to vehicle.siteId,
-            "Picture" to vehicle.photoModel,
             "CurrentHourMeter" to vehicle.currentHourMeter
         )
         

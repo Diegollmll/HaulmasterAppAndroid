@@ -310,7 +310,6 @@ fun ChecklistScreen(
         viewModel = viewModel,
         topBarTitle = "Pre-Shift Checklist",
         networkManager = networkManager,
-        onAppResume = {},
         tokenErrorHandler = tokenErrorHandler,
         content = { padding ->
             Box(
@@ -449,7 +448,7 @@ fun ChecklistScreen(
                                             ChecklistQuestionItem(
                                                 question = item,
                                                 onResponseChanged = { itemId, answer ->
-                                                    android.util.Log.d("ChecklistScreen", "[Event] onResponseChanged for item $itemId: $answer")
+                                                    android.util.Log.d("ChecklistScreen", "[Event] onResponseChanged for itemId: $itemId, answer: $answer")
                                                     viewModel.updateItemResponse(itemId, answer)
                                                     lastAnsweredIndex.value = currentIndex
                                                 },

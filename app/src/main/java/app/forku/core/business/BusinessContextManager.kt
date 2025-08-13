@@ -58,7 +58,7 @@ class BusinessContextManager @Inject constructor(
             } else {
                 // Don't automatically load business context - return null if not found
                 // This allows the app to detect when user needs to go to SystemSettings
-                null
+                userPreferencesRepository.getEffectiveBusinessId()
             }
         }
     }

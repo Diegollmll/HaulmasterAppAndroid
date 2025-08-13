@@ -73,15 +73,42 @@ data class UserDto(
     val userRoleItems: List<GOUserRoleDto>? = emptyList(),
     @SerializedName("UserPreferencesId")
     val userPreferencesId: String? = null,
+    @SerializedName("UserPreferences")
+    val userPreferences: UserPreferencesDto? = null,
+    // ✅ CAMPOS CRÍTICOS SIN VALORES POR DEFECTO
     @SerializedName("Picture")
-    val picture: String? = null,
+    val picture: String? = null, // Sin valor por defecto
     @SerializedName("PictureFileSize")
-    val pictureFileSize: Long? = null,
+    val pictureFileSize: Long? = null, // Sin valor por defecto
     @SerializedName("PictureInternalName")
-    val pictureInternalName: String? = null,
+    val pictureInternalName: String? = null, // Sin valor por defecto
 ) {
     init {
-        Log.d("UserDto", "Initializing UserDto with picture: $picture")
+        // ✅ Solo loggear si realmente hay valores de imagen
+        if (picture != null || pictureFileSize != null || pictureInternalName != null) {
+            Log.d("UserDto", "Initializing UserDto with image fields: picture='$picture', pictureFileSize=$pictureFileSize, pictureInternalName='$pictureInternalName'")
+        }
+    }
+}
+
+/**
+ * Preserva los campos de imagen existentes en el DTO actual
+ * Solo se aplica si los campos ya tienen valores (no null)
+ */
+fun UserDto.preserveExistingImageFields(): UserDto {
+    // ✅ Solo preservar si realmente hay campos de imagen con valores
+    val hasImageFields = picture != null || pictureFileSize != null || pictureInternalName != null
+    
+    if (hasImageFields) {
+        Log.d("UserDto", "🔄 === PRESERVANDO CAMPOS DE IMAGEN EXISTENTES ===")
+        Log.d("UserDto", "🔄 picture: '$picture'")
+        Log.d("UserDto", "🔄 pictureFileSize: '$pictureFileSize'")
+        Log.d("UserDto", "🔄 pictureInternalName: '$pictureInternalName'")
+        Log.d("UserDto", "🔄 ==========================================")
+        return this // ✅ Mantener los valores existentes
+    } else {
+        Log.d("UserDto", "🔄 No hay campos de imagen para preservar")
+        return this
     }
 }
 

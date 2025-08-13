@@ -34,6 +34,9 @@ import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.forku.presentation.common.components.DashboardHeader
 import app.forku.presentation.common.components.FeedbackBanner
 import app.forku.core.auth.TokenErrorHandler
@@ -41,7 +44,10 @@ import app.forku.domain.model.user.User
 import app.forku.domain.model.user.UserRole
 import app.forku.presentation.session.SessionViewModel
 import app.forku.domain.model.session.VehicleSessionClosedMethod
+import app.forku.presentation.checklist.ChecklistViewModel
+import app.forku.presentation.common.components.HourMeterDialog
 import coil.ImageLoader
+import kotlinx.coroutines.flow.update
 
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -59,7 +65,7 @@ fun DashboardScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val isConnected by networkManager.isConnected.collectAsState()
     val sessionState = sessionViewModel.state.collectAsState().value
-    
+
     var isCheckoutLoading by remember { mutableStateOf(false) }
 
     // Handle loading state during checkout
@@ -79,7 +85,7 @@ fun DashboardScreen(
     // Initial load - only trigger on user change
     LaunchedEffect(currentUser?.id) {
         if (currentUser != null) {
-            viewModel.refresh()
+            viewModel.refreshWithLoading()
         }
     }
 
@@ -87,8 +93,8 @@ fun DashboardScreen(
     LaunchedEffect(isConnected) {
         if (isConnected) {
             // Add delay to prevent rapid refreshes
-            kotlinx.coroutines.delay(1000)
-            viewModel.refresh()
+            //kotlinx.coroutines.delay(1000)
+            //viewModel.refreshWithLoading()
         }
     }
 
@@ -97,9 +103,9 @@ fun DashboardScreen(
         onRefresh = { viewModel.refreshWithLoading() }
     )
 
-    LaunchedEffect(Unit) {
-        viewModel.refresh()
-    }
+//    LaunchedEffect(Unit) {
+//        viewModel.refreshWithLoading()
+//    }
 
     BaseScreen(
         navController = navController,
@@ -180,7 +186,8 @@ fun DashboardScreen(
                             currentUser = currentUser,
                             onNavigate = onNavigate,
                             sessionViewModel = sessionViewModel,
-                            imageLoader = imageLoader
+                            imageLoader = imageLoader,
+                            viewModel = viewModel
                         )
                     }
 
@@ -235,6 +242,17 @@ fun DashboardScreen(
 //                    }
 //                )
 //            }
+
+            HourMeterDialog(
+                isVisible = dashboardState?.showFinalHourMeterDialog ?: false,
+                currentValue = dashboardState?.currentSession?.vehicle?.currentHourMeter ?: "0",
+                title = "Enter Final Hour Meter",
+                subtitle = "Enter the current hour meter reading to finish your vehicle session",
+                onDismiss = { viewModel.onFinalHourMeterDismissed() },
+                onConfirm = { hourMeter -> viewModel.endCurrentSession(hourMeter) },
+                isLoading = dashboardState?.isLoading ?: false,
+                allowEqual = false
+            )
         }
     }
 }
@@ -245,7 +263,8 @@ private fun CurrentUserSession(
     currentUser: User?,
     onNavigate: (String) -> Unit,
     sessionViewModel: SessionViewModel,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    viewModel: DashboardViewModel
 ) {
     // LOG: Estado de entrada
     LaunchedEffect(dashboardState.activeSessions, dashboardState.vehicles, currentUser) {
@@ -285,6 +304,7 @@ private fun CurrentUserSession(
         if (sessionState.sessionEnded) {
             // Reset session ended state
             sessionViewModel.resetSessionEndedState()
+            viewModel.onFinalHourMeterDismissed()
             // Refresh dashboard with loading to ensure UI updates
             (dashboardState as? DashboardViewModel)?.refreshWithLoading()
         }
@@ -310,10 +330,10 @@ private fun CurrentUserSession(
             },
             currentUserRole = currentUser?.role ?: UserRole.OPERATOR,
             onEndSession = { sessionId ->
-                sessionViewModel.endSession(
-                    sessionId = sessionId,
-                    closeMethod = if (currentUser?.role == UserRole.ADMIN) VehicleSessionClosedMethod.ADMIN_CLOSED else VehicleSessionClosedMethod.USER_CLOSED
-                )
+//                sessionViewModel.endSession(
+//                    sessionId = sessionId,
+//                    closeMethod = if (currentUser?.role == UserRole.ADMIN) VehicleSessionClosedMethod.ADMIN_CLOSED else VehicleSessionClosedMethod.USER_CLOSED
+//                )
             },
             imageLoader = imageLoader
         )
@@ -328,7 +348,7 @@ private fun DashboardNavigationButtons(
     hasActiveSession: Boolean,
     viewModel: DashboardViewModel,
     isCheckoutLoading: Boolean,
-    onCheckoutLoadingChange: (Boolean) -> Unit
+    onCheckoutLoadingChange: (Boolean) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -482,7 +502,7 @@ private fun DashboardNavigationButtons(
                 .clickable { 
                     if (hasActiveSession) {
                         onCheckoutLoadingChange(true)
-                        viewModel.endCurrentSession()
+                        viewModel.showFinalHourMeterModal()
                     } else {
                         navController.navigate(Screen.QRScanner.route)
                     }

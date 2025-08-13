@@ -358,12 +358,6 @@ private fun ProfileHeader(
                             .padding(start = 16.dp)
                     ) {
                         Text(
-                            text = "Test Admin",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-
-                        Text(
                             text = state.user?.role?.name ?: "Guest",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray

@@ -133,6 +133,31 @@ fun VehicleDto.toFormMap(): Map<String, Any> {
     return map.filterValues { it != null } as Map<String, Any>
 }
 
+fun GetVehiclePlaceholder():Vehicle {
+    return Vehicle(
+        id = "",
+        codename = "",
+        model = "",
+        type = VehicleType.createPlaceholder("","",false,""),
+        categoryId = "",
+        status = VehicleStatus.AVAILABLE,
+        serialNumber = "",
+        description = "",
+        bestSuitedFor = "",
+        photoModel = "",
+        energyType = "",
+        energySource = 1,
+        energySourceDisplayString = null,
+        nextService = "",
+        currentHourMeter = "",
+        businessId = "",
+        siteId = "",
+        isDirty = false,
+        isNew = true,
+        isMarkedForDeletion = false
+    )
+}
+
 fun Vehicle.toUpdateDto(internalObjectId: Int = 4): UpdateVehicleDto {
     val vehicleData = VehicleObjectData(
         id = id,

@@ -188,6 +188,7 @@ class TokenErrorHandler @Inject constructor(
         if (!token.isNullOrBlank() && isTokenValid && user != null && !user.id.isNullOrBlank()) {
         _authenticationState.value = AuthenticationState.Authenticated
         } else {
+
             val reason = when {
                 token.isNullOrBlank() -> "No valid token found."
                 !isTokenValid -> "Token is expired or invalid."

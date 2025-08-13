@@ -114,11 +114,12 @@ class VehicleListViewModel @Inject constructor(
     }
 
     private fun loadSites() {
+        Log.d("VehicleListViewModel", "VehicleListViewModel loadSites A")
         viewModelScope.launch {
             try {
                 // ✅ FIXED: Use correct method based on admin mode
                 val businessId = businessContextManager.getCurrentBusinessId()
-                
+                Log.d("VehicleListViewModel", "VehicleListViewModel loadSites B businessId: $businessId")
                 if (isAdminMode && businessId != null) {
                     // Admin mode: load ALL sites for the business (for filtering)
                     Log.d("VehicleListViewModel", "🔧 ADMIN MODE: Loading all sites for business: $businessId")
@@ -137,7 +138,7 @@ class VehicleListViewModel @Inject constructor(
                 } else {
                     // Operator mode: load only user's assigned sites (context-based)
                     Log.d("VehicleListViewModel", "👤 OPERATOR MODE: Loading user assigned sites")
-                    siteRepository.getUserAssignedSites().collect { result ->
+                    siteRepository.getUserAssignedSites(businessId ?: "").collect { result ->
                         result.fold(
                             onSuccess = { sitesDto ->
                                 val sites = sitesDto.map { it.toDomain() }
