@@ -77,13 +77,24 @@ object VehicleSessionMapper {
             businessId = dto.BusinessId,
             siteId = dto.siteId, // ✅ Include siteId from DTO
             initialHourMeter = dto.initialHourMeter, // ✅ New: Map hour meter fields
+            // 🔍 CORRECTO: SÍ incluir el vehículo cuando se recibe del backend (para mostrar datos en la UI)
+            // Esto permite que la app tenga acceso a la información del vehículo para mostrar en pantalla
             vehicle = dto.Vehicle?.toDomain() ?:  GetVehiclePlaceholder(),
             finalHourMeter = dto.finalHourMeter, // ✅ New: Map hour meter fields
         )
     }
 
     fun toDto(domain: VehicleSession): VehicleSessionDto {
-        return VehicleSessionDto(
+        // 🔍 LOG CRÍTICO: Verificar estado de la imagen del vehículo en el dominio
+        android.util.Log.d("VehicleSessionMapper", """
+            🔍 IMAGEN DEL VEHÍCULO EN DOMAIN (toDto):
+            - Session ID: ${domain.id}
+            - Vehicle ID: ${domain.vehicleId}
+            - Vehicle object present: ${domain.vehicle != null}
+            - Vehicle photoModel: ${domain.vehicle?.photoModel ?: "NULL"}
+        """.trimIndent())
+        
+        val dto = VehicleSessionDto(
             Id = domain.id,
             ChecklistAnswerId = domain.checkId,
             GOUserId = domain.userId,
@@ -103,8 +114,24 @@ object VehicleSessionMapper {
             BusinessId = domain.businessId,
             siteId = domain.siteId, // ✅ Include siteId from domain
             initialHourMeter = domain.initialHourMeter, // ✅ New: Map hour meter fields
-            finalHourMeter = domain.finalHourMeter       // ✅ New: Map hour meter fields
+            finalHourMeter = domain.finalHourMeter,       // ✅ New: Map hour meter fields
+//            // 🔍 CORRECTO: NO incluir el vehículo al enviar al backend (evita error 500)
+//            // El vehículo solo se incluye cuando se recibe información del backend
+//            Vehicle = null
         )
+        
+        // 🔍 LOG CRÍTICO: Verificar estado de la imagen del vehículo en el DTO resultante
+        android.util.Log.d("VehicleSessionMapper", """
+            🔍 IMAGEN DEL VEHÍCULO EN DTO RESULTANTE:
+            - Session ID: ${dto.Id}
+            - Vehicle object in DTO: ${dto.Vehicle != null}
+            - Vehicle photoModel: ${dto.Vehicle?.photoModel ?: "NULL"}
+            - Vehicle pictureFileSize: ${dto.Vehicle?.pictureFileSize ?: "NULL"}
+            - Vehicle pictureInternalName: ${dto.Vehicle?.pictureInternalName ?: "NULL"}
+            - Vehicle codename: ${dto.Vehicle?.codename ?: "NULL"}
+        """.trimIndent())
+        
+        return dto
     }
 
     fun VehicleSessionClosedMethod.toBackendValue(): Int = when (this) {

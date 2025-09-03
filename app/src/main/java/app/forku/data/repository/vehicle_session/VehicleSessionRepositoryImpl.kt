@@ -70,94 +70,170 @@ class VehicleSessionRepositoryImpl @Inject constructor(
         checkId: String, 
         initialHourMeter: String?
     ): VehicleSession {
+        android.util.Log.d("VehicleSessionRepo", "🚀 [startSession] === INICIANDO CREACIÓN DE SESIÓN ===")
+        android.util.Log.d("VehicleSessionRepo", "🚀 [startSession] Parámetros recibidos:")
+        android.util.Log.d("VehicleSessionRepo", "  - vehicleId: '$vehicleId'")
+        android.util.Log.d("VehicleSessionRepo", "  - checkId: '$checkId'")
+        android.util.Log.d("VehicleSessionRepo", "  - initialHourMeter: '$initialHourMeter'")
+
+
+
         val currentUser = authDataStore.getCurrentUser()
-            ?: throw Exception("No user logged in")
+        android.util.Log.d("VehicleSessionRepo", "👤 [startSession] Usuario actual obtenido: ${currentUser?.fullName ?: "NULL"}")
+        if (currentUser == null) {
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] No hay usuario logueado")
+            throw Exception("No user logged in")
+        }
 
         // Use BusinessContextManager for consistent business and site context
+        android.util.Log.d("VehicleSessionRepo", "🏢 [startSession] Obteniendo contexto de negocio...")
         val businessId = businessContextManager.getCurrentBusinessId()
+        android.util.Log.d("VehicleSessionRepo", "🏢 [startSession] BusinessId obtenido: '$businessId'")
+        
         val siteId = businessContextManager.getCurrentSiteId()
+        android.util.Log.d("VehicleSessionRepo", "🏢 [startSession] SiteId obtenido: '$siteId'")
+        
+        android.util.Log.d("VehicleSessionRepo", "🚗 [startSession] Obteniendo vehículo con businessId: '$businessId'")
         val vehicle = vehicleRepository.getVehicle(vehicleId, businessId ?: "")
+        android.util.Log.d("VehicleSessionRepo", "🚗 [startSession] Vehículo obtenido: ${vehicle?.codename ?: "NULL"}")
+        android.util.Log.d("VehicleSessionRepo", "🚗 [startSession] Vehículo photoModel: ${vehicle?.photoModel ?: "NULL"}")
+        
         android.util.Log.d("VehicleSessionRepo", "[startSession] Using businessId from BusinessContextManager: '$businessId', siteId: '$siteId'")
 
         // ✅ VALIDATE USER CERTIFICATIONS FOR THIS VEHICLE TYPE
+        android.util.Log.d("VehicleSessionRepo", "🔐 [startSession] === VALIDANDO CERTIFICACIONES ===")
         try {
-            android.util.Log.d("VehicleSessionRepo", "🔐 Validating user certification for vehicle: $vehicleId")
+            android.util.Log.d("VehicleSessionRepo", "🔐 [startSession] Validando certificación para usuario: ${currentUser.id}")
+            android.util.Log.d("VehicleSessionRepo", "🔐 [startSession] Validando certificación para vehículo: $vehicleId")
             val validationResult = validateUserCertificationUseCase(currentUser.id, vehicleId)
+            android.util.Log.d("VehicleSessionRepo", "🔐 [startSession] Resultado de validación: ${validationResult.isValid}")
+            android.util.Log.d("VehicleSessionRepo", "🔐 [startSession] Mensaje de validación: ${validationResult.message}")
             
             if (!validationResult.isValid) {
-                android.util.Log.e("VehicleSessionRepo", "❌ Certification validation failed: ${validationResult.message}")
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Validación de certificación falló: ${validationResult.message}")
                 throw Exception("Certification Required: ${validationResult.message}")
             } else {
-                android.util.Log.d("VehicleSessionRepo", "✅ Certification validation passed: ${validationResult.message}")
+                android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Validación de certificación exitosa: ${validationResult.message}")
             }
         } catch (e: Exception) {
-            android.util.Log.e("VehicleSessionRepo", "❌ Error validating certification: ${e.message}")
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Error validando certificación: ${e.message}")
             throw Exception("Certification validation failed: ${e.message}")
         }
 
 
 
         // ✅ VALIDATION: Validate initial hour meter if provided
+        android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] === VALIDANDO HOUR METER INICIAL ===")
         if (!initialHourMeter.isNullOrBlank()) {
-            // Get vehicle to check current hour meter
-
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Hour meter inicial proporcionado: '$initialHourMeter'")
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Hour meter actual del vehículo: '${vehicle.currentHourMeter}'")
+            
             val validationResult = app.forku.core.validation.HourMeterValidator.validateInitialHourMeter(
                 initialValue = initialHourMeter,
                 vehicleCurrentValue = vehicle.currentHourMeter
             )
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Resultado de validación: ${validationResult.isValid}")
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Mensaje de validación: ${validationResult.errorMessage ?: "OK"}")
             
             if (!validationResult.isValid) {
-                android.util.Log.e("VehicleSessionRepo", "❌ Initial hour meter validation failed: ${validationResult.errorMessage}")
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Validación de hour meter inicial falló: ${validationResult.errorMessage}")
                 throw Exception("Invalid initial hour meter: ${validationResult.errorMessage}")
             }
             
-            android.util.Log.d("VehicleSessionRepo", "✅ Initial hour meter validation passed: ${validationResult.validatedValue}")
+            android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Validación de hour meter inicial exitosa: ${validationResult.validatedValue}")
+        } else {
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] No se proporcionó hour meter inicial - saltando validación")
         }
 
         // Get vehicle status using VehicleStatusRepository instead
+        android.util.Log.d("VehicleSessionRepo", "📊 [startSession] === VERIFICANDO ESTADO DEL VEHÍCULO ===")
+        android.util.Log.d("VehicleSessionRepo", "📊 [startSession] Obteniendo estado del vehículo: $vehicleId")
         val vehicleStatus = vehicleStatusRepository.getVehicleStatus(
             vehicleId = vehicleId,
             businessId = businessId ?: ""
         )
+        android.util.Log.d("VehicleSessionRepo", "📊 [startSession] Estado del vehículo obtenido: ${vehicleStatus.name}")
+        android.util.Log.d("VehicleSessionRepo", "📊 [startSession] ¿Está disponible?: ${vehicleStatus.isAvailable()}")
 
         if (!vehicleStatus.isAvailable()) {
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Vehículo no está disponible: ${vehicleStatus.getErrorMessage()}")
             throw Exception(vehicleStatus.getErrorMessage())
         }
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Vehículo está disponible para uso")
 
         // Get checklist answer using ChecklistAnswerRepository
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] === VERIFICANDO CHECKLIST ===")
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Obteniendo checklist answer con ID: $checkId")
         val checklistAnswer = checklistAnswerRepository.getById(checkId)
-            ?: throw Exception("ChecklistAnswer not found")
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Checklist answer encontrado: ${checklistAnswer != null}")
+        if (checklistAnswer == null) {
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] ChecklistAnswer no encontrado")
+            throw Exception("ChecklistAnswer not found")
+        }
+        
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Estado del checklist: ${checklistAnswer.status}")
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Estado requerido: ${CheckStatus.COMPLETED_PASS.ordinal}")
+        
         if (checklistAnswer.status != CheckStatus.COMPLETED_PASS.ordinal) {
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Checklist no está aprobado. Estado actual: ${checklistAnswer.status}")
             throw Exception("ChecklistAnswer is not approved. Current status: ${checklistAnswer.status}")
         }
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Checklist está aprobado y listo para usar")
 
         // Check if there's already an active session
+        android.util.Log.d("VehicleSessionRepo", "🔍 [startSession] === VERIFICANDO SESIONES ACTIVAS ===")
+        android.util.Log.d("VehicleSessionRepo", "🔍 [startSession] Verificando si el usuario ya tiene una sesión activa")
         val currentSession = getCurrentSession()
+        android.util.Log.d("VehicleSessionRepo", "🔍 [startSession] Sesión activa encontrada: ${currentSession != null}")
         if (currentSession != null) {
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Usuario ya tiene una sesión activa: ${currentSession.id}")
             throw Exception("User already has an active session")
         }
+        android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Usuario no tiene sesiones activas - puede crear una nueva")
 
         try {
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] === ACTUALIZANDO ESTADO DEL VEHÍCULO ===")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Cambiando estado del vehículo a IN_USE")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Parámetros para actualización:")
+            android.util.Log.d("VehicleSessionRepo", "  - vehicleId: $vehicleId")
+            android.util.Log.d("VehicleSessionRepo", "  - status: IN_USE")
+            android.util.Log.d("VehicleSessionRepo", "  - businessId: '$businessId'")
+            android.util.Log.d("VehicleSessionRepo", "  - siteId: '$siteId'")
+            
             // Update vehicle status first
-            vehicleStatusRepository.updateVehicleStatus(
+            val updateResult = vehicleStatusRepository.updateVehicleStatus(
                 vehicleId = vehicleId,
                 status = VehicleStatus.IN_USE,
                 businessId = businessId ?: "",
                 siteId = siteId
             )
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Resultado de actualización del estado: $updateResult")
+            if (!updateResult) {
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Falló la actualización del estado del vehículo")
+                throw Exception("Failed to update vehicle status")
+            }
+            android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Estado del vehículo actualizado exitosamente a IN_USE")
             
             // Use OffsetDateTime to avoid [America/Bogota] in the string
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] === PREPARANDO DATOS DE LA SESIÓN ===")
             val currentDateTime = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-            android.util.Log.d("VehicleSessionRepo", "[startSession] currentDateTime (startTime) to send: $currentDateTime")
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] DateTime actual (startTime): $currentDateTime")
 
             // Get current location
+            android.util.Log.d("VehicleSessionRepo", "📍 [startSession] Obteniendo ubicación actual...")
             val locationState = locationManager.locationState.value
+            android.util.Log.d("VehicleSessionRepo", "📍 [startSession] Estado de ubicación: lat=${locationState.latitude}, lng=${locationState.longitude}")
             val locationCoordinates = if (locationState.latitude != null && locationState.longitude != null) {
                 "${locationState.latitude},${locationState.longitude}"
             } else null
+            android.util.Log.d("VehicleSessionRepo", "📍 [startSession] Coordenadas de ubicación: $locationCoordinates")
             
             // Create session with BusinessId and SiteId from BusinessContextManager
+            android.util.Log.d("VehicleSessionRepo", "🆔 [startSession] Generando ID único para la sesión...")
             val sessionId = UUID.randomUUID().toString()
+            android.util.Log.d("VehicleSessionRepo", "🆔 [startSession] Session ID generado: $sessionId")
+            
+            android.util.Log.d("VehicleSessionRepo", "📝 [startSession] Creando objeto VehicleSession...")
             val newSession = VehicleSession(
                 id = sessionId, // Always a valid GUID for new sessions
                 vehicleId = vehicleId,
@@ -179,40 +255,175 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 finalHourMeter = null,
                 vehicle = vehicle
             )
+            android.util.Log.d("VehicleSessionRepo", "📝 [startSession] VehicleSession creado exitosamente:")
+            android.util.Log.d("VehicleSessionRepo", "  - ID: ${newSession.id}")
+            android.util.Log.d("VehicleSessionRepo", "  - Vehicle ID: ${newSession.vehicleId}")
+            android.util.Log.d("VehicleSessionRepo", "  - User ID: ${newSession.userId}")
+            android.util.Log.d("VehicleSessionRepo", "  - Business ID: ${newSession.businessId}")
+            android.util.Log.d("VehicleSessionRepo", "  - Site ID: ${newSession.siteId}")
+            android.util.Log.d("VehicleSessionRepo", "  - Initial Hour Meter: ${newSession.initialHourMeter}")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] === MAPEANDO A DTO ===")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Convirtiendo VehicleSession a VehicleSessionDto...")
             val dto = VehicleSessionMapper.toDto(newSession)
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] DTO creado exitosamente:")
+            android.util.Log.d("VehicleSessionRepo", "  - DTO ID: ${dto.Id}")
+            android.util.Log.d("VehicleSessionRepo", "  - DTO Vehicle ID: ${dto.VehicleId}")
+            android.util.Log.d("VehicleSessionRepo", "  - DTO Business ID: ${dto.BusinessId}")
+            android.util.Log.d("VehicleSessionRepo", "  - DTO Site ID: ${dto.siteId}")
+            android.util.Log.d("VehicleSessionRepo", "  - DTO Vehicle object: ${dto.Vehicle != null}")
+            
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Serializando DTO a JSON...")
             val gson = Gson()
             val entityJson = gson.toJson(dto)
-            val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
-            val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] JSON generado exitosamente, longitud: ${entityJson.length}")
             
-            android.util.Log.d("VehicleSessionRepo", "[startSession] Saving session with businessId: '$businessId'")
+            // 🔍 LOG CRÍTICO: Verificar exactamente qué se está enviando al backend
+            android.util.Log.d("VehicleSessionRepo", """
+                🔍 PAYLOAD ENVIADO AL BACKEND PARA CREAR SESIÓN:
+                - Session ID: ${dto.Id}
+                - Vehicle ID: ${dto.VehicleId}
+                - User ID: ${dto.GOUserId}
+                - Check ID: ${dto.ChecklistAnswerId}
+                - Business ID: ${dto.BusinessId}
+                - Site ID: ${dto.siteId}
+                - Start Time: ${dto.StartTime}
+                - Status: ${dto.Status}
+                - Vehicle object present: ${dto.Vehicle != null}
+                - Vehicle photoModel: ${dto.Vehicle?.photoModel ?: "NULL"}
+                - Vehicle codename: ${dto.Vehicle?.codename ?: "NULL"}
+                - IsNew: ${dto.IsNew}
+                - IsDirty: ${dto.IsDirty}
+                - JSON length: ${entityJson.length}
+                - JSON preview: ${entityJson.take(500)}...
+            """.trimIndent())
+            
+            // 🔍 LOG CRÍTICO: Verificar que la imagen esté en el JSON
+            if (entityJson.contains("photoModel") || entityJson.contains("pictureFileSize") || entityJson.contains("pictureInternalName")) {
+                android.util.Log.d("VehicleSessionRepo", "✅ JSON contiene campos de imagen del vehículo")
+            } else {
+                android.util.Log.w("VehicleSessionRepo", "⚠️ JSON NO contiene campos de imagen del vehículo")
+            }
+            
+            android.util.Log.d("VehicleSessionRepo", "🌐 [startSession] === PREPARANDO LLAMADA A LA API ===")
+            android.util.Log.d("VehicleSessionRepo", "🌐 [startSession] Obteniendo tokens de autenticación...")
+            val csrfToken = authDataStore.getCsrfToken()
+            android.util.Log.d("VehicleSessionRepo", "🌐 [startSession] CSRF Token obtenido: ${csrfToken != null}")
+            if (csrfToken == null) {
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] No hay CSRF token disponible")
+                throw Exception("No CSRF token available")
+            }
+            
+            val cookie = authDataStore.getAntiforgeryCookie()
+            android.util.Log.d("VehicleSessionRepo", "🌐 [startSession] Cookie obtenida: ${cookie != null}")
+            if (cookie == null) {
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] No hay cookie antiforgery disponible")
+                throw Exception("No antiforgery cookie available")
+            }
+            
+            android.util.Log.d("VehicleSessionRepo", "🌐 [startSession] Tokens obtenidos exitosamente:")
+            android.util.Log.d("VehicleSessionRepo", "  - CSRF Token: ${csrfToken.take(20)}...")
+            android.util.Log.d("VehicleSessionRepo", "  - Cookie: ${cookie.take(20)}...")
+            android.util.Log.d("VehicleSessionRepo", "  - Business ID: '$businessId'")
+            
+            android.util.Log.d("VehicleSessionRepo", "🌐 [startSession] Llamando a la API para guardar la sesión...")
             val response = api.saveSession(
                 csrfToken, 
                 cookie, 
                 entityJson, 
                 businessId = businessId // Use BusinessContextManager business ID
             )
+            
+            // 🔍 LOG CRÍTICO: Verificar respuesta del backend
+            android.util.Log.d("VehicleSessionRepo", """
+                🔍 RESPUESTA DEL BACKEND:
+                - Status Code: ${response.code()}
+                - Is Successful: ${response.isSuccessful}
+                - Response Body: ${response.body()}
+                - Error Body: ${response.errorBody()?.string()}
+            """.trimIndent())
+            
+            android.util.Log.d("VehicleSessionRepo", "📡 [startSession] === PROCESANDO RESPUESTA DE LA API ===")
+            android.util.Log.d("VehicleSessionRepo", "📡 [startSession] Respuesta recibida de la API:")
+            android.util.Log.d("VehicleSessionRepo", "  - Status Code: ${response.code()}")
+            android.util.Log.d("VehicleSessionRepo", "  - Is Successful: ${response.isSuccessful}")
+            android.util.Log.d("VehicleSessionRepo", "  - Response Body: ${response.body()}")
+            android.util.Log.d("VehicleSessionRepo", "  - Error Body: ${response.errorBody()?.string()}")
+            
             if (!response.isSuccessful) {
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] La API falló al crear la sesión")
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Haciendo rollback del estado del vehículo...")
+                
                 // Rollback vehicle status if session creation fails
-                vehicleStatusRepository.updateVehicleStatus(
+                val rollbackResult = vehicleStatusRepository.updateVehicleStatus(
                     vehicleId = vehicleId,
                     status = VehicleStatus.AVAILABLE,
                     businessId = businessId ?: "",
                     siteId = siteId
                 )
+                android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Resultado del rollback: $rollbackResult")
+                
                 throw Exception("Failed to create session: ${response.code()}")
             }
+            
+            android.util.Log.d("VehicleSessionRepo", "✅ [startSession] Sesión creada exitosamente en el backend")
+            
+            // ✅ NEW: Update vehicle's CurrentHourMeter if initialHourMeter is provided
+            android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] === ACTUALIZANDO HOUR METER DEL VEHÍCULO ===")
+            if (!initialHourMeter.isNullOrBlank()) {
+                android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Hour meter inicial proporcionado: '$initialHourMeter'")
+                android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Actualizando CurrentHourMeter del vehículo...")
+                
+                try {
+                    android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] Llamando a vehicleRepository.updateCurrentHourMeter...")
+                    vehicleRepository.updateCurrentHourMeter(
+                        vehicleId = vehicleId,
+                        currentHourMeter = initialHourMeter,
+                        businessId = businessId ?: ""
+                    )
+                    android.util.Log.d("VehicleSessionRepo", "✅ [startSession] CurrentHourMeter del vehículo actualizado exitosamente a: $initialHourMeter")
+                } catch (e: Exception) {
+                    android.util.Log.w("VehicleSessionRepo", "⚠️ [startSession] Falló la actualización del CurrentHourMeter: ${e.message}", e)
+                    android.util.Log.w("VehicleSessionRepo", "⚠️ [startSession] Nota: No se lanza excepción para evitar fallar el proceso de creación de sesión")
+                    android.util.Log.w("VehicleSessionRepo", "⚠️ [startSession] La sesión ya se creó exitosamente, esta es solo una actualización adicional")
+                }
+            } else {
+                android.util.Log.d("VehicleSessionRepo", "⏰ [startSession] No se proporcionó hour meter inicial - saltando actualización del vehículo")
+            }
+            
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] === PROCESANDO RESPUESTA FINAL ===")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Convirtiendo respuesta del backend a VehicleSession...")
             val createdSession = response.body()?.let { VehicleSessionMapper.toDomain(it) }
-            android.util.Log.d("VehicleSessionRepo", "[startSession] startTime received from backend: ${createdSession?.startTime}")
+            android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Sesión creada desde el backend: ${createdSession != null}")
+            if (createdSession != null) {
+                android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Detalles de la sesión creada:")
+                android.util.Log.d("VehicleSessionRepo", "  - ID: ${createdSession.id}")
+                android.util.Log.d("VehicleSessionRepo", "  - Start Time: ${createdSession.startTime}")
+                android.util.Log.d("VehicleSessionRepo", "  - Vehicle ID: ${createdSession.vehicleId}")
+                android.util.Log.d("VehicleSessionRepo", "  - Business ID: ${createdSession.businessId}")
+                android.util.Log.d("VehicleSessionRepo", "  - Site ID: ${createdSession.siteId}")
+            }
+            
+            android.util.Log.d("VehicleSessionRepo", "✅ [startSession] === SESIÓN CREADA EXITOSAMENTE ===")
             return createdSession ?: throw Exception("Failed to start session: Empty response")
         } catch (e: Exception) {
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] === ERROR DURANTE LA CREACIÓN DE SESIÓN ===")
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Excepción capturada: ${e.message}")
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Haciendo rollback del estado del vehículo...")
+            
             // Revert vehicle status on failure
-            vehicleStatusRepository.updateVehicleStatus(
-                vehicleId = vehicleId,
-                status = VehicleStatus.AVAILABLE,
-                businessId = businessId ?: "",
-                siteId = siteId
-            )
+            try {
+                val rollbackResult = vehicleStatusRepository.updateVehicleStatus(
+                    vehicleId = vehicleId,
+                    status = VehicleStatus.AVAILABLE,
+                    businessId = businessId ?: "",
+                    siteId = siteId
+                )
+                android.util.Log.d("VehicleSessionRepo", "🔄 [startSession] Resultado del rollback en catch: $rollbackResult")
+            } catch (rollbackError: Exception) {
+                android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Error durante el rollback: ${rollbackError.message}")
+            }
+            
+            android.util.Log.e("VehicleSessionRepo", "❌ [startSession] Re-lanzando excepción original: ${e.message}")
             throw e
         }
     }
@@ -275,12 +486,24 @@ class VehicleSessionRepositoryImpl @Inject constructor(
             
         try {
             // Update vehicle status back to AVAILABLE
+            android.util.Log.d("VehicleSessionRepo", """
+                🔍 ANTES DE ACTUALIZAR ESTADO DEL VEHÍCULO:
+                - Vehicle ID: ${existingSession.vehicleId}
+                - Business ID: $businessId
+                - Site ID: $siteId
+                - Session ID: ${existingSession.id}
+                - Vehicle object in session: ${existingSession.vehicle != null}
+                - Vehicle photoModel: ${existingSession.vehicle?.photoModel ?: "NULL"}
+            """.trimIndent())
+            
             vehicleStatusRepository.updateVehicleStatus(
                 vehicleId = existingSession.vehicleId,
                 status = VehicleStatus.AVAILABLE,
                 businessId = businessId ?: "",
                 siteId = siteId
             )
+            
+            android.util.Log.d("VehicleSessionRepo", "✅ Estado del vehículo actualizado a AVAILABLE")
             
             // Use OffsetDateTime to avoid [America/Bogota] in the string
             val currentDateTime = OffsetDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
@@ -308,12 +531,38 @@ class VehicleSessionRepositoryImpl @Inject constructor(
                 finalHourMeter = finalHourMeter // ✅ New: Store final hour meter
             )
             
+            // 🔍 LOG CRÍTICO: Verificar estado de la imagen del vehículo en la sesión actualizada
+            android.util.Log.d("VehicleSessionRepo", """
+                🔍 IMAGEN DEL VEHÍCULO EN SESIÓN ACTUALIZADA:
+                - Vehicle ID: ${updatedSession.vehicleId}
+                - Vehicle object present: ${updatedSession.vehicle != null}
+                - Vehicle photoModel: ${updatedSession.vehicle?.photoModel ?: "NULL"}
+            """.trimIndent())
+            
             // Antes de enviar el DTO para cerrar sesión, asegúrate de que IsNew=false
             val dto = VehicleSessionMapper.toDto(updatedSession).copy(IsNew = false)
+            
+            // 🔍 LOG CRÍTICO: Verificar estado de la imagen del vehículo en el DTO final
+            android.util.Log.d("VehicleSessionRepo", """
+                🔍 IMAGEN DEL VEHÍCULO EN DTO FINAL:
+                - Session ID: ${dto.Id}
+                - Vehicle object in DTO: ${dto.Vehicle != null}
+                - Vehicle photoModel: ${dto.Vehicle?.photoModel ?: "NULL"}
+                - Vehicle codename: ${dto.Vehicle?.codename ?: "NULL"}
+            """.trimIndent())
+            
             val gson = Gson()
             val entityJson = gson.toJson(dto)
             android.util.Log.d("VehicleSessionRepo", "[endSession] Payload JSON enviado a la API: $entityJson")
             android.util.Log.d("VehicleSessionRepo", "[endSession] Campos clave: Id=${dto.Id}, Status=${dto.Status}, EndTime=${dto.EndTime}, VehicleSessionClosedMethod=${dto.VehicleSessionClosedMethod}, ClosedBy=${dto.ClosedBy}, IsNew=${dto.IsNew}")
+            
+            // 🔍 LOG CRÍTICO: Verificar que la imagen esté en el JSON
+            if (entityJson.contains("photoModel") || entityJson.contains("pictureFileSize") || entityJson.contains("pictureInternalName")) {
+                android.util.Log.d("VehicleSessionRepo", "✅ JSON contiene campos de imagen del vehículo")
+            } else {
+                android.util.Log.w("VehicleSessionRepo", "⚠️ JSON NO contiene campos de imagen del vehículo")
+            }
+            
             val csrfToken = authDataStore.getCsrfToken() ?: throw Exception("No CSRF token available")
             val cookie = authDataStore.getAntiforgeryCookie() ?: throw Exception("No antiforgery cookie available")
             val response = api.saveSession(

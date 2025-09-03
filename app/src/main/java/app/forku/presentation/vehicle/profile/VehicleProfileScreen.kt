@@ -210,7 +210,7 @@ fun VehicleProfileScreen(
     // Final Hour Meter Dialog for session end - Updated with validation
     HourMeterDialog(
         isVisible = state.showFinalHourMeterDialog,
-        currentValue = state.activeSession?.initialHourMeter ?: state.vehicle?.currentHourMeter ?: "0",
+        currentValue = state.vehicle?.currentHourMeter ?: "0",
         title = "Enter Final Hour Meter",
         subtitle = "Enter the current hour meter reading to end the vehicle session",
         onDismiss = { viewModel.onFinalHourMeterDismissed() },
@@ -263,7 +263,6 @@ fun VehicleProfileScreen(
 
                 if (shouldShowMenu) {
                     val options = buildList {
-                        // Admin/SuperAdmin/SystemOwner specific options
                         if (userRole == UserRole.SUPERADMIN || userRole == UserRole.SYSTEM_OWNER) {
                             add(DropdownMenuOption(
                                 text = "Edit Vehicle",
@@ -284,47 +283,15 @@ fun VehicleProfileScreen(
                         }
 
                         if (userRole == UserRole.ADMIN) {
-                            Log.d("VehicleProfileScreen", "🔧 Adding ADMIN options")
-                            add(DropdownMenuOption(
-                                text = "Change Vehicle Status",
-                                onClick = { showStatusDialog = true },
-                                leadingIcon = Icons.Default.Edit,
-                                enabled = true,
-                                adminOnly = true
-                            ))
-
-                            add(DropdownMenuOption(
-                                text = "Update Hour Meter",
-                                onClick = { showHourMeterDialog = true },
-                                leadingIcon = Icons.Default.Edit,
-                                enabled = true,
-                                adminOnly = true
-                            ))
-
-                            add(DropdownMenuOption(
-                                text = "Show QR Code",
-                                onClick = { viewModel.toggleQrCode() },
-                                leadingIcon = Icons.Default.Info,
-                                enabled = true,
-                                adminOnly = true
-                            ))
-
-                            val checklistOptionEnabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession && canShowStartChecklist
-                            val checklistOptionText = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist"
-                            Log.d("VehicleProfileScreen", "🔧 Adding checklist option: '$checklistOptionText', enabled: $checklistOptionEnabled")
-                            Log.d("VehicleProfileScreen", "   - vehicle?.status == VehicleStatus.AVAILABLE: ${vehicle?.status == VehicleStatus.AVAILABLE}")
-                            Log.d("VehicleProfileScreen", "   - !state.hasActiveSession: ${!state.hasActiveSession}")
-                            Log.d("VehicleProfileScreen", "   - canShowStartChecklist: $canShowStartChecklist")
-                            if (canShowStartChecklist) {
+                            if (state.hasActiveSession) {
+                                // Solo mostrar QR y End Session si hay sesión activa
                                 add(DropdownMenuOption(
-                                    text = checklistOptionText,
-                                    onClick = { onPreShiftCheck(vehicle?.id ?: "") },
-                                    leadingIcon = Icons.Default.CheckCircle,
-                                    enabled = checklistOptionEnabled
+                                    text = "Show QR Code",
+                                    onClick = { viewModel.toggleQrCode() },
+                                    leadingIcon = Icons.Default.Info,
+                                    enabled = true,
+                                    adminOnly = true
                                 ))
-                            }
-
-                            if (state.activeSession != null) {
                                 add(DropdownMenuOption(
                                     text = "End Vehicle Session (Admin)",
                                     onClick = { viewModel.endVehicleSession() },
@@ -333,6 +300,39 @@ fun VehicleProfileScreen(
                                     adminOnly = true,
                                     iconTint = MaterialTheme.colorScheme.error
                                 ))
+                            } else {
+                                // Mostrar todas las opciones cuando NO hay sesión activa
+                                add(DropdownMenuOption(
+                                    text = "Change Vehicle Status",
+                                    onClick = { showStatusDialog = true },
+                                    leadingIcon = Icons.Default.Edit,
+                                    enabled = true,
+                                    adminOnly = true
+                                ))
+                                add(DropdownMenuOption(
+                                    text = "Update Hour Meter",
+                                    onClick = { showHourMeterDialog = true },
+                                    leadingIcon = Icons.Default.Edit,
+                                    enabled = true,
+                                    adminOnly = true
+                                ))
+                                add(DropdownMenuOption(
+                                    text = "Show QR Code",
+                                    onClick = { viewModel.toggleQrCode() },
+                                    leadingIcon = Icons.Default.Info,
+                                    enabled = true,
+                                    adminOnly = true
+                                ))
+                                val checklistOptionEnabled = vehicle?.status == VehicleStatus.AVAILABLE && !state.hasActiveSession && canShowStartChecklist
+                                val checklistOptionText = if (state.hasActivePreShiftCheck) "Continue Checklist" else "Start Checklist"
+                                if (canShowStartChecklist) {
+                                    add(DropdownMenuOption(
+                                        text = checklistOptionText,
+                                        onClick = { onPreShiftCheck(vehicle?.id ?: "") },
+                                        leadingIcon = Icons.Default.CheckCircle,
+                                        enabled = checklistOptionEnabled
+                                    ))
+                                }
                             }
                         }
                     }

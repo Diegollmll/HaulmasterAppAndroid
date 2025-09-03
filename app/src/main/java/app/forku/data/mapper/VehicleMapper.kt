@@ -68,7 +68,18 @@ fun VehicleDto.toDomain(): Vehicle {
 
 
 fun Vehicle.toDto(): VehicleDto {
-    return VehicleDto(
+    // 🔍 LOG CRÍTICO: Verificar estado de la imagen ANTES de la conversión
+    android.util.Log.d("VehicleMapper", """
+        🔍 IMAGEN DEL VEHÍCULO EN DOMAIN (toDto):
+        - Vehicle ID: $id
+        - Codename: $codename
+        - photoModel: $photoModel
+        - Status: $status
+        - Business ID: $businessId
+        - Site ID: $siteId
+    """.trimIndent())
+    
+    val dto = VehicleDto(
         id = id,
         idOldValue = id, // Set old value to current id for updates
         vehicleTypeId = if (vehicleTypeId.isNotEmpty()) vehicleTypeId else type.Id,
@@ -100,9 +111,37 @@ fun Vehicle.toDto(): VehicleDto {
         vehicleCategoryNewObjectId = null,
         vehicleTypeNewObjectId = null
     )
+    
+    // 🔍 LOG CRÍTICO: Verificar estado de la imagen DESPUÉS de la conversión
+    android.util.Log.d("VehicleMapper", """
+        🔍 IMAGEN DEL VEHÍCULO EN DTO RESULTANTE:
+        - Vehicle ID: ${dto.id}
+        - Codename: ${dto.codename}
+        - photoModel: ${dto.photoModel}
+        - pictureFileSize: ${dto.pictureFileSize}
+        - pictureInternalName: ${dto.pictureInternalName}
+        - Status: ${dto.status}
+        - Business ID: ${dto.businessId}
+        - Site ID: ${dto.siteId}
+    """.trimIndent())
+    
+    return dto
 }
 
 fun VehicleDto.toFormMap(): Map<String, Any> {
+    // 🔍 LOG CRÍTICO: Verificar estado de la imagen ANTES de la conversión a FormMap
+    android.util.Log.d("VehicleMapper", """
+        🔍 IMAGEN DEL VEHÍCULO EN DTO (toFormMap):
+        - Vehicle ID: $id
+        - Codename: $codename
+        - photoModel: $photoModel
+        - pictureFileSize: $pictureFileSize
+        - pictureInternalName: $pictureInternalName
+        - Status: $status
+        - Business ID: $businessId
+        - Site ID: $siteId
+    """.trimIndent())
+    
     val map = mutableMapOf<String, Any?>()
     
             // Required fields that cannot be null
@@ -115,7 +154,7 @@ fun VehicleDto.toFormMap(): Map<String, Any> {
     map["Model"] = model ?: ""
     map["EnergySource"] = energySource ?: 1
     
-            // Optional fields that can be omitted if null
+    // Optional fields that can be omitted if null
     if (siteId != null) map["SiteId"] = siteId
     if (serialNumber != null) map["SerialNumber"] = serialNumber
     if (description != null) map["Description"] = description
@@ -125,9 +164,22 @@ fun VehicleDto.toFormMap(): Map<String, Any> {
     if (pictureInternalName != null) map["PictureInternalName"] = pictureInternalName
     if (nextServiceDateTime != null) map["NextServiceDateTime"] = nextServiceDateTime
     if (nextServiceDateTimeWithTimezoneOffset != null) map["NextServiceDateTime_WithTimezoneOffset"] = nextServiceDateTimeWithTimezoneOffset
+    if (currentHourMeter != null) map["CurrentHourMeter"] = currentHourMeter
     
     // Campos booleanos
     map["IsMarkedForDeletion"] = isMarkedForDeletion
+    
+    // 🔍 LOG CRÍTICO: Verificar estado de la imagen DESPUÉS de la conversión a FormMap
+    android.util.Log.d("VehicleMapper", """
+        🔍 IMAGEN DEL VEHÍCULO EN FORMMAP RESULTANTE:
+        - Vehicle ID: ${map["Id"]}
+        - Codename: ${map["Codename"]}
+        - Picture field: ${map["Picture"]}
+        - PictureFileSize field: ${map["PictureFileSize"]}
+        - PictureInternalName field: ${map["PictureInternalName"]}
+        - Total fields: ${map.size}
+        - All fields: ${map.keys.joinToString(", ")}
+    """.trimIndent())
     
     // Filtrar cualquier valor nulo que quede y convertir a Map<String, Any>
     return map.filterValues { it != null } as Map<String, Any>

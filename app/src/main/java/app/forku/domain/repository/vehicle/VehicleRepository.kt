@@ -1,5 +1,6 @@
 package app.forku.domain.repository.vehicle
 
+import app.forku.data.api.dto.vehicle.VehicleDto
 import app.forku.domain.model.vehicle.Vehicle
 import app.forku.domain.model.vehicle.VehicleStatus
 import app.forku.domain.model.vehicle.VehicleType
@@ -10,7 +11,14 @@ interface VehicleRepository {
      * Gets a specific vehicle by ID
      */
     suspend fun getVehicle(id: String, businessId: String): Vehicle
-    
+
+    /**
+     * Gets a vehicle from the API
+     * @param id The vehicle ID
+     * @param businessId The business context
+     */
+    suspend fun getVehicleFromApi(id: String, businessId: String): VehicleDto
+
     /**
      * Gets a vehicle with optimized included data (sessions, checklists) in single API call
      * @param id The vehicle ID

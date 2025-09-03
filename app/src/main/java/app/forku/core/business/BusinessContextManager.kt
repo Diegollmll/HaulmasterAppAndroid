@@ -58,7 +58,12 @@ class BusinessContextManager @Inject constructor(
             } else {
                 // Don't automatically load business context - return null if not found
                 // This allows the app to detect when user needs to go to SystemSettings
-                userPreferencesRepository.getEffectiveBusinessId()
+                val effectiveBusinessId = userPreferencesRepository.getEffectiveBusinessId()
+                if (effectiveBusinessId != null) {
+                    // Actualizar el estado interno para futuras llamadas
+                    _contextState.value = _contextState.value.copy(businessId = effectiveBusinessId)
+                }
+                effectiveBusinessId
             }
         }
     }
@@ -77,7 +82,13 @@ class BusinessContextManager @Inject constructor(
                 _contextState.value = _contextState.value.copy(siteId = stored)
                 stored
             } else {
-                null
+                // ✅ FIXED: Usar el mismo patrón que getCurrentBusinessId() - cargar desde user preferences
+                val effectiveSiteId = userPreferencesRepository.getEffectiveSiteId()
+                if (effectiveSiteId != null) {
+                    // Actualizar el estado interno para futuras llamadas
+                    _contextState.value = _contextState.value.copy(siteId = effectiveSiteId)
+                }
+                effectiveSiteId
             }
         }
     }

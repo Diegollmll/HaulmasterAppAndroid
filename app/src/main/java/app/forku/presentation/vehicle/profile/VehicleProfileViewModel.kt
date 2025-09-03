@@ -577,6 +577,8 @@ class VehicleProfileViewModel @Inject constructor(
     fun updateCurrentHourMeter(newHourMeter: String) {
         viewModelScope.launch {
             try {
+                Log.d("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] Starting update to: $newHourMeter")
+
                 _state.update { it.copy(isLoading = true) }
                 
                 val currentUser = userRepository.getCurrentUser()
@@ -603,18 +605,46 @@ class VehicleProfileViewModel @Inject constructor(
                 }
                 
                 val vehicleId = state.value.vehicle?.id ?: return@launch
+                Log.d("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] Vehicle ID: $vehicleId")
+                val currentHourMeter = state.value.vehicle?.currentHourMeter
+                Log.d("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] Current hour meter: $currentHourMeter")
+
                 
                 // Validate that the hour meter is a valid number
-                val hourMeterValue = newHourMeter.toDoubleOrNull()
-                if (hourMeterValue == null || hourMeterValue < 0) {
-                    _state.update { 
-                        it.copy(
-                            error = "Please enter a valid hour meter reading (positive number)",
-                            isLoading = false
-                        )
+                if (!newHourMeter.isNullOrBlank()) {
+                    android.util.Log.d("VehicleProfileVM", "[endSession] finalHourMeter: '$newHourMeter', currentHourMeter: '${currentHourMeter}'")
+                    
+                    val validationResult = app.forku.core.validation.HourMeterValidator.validateHourMeterUpdate( 
+                        newValue = newHourMeter,
+                        currentValue = currentHourMeter
+                    )
+                    
+                    if (!validationResult.isValid) {
+                        android.util.Log.e("VehicleProfileVM", "❌ Final hour meter validation failed: ${validationResult.errorMessage}")
+                        throw Exception("Invalid final hour meter: ${validationResult.errorMessage}")
                     }
-                    return@launch
+                    
+                    android.util.Log.d("VehicleSessionRepo", "✅ Final hour meter validation passed: ${validationResult.validatedValue}")
                 }
+
+                    //val currentHourMeterDouble = state.value.vehicle?.currentHourMeter
+                    //Log.d("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] Current hour meter Double: $currentHourMeterDouble")
+                    Log.d("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] Current newHourMeter: $newHourMeter")
+
+                    // Validate that the hour meter is a valid number and greater than current
+                    // val hourMeterValue = newHourMeter.toDoubleOrNull()
+                    // Log.d("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] New hour meter Double: $hourMeterValue")
+                    
+                    // if (hourMeterValue == null || hourMeterValue <= currentHourMeterDouble) {
+                    //     Log.w("VehicleProfileVM", "AppFlow [updateCurrentHourMeter] Invalid hour meter value: $newHourMeter")
+                    //     _state.update {
+                    //         it.copy(
+                    //             error = "Please enter a value greater than the current hour meter ($currentHourMeterDouble)",
+                    //             isLoading = false
+                    //         )
+                    //     }
+                    //     return@launch
+                    // }
 
                 Log.d("VehicleProfileVM", "[updateCurrentHourMeter] Updating hour meter for vehicle $vehicleId to $newHourMeter")
 

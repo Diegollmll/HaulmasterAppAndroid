@@ -204,6 +204,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+
             Button(
                 onClick = { 
                     Log.d("LoginScreen", "Login button clicked for user: $username")

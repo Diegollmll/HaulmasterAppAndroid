@@ -1018,6 +1018,15 @@ class ChecklistViewModel @Inject constructor(
     fun onInitialHourMeterConfirmed(hourMeter: String) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("ChecklistViewModel", """
+                    🔍 INICIANDO SESIÓN DEL VEHÍCULO:
+                    - Hour Meter: $hourMeter
+                    - Vehicle ID: ${state.value?.vehicleId}
+                    - Checklist Answer ID: ${state.value?.pendingChecklistAnswerId}
+                    - User: ${userRepository.getCurrentUser()?.fullName}
+                    - User Role: ${userRepository.getCurrentUser()?.role}
+                """.trimIndent())
+                
                 _state.update { 
                     it?.copy(
                         showInitialHourMeterDialog = false,
@@ -1032,13 +1041,13 @@ class ChecklistViewModel @Inject constructor(
                 val result = startVehicleSessionUseCase(vehicleId, checklistAnswerId, hourMeter)
                 
                 result.onSuccess {
-                    android.util.Log.d("ChecklistViewModel", "Vehicle session started successfully with hour meter.")
+                    android.util.Log.d("ChecklistViewModel", "✅ Vehicle session started successfully with hour meter.")
                     val currentUser = userRepository.getCurrentUser()
                     val role = currentUser?.role?.name ?: "operator"
                     android.util.Log.d("ChecklistViewModel", "Emitting navigation event to dashboard for role: $role")
                     _navigationEvent.value = NavigationEvent.AfterSubmit(role = role)
                 }.onFailure { e ->
-                    android.util.Log.e("ChecklistViewModel", "Failed to start vehicle session: ${e.message}", e)
+                    android.util.Log.e("ChecklistViewModel", "❌ Failed to start vehicle session: ${e.message}", e)
                     _state.update { 
                         it?.copy(
                             isLoading = false,
@@ -1047,7 +1056,7 @@ class ChecklistViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("ChecklistViewModel", "Error handling hour meter confirmation: ${e.message}", e)
+                android.util.Log.e("ChecklistViewModel", "❌ Error handling hour meter confirmation: ${e.message}", e)
                 _state.update { 
                     it?.copy(
                         isLoading = false,

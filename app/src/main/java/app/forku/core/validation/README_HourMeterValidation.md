@@ -1,7 +1,25 @@
-# Hour Meter Validation System
+# Hour Meter Validation System - UPDATED
 
 ## Overview
-This system ensures that hour meter readings can only increase, never decrease, across all parts of the ForkU application. It provides both UI and business logic validation to maintain data integrity.
+This system ensures that hour meter readings can only increase, never decrease, across all parts of the ForkU application. **The vehicle's current hour meter is always the source of truth for real-time operations.** It provides both UI and business logic validation to maintain data integrity.
+
+## Key Principles
+
+### 1. **Source of Truth**
+- **`vehicle.currentHourMeter`**: Always the current, up-to-date value
+- **`session.initialHourMeter`**: Audit trail - what was recorded at session start
+- **`session.finalHourMeter`**: Audit trail - what was recorded at session end
+
+### 2. **Data Flow**
+```
+QR Reading → vehicle.currentHourMeter (source of truth)
+    ↓
+Check-in: Update vehicle.currentHourMeter + Store in session.initialHourMeter
+    ↓
+During session: vehicle.currentHourMeter remains current
+    ↓
+Check-out: Update vehicle.currentHourMeter + Store in session.finalHourMeter
+```
 
 ## Components
 
@@ -45,7 +63,83 @@ Enhanced dialog with validation:
 
 Backend validation ensures data integrity even if UI validation is bypassed.
 
+## Implementation Details
+
+### Session Start (Check-in)
+```kotlin
+// 1. Validate the new hour meter value
+val validationResult = HourMeterValidator.validateInitialHourMeter(
+    initialValue = initialHourMeter,
+    vehicleCurrentValue = vehicle.currentHourMeter
+)
+
+// 2. Create the session with initial hour meter
+val session = VehicleSession(..., initialHourMeter = initialHourMeter)
+
+// 3. ✅ NEW: Update vehicle's current hour meter
+vehicleRepository.updateCurrentHourMeter(
+    vehicleId = vehicleId,
+    currentHourMeter = initialHourMeter,
+    businessId = businessId
+)
+```
+
+### Session End (Check-out)
+```kotlin
+// 1. Validate the final hour meter value
+val validationResult = HourMeterValidator.validateFinalHourMeter(
+    finalValue = finalHourMeter,
+    initialValue = session.initialHourMeter
+)
+
+// 2. End the session with final hour meter
+val updatedSession = session.copy(
+    finalHourMeter = finalHourMeter,
+    status = VehicleSessionStatus.NOT_OPERATING
+)
+
+// 3. ✅ Already implemented: Update vehicle's current hour meter
+vehicleRepository.updateCurrentHourMeter(
+    vehicleId = vehicleId,
+    currentHourMeter = finalHourMeter,
+    businessId = businessId
+)
+```
+
+## Benefits of New Implementation
+
+1. **✅ Consistency**: `vehicle.currentHourMeter` is always the source of truth
+2. **✅ Audit Trail**: Session values provide complete history
+3. **✅ Real-time Operations**: QR reading always uses current vehicle value
+4. **✅ Automatic Synchronization**: Vehicle hour meter updates automatically
+5. **✅ Data Integrity**: Validation prevents invalid values
+
 ## Usage Examples
+
+### QR Reading (Always uses vehicle current value)
+```kotlin
+// In DashboardScreen, VehicleProfileScreen, etc.
+HourMeterDialog(
+    currentValue = vehicle.currentHourMeter, // ✅ Source of truth
+    // ... other parameters
+)
+```
+
+### Check-in (Updates both vehicle and session)
+```kotlin
+// The system automatically:
+// 1. Updates vehicle.currentHourMeter
+// 2. Stores in session.initialHourMeter
+// 3. Creates the session
+```
+
+### Check-out (Updates both vehicle and session)
+```kotlin
+// The system automatically:
+// 1. Updates vehicle.currentHourMeter
+// 2. Stores in session.finalHourMeter
+// 3. Ends the session
+```
 
 ### Vehicle Hour Meter Update
 ```kotlin

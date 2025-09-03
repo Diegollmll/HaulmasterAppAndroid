@@ -76,30 +76,55 @@ class VehicleRepositoryImpl @Inject constructor(
      * Create proper JSON for vehicle update following GO API standards
      */
     private fun createVehicleUpdateJson(vehicle: Vehicle): String {
-        val jsonObject = mutableMapOf<String, Any?>(
-            "\$type" to "VehicleDataObject",
-            "Id" to vehicle.id,
-            "BusinessId" to vehicle.businessId,
-            "IsMarkedForDeletion" to false,
-            "InternalObjectId" to 0,
-            "IsDirty" to true,
-            "IsNew" to false, // ✅ CRITICAL: Set to false for updates
-            
-            // Required fields for vehicle update
-            "Codename" to vehicle.codename,
-            "Model" to vehicle.model,
-            "Description" to vehicle.description,
-            "BestSuitedFor" to vehicle.bestSuitedFor,
-            "SerialNumber" to vehicle.serialNumber,
-            "Status" to vehicle.status.toInt(),
-            "EnergySource" to vehicle.energySource,
-            "VehicleTypeId" to vehicle.type.Id,
-            "VehicleCategoryId" to vehicle.categoryId,
-            "SiteId" to vehicle.siteId,
-            "CurrentHourMeter" to vehicle.currentHourMeter
+        val vehicleDto = VehicleDto(
+            id = vehicle.id,
+            businessId = vehicle.businessId,
+            siteId = vehicle.siteId,
+            vehicleTypeId = vehicle.type.Id,
+            categoryId = vehicle.categoryId,
+            status = vehicle.status.toInt(),
+            serialNumber = vehicle.serialNumber,
+            description = vehicle.description,
+            bestSuitedFor = vehicle.bestSuitedFor,
+            photoModel = vehicle.photoModel,
+            codename = vehicle.codename,
+            model = vehicle.model,
+            energySource = vehicle.energySource,
+            energySourceDisplayString = vehicle.energySourceDisplayString,
+            nextServiceDateTime = vehicle.nextService,
+            currentHourMeter = vehicle.currentHourMeter
         )
-        
-        return gson.toJson(jsonObject)
+
+        val vehicleFormMap = vehicleDto.toFormMap()
+        val vehicleJson = gson.toJson(vehicleFormMap)
+        return vehicleJson
+
+//        val jsonObject = mutableMapOf<String, Any?>(
+//            "\$type" to "VehicleDataObject",
+//            "Id" to vehicle.id,
+//            "BusinessId" to vehicle.businessId,
+//            "IsMarkedForDeletion" to false,
+//            "InternalObjectId" to 0,
+//            "IsDirty" to true,
+//            "IsNew" to false, // ✅ CRITICAL: Set to false for updates
+//
+//            // Required fields for vehicle update
+//            "Codename" to vehicle.codename,
+//            "Model" to vehicle.model,
+//            "Description" to vehicle.description,
+//            "BestSuitedFor" to vehicle.bestSuitedFor,
+//            "SerialNumber" to vehicle.serialNumber,
+//            "Status" to vehicle.status.toInt(),
+//            "EnergySource" to vehicle.energySource,
+//            "VehicleTypeId" to vehicle.type.Id,
+//            "VehicleCategoryId" to vehicle.categoryId,
+//            "SiteId" to vehicle.siteId,
+//            "CurrentHourMeter" to vehicle.currentHourMeter,
+//            // ✅ FIX: Preserve the vehicle's picture
+//            "Picture" to vehicle.photoModel
+//        )
+//
+//        return gson.toJson(jsonObject)
     }
 
     private fun isCacheValid(cachedVehicle: CachedVehicle): Boolean {
@@ -175,19 +200,43 @@ class VehicleRepositoryImpl @Inject constructor(
     ): Vehicle = withContext(Dispatchers.IO) {
         Log.d(TAG, "getVehicle called with id=$id, businessId=$businessId")
         mutex.withLock {
-            getFromCache(id)?.let { return@withContext it }
+            //getFromCache(id)?.let { return@withContext it }
             try {
                 val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
                 Log.d(TAG, "Calling api.getVehicleById with id=$id, csrfToken=${csrfToken.take(8)}..., cookie=${cookie.take(8)}...")
-                var vehicle = api.getVehicleById(
-                    id = id, 
-                    csrfToken = csrfToken, 
-                    cookie = cookie,
-                    include = "VehicleType"
-                ).body()?.toDomain() ?: run {
-                        Log.e(TAG, "Vehicle not found for id=$id")
-                        throw Exception("Vehicle not found")
-                    }
+
+//                val currentResponse = api.getVehicleById(
+//                    id = id,
+//                    csrfToken = csrfToken,
+//                    cookie = "cookie",
+//                    include = "VehicleType"
+//                )
+//                if (!currentResponse.isSuccessful) {
+//                    android.util.Log.e("VehicleStatusUpdater", "Failed to fetch vehicle: ${currentResponse.code()}")
+//                    throw Exception("Failed to fetch vehicle: ${currentResponse.code()}")
+//                }
+
+//                val currentVehicleDto = currentResponse.body() ?: throw Exception("Vehicle not found")
+                val currentVehicleDto = getVehicleFromApi(id, businessId)
+
+
+                var vehicle = currentVehicleDto?.toDomain() ?: run {
+                    Log.e(TAG, "Vehicle not found for id=$id")
+                    throw Exception("Vehicle not found")
+                }
+
+//                var vehicle = api.getVehicleById(
+//                    id = id,
+//                    csrfToken = csrfToken,
+//                    cookie = cookie,
+//                    include = "VehicleType"
+//                ).body()?.toDomain() ?: run {
+//                        Log.e(TAG, "Vehicle not found for id=$id")
+//                        throw Exception("Vehicle not found")
+//                    }
+
+
+
                 Log.d(TAG, "Vehicle fetched from API: $vehicle")
                 vehicle = enrichVehicleWithTypeInfo(vehicle)
                 updateCache(id, vehicle)
@@ -200,6 +249,25 @@ class VehicleRepositoryImpl @Inject constructor(
                 }
                 throw e
             }
+        }
+    }
+
+    override suspend fun getVehicleFromApi(id: String, businessId: String): VehicleDto = withContext(Dispatchers.IO) {
+        try {
+            val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
+            val response = api.getVehicleById(
+                id = id,
+                csrfToken = csrfToken,
+                cookie = cookie,
+                include = "VehicleType"
+            )
+            if (!response.isSuccessful) {
+                throw Exception("Failed to fetch vehicle from API: ${response.code()}")
+            }
+            response.body() ?: throw Exception("Vehicle not found")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching vehicle from API for id=$id, businessId=$businessId: ${e.message}", e)
+            throw e
         }
     }
 
@@ -335,7 +403,7 @@ class VehicleRepositoryImpl @Inject constructor(
             """.trimIndent())
             
             // Get current vehicle data first
-            val currentVehicle = getVehicle(vehicleId, businessId)
+            val currentVehicle = getVehicleFromApi(vehicleId, businessId)
             if (currentVehicle == null) {
                 Log.e(TAG, "Vehicle not found: $vehicleId")
                 throw Exception("Vehicle not found")
@@ -347,8 +415,11 @@ class VehicleRepositoryImpl @Inject constructor(
             Log.d(TAG, "Got auth headers - CSRF Token: ${headers.csrfToken.take(10)}...")
 
             // ✅ FIX: Create proper JSON for vehicle status update with new status
-            val updatedVehicle = currentVehicle.copy(status = status)
-            val vehicleJson = createVehicleUpdateJson(updatedVehicle)
+            val updatedVehicle = currentVehicle.copy(status = status.toInt())
+            val vehicleFormMap = updatedVehicle.toFormMap();
+            val vehicleJson = gson.toJson(vehicleFormMap)
+
+            //val vehicleJson = createVehicleUpdateJson(updatedVehicle)
             Log.d(TAG, "Created vehicle JSON for status update with IsNew=false")
             
             // Make the API call
@@ -436,7 +507,7 @@ class VehicleRepositoryImpl @Inject constructor(
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
-            
+
             // ✅ FIX: Use helper function for consistent vehicle update JSON
             val vehicleJson = createVehicleUpdateJson(updatedVehicle)
             val response = api.saveVehicle(
@@ -494,11 +565,11 @@ class VehicleRepositoryImpl @Inject constructor(
     ): Vehicle = withContext(Dispatchers.IO) {
         try {
             Log.d(TAG, "Updating current hour meter for vehicle $vehicleId to $currentHourMeter")
-            
+
             val (csrfToken, cookie) = headerManager.getCsrfAndCookie()
             
             // Get current vehicle data first
-            val currentVehicle = getVehicle(vehicleId, businessId)
+            val currentVehicle = getVehicleFromApi(vehicleId, businessId)
             
             // ✅ VALIDATION: Ensure hour meter can only increase
             val validationResult = app.forku.core.validation.HourMeterValidator.validateVehicleHourMeterUpdate(
@@ -513,35 +584,42 @@ class VehicleRepositoryImpl @Inject constructor(
             
             Log.d(TAG, "Hour meter validation passed: ${validationResult.validatedValue}")
             val formattedHourMeter = app.forku.core.validation.HourMeterValidator.formatHourMeter(currentHourMeter)
-            
-            // Create simplified JSON object following GO API standards
-            val jsonObject = mutableMapOf<String, Any?>(
-                "\$type" to "VehicleDataObject",
-                "Id" to currentVehicle.id,
-                "BusinessId" to currentVehicle.businessId,
-                "IsMarkedForDeletion" to false,
-                "InternalObjectId" to 0,
-                "IsDirty" to true,
-                "IsNew" to false, // ✅ CRITICAL: Set to false for updates
-                
-                // Required fields for vehicle update
-                "Codename" to currentVehicle.codename,
-                "Model" to currentVehicle.model,
-                "Description" to currentVehicle.description,
-                "BestSuitedFor" to currentVehicle.bestSuitedFor,
-                "SerialNumber" to currentVehicle.serialNumber,
-                "Status" to currentVehicle.status.toInt(),
-                "VehicleTypeId" to (currentVehicle.vehicleTypeId.takeIf { it.isNotBlank() } ?: currentVehicle.type.Id), // ✅ Fix vehicleTypeId
-                "VehicleCategoryId" to currentVehicle.categoryId,
-                "EnergySource" to currentVehicle.energySource,
-                "SiteId" to currentVehicle.siteId,
-                
-                // ✅ NEW: The field we're updating
-                "CurrentHourMeter" to formattedHourMeter
+            Log.d(TAG, "AppFlow updateCurrentHourMeter Hour meter formattedHourMeter: $formattedHourMeter")
+
+            val updatedVehicleDto = currentVehicle.copy(
+                currentHourMeter = formattedHourMeter,
             )
-            
-            val vehicleJson = gson.toJson(jsonObject)
-            Log.d(TAG, "Updating vehicle hour meter with JSON: ${vehicleJson.take(300)}...")
+            val vehicleFormMap = updatedVehicleDto.toFormMap();
+
+
+            // Create simplified JSON object following GO API standards
+//            val jsonObject = mutableMapOf<String, Any?>(
+//                "\$type" to "VehicleDataObject",
+//                "Id" to currentVehicle.id,
+//                "BusinessId" to currentVehicle.businessId,
+//                "IsMarkedForDeletion" to false,
+//                "InternalObjectId" to 0,
+//                "IsDirty" to true,
+//                "IsNew" to false, // ✅ CRITICAL: Set to false for updates
+//
+//                // Required fields for vehicle update
+//                "Codename" to currentVehicle.codename,
+//                "Model" to currentVehicle.model,
+//                "Description" to currentVehicle.description,
+//                "BestSuitedFor" to currentVehicle.bestSuitedFor,
+//                "SerialNumber" to currentVehicle.serialNumber,
+//                "Status" to currentVehicle.status.toInt(),
+//                "VehicleTypeId" to (currentVehicle.vehicleTypeId.takeIf { it.isNotBlank() } ?: currentVehicle.type.Id), // ✅ Fix vehicleTypeId
+//                "VehicleCategoryId" to currentVehicle.categoryId,
+//                "EnergySource" to currentVehicle.energySource,
+//                "SiteId" to currentVehicle.siteId,
+//
+//                // ✅ NEW: The field we're updating
+//                "CurrentHourMeter" to formattedHourMeter,
+//            )
+
+            val vehicleJson = gson.toJson(vehicleFormMap)
+            Log.d(TAG, "Appflow Updating vehicle hour meter with JSON: ${vehicleJson}...")
             
             val response = api.saveVehicle(
                 entity = vehicleJson,
