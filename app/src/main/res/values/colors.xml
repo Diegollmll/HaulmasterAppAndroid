@@ -12,7 +12,16 @@
     <!-- Basic colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    
+    <!-- Neutral colors -->
+    <color name="carbon_gray">#323232</color>
+    <color name="carbon_gray_light">#6B7280</color>
+    <!-- Primary colors -->
+    <color name="night_navy">#021024</color>
+    <color name="midnight_blue">#052659</color>
+    <color name="ocean_blue">#4683B7</color>
+    <color name="slate_blue">#5483B3</color>
+
+
     <!-- App specific colors -->
     <color name="dark_gray">#FF424242</color>
     <color name="light_gray">#FFE0E0E0</color>

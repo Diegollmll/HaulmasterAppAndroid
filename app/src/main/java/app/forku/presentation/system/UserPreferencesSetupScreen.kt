@@ -255,9 +255,9 @@ fun UserPreferencesSetupScreen(
                     ) {
                         // Logo de la app
                         Image(
-                            painter = painterResource(id = R.drawable.logo_rigright),
-                            contentDescription = "RigRight Logo",
-                            modifier = Modifier.size(64.dp),
+                            painter = painterResource(id = R.drawable.logo_haulmaster),
+                            contentDescription = "HaulMaster Logo",
+                            modifier = Modifier.size(120.dp),
                             contentScale = ContentScale.Fit
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -471,7 +471,7 @@ fun UserPreferencesSetupScreen(
                         )
                         
                         OutlinedTextField(
-                            value = selectedSite?.name ?: "Select Site",
+                            value = selectedSite?.name ?: "Select site",
                             onValueChange = {},
                             label = { Text("Site") },
                             readOnly = true,

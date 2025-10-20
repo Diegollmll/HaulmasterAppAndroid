@@ -268,13 +268,35 @@ class UserPreferencesRepositoryImpl @Inject constructor(
             Log.d(TAG, "🔄 Email from memory: '$emailFromMemory'")
             Log.d(TAG, "🔄 Final email: '$validEmail'")
             Log.d(TAG, "🔄 =========================")
+
+            Log.d(TAG, "🔄 ================================================")
+
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE USERNAME === A")
+            // ✅ CRITICAL FIX: Use email from API if available, otherwise from memory if valid
+            val usernameFromApi = currentUserData?.username?.takeIf { it.isNotBlank() && it != "null" }
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE USERNAME === B '${usernameFromApi}'")
+            val usernameFromMemory = currentUser.username.takeIf { username ->
+                username.isNotBlank() &&
+                        username != "null" &&
+                        username.contains("@") &&
+                        username.contains(".")
+            }
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE USERNAME === C '${usernameFromMemory}'")
+            // Priority: API username > Memory username > null
+            val validUsername = usernameFromApi ?: usernameFromMemory
+            Log.d(TAG, "🔄 === RESOLUCIÓN DE USERNAME === D '${validUsername}'")
+
+            Log.d(TAG, "🔄 Username from API: '$usernameFromApi'")
+            Log.d(TAG, "🔄 Username from memory: '$usernameFromMemory'")
+            Log.d(TAG, "🔄 Final username: '$validUsername'")
+            Log.d(TAG, "🔄 =========================")
             
             // ✅ CRITICAL FIX: NO incluir email para evitar error "forbiddenToChangeEmail"
             // Solo actualizar UserPreferencesId y campos básicos
             val updatedUserDto = UserDto(
                 id = currentUser.id,
                 email = validEmail, // ❌ NO incluir email - causa error forbiddenToChangeEmail
-                username = currentUser.username,
+                username = validUsername,
                 firstName = currentUser.firstName,
                 lastName = currentUser.lastName,
                 fullName = "${currentUser.firstName} ${currentUser.lastName}".trim(),

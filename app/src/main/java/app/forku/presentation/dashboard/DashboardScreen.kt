@@ -451,7 +451,7 @@ private fun DashboardNavigationButtons(
             ) {
                 NavigationButton(
                     icon = Icons.Default.History,
-                    text = "CICO",
+                    text = "Docs",
                     onClick = {
                         isExpanded = false
                         navController.navigate(Screen.OperatorsCICOHistory.route)

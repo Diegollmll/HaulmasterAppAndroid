@@ -140,7 +140,7 @@ fun ProfileScreen(
         navController = navController,
         showTopBar = true,
         topBarTitle = when {
-            operatorId != null -> "Operator Profile"
+            operatorId != null -> "Driver Profile"
             isAdminRole -> "${state.user?.role?.name ?: ""} Profile"
             else -> "User Profile"
         },

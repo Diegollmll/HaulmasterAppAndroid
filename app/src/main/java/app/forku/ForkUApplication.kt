@@ -33,7 +33,7 @@ class ForkUApplication : Application(), ProviderInstallListener {
         try {
             authDataStore.logTokenExpirationDate()
         } catch (e: Exception) {
-            Log.e("ForkUApplication", "Failed to log token expiration", e)
+            Log.e("HaulMaster application", "Failed to log token expiration", e)
         }
     }
 

@@ -28,6 +28,8 @@ import app.forku.core.utils.hideKeyboardOnTapOutside
 import app.forku.presentation.common.components.LoadingScreen
 import app.forku.presentation.navigation.Screen
 import app.forku.core.auth.TokenErrorHandler
+import com.google.common.base.Ascii.toLowerCase
+import java.lang.Character.toLowerCase
 
 @Composable
 fun RegisterScreen(

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Patterns
+import java.util.Locale
 
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
@@ -23,7 +24,7 @@ class RegisterViewModel @Inject constructor(
         when (event) {
             is RegisterEvent.EmailChanged -> {
                 _state.value = _state.value.copy(
-                    email = event.email,
+                    email = event.email.lowercase().trim(),
                     error = null
                 )
             }

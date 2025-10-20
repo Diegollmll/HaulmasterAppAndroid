@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">RigRight</string>
+    <string name="app_name">HaulMaster</string>
     <string name="report_config_title">Report Configuration</string>
     <string name="report_detail_level">Detail Level</string>
     <string name="report_no_details">No Details</string>

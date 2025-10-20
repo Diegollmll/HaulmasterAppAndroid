@@ -32,7 +32,7 @@ fun SystemSettingsScreen(
         showBottomBar = false,
         showTopBar = true,
         showBackButton = true,
-        topBarTitle = "System Settings",
+        topBarTitle = "System settings",
         networkManager = networkManager,
         tokenErrorHandler = tokenErrorHandler
     ) { padding ->

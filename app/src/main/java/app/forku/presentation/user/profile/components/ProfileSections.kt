@@ -38,7 +38,7 @@ fun ProfileSections(
             .padding(16.dp)
     ) {
         Text(
-            text = if (isCurrentUser) "Profile" else "Operator Information",
+            text = if (isCurrentUser) "Profile" else "Driver Information",
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(8.dp)
         )
@@ -60,7 +60,7 @@ fun ProfileSections(
         // CICO History is not relevant for System Owners and Super Admins
         if (!isAdminRole) {
             ProfileSection(
-                title = if (isCurrentUser) "My CICO History" else "CICO History",
+                title = if (isCurrentUser) "My DOCS History" else "DOCS History",
                 onClick = onCicoHistoryClick
             )
         }

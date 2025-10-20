@@ -61,7 +61,7 @@ fun VehicleProfileScreen(
     networkManager: NetworkConnectivityManager,
     userRole: UserRole,
     imageLoader: ImageLoader,
-    tokenErrorHandler: TokenErrorHandler
+    tokenErrorHandler: TokenErrorHandler,
 ) {
     // Inject UserPreferencesRepository using Hilt EntryPoint
     val context = LocalContext.current.applicationContext

@@ -48,9 +48,9 @@ fun DashboardHeader(
         ) {
             // Logo de la app
             Image(
-                painter = painterResource(id = R.drawable.logo_rigright),
-                contentDescription = "RigRight Logo",
-                modifier = Modifier.size(32.dp),
+                painter = painterResource(id = R.drawable.logo_haulmaster),
+                contentDescription = "Haulmaster Logo",
+                modifier = Modifier.size(64.dp),
                 contentScale = ContentScale.Fit
             )
             

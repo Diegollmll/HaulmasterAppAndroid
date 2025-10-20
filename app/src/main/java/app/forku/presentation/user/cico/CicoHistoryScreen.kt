@@ -101,10 +101,10 @@ fun CicoHistoryScreen(
 
     // Determine screen title based on source and operatorId
     val screenTitle = when {
-        source == "profile" -> "My CICO History"
-        source == "operator_profile" -> "Operator CICO History"
-        operatorId != null -> "Operator CICO History"
-        else -> "CICO History"
+        source == "profile" -> "My Docs History"
+        source == "operator_profile" -> "Operator Docs History"
+        operatorId != null -> "Operator Docs History"
+        else -> "Docs History"
     }
 
     BaseScreen(
@@ -152,7 +152,7 @@ fun CicoHistoryScreen(
                                 onDismissRequest = { viewModel.setDropdownExpanded(false) }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("All Operators") },
+                                    text = { Text("All Drivers") },
                                     onClick = {
                                         viewModel.setSelectedOperator(null)
                                         viewModel.setDropdownExpanded(false)
@@ -198,7 +198,7 @@ fun CicoHistoryScreen(
                             showBusinessFilter = false,
                             isCollapsible = true,
                             initiallyExpanded = false,
-                            title = "Filter CICO by Context",
+                            title = "Filter Docs by Context",
                             adminSharedFiltersViewModel = sharedFiltersViewModel
                         )
                     }

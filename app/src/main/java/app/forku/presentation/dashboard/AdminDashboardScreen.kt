@@ -46,7 +46,7 @@ import app.forku.presentation.dashboard.AdminDashboardViewModel
 import app.forku.presentation.dashboard.DashboardState
 import app.forku.presentation.dashboard.AdminDashboardState
 import androidx.compose.ui.res.colorResource
-
+import app.forku.R
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -328,7 +328,7 @@ private fun OperationStatusSection(
                     icon = Icons.Default.DirectionsCar,
                     count = state.operatingVehiclesCount.toString(),
                     label = "Operating",
-                    iconTint = Color(0xFF4CAF50),
+                    iconTint = colorResource(id = R.color.night_navy),
                     onClick = { navController.navigate(Screen.VehiclesList.route) }
                 )
                 StatusItem(
@@ -508,7 +508,7 @@ private fun OperatorsInSessionSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Operators In-Session",
+                    text = "Drivers In-Session",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -537,7 +537,7 @@ private fun OperatorsInSessionSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No operators in session",
+                        text = "No drivers in session",
                         color = Color.Gray,
                         fontSize = 18.sp
                     )

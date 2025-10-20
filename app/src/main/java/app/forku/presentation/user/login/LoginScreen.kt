@@ -1,6 +1,7 @@
 package app.forku.presentation.user.login
 
 import android.util.Log
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,11 +27,14 @@ import app.forku.core.auth.AuthenticationState
 import androidx.compose.ui.res.painterResource
 import app.forku.R
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.colorResource
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import app.forku.presentation.common.viewmodel.AdminSharedFiltersViewModel
+import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,103 +122,141 @@ fun LoginScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.logo_rigright),
-                    contentDescription = "RigRight Logo",
-                    modifier = Modifier.size(80.dp),
+                    painter = painterResource(id = R.drawable.logo_haulmaster),
+                    contentDescription = "Haulmaster Logo",
+                    modifier = Modifier.size(140.dp),
                     contentScale = ContentScale.Fit
                 )
             }
 
             Text(
-                text = "RigRight",
-                color = colorResource(id = R.color.rigright_orange),
-                fontSize = 24.sp,
+                text = "Welcome back",
+                color = colorResource(id = R.color.carbon_gray),
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.CenterHorizontally) // Centrar texto
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Login, get settled &\nlet's begin.",
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                lineHeight = 34.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.CenterHorizontally) // Centrar subtítulo
+                text = "Enter your details below.",
+                color = colorResource(id = R.color.carbon_gray_light),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                lineHeight = 32.sp,
+                modifier = Modifier.align(Alignment.CenterHorizontally), // Centrar subtítulo
+                textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorResource(id = R.color.primary_blue),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = colorResource(id = R.color.primary_blue),
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    cursorColor = colorResource(id = R.color.primary_blue),
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-                ),
-                enabled = state !is LoginState.Loading,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text,
-                    imeAction = ImeAction.Next
+            Column() {
+                Text(
+                    text = "Email address",
+                    color = colorResource(id = R.color.carbon_gray_light),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    textAlign = TextAlign.Center
                 )
-            )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFF8F9FA), // gris muy claro arriba
+                                    Color(0xFFFFFFFF)  // blanco abajo
+                                )
+                            ),
+                            shape = RoundedCornerShape(12.dp) // bordes redondeados
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFE0E0E0), // borde gris clarito (opcional)
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                ) {
+                    TextField(
+                        value = username,
+                        onValueChange = { username = it },
+                        placeholder = { Text("Enter your email address") },
+                        singleLine = true,
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.Transparent, // 👈 fondo lo maneja el Box
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colorResource(id = R.color.primary_blue),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = colorResource(id = R.color.primary_blue),
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    cursorColor = colorResource(id = R.color.primary_blue),
-                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground
-                ),
-                enabled = state !is LoginState.Loading,
-                singleLine = true,
-                trailingIcon = {
-                    TextButton(
-                        onClick = { /* TODO: Handle forgot password */ },
-                        enabled = state !is LoginState.Loading
-                    ) {
-                        Text("Forgot?", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
+            Column() {
+                Text(
+                    text = "Password",
+                    color = colorResource(id = R.color.carbon_gray_light),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    textAlign = TextAlign.Center
                 )
-            )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFF8F9FA), // gris muy claro arriba
+                                    Color(0xFFFFFFFF)  // blanco abajo
+                                )
+                            ),
+                            shape = RoundedCornerShape(12.dp) // bordes redondeados
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color(0xFFE0E0E0), // borde gris clarito (opcional)
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                ) {
+
+                    TextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        placeholder = { Text("Enter your password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.Transparent, // 👈 fondo lo maneja el Box
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
 
             Button(
-                onClick = { 
+                onClick = {
                     Log.d("LoginScreen", "Login button clicked for user: $username")
                     viewModel.login(username, password)
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp) // Padding horizontal
+                    .height(56.dp), // Altura del botón
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(id = R.color.primary_blue),
+                    containerColor = colorResource(id = R.color.midnight_blue),
                     contentColor = colorResource(id = R.color.white)
                 ),
+                shape = RoundedCornerShape(12.dp), // Opcional: esquinas redondeadas
                 enabled = username.isNotBlank() && password.isNotBlank() && state !is LoginState.Loading
             ) {
                 if (state is LoginState.Loading) {
@@ -223,11 +265,28 @@ fun LoginScreen(
                         color = colorResource(id = R.color.white)
                     )
                 } else {
-                    Text("Log in")
+                    Text(
+                        text = "Log in",
+                        fontSize = 16.sp,           // Aquí va el fontSize
+                        fontWeight = FontWeight.Medium  // Aquí va el fontWeight
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // 👇 Aquí el link de "Forgot your password?"
+            TextButton(
+                onClick = { /* TODO: Navegar a tu pantalla de recuperación */ },
+                enabled = state !is LoginState.Loading
+            ) {
+                Text(
+                    "Forgot your password?",
+                    color = colorResource(id = R.color.primary_blue),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
